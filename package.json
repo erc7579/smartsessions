@@ -1,0 +1,16 @@
+{
+  "name": "smart-account-modules",
+  "description": "Biconomu Smart Account Modules",
+  "version": "0.1.0",
+  "author": {
+    "name": "Biconomy",
+    "url": "https://github.com/bcnmy"
+  },
+  "dependencies": {
+    "@account-abstraction/contracts": "^0.7.0",
+    "@openzeppelin/contracts": "^5.0.2"
+  },
+  "devDependencies": {
+    "forge-std": "github:foundry-rs/forge-std#v1.7.6"
+  }
+}

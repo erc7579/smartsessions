@@ -1,0 +1,5 @@
+bico-7579-sa/=accounts/erc7579-modular-smart-account/
+account-abstraction/=node_modules/@account-abstraction/contracts/
+@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/
+forge-std/=node_modules/forge-std/src/
+
