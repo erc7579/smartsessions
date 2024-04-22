@@ -70,6 +70,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"ds-test@github:dapphub/ds-test":
+  version: 1.0.0
+  resolution: "ds-test@https://github.com/dapphub/ds-test.git#commit=e282159d5170298eb2455a6c05280ab5a73a4ef0"
+  checksum: 8f36e20dde868d062841c790fc43c9dd18b93d6180995f378bedaee1f24444950838843c0f2ffa5ac3b8a21b4c29fd97a60725e29e8ff71c9cf28f837614d96f
+  languageName: node
+  linkType: hard
+
 "forge-std@github:foundry-rs/forge-std#v1.7.6":
   version: 1.7.6
   resolution: "forge-std@https://github.com/foundry-rs/forge-std.git#commit=ae570fec082bfe1c1f45b0acca4a2b4f84d345ce"
@@ -83,6 +90,7 @@ __metadata:
   dependencies:
     "@account-abstraction/contracts": ^0.7.0
     "@openzeppelin/contracts": ^5.0.2
+    ds-test: "github:dapphub/ds-test"
     forge-std: "github:foundry-rs/forge-std#v1.7.6"
   languageName: unknown
   linkType: soft

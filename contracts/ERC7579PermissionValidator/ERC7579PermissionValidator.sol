@@ -7,15 +7,15 @@ import {
     IValidator,
     VALIDATION_SUCCESS,
     VALIDATION_FAILED
-} from "bico-7579-sa/contracts/interfaces/modules/IERC7579Modules.sol";
-import { EncodedModuleTypes } from "bico-7579-sa/contracts/lib/ModuleTypeLib.sol";
+} from "erc7579/src/interfaces/IERC7579Module.sol";
+import { EncodedModuleTypes } from "erc7579/src/lib/ModuleTypeLib.sol";
 import { ISigValidationAlgorithm } from "./SigValidation/ISigValidationAlgorithm.sol";
 import {
     I1271SignatureValidator, EIP1271_MAGIC_VALUE
 } from "../interfaces/I1271SignatureValidator.sol";
-import { PackedUserOperation } from "account-abstraction/interfaces/PackedUserOperation.sol";
-import { _packValidationData } from "account-abstraction/core/Helpers.sol";
-import { MessageHashUtils } from "@openzeppelin/utils/cryptography/MessageHashUtils.sol";
+import { PackedUserOperation } from "account-abstraction/contracts/interfaces/PackedUserOperation.sol";
+import { _packValidationData } from "account-abstraction/contracts/core/Helpers.sol";
+import { MessageHashUtils } from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
 
 import "forge-std/Console2.sol";
