@@ -1,8 +1,0 @@
-@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/
-@prb/test/=node_modules/@prb/test/
-forge-std/=node_modules/forge-std/
-modulekit/=node_modules/modulekit/
-account-abstraction/=node_modules/account-abstraction/
-solady/=node_modules/solady
-sentinellist/=node_modules/sentinellist/
-ds-test/=node_modules/ds-test/src/

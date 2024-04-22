@@ -1,48 +1,14 @@
-# directories
-cache
-cache_forge
-coverage
-node_modules
-out
-docs
-storageLayout
-.husky
-deployments
+# Compiler files
+cache/
+out/
 
-# files
-*.env
-*.log
-.DS_Store
-.pnp.*
-lcov.info
-package-lock.json
-pnpm-lock.yaml
-yarn.lock
+# Ignores development broadcast logs
+!/broadcast
+/broadcast/*/31337/
+/broadcast/**/dry-run/
 
-# broadcasts
-!broadcast
-broadcast/*
-broadcast/*/31337/
+# Docs
+docs/
 
-node_modules
+# Dotenv file
 .env
-
-# Hardhat files
-/cache
-/artifacts
-/docs
-
-# TypeChain files
-/typechain
-/typechain-types
-
-# solidity-coverage files
-/coverage
-/coverage.json
-
-node_modules
-.env
-
-# Foundry cache
-cache_forge/solidity-files-cache.json
-.vscode/settings.json
