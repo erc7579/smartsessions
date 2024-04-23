@@ -8,7 +8,6 @@ import {
     VALIDATION_SUCCESS,
     VALIDATION_FAILED
 } from "erc7579/src/interfaces/IERC7579Module.sol";
-import { EncodedModuleTypes } from "erc7579/src/lib/ModuleTypeLib.sol";
 import { ISigValidationAlgorithm } from "./SigValidation/ISigValidationAlgorithm.sol";
 import {
     I1271SignatureValidator, EIP1271_MAGIC_VALUE
@@ -461,11 +460,6 @@ contract ERC7579PermissionValidator is IValidator, IERC7579PermissionValidator {
     function isInitialized(address) external pure returns (bool) {
         // TODO: how do we know it was initialized?
         return true;
-    }
-
-    function getModuleTypes() external view returns (uint256) {
-        // solhint-disable-previous-line no-empty-blocks
-        //return EncodedModuleTypes.unwrap(somevar);
     }
 
     // Review

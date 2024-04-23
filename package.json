@@ -1,17 +1,20 @@
 {
   "name": "smart-account-modules",
-  "description": "Biconomu Smart Account Modules",
+  "description": "Biconomy Smart Account Modules",
   "version": "0.1.0",
   "author": {
     "name": "Biconomy",
     "url": "https://github.com/bcnmy"
   },
   "dependencies": {
-    "@account-abstraction/contracts": "^0.7.0",
-    "@openzeppelin/contracts": "^5.0.2"
+    "@openzeppelin/contracts": "5.0.1"
   },
   "devDependencies": {
+    "account-abstraction": "github:eth-infinitism/account-abstraction#develop",
     "ds-test": "github:dapphub/ds-test",
-    "forge-std": "github:foundry-rs/forge-std#v1.7.6"
+    "forge-std": "github:foundry-rs/forge-std",
+    "sentinellist": "github:zeroknots/sentinellist",
+    "solady": "github:vectorized/solady",
+    "erc7579-implementation": "github:erc7579/erc7579-implementation"
   }
 }

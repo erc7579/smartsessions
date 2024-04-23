@@ -1,6 +1,5 @@
-erc7579/=dependencies/erc7579/
-account-abstraction/=node_modules/@account-abstraction/
+erc7579/=node_modules/erc7579-implementation/
+account-abstraction/=node_modules/account-abstraction/
 @openzeppelin/contracts/=node_modules/@openzeppelin/contracts/
 forge-std/=node_modules/forge-std/src/
 ds-test/=node_modules/ds-test/src/
-
