@@ -8,30 +8,23 @@ importers:
 
   .:
     dependencies:
-      '@openzeppelin/contracts':
-        specifier: 5.0.1
-        version: 5.0.1
-    devDependencies:
-      account-abstraction:
-        specifier: github:eth-infinitism/account-abstraction#develop
-        version: accountabstraction@https://codeload.github.com/eth-infinitism/account-abstraction/tar.gz/2b1aac46a8b532121dab4af739bcb019f8693ae1(ethers@5.7.2)(hardhat@2.22.3(typescript@4.9.5))(lodash@4.17.21)(typechain@5.2.0(typescript@4.9.5))
-      ds-test:
-        specifier: github:dapphub/ds-test
-        version: https://codeload.github.com/dapphub/ds-test/tar.gz/e282159d5170298eb2455a6c05280ab5a73a4ef0
-      erc7579-implementation:
-        specifier: github:erc7579/erc7579-implementation
-        version: micro-msa@https://codeload.github.com/erc7579/erc7579-implementation/tar.gz/5c3363b828b09702a0e348aa69fc479eb0bdac29
-      forge-std:
-        specifier: github:foundry-rs/forge-std
-        version: https://codeload.github.com/foundry-rs/forge-std/tar.gz/f52f92f2fd8f46d85a009ea1b73a11575e3c5232
-      sentinellist:
-        specifier: github:zeroknots/sentinellist
-        version: https://codeload.github.com/zeroknots/sentinellist/tar.gz/f3f84d6cb97051a9726ba9b3a16ce877698af2ad
-      solady:
-        specifier: github:vectorized/solady
-        version: https://codeload.github.com/vectorized/solady/tar.gz/58362f785c90c6693e44f358fac594b0851bb357
+      '@rhinestone/modulekit':
+        specifier: ^0.4.0
+        version: 0.4.0(ethers@5.7.2)(hardhat@2.22.3(typescript@4.9.5))(lodash@4.17.21)(typechain@5.2.0(typescript@4.9.5))(typescript@4.9.5)
 
 packages:
+
+  '@babel/code-frame@7.24.2':
+    resolution: {integrity: sha512-y5+tLQyV8pg3fsiln67BVLD1P13Eg4lh5RW9mF0zUuvLrv9uIQ4MCL+CRT+FTsBlBjcIan6PGsLcBN0m3ClUyQ==}
+    engines: {node: '>=6.9.0'}
+
+  '@babel/helper-validator-identifier@7.24.5':
+    resolution: {integrity: sha512-3q93SSKX2TWCG30M2G2kwaKeTYgEUp5Snjuj8qm729SObL6nbtUldAi37qbxkD5gg3xnBio+f9nqpSepGZMvxA==}
+    engines: {node: '>=6.9.0'}
+
+  '@babel/highlight@7.24.5':
+    resolution: {integrity: sha512-8lLmua6AVh/8SLJRRVD6V8p73Hir9w5mJrhE+IPpILG31KKlI9iz5zmBYKcWPS59qSfgP9RaSBQSHHE81WKuEw==}
+    engines: {node: '>=6.9.0'}
 
   '@ethereumjs/rlp@4.0.1':
     resolution: {integrity: sha512-tqsQiBQDQdmPWE1xkkBq4rlSW5QZpLOUJ5RJh2/9fug+q9tnUhuZoVLk7s0scUIKTOzEtR72DFBXI4WiZcMpvw==}
@@ -135,6 +128,11 @@ packages:
   '@fastify/busboy@2.1.1':
     resolution: {integrity: sha512-vBZP4NlzfOlerQTnba4aqZoMhE/a9HY7HRqoOPaETQcSQuWEIyZMHGfVu6w9wGtGK5fED5qRs2DteVCjOH60sA==}
     engines: {node: '>=14'}
+
+  '@gnosis.pm/safe-contracts@1.3.0':
+    resolution: {integrity: sha512-1p+1HwGvxGUVzVkFjNzglwHrLNA67U/axP0Ct85FzzH8yhGJb4t9jDjPYocVMzLorDoWAfKicGy1akPY9jXRVw==}
+    peerDependencies:
+      ethers: ^5.1.4
 
   '@metamask/eth-sig-util@4.0.1':
     resolution: {integrity: sha512-tghyZKLHZjcdlDqCA3gNZmLeR0XvOE9U1qoQO9ohyAZT6Pya+H9vkBPcsyXytmYLNgVoin7CKCmweo/R43V+tQ==}
@@ -311,8 +309,49 @@ packages:
     peerDependencies:
       hardhat: ^2.0.4
 
+  '@openzeppelin/contracts@4.9.6':
+    resolution: {integrity: sha512-xSmezSupL+y9VkHZJGDoCBpmnB2ogM13ccaYDWqJTfS3dbuHkgjuwDFUmaFauBCboQMGB/S5UqUl2y54X99BmA==}
+
   '@openzeppelin/contracts@5.0.1':
     resolution: {integrity: sha512-yQJaT5HDp9hYOOp4jTYxMsR02gdFZFXhewX5HW9Jo4fsqSVqqyIO/xTHdWDaKX5a3pv1txmf076Lziz+sO7L1w==}
+
+  '@pnpm/config.env-replace@1.1.0':
+    resolution: {integrity: sha512-htyl8TWnKL7K/ESFa1oW2UB5lVDxuF5DpM7tBi6Hu2LNL3mWkIzNLG6N4zoCUP1lCKNxWy/3iu8mS8MvToGd6w==}
+    engines: {node: '>=12.22.0'}
+
+  '@pnpm/network.ca-file@1.0.2':
+    resolution: {integrity: sha512-YcPQ8a0jwYU9bTdJDpXjMi7Brhkr1mXsXrUJvjqM2mQDgkRiz8jFaQGOdaLxgjtUfQgZhKy/O3cG/YwmgKaxLA==}
+    engines: {node: '>=12.22.0'}
+
+  '@pnpm/npm-conf@2.2.2':
+    resolution: {integrity: sha512-UA91GwWPhFExt3IizW6bOeY/pQ0BkuNwKjk9iQW9KqxluGCrg4VenZ0/L+2Y0+ZOtme72EVvg6v0zo3AMQRCeA==}
+    engines: {node: '>=12'}
+
+  '@prb/math@4.0.2':
+    resolution: {integrity: sha512-kJgqvXR6iyU7+N959RzggSFhBdnRuSDnc/bs8u6MzdWw7aYIUaAr+uMVdpP6Dheypjerd7sfJgFOs19FRFhscg==}
+
+  '@rhinestone/erc4337-validation@0.0.1-alpha.1':
+    resolution: {integrity: sha512-YkmmHYZtG/q+YNE0X8PfzrePwZVZo5tod4T6QFHQAGshlGbNPyPem0ELXJ2iaSaGYFHSUmvCr/UfI9VrKlIItA==}
+
+  '@rhinestone/module-bases@https://codeload.github.com/rhinestonewtf/module-bases/tar.gz/064bc4a82e212de837ffe59e43734e72b0e0798d':
+    resolution: {tarball: https://codeload.github.com/rhinestonewtf/module-bases/tar.gz/064bc4a82e212de837ffe59e43734e72b0e0798d}
+    version: 0.0.1
+
+  '@rhinestone/modulekit@0.4.0':
+    resolution: {integrity: sha512-GyPxffNYaKxGHP6bdJbXWivYtwx5vGXzZLkFXN/9eY7XGCvOUdswCvKjnJ0f7seDrvlRNK5ZLrwK+7oB7ktF3w==}
+
+  '@rhinestone/safe7579@https://codeload.github.com/rhinestonewtf/safe7579/tar.gz/ed1eb51f5030631f50735cd1971203f0c5642069':
+    resolution: {tarball: https://codeload.github.com/rhinestonewtf/safe7579/tar.gz/ed1eb51f5030631f50735cd1971203f0c5642069}
+    version: 1.0.0
+
+  '@rhinestone/sentinellist@https://codeload.github.com/rhinestonewtf/sentinellist/tar.gz/d1f58298637e1a4e5b82ff3e2b4fa1d2f4897791':
+    resolution: {tarball: https://codeload.github.com/rhinestonewtf/sentinellist/tar.gz/d1f58298637e1a4e5b82ff3e2b4fa1d2f4897791}
+    version: 1.0.1
+
+  '@safe-global/safe-contracts@1.4.1':
+    resolution: {integrity: sha512-fP1jewywSwsIniM04NsqPyVRFKPMAuirC3ftA/TA4X3Zc5EnwQp/UCJUU2PL/37/z/jMo8UUaJ+pnFNWmMU7dQ==}
+    peerDependencies:
+      ethers: 5.4.0
 
   '@scure/base@1.1.6':
     resolution: {integrity: sha512-ok9AWwhcgYuGG3Zfhyqg+zwl+Wn5uE+dwC0NV/2qQkx4dABbb/bx96vWu8NSj+BNjjSjno+JRYRjle1jV08k3g==}
@@ -357,8 +396,16 @@ packages:
     resolution: {integrity: sha512-zaYmoH0NWWtvnJjC9/CBseXMtKHm/tm40sz3YfJRxeQjyzRqNQPgivpd9R/oDJCYj999mzdW382p/qi2ypjLww==}
     engines: {node: '>=6'}
 
+  '@sindresorhus/is@5.6.0':
+    resolution: {integrity: sha512-TV7t8GKYaJWsn00tFDqBw8+Uqmr8A0fRU1tvTQhyZzGv0sJCGRQL3JGMI3ucuKo3XIZdUP+Lx7/gh2t3lewy7g==}
+    engines: {node: '>=14.16'}
+
   '@solidity-parser/parser@0.18.0':
     resolution: {integrity: sha512-yfORGUIPgLck41qyN7nbwJRAx17/jAIXCTanHOJZhB6PJ1iAk/84b/xlsVKFSyNyLXIj0dhppoE0+CRws7wlzA==}
+
+  '@szmarczak/http-timer@5.0.1':
+    resolution: {integrity: sha512-+PmQX0PiAYPMeVYe237LJAYvOMYW1j2rH5YROyS3b4CTVJum34HfRvKvAzozHAQG0TnHNdUfY9nCeUyRAs//cw==}
+    engines: {node: '>=14.16'}
 
   '@thehubbleproject/bls@0.5.1':
     resolution: {integrity: sha512-g5zeMZ8js/yg6MjFoC+pt0eqfCL2jC46yLY1LbKNriyqftB1tE3jpG/FMMDIW3x9/yRg/AgUb8Nluqj15tQs+A==}
@@ -381,6 +428,9 @@ packages:
 
   '@types/glob@7.2.0':
     resolution: {integrity: sha512-ZUxbzKl0IfJILTS6t7ip5fQQM/J3TJYubDm3nMbgubNNYS62eXeUpoLUC8/7fJNiFYHTrGPQn7hspDUzIHX3UA==}
+
+  '@types/http-cache-semantics@4.0.4':
+    resolution: {integrity: sha512-1m0bIFVc7eJWyve9S0RnuRgcQqF/Xd5QsUZAZeQFr1Q3/p9JWoQQEqmVy+DPTNpGXwhgIetAoYF8JSc33q29QA==}
 
   '@types/lru-cache@5.1.1':
     resolution: {integrity: sha512-ssE3Vlrys7sdIzs5LOxCzTVMsU7i9oa/IaW92wF32JFb3CVczqOkru2xspuKczHEbG3nvmPY7IFqVmGGHdNbYw==}
@@ -412,8 +462,16 @@ packages:
   abbrev@1.0.9:
     resolution: {integrity: sha512-LEyx4aLEC3x6T0UguF6YILf+ntvmOaWsVfENmIW0E9H09vKlLDGelMjjSm0jkDHALj8A8quZ/HapKNigzwge+Q==}
 
-  accountabstraction@https://codeload.github.com/eth-infinitism/account-abstraction/tar.gz/2b1aac46a8b532121dab4af739bcb019f8693ae1:
-    resolution: {tarball: https://codeload.github.com/eth-infinitism/account-abstraction/tar.gz/2b1aac46a8b532121dab4af739bcb019f8693ae1}
+  accountabstraction@https://codeload.github.com/eth-infinitism/account-abstraction/tar.gz/62e1cf39220321a6e1c7bef51e974c3bf8a4e2e2:
+    resolution: {tarball: https://codeload.github.com/eth-infinitism/account-abstraction/tar.gz/62e1cf39220321a6e1c7bef51e974c3bf8a4e2e2}
+    version: 0.7.0
+
+  accountabstraction@https://codeload.github.com/eth-infinitism/account-abstraction/tar.gz/7174d6d845618dbd11cee68eefa715f5263690b6:
+    resolution: {tarball: https://codeload.github.com/eth-infinitism/account-abstraction/tar.gz/7174d6d845618dbd11cee68eefa715f5263690b6}
+    version: 0.6.0
+
+  accountabstraction@https://codeload.github.com/kopy-kat/account-abstraction/tar.gz/c5887153fbfe3ed09b2637cac39873f96d676f38:
+    resolution: {tarball: https://codeload.github.com/kopy-kat/account-abstraction/tar.gz/c5887153fbfe3ed09b2637cac39873f96d676f38}
     version: 0.7.0
 
   adm-zip@0.4.16:
@@ -433,6 +491,9 @@ packages:
   aggregate-error@3.1.0:
     resolution: {integrity: sha512-4I7Td01quW/RpocfNayFdFVk1qSuoh0E7JrbRJ16nH01HhKFQ88INq9Sd+nd72zqRySlr9BmDA8xlEJ6vJMrYA==}
     engines: {node: '>=8'}
+
+  ajv@6.12.6:
+    resolution: {integrity: sha512-j3fVLgvTo527anyYyJOGTYJbG+vnnQYvE0m5mmkc1TK+nxAppkCLMIL0aZ4dblVCNoGShhm+kzE4ZUykBoMg4g==}
 
   ajv@8.12.0:
     resolution: {integrity: sha512-sRu1kpcO9yLtYxBKvqfTeh9KzZEwO3STyX1HT+4CaDzC6HpTGYhIhPIzj9XuKU7KYDwnaeh5hcOwjy1QuJzBPA==}
@@ -468,6 +529,10 @@ packages:
     resolution: {integrity: sha512-zbB9rCJAT1rbjiVDb2hqKFHNYLxgtk8NURxZ3IZwD3F6NtxbXZQCnnSi1Lkx+IDohdPlFp222wVALIheZJQSEg==}
     engines: {node: '>=8'}
 
+  antlr4@4.13.1-patch-1:
+    resolution: {integrity: sha512-OjFLWWLzDMV9rdFhpvroCWR4ooktNg9/nvVYSA5z28wuVpU36QUNuioR1XLnQtcjVlf8npjyz593PxnU/f/Cow==}
+    engines: {node: '>=16'}
+
   anymatch@3.1.3:
     resolution: {integrity: sha512-KMReFUr0B4t+D+OBkjR3KYqvocp2XaSzO55UcB6mgQMd3KbcE+mWTyvVV7D/zsdEbNnV6acZUutkiHQXvTr1Rw==}
     engines: {node: '>= 8'}
@@ -489,6 +554,9 @@ packages:
   array-union@2.1.0:
     resolution: {integrity: sha512-HGyxoOTYUyCM6stUe6EJgnd4EoewAI7zMdfqO+kGjnlZmBDz/cR5pf8r/cR4Wq60sL/p0IkcjUEEPwS3GFrIyw==}
     engines: {node: '>=8'}
+
+  ast-parents@0.0.1:
+    resolution: {integrity: sha512-XHusKxKz3zoYk1ic8Un640joHbFMhbqneyoZfoKnEGtf2ey9Uh/IdpcQplODdO/kENaMIWsD0nJm4+wX3UNLHA==}
 
   astral-regex@2.0.0:
     resolution: {integrity: sha512-Z7tMw1ytTXt5jqMcOP+OQteU1VuNK9Y02uuJtKQ1Sv69jXQKKg5cibLwGJow8yzZP+eAc18EmLGPal0bp36rvQ==}
@@ -574,9 +642,21 @@ packages:
     resolution: {integrity: sha512-/Nf7TyzTx6S3yRJObOAV7956r8cr2+Oj8AC5dt8wSP3BQAoeX58NoHyCU8P8zGkNXStjTSi6fzO6F0pBdcYbEg==}
     engines: {node: '>= 0.8'}
 
+  cacheable-lookup@7.0.0:
+    resolution: {integrity: sha512-+qJyx4xiKra8mZrcwhjMRMUhD5NR1R8esPkzIYxX96JiecFoxAXFuz/GpR3+ev4PE1WamHip78wV0vcmPQtp8w==}
+    engines: {node: '>=14.16'}
+
+  cacheable-request@10.2.14:
+    resolution: {integrity: sha512-zkDT5WAF4hSSoUgyfg5tFIxz8XQK+25W/TLVojJTMKBaxevLBBtLxgqguAuVQB8PVW79FVjHcU+GJ9tVbDZ9mQ==}
+    engines: {node: '>=14.16'}
+
   call-bind@1.0.7:
     resolution: {integrity: sha512-GHTSNSYICQ7scH7sZ+M2rFopRoLh8t2bLSW6BbgrtLsahOIB5iyAVJf9GjWK3cYTDaMj4XdBpM1cA6pIS0Kv2w==}
     engines: {node: '>= 0.4'}
+
+  callsites@3.1.0:
+    resolution: {integrity: sha512-P8BjAsXvZS+VIDUI11hHCQEv74YT67YUi5JJFNWIqL235sBmjX4+qx9Muvls5ivyNENctx46xQLQ3aTuE7ssaQ==}
+    engines: {node: '>=6'}
 
   camelcase@6.3.0:
     resolution: {integrity: sha512-Gmy6FhYlCY7uOElZUSbxo2UCDH8owEk996gkbrpsgGtrJLM3J7jGxl9Ic7Qwwj4ivOE5AWZWRMecDdF7hqGjFA==}
@@ -643,15 +723,31 @@ packages:
     resolution: {integrity: sha512-aUdPvQRAyBvQd2n7jXcsMDz68ckBJELXNzBybCHOibUWEg0mWTnaYCSRU8h9R+aNRSvDihJtssSRCiDRpLaezA==}
     hasBin: true
 
+  commander@10.0.1:
+    resolution: {integrity: sha512-y4Mg2tXshplEbSGzx7amzPwKKOCGuoSRP/CjEdwwk0FOGlUbq6lKuoyDZTNZkmxHdJtp54hdfY/JUrdL7Xfdug==}
+    engines: {node: '>=14'}
+
   commander@3.0.2:
     resolution: {integrity: sha512-Gar0ASD4BDyKC4hl4DwHqDrmvjoxWKZigVnAbn5H1owvm4CxCPdb0HQDehwNYMJpla5+M2tPmPARzhtYuwpHow==}
 
   concat-map@0.0.1:
     resolution: {integrity: sha512-/Srv4dswyQNBfohGpz9o6Yb3Gz3SrUDqBH5rTuhGR7ahtlbYKnVxw2bCFMRljaA7EXHaXZ8wsHdodFvbkhKmqg==}
 
+  config-chain@1.1.13:
+    resolution: {integrity: sha512-qj+f8APARXHrM0hraqXYb2/bOVSV4PvJQlNZ/DVj0QrmNM2q2euizkeuVckQ57J+W0mRH6Hvi+k50M4Jul2VRQ==}
+
   cookie@0.4.2:
     resolution: {integrity: sha512-aSWTXFzaKWkvHO1Ny/s+ePFpvKsPnjc551iI41v3ny/ow6tBG5Vd+FuqGNhh1LxOmVzOlGUriIlOaokOvhaStA==}
     engines: {node: '>= 0.6'}
+
+  cosmiconfig@8.3.6:
+    resolution: {integrity: sha512-kcZ6+W5QzcJ3P1Mt+83OUv/oHFqZHIx8DuxG6eZ5RGMERoLqp4BuGjhHLYGK+Kf5XVkQvqBSmAy/nGWN3qDgEA==}
+    engines: {node: '>=14'}
+    peerDependencies:
+      typescript: '>=4.9.5'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
 
   create-hash@1.2.0:
     resolution: {integrity: sha512-z00bCGNHDG8mHAkP7CtT1qVu+bFQUPjYq/4Iv3C3kWjTFV10zIjfSoeqXo9Asws8gwSHDGj/hl2u4OGIjapeCg==}
@@ -675,8 +771,20 @@ packages:
     resolution: {integrity: sha512-9iE1PgSik9HeIIw2JO94IidnE3eBoQrFJ3w7sFuzSX4DpmZ3v5sZpUiV5Swcf6mQEF+Y0ru8Neo+p+nyh2J+hQ==}
     engines: {node: '>=10'}
 
+  decompress-response@6.0.0:
+    resolution: {integrity: sha512-aW35yZM6Bb/4oJlZncMH2LCoZtJXTRxES17vE3hoRiowU2kWHaJKFkSBDnDR+cm9J+9QhXmREyIfv0pji9ejCQ==}
+    engines: {node: '>=10'}
+
+  deep-extend@0.6.0:
+    resolution: {integrity: sha512-LOHxIOaPYdHlJRtCQfDIVZtfw/ufM8+rVj649RIHzcm/vGwQRXFt6OPqIFWsm2XEMrNIEtWR64sY1LEKD2vAOA==}
+    engines: {node: '>=4.0.0'}
+
   deep-is@0.1.4:
     resolution: {integrity: sha512-oIPzksmTg4/MriiaYGO+okXDT7ztn/w3Eptv/+gSIdMdKsJo0u4CfYNFJPy+4SKMuCqGw2wxnA+URMg3t8a/bQ==}
+
+  defer-to-connect@2.0.1:
+    resolution: {integrity: sha512-4tvttepXG1VaYGrRibk5EwJd1t4udunSOVMdLSAL6mId1ix438oPwPZMALY41FCijukO1L0twNcGsdzS7dHgDg==}
+    engines: {node: '>=10'}
 
   define-data-property@1.1.4:
     resolution: {integrity: sha512-rBMvIzlpA8v6E+SJZoo++HAYqsLrkg7MSfIinMPFhmkorw7X+dOXVJQs+QT69zGkzMyfDnIMN2Wid1+NbL3T+A==}
@@ -724,6 +832,13 @@ packages:
   env-paths@2.2.1:
     resolution: {integrity: sha512-+h1lkLKhZMTYjog1VEpJNG7NZJWcuc2DDk/qsqSTRRCOXiLjeQ1d1/udrUGhqMxUgAlwKNZ0cf2uqan5GLuS2A==}
     engines: {node: '>=6'}
+
+  erc7579-implementation@https://codeload.github.com/erc7579/erc7579-implementation/tar.gz/c1a0fa69d08f7992bc4e910b4a108fb21fc10fae:
+    resolution: {tarball: https://codeload.github.com/erc7579/erc7579-implementation/tar.gz/c1a0fa69d08f7992bc4e910b4a108fb21fc10fae}
+    version: 0.3.1
+
+  error-ex@1.3.2:
+    resolution: {integrity: sha512-7dFHNmqeFSEt2ZBsCriorKnn3Z2pj+fd9kmI6QoWw4//DL+icEBfc0U7qJCisqrTsKTjw4fNFy2pW9OqStD84g==}
 
   es-define-property@1.0.0:
     resolution: {integrity: sha512-jxayLKShrEqqzJ0eumQbVhTYQM27CfT1T35+gCgDFoL82JLsXqTJ76zv6A0YLOgEnLUMvLzsDsGIrl8NFpT2gQ==}
@@ -810,9 +925,15 @@ packages:
   fast-deep-equal@3.1.3:
     resolution: {integrity: sha512-f3qQ9oQy9j2AhBe/H9VC91wLmKBCCU/gDOnKNAYG5hswO7BLKj09Hc5HYNz9cGI++xlpDCIgDaitVs03ATR84Q==}
 
+  fast-diff@1.3.0:
+    resolution: {integrity: sha512-VxPP4NqbUjj6MaAOafWeUn2cXWLcCtljklUtZf0Ind4XQ+QPtmA0b18zZy0jIQx+ExRVCR/ZQpBmik5lXshNsw==}
+
   fast-glob@3.3.2:
     resolution: {integrity: sha512-oX2ruAFQwf/Orj8m737Y5adxDQO0LAB7/S5MnxCdTNDd4p6BsyIVsv9JQsATbTSq8KHRpLwIHbVlUNatxd+1Ow==}
     engines: {node: '>=8.6.0'}
+
+  fast-json-stable-stringify@2.1.0:
+    resolution: {integrity: sha512-lhd/wF+Lk98HZoTCtlVraHtfh5XYijIjalXck7saUtuanSDyLMxnHhSXEDJqHxD7msR8D0uCmqlkwjCV8xvwHw==}
 
   fast-levenshtein@2.0.6:
     resolution: {integrity: sha512-DCXu6Ifhqcks7TZKY3Hxp3y6qphY5SJZmrWMDrKcERSOXWQdMhU9Ig/PYrzyw/ul9jOIyh0N4M0tbC5hodg8dw==}
@@ -852,9 +973,13 @@ packages:
       debug:
         optional: true
 
-  forge-std@https://codeload.github.com/foundry-rs/forge-std/tar.gz/f52f92f2fd8f46d85a009ea1b73a11575e3c5232:
-    resolution: {tarball: https://codeload.github.com/foundry-rs/forge-std/tar.gz/f52f92f2fd8f46d85a009ea1b73a11575e3c5232}
-    version: 1.7.6
+  forge-std@https://codeload.github.com/foundry-rs/forge-std/tar.gz/52715a217dc51d0de15877878ab8213f6cbbbab5:
+    resolution: {tarball: https://codeload.github.com/foundry-rs/forge-std/tar.gz/52715a217dc51d0de15877878ab8213f6cbbbab5}
+    version: 1.8.2
+
+  form-data-encoder@2.1.4:
+    resolution: {integrity: sha512-yDYSgNMraqvnxiEXO4hi88+YZxaHC6QKzb5N84iRCTDeRO7ZALpir/lVmf/uXUhnwUr2O4HU8s/n6x+yNjQkHw==}
+    engines: {node: '>= 14.17'}
 
   form-data@4.0.0:
     resolution: {integrity: sha512-ETEklSGi5t0QMZuiXoA/Q6vcnxcLQP5vdugSpuAyi6SVGi2clPPp+xgEhuMaHC+zGgn31Kd235W35f7Hykkaww==}
@@ -901,6 +1026,10 @@ packages:
     resolution: {integrity: sha512-5uYhsJH8VJBTv7oslg4BznJYhDoRI6waYCxMmCdnTrcCrHA/fCFKoTFz2JKKE0HdDFUF7/oQuhzumXJK7paBRQ==}
     engines: {node: '>= 0.4'}
 
+  get-stream@6.0.1:
+    resolution: {integrity: sha512-ts6Wi+2j3jQjqi70w5AlN8DFnkSwC+MqmxEzdEALB2qXZYV3X/b1CTfgPLGJNMeAWxdPfU8FO1ms3NUfaHCPYg==}
+    engines: {node: '>=10'}
+
   ghost-testrpc@0.0.2:
     resolution: {integrity: sha512-i08dAEgJ2g8z5buJIrCTduwPIhih3DP+hOCTyyryikfV8T0bNvHnGXO67i0DD1H4GBDETTclPy9njZbfluQYrQ==}
     hasBin: true
@@ -936,6 +1065,13 @@ packages:
 
   gopd@1.0.1:
     resolution: {integrity: sha512-d65bNlIadxvpb/A2abVdlqKqV563juRnZ1Wtk6s1sIR8uNsXR70xqIzVqxVf1eTqDunwT2MkczEeaezCKTZhwA==}
+
+  got@12.6.1:
+    resolution: {integrity: sha512-mThBblvlAF1d4O5oqyvN+ZxLAYwIJK7bpMxgYqPD9okW0C3qm5FFn7k811QrcuEBwaogR3ngOFoCfs6mRv7teQ==}
+    engines: {node: '>=14.16'}
+
+  graceful-fs@4.2.10:
+    resolution: {integrity: sha512-9ByhssR2fPVsNZj478qUUbKfmL0+t5BDVyjShtyZZLiK7ZDAArFFfopyOTj0M05wE2tJPisA4iTnnXl2YoPvOA==}
 
   graceful-fs@4.2.11:
     resolution: {integrity: sha512-RbJ5/jmFcNNCcDV5o9eTnBLJ/HszWV0P73bc+Ff4nS/rJj+YaS6IGyiOL0VoBYX+l1Wrl3k63h/KrH+nhJ0XvQ==}
@@ -1010,9 +1146,16 @@ packages:
   hmac-drbg@1.0.1:
     resolution: {integrity: sha512-Tti3gMqLdZfhOQY1Mzf/AanLiqh1WTiJgEj26ZuYQ9fbkLomzGchCws4FyrSd4VkpBfiNhaE1On+lOz894jvXg==}
 
+  http-cache-semantics@4.1.1:
+    resolution: {integrity: sha512-er295DKPVsV82j5kw1Gjt+ADA/XYHsajl82cGNQG2eyoPkvgUhX+nDIyelzhIWbbsXP39EHcI6l5tYs2FYqYXQ==}
+
   http-errors@2.0.0:
     resolution: {integrity: sha512-FtwrG/euBzaEjYeRqOgly7G0qviiXoJWnvEH2Z1plBdXgbyjv34pHTSb9zoeHMyDy33+DWy5Wt9Wo+TURtOYSQ==}
     engines: {node: '>= 0.8'}
+
+  http2-wrapper@2.2.1:
+    resolution: {integrity: sha512-V5nVw1PAOgfI3Lmeaj2Exmeg7fenjhRUgz1lPSezy1CuhPYbgQtbQj4jZfEAEMlaL+vupsvhjqCyjzob0yxsmQ==}
+    engines: {node: '>=10.19.0'}
 
   https-proxy-agent@5.0.1:
     resolution: {integrity: sha512-dFcAjpTQFgoLMzC2VwU+C/CbS7uRL0lWmxDITmqm7C+7F0Odmj6s9l6alZc6AELXhrnggM2CeWSXHGOdX2YtwA==}
@@ -1029,6 +1172,10 @@ packages:
   immutable@4.3.5:
     resolution: {integrity: sha512-8eabxkth9gZatlwl5TBuJnCsoTADlL6ftEr7A4qgdaTsPyreilDSnUk57SO+jfKcNtxPa22U5KK6DSeAYhpBJw==}
 
+  import-fresh@3.3.0:
+    resolution: {integrity: sha512-veYYhQa+D1QBKznvhUHxb8faxlrwUnxseDAbAp457E0wLNio2bOSKnjYDhMj+YiAq61xrMGhQk9iXVk5FzgQMw==}
+    engines: {node: '>=6'}
+
   imul@1.0.1:
     resolution: {integrity: sha512-WFAgfwPLAjU66EKt6vRdTlKj4nAgIDQzh29JonLa4Bqtl6D8JrIMvWjCnx7xEjVNmP3U0fM5o8ZObk7d0f62bA==}
     engines: {node: '>=0.10.0'}
@@ -1039,6 +1186,7 @@ packages:
 
   inflight@1.0.6:
     resolution: {integrity: sha512-k92I/b08q4wvFscXCLvqfsHCrjrF7yiXsQuIVvVE7N82W3+aqpzuUdBbfhWcy/FZR3/4IgflMgKLOsvPDrGCJA==}
+    deprecated: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
 
   inherits@2.0.4:
     resolution: {integrity: sha512-k/vGaX4/Yla3WzyMCvTQOXYeIHvqOKtnqBduzTHpzpQZzAskKMhZ2K+EnBiSM9zGSoIFeMpXKxa4dYeZIQqewQ==}
@@ -1052,6 +1200,9 @@ packages:
 
   io-ts@1.10.4:
     resolution: {integrity: sha512-b23PteSnYXSONJ6JQXRAlvJhuw8KOtkqa87W4wDtvMrud/DTJd5X+NpOOI+O/zZwVq6v0VLAaJ+1EDViKEuN9g==}
+
+  is-arrayish@0.2.1:
+    resolution: {integrity: sha512-zz06S8t0ozoDXMG+ube26zeCTNXcKIPJZJi8hBrF4idCLms4CG9QtK7qBl1boi5ODzFpjswb5JPmHCbMpjaYzg==}
 
   is-binary-path@2.1.0:
     resolution: {integrity: sha512-ZMERYes6pDydyuGidse7OsHxtbI7WVeUEozgR/g7rd0xUimYNlvZRE/K2MgZTjWy725IfelLeVcEM97mmtRGXw==}
@@ -1094,6 +1245,9 @@ packages:
   js-sha3@0.8.0:
     resolution: {integrity: sha512-gF1cRrHhIzNfToc802P800N8PpXS+evLLXfsVpowqmAFR9uwbi89WvXg2QspOmXL8QL86J4T1EpFu+yUkwJY3Q==}
 
+  js-tokens@4.0.0:
+    resolution: {integrity: sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ==}
+
   js-yaml@3.14.1:
     resolution: {integrity: sha512-okMH7OXXJ7YrN9Ok3/SXrnu4iX9yOk+25nqX4imS2npuvTYDmo/QEZoqwZkYaIDk3jVvBOTOIEgEhaLOynBS9g==}
     hasBin: true
@@ -1101,6 +1255,15 @@ packages:
   js-yaml@4.1.0:
     resolution: {integrity: sha512-wpxZs9NoxZaJESJGIZTyDEaYpl0FKSA+FB9aJiyemKhMwkxQg63h4T1KJgUGHpTqPDNRcmmYLugrRjJlBtWvRA==}
     hasBin: true
+
+  json-buffer@3.0.1:
+    resolution: {integrity: sha512-4bV5BfR2mqfQTJm+V5tPPdf+ZpuhiIvTuAB5g8kcrXOZpTT/QwwVRWBywX1ozr6lEuPdbHxwaJlm9G6mI2sfSQ==}
+
+  json-parse-even-better-errors@2.3.1:
+    resolution: {integrity: sha512-xyFwyhro/JEof6Ghe2iz2NcXoj2sloNsWr/XsERDK/oiPCfaNhl5ONfp+jQdAZRQQ0IJWNzH9zIZF7li91kh2w==}
+
+  json-schema-traverse@0.4.1:
+    resolution: {integrity: sha512-xbbCH5dCYU5T8LcEhhuh7HJ88HXuW3qsI3Y0zOZFKfZEHcpWiHU/Jxzk629Brsab/mMiHQti9wMP+845RPe3Vg==}
 
   json-schema-traverse@1.0.0:
     resolution: {integrity: sha512-NM8/P9n3XjXhIZn1lLhkFaACTOURQXjWhV4BA/RnOv8xvgqtqpAX9IO4mRQxSx1Rlo4tqzeqb0sOlruaOy3dug==}
@@ -1121,6 +1284,9 @@ packages:
     resolution: {integrity: sha512-3vKuW0jV8J3XNTzvfyicFR5qvxrSAGl7KIhvgOu5cmWwM7tZRj3fMbj/pfIf4be7aznbc+prBWGjywox/g2Y6Q==}
     engines: {node: '>=10.0.0'}
 
+  keyv@4.5.4:
+    resolution: {integrity: sha512-oxVHkHR/EJf2CNXnWxRLW6mg7JyCCUcG0DtEGmL2ctUo1PNTin1PUil+r/+4r5MpVgC/fn1kjsx7mjSujKqIpw==}
+
   kind-of@6.0.3:
     resolution: {integrity: sha512-dcS1ul+9tmeD95T+x28/ehLgd9mENa3LsvDTtzm3vyBEO7RPptvAD+t44WVXaUjTBRcrpFeFlC8WCruUR456hw==}
     engines: {node: '>=0.10.0'}
@@ -1128,9 +1294,16 @@ packages:
   klaw@1.3.1:
     resolution: {integrity: sha512-TED5xi9gGQjGpNnvRWknrwAB1eL5GciPfVFOt3Vk1OJCVDQbzuSfrF3hkUQKlsgKrG1F+0t5W0m+Fje1jIt8rw==}
 
+  latest-version@7.0.0:
+    resolution: {integrity: sha512-KvNT4XqAMzdcL6ka6Tl3i2lYeFDgXNCuIX+xNx6ZMVR1dFq+idXd9FLKNMOIx0t9mJ9/HudyX4oZWXZQ0UJHeg==}
+    engines: {node: '>=14.16'}
+
   levn@0.3.0:
     resolution: {integrity: sha512-0OO4y2iOHix2W6ujICbKIaEQXvFQHue65vUG3pb5EUomzPI90z9hsA1VsO/dbIIpC53J8gxM9Q4Oho0jrCM/yA==}
     engines: {node: '>= 0.8.0'}
+
+  lines-and-columns@1.2.4:
+    resolution: {integrity: sha512-7ylylesZQ/PV29jhEDl3Ufjo6ZX7gCqJr5F7PKrqc93v7fzSymt1BpwEU8nAUXs8qzzvqhbjhK5QZg6Mt/HkBg==}
 
   locate-path@2.0.0:
     resolution: {integrity: sha512-NCI2kiDkyR7VeEKm27Kda/iQHyKJe1Bu0FlTbYp3CqJu+9IFe9bLyAjMxf5ZDDbEg+iMPzB5zYyUTSm8wVTKmA==}
@@ -1149,6 +1322,10 @@ packages:
   log-symbols@4.1.0:
     resolution: {integrity: sha512-8XPvpAA8uyhfteu8pIvQxpJZ7SYYdpUivZpGy6sFsBuKRY/7rQGavedeB8aK+Zkyq6upMFVL/9AW6vOYzfRyLg==}
     engines: {node: '>=10'}
+
+  lowercase-keys@3.0.0:
+    resolution: {integrity: sha512-ozCC6gdQ+glXOQsveKD0YsDy8DSQFjDTz4zyzEHNV5+JP5D62LmfDZ6o1cycFx9ouG940M5dE8C8CTewdj2YWQ==}
+    engines: {node: ^12.20.0 || ^14.13.1 || >=16.0.0}
 
   lru-cache@6.0.0:
     resolution: {integrity: sha512-Jo6dJ04CmSjuznwJSS3pUeWmd/H0ffTlkXXgwZi+eq1UCmqQwCh+eLsYOYCwY991i2Fah4h1BEMCx4qThGbsiA==}
@@ -1178,10 +1355,6 @@ packages:
   micro-ftch@0.3.1:
     resolution: {integrity: sha512-/0LLxhzP0tfiR5hcQebtudP56gUurs2CLkGarnCiB/OqEyUFQ6U3paQi/tgLv0hBJYt2rnr9MNpxz4fiiugstg==}
 
-  micro-msa@https://codeload.github.com/erc7579/erc7579-implementation/tar.gz/5c3363b828b09702a0e348aa69fc479eb0bdac29:
-    resolution: {tarball: https://codeload.github.com/erc7579/erc7579-implementation/tar.gz/5c3363b828b09702a0e348aa69fc479eb0bdac29}
-    version: 0.3.1
-
   micromatch@4.0.5:
     resolution: {integrity: sha512-DMy+ERcEW2q8Z2Po+WNXuw3c5YaUSFjAO5GsJqfEl7UjvtIuFKO6ZrKvcItdy98dwFI2N1tg3zNIdKaQT+aNdA==}
     engines: {node: '>=8.6'}
@@ -1193,6 +1366,14 @@ packages:
   mime-types@2.1.35:
     resolution: {integrity: sha512-ZDY+bPm5zTTF+YpCrAU9nK0UgICYPT0QtT1NZWFv4s++TNkcgVaT0g6+4R2uI4MjQjzysHB1zxuWL50hzaeXiw==}
     engines: {node: '>= 0.6'}
+
+  mimic-response@3.1.0:
+    resolution: {integrity: sha512-z0yWI+4FDrrweS8Zmt4Ej5HdJmky15+L2e6Wgn3+iK5fWzb6T3fhNFq2+MeTRb064c6Wr4N/wv0DzQTjNzHNGQ==}
+    engines: {node: '>=10'}
+
+  mimic-response@4.0.0:
+    resolution: {integrity: sha512-e5ISH9xMYU0DzrT+jl8q2ze9D6eWBto+I8CNpe+VI+K2J/F/k3PdkdTdz4wvGVH4NTpo+NRYTVIuMQEMMcsLqg==}
+    engines: {node: ^12.20.0 || ^14.13.1 || >=16.0.0}
 
   minimalistic-assert@1.0.1:
     resolution: {integrity: sha512-UtJcAD4yEaGtjPezWuO9wC4nwUnVH/8/Im3yEHQP4b67cXlD/Qr9hdITCU1xDbSEXg2XKNaP8jsReV7vQd00/A==}
@@ -1270,6 +1451,10 @@ packages:
     resolution: {integrity: sha512-6eZs5Ls3WtCisHWp9S2GUy8dqkpGi4BVSz3GaqiE6ezub0512ESztXUwUB6C6IKbQkY2Pnb/mD4WYojCRwcwLA==}
     engines: {node: '>=0.10.0'}
 
+  normalize-url@8.0.1:
+    resolution: {integrity: sha512-IO9QvjUMWxPQQhs60oOu10CRkWCiZzSUkzbXGGV9pviYl1fXYcvkzQ5jV9z8Y6un8ARoVRl4EtC6v6jNqbaJ/w==}
+    engines: {node: '>=14.16'}
+
   number-to-bn@1.7.0:
     resolution: {integrity: sha512-wsJ9gfSz1/s4ZsJN01lyonwuxA1tml6X1yBDnfpMglypcBRFZZkus26EdPSlqS5GJfYddVZa22p3VNb3z5m5Ig==}
     engines: {node: '>=6.5.0', npm: '>=3'}
@@ -1290,6 +1475,10 @@ packages:
   os-tmpdir@1.0.2:
     resolution: {integrity: sha512-D2FR03Vir7FIu45XBY20mTb+/ZSWB00sjU9jdQXt83gDrI4Ztz5Fs7/yy74g2N5SVQY4xY1qDr4rNddwYRVX0g==}
     engines: {node: '>=0.10.0'}
+
+  p-cancelable@3.0.0:
+    resolution: {integrity: sha512-mlVgR3PGuzlo0MmTdk4cXqXWlwQDLnONTAg6sm62XkMJEiRxN3GL3SffkYvqwonbkJBcrI7Uvv5Zh9yjvn2iUw==}
+    engines: {node: '>=12.20'}
 
   p-limit@1.3.0:
     resolution: {integrity: sha512-vvcXsLAJ9Dr5rQOPk7toZQZJApBl2K4J6dANSsEuh6QI41JYcsS/qhTGa9ErIUUgK3WNQoJYvylxvjqmiqEA9Q==}
@@ -1315,6 +1504,18 @@ packages:
     resolution: {integrity: sha512-U1etNYuMJoIz3ZXSrrySFjsXQTWOx2/jdi86L+2pRvph/qMKL6sbcCYdH23fqsbm8TH2Gn0OybpT4eSFlCVHww==}
     engines: {node: '>=4'}
 
+  package-json@8.1.1:
+    resolution: {integrity: sha512-cbH9IAIJHNj9uXi196JVsRlt7cHKak6u/e6AkL/bkRelZ7rlL3X1YKxsZwa36xipOEKAsdtmaG6aAJoM1fx2zA==}
+    engines: {node: '>=14.16'}
+
+  parent-module@1.0.1:
+    resolution: {integrity: sha512-GQ2EWRpQV8/o+Aw8YqtfZZPfNRWZYkbidE9k5rpl/hC3vtHHBfGm2Ifi6qWV+coDGkrUKZAxE3Lot5kcsRlh+g==}
+    engines: {node: '>=6'}
+
+  parse-json@5.2.0:
+    resolution: {integrity: sha512-ayCKvm/phCGxOkYRSCM82iDwct8/EonSEgCSxWxD7ve6jHggsFl4fZVQBPRNgQoKiuV/odhFrGzQXZwbifC8Rg==}
+    engines: {node: '>=8'}
+
   path-exists@3.0.0:
     resolution: {integrity: sha512-bpC7GYwiDYQ4wYLe+FA8lhRjhQCMcQGuSgGGqDkg/QerRWw9CmGRT0iSOVRSZJ29NMLZgIzqaljJ63oaL4NIJQ==}
     engines: {node: '>=4'}
@@ -1338,6 +1539,9 @@ packages:
     resolution: {integrity: sha512-iuh7L6jA7JEGu2WxDwtQP1ddOpaJNC4KlDEFfdQajSGgGPNi4OyDc2R7QnbY2bR9QjBVGwgvTdNJZoE7RaxUMA==}
     engines: {node: '>=0.12'}
 
+  picocolors@1.0.1:
+    resolution: {integrity: sha512-anP1Z8qwhkbmu7MFP5iTt+wQKXgwzf7zTyGlcdzabySa9vd0Xt392U0rVmz9poOaBj0uHJKyyo9/upk0HrEQew==}
+
   picomatch@2.3.1:
     resolution: {integrity: sha512-JU3teHTNjmE2VCGFzuY8EXzCDVwEqB2a8fsIvwaStHhAWJEeVd1o1QD80CU6+ZdEXXSLbSsuLwJjkCBWqRQUVA==}
     engines: {node: '>=8.6'}
@@ -1345,6 +1549,10 @@ packages:
   pify@4.0.1:
     resolution: {integrity: sha512-uB80kBFb/tfd68bVleG9T5GGsGPjJrLAUpR5PZIrhBnIaRTQRjqdJSsIKkOP6OAIFbj7GOrcudc5pNjZ+geV2g==}
     engines: {node: '>=6'}
+
+  pluralize@8.0.0:
+    resolution: {integrity: sha512-Nc3IT5yHzflTfbjgqWcCPpo7DaKy4FnpB0l/zCAW0Tc7jxAiuqSxHasntB3D7887LSrA93kDJ9IXovxJYxyLCA==}
+    engines: {node: '>=4'}
 
   prelude-ls@1.1.2:
     resolution: {integrity: sha512-ESF23V4SKG6lVSGZgYNpbsiaAkdab6ZgOxe52p7+Kid3W3u3bxR4Vfd/o21dmN7jSt0IwgZ4v5MUd26FEtXE9w==}
@@ -1354,6 +1562,9 @@ packages:
     resolution: {integrity: sha512-tdN8qQGvNjw4CHbY+XXk0JgCXn9QiF21a55rBe5LJAU+kDyC4WQn4+awm2Xfk2lQMk5fKup9XgzTZtGkjBdP9Q==}
     engines: {node: '>=10.13.0'}
     hasBin: true
+
+  proto-list@1.2.4:
+    resolution: {integrity: sha512-vtK/94akxsTMhe0/cbfpR+syPuszcuwhqVjJq26CuNDgFGj682oRBXOP5MJpv2r7JtE8MsiepGIqvvOTBwn2vA==}
 
   punycode@2.3.1:
     resolution: {integrity: sha512-vYt7UD1U9Wg6138shLtLOvdAu+8DsC/ilFtEVHcH+wydcSpNE20AfSOduf6MkRFahL5FY7X1oU7nKVZFtfq8Fg==}
@@ -1366,12 +1577,20 @@ packages:
   queue-microtask@1.2.3:
     resolution: {integrity: sha512-NuaNSa6flKT5JaSYQzJok04JzTL1CA6aGhv5rfLW3PgqA+M2ChpZQnAC8h8i4ZFkBS8X5RqkDBHA7r4hej3K9A==}
 
+  quick-lru@5.1.1:
+    resolution: {integrity: sha512-WuyALRjWPDGtt/wzJiadO5AXY+8hZ80hVpe6MyivgraREW751X3SbhRvG3eLKOYN+8VEvqLcf3wdnt44Z4S4SA==}
+    engines: {node: '>=10'}
+
   randombytes@2.1.0:
     resolution: {integrity: sha512-vYl3iOX+4CKUWuxGi9Ukhie6fsqXqS9FE2Zaic4tNFD2N2QQaXOMFbuKK4QmDHC0JO6B1Zp41J0LpT0oR68amQ==}
 
   raw-body@2.5.2:
     resolution: {integrity: sha512-8zGqypfENjCIqGhgXToC8aB2r7YrBX+AQAfIPs/Mlk+BtPTztOvTS01NRW/3Eh60J+a48lt8qsCzirQ6loCVfA==}
     engines: {node: '>= 0.8'}
+
+  rc@1.2.8:
+    resolution: {integrity: sha512-y3bGgqKj3QBdxLbLkomlohkvsA8gdAiUQlSBJnBhfn+BPxg4bc62d8TcBW15wavDfgexCgccckhcZvywyQYPOw==}
+    hasBin: true
 
   readable-stream@3.6.2:
     resolution: {integrity: sha512-9u/sniCrY3D5WdsERHzHE4G2YCXqoG5FTHUiCC4SIbr6XcLZBY05ya9EKjYek9O5xOAwjGq+1JdGBAS7Q9ScoA==}
@@ -1389,6 +1608,14 @@ packages:
     resolution: {integrity: sha512-8HrF5ZsXk5FAH9dgsx3BlUer73nIhuj+9OrQwEbLTPOBzGkL1lsFCR01am+v+0m2Cmbs1nP12hLDl5FA7EszKA==}
     engines: {node: '>=6.0.0'}
 
+  registry-auth-token@5.0.2:
+    resolution: {integrity: sha512-o/3ikDxtXaA59BmZuZrJZDJv8NMDGSj+6j6XaeBmHw8eY1i1qd9+6H+LjVvQXx3HN6aRCGa1cUdJ9RaJZUugnQ==}
+    engines: {node: '>=14'}
+
+  registry-url@6.0.1:
+    resolution: {integrity: sha512-+crtS5QjFRqFCoQmvGduwYWEBng99ZvmFvF+cUJkGYF1L1BfU8C6Zp9T7f5vPAwyLkUExpvK+ANVZmGU49qi4Q==}
+    engines: {node: '>=12'}
+
   require-directory@2.1.1:
     resolution: {integrity: sha512-fGxEI7+wsG9xrvdjsrlmL22OMTTiHRwAMroiEeMgq8gzoLC/PQr7RsRDSTLUg/bZAZtF+TVIkHc6/4RIKrui+Q==}
     engines: {node: '>=0.10.0'}
@@ -1396,6 +1623,13 @@ packages:
   require-from-string@2.0.2:
     resolution: {integrity: sha512-Xf0nWe6RseziFMu+Ap9biiUbmplq6S9/p+7w7YXP/JBHhrUDDUhwa+vANyubuqfZWTveU//DYVGsDG7RKL/vEw==}
     engines: {node: '>=0.10.0'}
+
+  resolve-alpn@1.2.1:
+    resolution: {integrity: sha512-0a1F4l73/ZFZOakJnQ3FvkJ2+gSTQWz/r2KE5OdDY0TxPm5h4GkqkWWfM47T7HsbnOtcJVEF4epCVy6u7Q3K+g==}
+
+  resolve-from@4.0.0:
+    resolution: {integrity: sha512-pb/MYmXstAkysRFx8piNI1tGFNQIFA3vkE3Gq4EuA1dF6gHp/+vgZqsCGJapvy8N3Q+4o7FwvquPJcnZ7RYy4g==}
+    engines: {node: '>=4'}
 
   resolve@1.1.7:
     resolution: {integrity: sha512-9znBF0vBcaSN3W2j7wKvdERPwqTxSpCq+if5C0WoTCyV9n24rua28jeuQ2pL/HOf+yUe/Mef+H/5p60K0Id3bg==}
@@ -1406,6 +1640,10 @@ packages:
   resolve@1.22.8:
     resolution: {integrity: sha512-oKWePCxqpd6FlLvGV1VU0x7bkPmmCNolxzjMf4NczoDnQcIWrAF+cPtZn5i6n+RfD2d9i0tzpKnG6Yk168yIyw==}
     hasBin: true
+
+  responselike@3.0.0:
+    resolution: {integrity: sha512-40yHxbNcl2+rzXvZuVkrYohathsSJlMTXKryG5y8uciHv1+xDLHQpgjG64JUO9nrEq2jGLH6IZ8BcZyw3wrweg==}
+    engines: {node: '>=14.16'}
 
   reusify@1.0.4:
     resolution: {integrity: sha512-U9nH88a3fc/ekCF1l0/UP1IosiuIjyTh7hBvXVMHYgVcfGvt897Xguj2UOLDeI5BG2m7/uwyaLVT6fbtCwTyzw==}
@@ -1455,10 +1693,6 @@ packages:
     engines: {node: '>=10'}
     hasBin: true
 
-  sentinellist@https://codeload.github.com/zeroknots/sentinellist/tar.gz/f3f84d6cb97051a9726ba9b3a16ce877698af2ad:
-    resolution: {tarball: https://codeload.github.com/zeroknots/sentinellist/tar.gz/f3f84d6cb97051a9726ba9b3a16ce877698af2ad}
-    version: 1.0.1
-
   serialize-javascript@6.0.0:
     resolution: {integrity: sha512-Qr3TosvguFt8ePWqsvRfrKyQXIiW+nGbYpy8XK24NQHE83caxWt+mIymTT19DGFbNWNLfEwsrkSmN64lVWB9ag==}
 
@@ -1493,13 +1727,21 @@ packages:
     resolution: {integrity: sha512-qMCMfhY040cVHT43K9BFygqYbUPFZKHOg7K73mtTWJRb8pyP3fzf4Ixd5SzdEJQ6MRUg/WBnOLxghZtKKurENQ==}
     engines: {node: '>=10'}
 
-  solady@https://codeload.github.com/vectorized/solady/tar.gz/58362f785c90c6693e44f358fac594b0851bb357:
-    resolution: {tarball: https://codeload.github.com/vectorized/solady/tar.gz/58362f785c90c6693e44f358fac594b0851bb357}
-    version: 0.0.192
+  solady@https://codeload.github.com/vectorized/solady/tar.gz/0dde2a008d917aa8076f348eac2855edbe181cc0:
+    resolution: {tarball: https://codeload.github.com/vectorized/solady/tar.gz/0dde2a008d917aa8076f348eac2855edbe181cc0}
+    version: 0.0.201
+
+  solarray@https://codeload.github.com/sablier-labs/solarray/tar.gz/6bf10cb34cdace52a3ba5fe437e78cc82df92684:
+    resolution: {tarball: https://codeload.github.com/sablier-labs/solarray/tar.gz/6bf10cb34cdace52a3ba5fe437e78cc82df92684}
+    version: 1.0.0
 
   solc@0.7.3:
     resolution: {integrity: sha512-GAsWNAjGzIDg7VxzP6mPjdurby3IkGCjQcM8GFYZT6RyaoUZKmMU6Y7YwG+tFGhv7dwZ8rmR4iwFDrrD99JwqA==}
     engines: {node: '>=8.0.0'}
+    hasBin: true
+
+  solhint@4.5.4:
+    resolution: {integrity: sha512-Cu1XiJXub2q1eCr9kkJ9VPv1sGcmj3V7Zb76B0CoezDOB9bu3DxKIFFH7ggCl9fWpEPD6xBmRLfZrYijkVmujQ==}
     hasBin: true
 
   solidity-coverage@0.8.12:
@@ -1545,6 +1787,10 @@ packages:
     resolution: {integrity: sha512-q8d4ue7JGEiVcypji1bALTos+0pWtyGlivAWyPuTkHzuTCJqrK9sWxYQZUq6Nq3cuyv3bm734IhHvHtGGURU6A==}
     engines: {node: '>=6.5.0', npm: '>=3'}
 
+  strip-json-comments@2.0.1:
+    resolution: {integrity: sha512-4gB8na07fecVVkOI6Rs4e7T6NOTki5EmL7TUduTs6bu3EdnSycntVJ4re8kgZA+wx9IueI2Y11bfbgwtzuE0KQ==}
+    engines: {node: '>=0.10.0'}
+
   strip-json-comments@3.1.1:
     resolution: {integrity: sha512-6fPc+R4ihwqP6N/aIv2f1gMH8lOVtWQHoqC4yK6oSDVVocumAsfCqjkXnqiYMhmMwS/mEHLp7Vehlt3ql6lEig==}
     engines: {node: '>=8'}
@@ -1576,6 +1822,9 @@ packages:
   test-value@2.1.0:
     resolution: {integrity: sha512-+1epbAxtKeXttkGFMTX9H42oqzOTufR1ceCF+GYA5aOmvaPq9wd4PUS8329fn2RRLGNeUkgRLnVpycjx8DsO2w==}
     engines: {node: '>=0.10.0'}
+
+  text-table@0.2.0:
+    resolution: {integrity: sha512-N+8UisAXDGk8PFXP4HAzVR9nbfmVJ3zYLAWiTIoqC5v5isinhr+r5uaO8+7r3BMfuNIufIsA7RdpVgacC2cSpw==}
 
   tmp@0.0.33:
     resolution: {integrity: sha512-jRCJlojKnZ3addtTOjdIqoRuPEKBvNXcGYqzO6zWZX8KfKEpnGY5jfggJQ3EjKuu8D4bJRr0y+cYJFmYbImXGw==}
@@ -1765,6 +2014,20 @@ packages:
       ethers: ^5.7.0
 
 snapshots:
+
+  '@babel/code-frame@7.24.2':
+    dependencies:
+      '@babel/highlight': 7.24.5
+      picocolors: 1.0.1
+
+  '@babel/helper-validator-identifier@7.24.5': {}
+
+  '@babel/highlight@7.24.5':
+    dependencies:
+      '@babel/helper-validator-identifier': 7.24.5
+      chalk: 2.4.2
+      js-tokens: 4.0.0
+      picocolors: 1.0.1
 
   '@ethereumjs/rlp@4.0.1': {}
 
@@ -2031,6 +2294,10 @@ snapshots:
 
   '@fastify/busboy@2.1.1': {}
 
+  '@gnosis.pm/safe-contracts@1.3.0(ethers@5.7.2)':
+    dependencies:
+      ethers: 5.7.2
+
   '@metamask/eth-sig-util@4.0.1':
     dependencies:
       ethereumjs-abi: 0.6.8
@@ -2171,7 +2438,114 @@ snapshots:
       - encoding
       - supports-color
 
+  '@openzeppelin/contracts@4.9.6': {}
+
   '@openzeppelin/contracts@5.0.1': {}
+
+  '@pnpm/config.env-replace@1.1.0': {}
+
+  '@pnpm/network.ca-file@1.0.2':
+    dependencies:
+      graceful-fs: 4.2.10
+
+  '@pnpm/npm-conf@2.2.2':
+    dependencies:
+      '@pnpm/config.env-replace': 1.1.0
+      '@pnpm/network.ca-file': 1.0.2
+      config-chain: 1.1.13
+
+  '@prb/math@4.0.2': {}
+
+  '@rhinestone/erc4337-validation@0.0.1-alpha.1(ethers@5.7.2)(hardhat@2.22.3(typescript@4.9.5))(lodash@4.17.21)(typechain@5.2.0(typescript@4.9.5))(typescript@4.9.5)':
+    dependencies:
+      '@openzeppelin/contracts': 5.0.1
+      account-abstraction: accountabstraction@https://codeload.github.com/kopy-kat/account-abstraction/tar.gz/c5887153fbfe3ed09b2637cac39873f96d676f38(ethers@5.7.2)(hardhat@2.22.3(typescript@4.9.5))(lodash@4.17.21)(typechain@5.2.0(typescript@4.9.5))
+      account-abstraction-v0.6: accountabstraction@https://codeload.github.com/eth-infinitism/account-abstraction/tar.gz/7174d6d845618dbd11cee68eefa715f5263690b6(ethers@5.7.2)(hardhat@2.22.3(typescript@4.9.5))(lodash@4.17.21)(typechain@5.2.0(typescript@4.9.5))
+      ds-test: https://codeload.github.com/dapphub/ds-test/tar.gz/e282159d5170298eb2455a6c05280ab5a73a4ef0
+      forge-std: https://codeload.github.com/foundry-rs/forge-std/tar.gz/52715a217dc51d0de15877878ab8213f6cbbbab5
+      prettier: 2.8.8
+      solady: https://codeload.github.com/vectorized/solady/tar.gz/0dde2a008d917aa8076f348eac2855edbe181cc0
+      solhint: 4.5.4(typescript@4.9.5)
+    transitivePeerDependencies:
+      - bufferutil
+      - encoding
+      - ethers
+      - hardhat
+      - lodash
+      - supports-color
+      - typechain
+      - typescript
+      - utf-8-validate
+
+  '@rhinestone/module-bases@https://codeload.github.com/rhinestonewtf/module-bases/tar.gz/064bc4a82e212de837ffe59e43734e72b0e0798d(ethers@5.7.2)(hardhat@2.22.3(typescript@4.9.5))(lodash@4.17.21)(typechain@5.2.0(typescript@4.9.5))':
+    dependencies:
+      '@ERC4337/account-abstraction': accountabstraction@https://codeload.github.com/kopy-kat/account-abstraction/tar.gz/c5887153fbfe3ed09b2637cac39873f96d676f38(ethers@5.7.2)(hardhat@2.22.3(typescript@4.9.5))(lodash@4.17.21)(typechain@5.2.0(typescript@4.9.5))
+      erc7579: erc7579-implementation@https://codeload.github.com/erc7579/erc7579-implementation/tar.gz/c1a0fa69d08f7992bc4e910b4a108fb21fc10fae(ethers@5.7.2)(hardhat@2.22.3(typescript@4.9.5))(lodash@4.17.21)(typechain@5.2.0(typescript@4.9.5))
+      forge-std: https://codeload.github.com/foundry-rs/forge-std/tar.gz/52715a217dc51d0de15877878ab8213f6cbbbab5
+    transitivePeerDependencies:
+      - bufferutil
+      - encoding
+      - ethers
+      - hardhat
+      - lodash
+      - supports-color
+      - typechain
+      - utf-8-validate
+
+  '@rhinestone/modulekit@0.4.0(ethers@5.7.2)(hardhat@2.22.3(typescript@4.9.5))(lodash@4.17.21)(typechain@5.2.0(typescript@4.9.5))(typescript@4.9.5)':
+    dependencies:
+      '@ERC4337/account-abstraction': accountabstraction@https://codeload.github.com/kopy-kat/account-abstraction/tar.gz/c5887153fbfe3ed09b2637cac39873f96d676f38(ethers@5.7.2)(hardhat@2.22.3(typescript@4.9.5))(lodash@4.17.21)(typechain@5.2.0(typescript@4.9.5))
+      '@ERC4337/account-abstraction-v0.6': accountabstraction@https://codeload.github.com/eth-infinitism/account-abstraction/tar.gz/7174d6d845618dbd11cee68eefa715f5263690b6(ethers@5.7.2)(hardhat@2.22.3(typescript@4.9.5))(lodash@4.17.21)(typechain@5.2.0(typescript@4.9.5))
+      '@prb/math': 4.0.2
+      '@rhinestone/erc4337-validation': 0.0.1-alpha.1(ethers@5.7.2)(hardhat@2.22.3(typescript@4.9.5))(lodash@4.17.21)(typechain@5.2.0(typescript@4.9.5))(typescript@4.9.5)
+      '@rhinestone/module-bases': https://codeload.github.com/rhinestonewtf/module-bases/tar.gz/064bc4a82e212de837ffe59e43734e72b0e0798d(ethers@5.7.2)(hardhat@2.22.3(typescript@4.9.5))(lodash@4.17.21)(typechain@5.2.0(typescript@4.9.5))
+      '@rhinestone/safe7579': https://codeload.github.com/rhinestonewtf/safe7579/tar.gz/ed1eb51f5030631f50735cd1971203f0c5642069(ethers@5.7.2)(hardhat@2.22.3(typescript@4.9.5))(lodash@4.17.21)(typechain@5.2.0(typescript@4.9.5))
+      '@rhinestone/sentinellist': https://codeload.github.com/rhinestonewtf/sentinellist/tar.gz/d1f58298637e1a4e5b82ff3e2b4fa1d2f4897791
+      '@safe-global/safe-contracts': 1.4.1(ethers@5.7.2)
+      ds-test: https://codeload.github.com/dapphub/ds-test/tar.gz/e282159d5170298eb2455a6c05280ab5a73a4ef0
+      erc7579: erc7579-implementation@https://codeload.github.com/erc7579/erc7579-implementation/tar.gz/c1a0fa69d08f7992bc4e910b4a108fb21fc10fae(ethers@5.7.2)(hardhat@2.22.3(typescript@4.9.5))(lodash@4.17.21)(typechain@5.2.0(typescript@4.9.5))
+      forge-std: https://codeload.github.com/foundry-rs/forge-std/tar.gz/52715a217dc51d0de15877878ab8213f6cbbbab5
+      solady: https://codeload.github.com/vectorized/solady/tar.gz/0dde2a008d917aa8076f348eac2855edbe181cc0
+      solarray: https://codeload.github.com/sablier-labs/solarray/tar.gz/6bf10cb34cdace52a3ba5fe437e78cc82df92684
+    transitivePeerDependencies:
+      - bufferutil
+      - encoding
+      - ethers
+      - hardhat
+      - lodash
+      - supports-color
+      - typechain
+      - typescript
+      - utf-8-validate
+
+  '@rhinestone/safe7579@https://codeload.github.com/rhinestonewtf/safe7579/tar.gz/ed1eb51f5030631f50735cd1971203f0c5642069(ethers@5.7.2)(hardhat@2.22.3(typescript@4.9.5))(lodash@4.17.21)(typechain@5.2.0(typescript@4.9.5))':
+    dependencies:
+      '@ERC4337/account-abstraction': accountabstraction@https://codeload.github.com/kopy-kat/account-abstraction/tar.gz/c5887153fbfe3ed09b2637cac39873f96d676f38(ethers@5.7.2)(hardhat@2.22.3(typescript@4.9.5))(lodash@4.17.21)(typechain@5.2.0(typescript@4.9.5))
+      '@rhinestone/module-bases': https://codeload.github.com/rhinestonewtf/module-bases/tar.gz/064bc4a82e212de837ffe59e43734e72b0e0798d(ethers@5.7.2)(hardhat@2.22.3(typescript@4.9.5))(lodash@4.17.21)(typechain@5.2.0(typescript@4.9.5))
+      '@rhinestone/sentinellist': https://codeload.github.com/rhinestonewtf/sentinellist/tar.gz/d1f58298637e1a4e5b82ff3e2b4fa1d2f4897791
+      '@safe-global/safe-contracts': 1.4.1(ethers@5.7.2)
+      ds-test: https://codeload.github.com/dapphub/ds-test/tar.gz/e282159d5170298eb2455a6c05280ab5a73a4ef0
+      erc7579: erc7579-implementation@https://codeload.github.com/erc7579/erc7579-implementation/tar.gz/c1a0fa69d08f7992bc4e910b4a108fb21fc10fae(ethers@5.7.2)(hardhat@2.22.3(typescript@4.9.5))(lodash@4.17.21)(typechain@5.2.0(typescript@4.9.5))
+      forge-std: https://codeload.github.com/foundry-rs/forge-std/tar.gz/52715a217dc51d0de15877878ab8213f6cbbbab5
+      solady: https://codeload.github.com/vectorized/solady/tar.gz/0dde2a008d917aa8076f348eac2855edbe181cc0
+      solarray: https://codeload.github.com/sablier-labs/solarray/tar.gz/6bf10cb34cdace52a3ba5fe437e78cc82df92684
+    transitivePeerDependencies:
+      - bufferutil
+      - encoding
+      - ethers
+      - hardhat
+      - lodash
+      - supports-color
+      - typechain
+      - utf-8-validate
+
+  '@rhinestone/sentinellist@https://codeload.github.com/rhinestonewtf/sentinellist/tar.gz/d1f58298637e1a4e5b82ff3e2b4fa1d2f4897791':
+    dependencies:
+      forge-std: https://codeload.github.com/foundry-rs/forge-std/tar.gz/52715a217dc51d0de15877878ab8213f6cbbbab5
+
+  '@safe-global/safe-contracts@1.4.1(ethers@5.7.2)':
+    dependencies:
+      ethers: 5.7.2
 
   '@scure/base@1.1.6': {}
 
@@ -2246,7 +2620,13 @@ snapshots:
       '@sentry/types': 5.30.0
       tslib: 1.14.1
 
+  '@sindresorhus/is@5.6.0': {}
+
   '@solidity-parser/parser@0.18.0': {}
+
+  '@szmarczak/http-timer@5.0.1':
+    dependencies:
+      defer-to-connect: 2.0.1
 
   '@thehubbleproject/bls@0.5.1':
     dependencies:
@@ -2280,6 +2660,8 @@ snapshots:
       '@types/minimatch': 5.1.2
       '@types/node': 20.12.7
 
+  '@types/http-cache-semantics@4.0.4': {}
+
   '@types/lru-cache@5.1.1': {}
 
   '@types/minimatch@5.1.2': {}
@@ -2306,7 +2688,60 @@ snapshots:
 
   abbrev@1.0.9: {}
 
-  accountabstraction@https://codeload.github.com/eth-infinitism/account-abstraction/tar.gz/2b1aac46a8b532121dab4af739bcb019f8693ae1(ethers@5.7.2)(hardhat@2.22.3(typescript@4.9.5))(lodash@4.17.21)(typechain@5.2.0(typescript@4.9.5)):
+  accountabstraction@https://codeload.github.com/eth-infinitism/account-abstraction/tar.gz/62e1cf39220321a6e1c7bef51e974c3bf8a4e2e2(ethers@5.7.2)(hardhat@2.22.3(typescript@4.9.5))(lodash@4.17.21)(typechain@5.2.0(typescript@4.9.5)):
+    dependencies:
+      '@nomiclabs/hardhat-etherscan': 2.1.8(hardhat@2.22.3(typescript@4.9.5))
+      '@openzeppelin/contracts': 5.0.1
+      '@thehubbleproject/bls': 0.5.1
+      '@typechain/hardhat': 2.3.1(hardhat@2.22.3(typescript@4.9.5))(lodash@4.17.21)(typechain@5.2.0(typescript@4.9.5))
+      '@types/debug': 4.1.12
+      '@types/mocha': 9.1.1
+      debug: 4.3.4(supports-color@8.1.1)
+      ethereumjs-util: 7.1.5
+      ethereumjs-wallet: 1.0.2
+      hardhat-deploy: 0.11.45
+      hardhat-deploy-ethers: 0.3.0-beta.13(ethers@5.7.2)(hardhat@2.22.3(typescript@4.9.5))
+      solidity-coverage: 0.8.12(hardhat@2.22.3(typescript@4.9.5))
+      source-map-support: 0.5.21
+      table: 6.8.2
+      typescript: 4.9.5
+    transitivePeerDependencies:
+      - bufferutil
+      - encoding
+      - ethers
+      - hardhat
+      - lodash
+      - supports-color
+      - typechain
+      - utf-8-validate
+
+  accountabstraction@https://codeload.github.com/eth-infinitism/account-abstraction/tar.gz/7174d6d845618dbd11cee68eefa715f5263690b6(ethers@5.7.2)(hardhat@2.22.3(typescript@4.9.5))(lodash@4.17.21)(typechain@5.2.0(typescript@4.9.5)):
+    dependencies:
+      '@gnosis.pm/safe-contracts': 1.3.0(ethers@5.7.2)
+      '@nomiclabs/hardhat-etherscan': 2.1.8(hardhat@2.22.3(typescript@4.9.5))
+      '@openzeppelin/contracts': 4.9.6
+      '@thehubbleproject/bls': 0.5.1
+      '@typechain/hardhat': 2.3.1(hardhat@2.22.3(typescript@4.9.5))(lodash@4.17.21)(typechain@5.2.0(typescript@4.9.5))
+      '@types/mocha': 9.1.1
+      ethereumjs-util: 7.1.5
+      ethereumjs-wallet: 1.0.2
+      hardhat-deploy: 0.11.45
+      hardhat-deploy-ethers: 0.3.0-beta.13(ethers@5.7.2)(hardhat@2.22.3(typescript@4.9.5))
+      solidity-coverage: 0.8.12(hardhat@2.22.3(typescript@4.9.5))
+      source-map-support: 0.5.21
+      table: 6.8.2
+      typescript: 4.9.5
+    transitivePeerDependencies:
+      - bufferutil
+      - encoding
+      - ethers
+      - hardhat
+      - lodash
+      - supports-color
+      - typechain
+      - utf-8-validate
+
+  accountabstraction@https://codeload.github.com/kopy-kat/account-abstraction/tar.gz/c5887153fbfe3ed09b2637cac39873f96d676f38(ethers@5.7.2)(hardhat@2.22.3(typescript@4.9.5))(lodash@4.17.21)(typechain@5.2.0(typescript@4.9.5)):
     dependencies:
       '@nomiclabs/hardhat-etherscan': 2.1.8(hardhat@2.22.3(typescript@4.9.5))
       '@openzeppelin/contracts': 5.0.1
@@ -2350,6 +2785,13 @@ snapshots:
       clean-stack: 2.2.0
       indent-string: 4.0.0
 
+  ajv@6.12.6:
+    dependencies:
+      fast-deep-equal: 3.1.3
+      fast-json-stable-stringify: 2.1.0
+      json-schema-traverse: 0.4.1
+      uri-js: 4.4.1
+
   ajv@8.12.0:
     dependencies:
       fast-deep-equal: 3.1.3
@@ -2382,6 +2824,8 @@ snapshots:
     dependencies:
       color-convert: 2.0.1
 
+  antlr4@4.13.1-patch-1: {}
+
   anymatch@3.1.3:
     dependencies:
       normalize-path: 3.0.0
@@ -2402,6 +2846,8 @@ snapshots:
       typical: 2.6.1
 
   array-union@2.1.0: {}
+
+  ast-parents@0.0.1: {}
 
   astral-regex@2.0.0: {}
 
@@ -2490,6 +2936,18 @@ snapshots:
 
   bytes@3.1.2: {}
 
+  cacheable-lookup@7.0.0: {}
+
+  cacheable-request@10.2.14:
+    dependencies:
+      '@types/http-cache-semantics': 4.0.4
+      get-stream: 6.0.1
+      http-cache-semantics: 4.1.1
+      keyv: 4.5.4
+      mimic-response: 4.0.0
+      normalize-url: 8.0.1
+      responselike: 3.0.0
+
   call-bind@1.0.7:
     dependencies:
       es-define-property: 1.0.0
@@ -2497,6 +2955,8 @@ snapshots:
       function-bind: 1.1.2
       get-intrinsic: 1.2.4
       set-function-length: 1.2.2
+
+  callsites@3.1.0: {}
 
   camelcase@6.3.0: {}
 
@@ -2581,11 +3041,27 @@ snapshots:
       find-replace: 1.0.3
       typical: 2.6.1
 
+  commander@10.0.1: {}
+
   commander@3.0.2: {}
 
   concat-map@0.0.1: {}
 
+  config-chain@1.1.13:
+    dependencies:
+      ini: 1.3.8
+      proto-list: 1.2.4
+
   cookie@0.4.2: {}
+
+  cosmiconfig@8.3.6(typescript@4.9.5):
+    dependencies:
+      import-fresh: 3.3.0
+      js-yaml: 4.1.0
+      parse-json: 5.2.0
+      path-type: 4.0.0
+    optionalDependencies:
+      typescript: 4.9.5
 
   create-hash@1.2.0:
     dependencies:
@@ -2614,7 +3090,15 @@ snapshots:
 
   decamelize@4.0.0: {}
 
+  decompress-response@6.0.0:
+    dependencies:
+      mimic-response: 3.1.0
+
+  deep-extend@0.6.0: {}
+
   deep-is@0.1.4: {}
+
+  defer-to-connect@2.0.1: {}
 
   define-data-property@1.1.4:
     dependencies:
@@ -2668,6 +3152,27 @@ snapshots:
       strip-ansi: 6.0.1
 
   env-paths@2.2.1: {}
+
+  erc7579-implementation@https://codeload.github.com/erc7579/erc7579-implementation/tar.gz/c1a0fa69d08f7992bc4e910b4a108fb21fc10fae(ethers@5.7.2)(hardhat@2.22.3(typescript@4.9.5))(lodash@4.17.21)(typechain@5.2.0(typescript@4.9.5)):
+    dependencies:
+      '@rhinestone/sentinellist': https://codeload.github.com/rhinestonewtf/sentinellist/tar.gz/d1f58298637e1a4e5b82ff3e2b4fa1d2f4897791
+      account-abstraction: accountabstraction@https://codeload.github.com/eth-infinitism/account-abstraction/tar.gz/62e1cf39220321a6e1c7bef51e974c3bf8a4e2e2(ethers@5.7.2)(hardhat@2.22.3(typescript@4.9.5))(lodash@4.17.21)(typechain@5.2.0(typescript@4.9.5))
+      ds-test: https://codeload.github.com/dapphub/ds-test/tar.gz/e282159d5170298eb2455a6c05280ab5a73a4ef0
+      forge-std: https://codeload.github.com/foundry-rs/forge-std/tar.gz/52715a217dc51d0de15877878ab8213f6cbbbab5
+      solady: https://codeload.github.com/vectorized/solady/tar.gz/0dde2a008d917aa8076f348eac2855edbe181cc0
+    transitivePeerDependencies:
+      - bufferutil
+      - encoding
+      - ethers
+      - hardhat
+      - lodash
+      - supports-color
+      - typechain
+      - utf-8-validate
+
+  error-ex@1.3.2:
+    dependencies:
+      is-arrayish: 0.2.1
 
   es-define-property@1.0.0:
     dependencies:
@@ -2821,6 +3326,8 @@ snapshots:
 
   fast-deep-equal@3.1.3: {}
 
+  fast-diff@1.3.0: {}
+
   fast-glob@3.3.2:
     dependencies:
       '@nodelib/fs.stat': 2.0.5
@@ -2828,6 +3335,8 @@ snapshots:
       glob-parent: 5.1.2
       merge2: 1.4.1
       micromatch: 4.0.5
+
+  fast-json-stable-stringify@2.1.0: {}
 
   fast-levenshtein@2.0.6: {}
 
@@ -2863,7 +3372,9 @@ snapshots:
     optionalDependencies:
       debug: 4.3.4(supports-color@8.1.1)
 
-  forge-std@https://codeload.github.com/foundry-rs/forge-std/tar.gz/f52f92f2fd8f46d85a009ea1b73a11575e3c5232: {}
+  forge-std@https://codeload.github.com/foundry-rs/forge-std/tar.gz/52715a217dc51d0de15877878ab8213f6cbbbab5: {}
+
+  form-data-encoder@2.1.4: {}
 
   form-data@4.0.0:
     dependencies:
@@ -2922,6 +3433,8 @@ snapshots:
       has-proto: 1.0.3
       has-symbols: 1.0.3
       hasown: 2.0.2
+
+  get-stream@6.0.1: {}
 
   ghost-testrpc@0.0.2:
     dependencies:
@@ -2990,6 +3503,22 @@ snapshots:
   gopd@1.0.1:
     dependencies:
       get-intrinsic: 1.2.4
+
+  got@12.6.1:
+    dependencies:
+      '@sindresorhus/is': 5.6.0
+      '@szmarczak/http-timer': 5.0.1
+      cacheable-lookup: 7.0.0
+      cacheable-request: 10.2.14
+      decompress-response: 6.0.0
+      form-data-encoder: 2.1.4
+      get-stream: 6.0.1
+      http2-wrapper: 2.2.1
+      lowercase-keys: 3.0.0
+      p-cancelable: 3.0.0
+      responselike: 3.0.0
+
+  graceful-fs@4.2.10: {}
 
   graceful-fs@4.2.11: {}
 
@@ -3130,6 +3659,8 @@ snapshots:
       minimalistic-assert: 1.0.1
       minimalistic-crypto-utils: 1.0.1
 
+  http-cache-semantics@4.1.1: {}
+
   http-errors@2.0.0:
     dependencies:
       depd: 2.0.0
@@ -3137,6 +3668,11 @@ snapshots:
       setprototypeof: 1.2.0
       statuses: 2.0.1
       toidentifier: 1.0.1
+
+  http2-wrapper@2.2.1:
+    dependencies:
+      quick-lru: 5.1.1
+      resolve-alpn: 1.2.1
 
   https-proxy-agent@5.0.1:
     dependencies:
@@ -3152,6 +3688,11 @@ snapshots:
   ignore@5.3.1: {}
 
   immutable@4.3.5: {}
+
+  import-fresh@3.3.0:
+    dependencies:
+      parent-module: 1.0.1
+      resolve-from: 4.0.0
 
   imul@1.0.1: {}
 
@@ -3171,6 +3712,8 @@ snapshots:
   io-ts@1.10.4:
     dependencies:
       fp-ts: 1.19.3
+
+  is-arrayish@0.2.1: {}
 
   is-binary-path@2.1.0:
     dependencies:
@@ -3200,6 +3743,8 @@ snapshots:
 
   js-sha3@0.8.0: {}
 
+  js-tokens@4.0.0: {}
+
   js-yaml@3.14.1:
     dependencies:
       argparse: 1.0.10
@@ -3208,6 +3753,12 @@ snapshots:
   js-yaml@4.1.0:
     dependencies:
       argparse: 2.0.1
+
+  json-buffer@3.0.1: {}
+
+  json-parse-even-better-errors@2.3.1: {}
+
+  json-schema-traverse@0.4.1: {}
 
   json-schema-traverse@1.0.0: {}
 
@@ -3233,16 +3784,26 @@ snapshots:
       node-gyp-build: 4.8.0
       readable-stream: 3.6.2
 
+  keyv@4.5.4:
+    dependencies:
+      json-buffer: 3.0.1
+
   kind-of@6.0.3: {}
 
   klaw@1.3.1:
     optionalDependencies:
       graceful-fs: 4.2.11
 
+  latest-version@7.0.0:
+    dependencies:
+      package-json: 8.1.1
+
   levn@0.3.0:
     dependencies:
       prelude-ls: 1.1.2
       type-check: 0.3.2
+
+  lines-and-columns@1.2.4: {}
 
   locate-path@2.0.0:
     dependencies:
@@ -3261,6 +3822,8 @@ snapshots:
     dependencies:
       chalk: 4.1.2
       is-unicode-supported: 0.1.0
+
+  lowercase-keys@3.0.0: {}
 
   lru-cache@6.0.0:
     dependencies:
@@ -3286,10 +3849,6 @@ snapshots:
 
   micro-ftch@0.3.1: {}
 
-  micro-msa@https://codeload.github.com/erc7579/erc7579-implementation/tar.gz/5c3363b828b09702a0e348aa69fc479eb0bdac29:
-    dependencies:
-      '@openzeppelin/contracts': 5.0.1
-
   micromatch@4.0.5:
     dependencies:
       braces: 3.0.2
@@ -3300,6 +3859,10 @@ snapshots:
   mime-types@2.1.35:
     dependencies:
       mime-db: 1.52.0
+
+  mimic-response@3.1.0: {}
+
+  mimic-response@4.0.0: {}
 
   minimalistic-assert@1.0.1: {}
 
@@ -3380,6 +3943,8 @@ snapshots:
 
   normalize-path@3.0.0: {}
 
+  normalize-url@8.0.1: {}
+
   number-to-bn@1.7.0:
     dependencies:
       bn.js: 4.11.6
@@ -3404,6 +3969,8 @@ snapshots:
 
   os-tmpdir@1.0.2: {}
 
+  p-cancelable@3.0.0: {}
+
   p-limit@1.3.0:
     dependencies:
       p-try: 1.0.0
@@ -3426,6 +3993,24 @@ snapshots:
 
   p-try@1.0.0: {}
 
+  package-json@8.1.1:
+    dependencies:
+      got: 12.6.1
+      registry-auth-token: 5.0.2
+      registry-url: 6.0.1
+      semver: 7.6.0
+
+  parent-module@1.0.1:
+    dependencies:
+      callsites: 3.1.0
+
+  parse-json@5.2.0:
+    dependencies:
+      '@babel/code-frame': 7.24.2
+      error-ex: 1.3.2
+      json-parse-even-better-errors: 2.3.1
+      lines-and-columns: 1.2.4
+
   path-exists@3.0.0: {}
 
   path-exists@4.0.0: {}
@@ -3444,13 +4029,19 @@ snapshots:
       safe-buffer: 5.2.1
       sha.js: 2.4.11
 
+  picocolors@1.0.1: {}
+
   picomatch@2.3.1: {}
 
   pify@4.0.1: {}
 
+  pluralize@8.0.0: {}
+
   prelude-ls@1.1.2: {}
 
   prettier@2.8.8: {}
+
+  proto-list@1.2.4: {}
 
   punycode@2.3.1: {}
 
@@ -3459,6 +4050,8 @@ snapshots:
       side-channel: 1.0.6
 
   queue-microtask@1.2.3: {}
+
+  quick-lru@5.1.1: {}
 
   randombytes@2.1.0:
     dependencies:
@@ -3470,6 +4063,13 @@ snapshots:
       http-errors: 2.0.0
       iconv-lite: 0.4.24
       unpipe: 1.0.0
+
+  rc@1.2.8:
+    dependencies:
+      deep-extend: 0.6.0
+      ini: 1.3.8
+      minimist: 1.2.8
+      strip-json-comments: 2.0.1
 
   readable-stream@3.6.2:
     dependencies:
@@ -3489,9 +4089,21 @@ snapshots:
     dependencies:
       minimatch: 3.1.2
 
+  registry-auth-token@5.0.2:
+    dependencies:
+      '@pnpm/npm-conf': 2.2.2
+
+  registry-url@6.0.1:
+    dependencies:
+      rc: 1.2.8
+
   require-directory@2.1.1: {}
 
   require-from-string@2.0.2: {}
+
+  resolve-alpn@1.2.1: {}
+
+  resolve-from@4.0.0: {}
 
   resolve@1.1.7: {}
 
@@ -3505,11 +4117,15 @@ snapshots:
       path-parse: 1.0.7
       supports-preserve-symlinks-flag: 1.0.0
 
+  responselike@3.0.0:
+    dependencies:
+      lowercase-keys: 3.0.0
+
   reusify@1.0.4: {}
 
   rimraf@2.7.1:
     dependencies:
-      glob: 7.2.0
+      glob: 7.2.3
 
   ripemd160@2.0.2:
     dependencies:
@@ -3561,8 +4177,6 @@ snapshots:
     dependencies:
       lru-cache: 6.0.0
 
-  sentinellist@https://codeload.github.com/zeroknots/sentinellist/tar.gz/f3f84d6cb97051a9726ba9b3a16ce877698af2ad: {}
-
   serialize-javascript@6.0.0:
     dependencies:
       randombytes: 2.1.0
@@ -3606,7 +4220,9 @@ snapshots:
       astral-regex: 2.0.0
       is-fullwidth-code-point: 3.0.0
 
-  solady@https://codeload.github.com/vectorized/solady/tar.gz/58362f785c90c6693e44f358fac594b0851bb357: {}
+  solady@https://codeload.github.com/vectorized/solady/tar.gz/0dde2a008d917aa8076f348eac2855edbe181cc0: {}
+
+  solarray@https://codeload.github.com/sablier-labs/solarray/tar.gz/6bf10cb34cdace52a3ba5fe437e78cc82df92684: {}
 
   solc@0.7.3(debug@4.3.4):
     dependencies:
@@ -3621,6 +4237,31 @@ snapshots:
       tmp: 0.0.33
     transitivePeerDependencies:
       - debug
+
+  solhint@4.5.4(typescript@4.9.5):
+    dependencies:
+      '@solidity-parser/parser': 0.18.0
+      ajv: 6.12.6
+      antlr4: 4.13.1-patch-1
+      ast-parents: 0.0.1
+      chalk: 4.1.2
+      commander: 10.0.1
+      cosmiconfig: 8.3.6(typescript@4.9.5)
+      fast-diff: 1.3.0
+      glob: 8.1.0
+      ignore: 5.3.1
+      js-yaml: 4.1.0
+      latest-version: 7.0.0
+      lodash: 4.17.21
+      pluralize: 8.0.0
+      semver: 7.6.0
+      strip-ansi: 6.0.1
+      table: 6.8.2
+      text-table: 0.2.0
+    optionalDependencies:
+      prettier: 2.8.8
+    transitivePeerDependencies:
+      - typescript
 
   solidity-coverage@0.8.12(hardhat@2.22.3(typescript@4.9.5)):
     dependencies:
@@ -3683,6 +4324,8 @@ snapshots:
     dependencies:
       is-hex-prefixed: 1.0.0
 
+  strip-json-comments@2.0.1: {}
+
   strip-json-comments@3.1.1: {}
 
   supports-color@3.2.3:
@@ -3715,6 +4358,8 @@ snapshots:
     dependencies:
       array-back: 1.0.4
       typical: 2.6.1
+
+  text-table@0.2.0: {}
 
   tmp@0.0.33:
     dependencies:

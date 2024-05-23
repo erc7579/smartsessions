@@ -11,7 +11,7 @@
   optimizer_runs = 1_000_000
   out = "out"
   script = "scripts"
-  solc = "0.8.24"
+  solc = "0.8.25"
   src = "contracts"
   test = "test"
   cache_path  = "cache_forge"

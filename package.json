@@ -7,14 +7,30 @@
     "url": "https://github.com/bcnmy"
   },
   "dependencies": {
-    "@openzeppelin/contracts": "5.0.1"
+    "@rhinestone/modulekit": "^0.4.0"
   },
-  "devDependencies": {
-    "account-abstraction": "github:eth-infinitism/account-abstraction#develop",
-    "ds-test": "github:dapphub/ds-test",
-    "forge-std": "github:foundry-rs/forge-std",
-    "sentinellist": "github:zeroknots/sentinellist",
-    "solady": "github:vectorized/solady",
-    "erc7579-implementation": "github:erc7579/erc7579-implementation"
+  "files": [
+    "contracts",
+    "test",
+    "script",
+    "package.json",
+    "foundry.toml",
+    "remappings.txt"
+  ],
+  "homepage": "https://___",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bcnmy/smart-account-modules.git"
+  },
+  "bugs": {
+    "url": "https://github.com/bcnmy/smart-account-modules/issues"
+  },
+  "keywords": [
+    "account abstraction",
+    "smart account modules",
+    "biconomy"
+  ],
+  "publishConfig": {
+    "access": "public"
   }
 }
