@@ -12,6 +12,36 @@ contract PermissionValidator is ERC7579ValidatorBase, IPermissionValidator {
                             CONSTANTS & STORAGE
     //////////////////////////////////////////////////////////////////////////*/
 
+    // bytes32(uint256(keccak256('erc7579.module.permissionvalidator')) - 1)
+    bytes32 constant PERMISSION_VALIDATOR_STORAGE_SLOT = 0x73a9885e8be4b58095971868aa2af983b5913f3e08c5b78a3ca0cb6b827458f8;
+
+    type SignerId is bytes32;
+
+    struct PermissionValidatorStorage {
+        // Note on the signerId. 
+        // For now we assume signerId is known by dApp in some way
+        // There are several approaches to it. For example it can be:
+        // - keccak256(smartAccount.address + validationAlgo.address + salt)
+        // In case storing it somewhere for the SA is not the case, can introduce a specific flow
+        // to retrieve it from the SignerValidationAlgo smart contract 
+        // for example, every ISigner has getSignerId() method with its own list of args,
+        // based on which it calculates the signerId
+        // for example:
+        // - simple eoa signer: keccak256(smartAccount.address + validationAlgo.address + ownerAddress)
+        // - multisig signer: keccak256(smartAccount.address + validationAlgo.address + ownersAddresses + number of owners)
+        // - etc
+        // - it will work since SDK knows what signers are for this validation algo/ do they?
+        // can discuss this with SDK guys
+
+        mapping(SignerId => mapping (address smartAccount => address signerValidator)) signers;
+        //
+    }
+
+    function _permissionValidatorStorage() internal pure returns (PermissionValidatorStorage storage state) {
+        assembly {
+            state.slot := PERMISSION_VALIDATOR_STORAGE_SLOT
+        }
+    }
 
     /*//////////////////////////////////////////////////////////////////////////
                                      MODULE LOGIC
@@ -51,12 +81,12 @@ contract PermissionValidator is ERC7579ValidatorBase, IPermissionValidator {
         // many usecases, so not supporting it is very limiting
         //
         // TODO: discuss it with auditors and potentially reconsider supporting the executeUserOp
-        // with stating in the module documentatio that it expects the actual calldata to be appended
-        // to the executeUserOp.selector in the userOp.callData, otherwise 
+        // with stating in the module documentation that it expects the actual calldata to be appended
+        // to the executeUserOp.selector in the userOp.callData, otherwise it won't work as expected
         //
         if (selector == IAccountExecute.executeUserOp.selector) {
             revert ExecuteUserOpIsNotSupported();
-            // selector = bytes4(userOp.callData[4:8]);
+            // selector = bytes4(userOp.callData[4:8]); // if supported
         }
         
         //flows based on selector
@@ -144,7 +174,7 @@ contract PermissionValidator is ERC7579ValidatorBase, IPermissionValidator {
     ) internal returns (ValidationData) {
         // we expect this to be single action userOp, not a batched one
         
-        // 1. check enable mode flag
+        // 1. check enable mode flag (means we enable something before validating userOp.calldata)
         // enable mode can be : 
         // - enable signer => 
         //        in this case we know everything about the permissions we need to apply from 
@@ -156,12 +186,21 @@ contract PermissionValidator is ERC7579ValidatorBase, IPermissionValidator {
         //        because in all other 'enable' cases we will have to SLOAD at least some data
         // - enable action permission for signer
         // - enable policy for signer
-        // -enable policy for action permission
+        // - enable policy for action permission
 
         // if this is enable mode, we know the signer from it
         // otherwise we get the signer from signature
 
         // 2. validate Single Action
+
+        /*
+         - validate signer
+         - validate general rules
+         - validate action permission
+        */
+
+        ISignerValidator(signerValidator).checkSignature(signerId, hash, sig);
+        // if 0xffffff => return SIG_VALIDATION_FAILED
     }
 
     /*//////////////////////////////////////////////////////////////////////////
