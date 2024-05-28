@@ -22,6 +22,10 @@ contract PermissionValidator is ERC7579ValidatorBase, IPermissionValidator {
         // For now we assume signerId is known by dApp in some way
         // There are several approaches to it. For example it can be:
         // - keccak256(smartAccount.address + validationAlgo.address + salt)
+        // in this case SDK or DApp have to store it somewhere to be able to use
+        // Probably it's the best way to do it, since dApps already store things that they want to use later
+        // such as signed offchain orders etc
+        //
         // In case storing it somewhere for the SA is not the case, can introduce a specific flow
         // to retrieve it from the SignerValidationAlgo smart contract 
         // for example, every ISigner has getSignerId() method with its own list of args,
@@ -88,12 +92,22 @@ contract PermissionValidator is ERC7579ValidatorBase, IPermissionValidator {
             revert ExecuteUserOpIsNotSupported();
             // selector = bytes4(userOp.callData[4:8]); // if supported
         }
-        
+
+        if(_isEnableMode(userOp.signature)) {
+           (bytes32 signerId, bytes memory cleanSig) = _validateAndEnablePermissions(userOp);
+        } else {
+            bytes32 signerId = bytes32(userOp.signature[1:33]);
+            // parse cleanSig from userOp.signature
+        }
+
+        ISignerValidator(signerValidator).checkSignature(signerId, userOpHash, sig);
+        // if 0xffffff => return SIG_VALIDATION_FAILED
+
         //flows based on selector
         if (selector == IERC7579Account.execute.selector) {
-            return _validate7579ExecuteCall(userOp, userOpHash);
+            return _validate7579ExecuteCall(signerId, userOp, userOpHash);
         } else {
-            return _validateNativeFunctionCall(userOp, userOpHash);
+            return _validateNativeFunctionCall(signerId, userOp, userOpHash);
         }
     }
 
@@ -190,6 +204,7 @@ contract PermissionValidator is ERC7579ValidatorBase, IPermissionValidator {
 
         // if this is enable mode, we know the signer from it
         // otherwise we get the signer from signature
+        // however it is cheap to get it from the signature
 
         // 2. validate Single Action
 
@@ -199,8 +214,7 @@ contract PermissionValidator is ERC7579ValidatorBase, IPermissionValidator {
          - validate action permission
         */
 
-        ISignerValidator(signerValidator).checkSignature(signerId, hash, sig);
-        // if 0xffffff => return SIG_VALIDATION_FAILED
+        
     }
 
     /*//////////////////////////////////////////////////////////////////////////
