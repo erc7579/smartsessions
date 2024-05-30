@@ -1,13 +1,19 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.23;
 
-import { ERC7579ValidatorBase } from "modulekit/Modules.sol";
+import { ERC7579ValidatorBase, ERC7579ExecutorBase } from "modulekit/Modules.sol";
 import { PackedUserOperation } from "modulekit/external/ERC4337.sol";
 import { IPermissionValidator } from "contracts/interfaces/validators/IPermissionValidator.sol";
 import { IERC7579Account } from  "erc7579/interfaces/IERC7579Account.sol";
+import { IModule as IERC7579Module } from "erc7579/interfaces/IERC7579Module.sol";
 import { IAccountExecute} from "modulekit/external/ERC4337.sol";
+import { ISignerValidator } from "contracts/interfaces/ISignerValidator.sol";
+import { TrustedForwarder } from "contracts/utils/TrustedForwarder.sol";
 
-contract PermissionValidator is ERC7579ValidatorBase, IPermissionValidator {
+import "forge-std/console2.sol";
+
+
+contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermissionValidator {
     /*//////////////////////////////////////////////////////////////////////////
                             CONSTANTS & STORAGE
     //////////////////////////////////////////////////////////////////////////*/
@@ -38,7 +44,10 @@ contract PermissionValidator is ERC7579ValidatorBase, IPermissionValidator {
         // can discuss this with SDK guys
 
         mapping(SignerId => mapping (address smartAccount => address signerValidator)) signers;
-        //
+        
+        // change bytes to struct similar to what @zeroknots did, but also add library to parse it to get list of addresses
+        // struct of 5 items bytes32 each will give us 160bytes = 8 addresses
+        mapping(SignerId => mapping (address smartAccount => bytes)) userOpPolicies;  
     }
 
     function _permissionValidatorStorage() internal pure returns (PermissionValidatorStorage storage state) {
@@ -68,7 +77,6 @@ contract PermissionValidator is ERC7579ValidatorBase, IPermissionValidator {
         bytes32 userOpHash
     )
         external
-        view
         override
         returns (ValidationData)
     {   
@@ -93,15 +101,47 @@ contract PermissionValidator is ERC7579ValidatorBase, IPermissionValidator {
             // selector = bytes4(userOp.callData[4:8]); // if supported
         }
 
+        // Check enable mode flag (means we enable something before validating userOp.calldata)
+        // enable mode can be : 
+        // - enable signer => 
+        //        in this case we know everything about the permissions we need to apply from 
+        //        the signer enable object and we can save some SLOADs by not fetching the data
+        //        from the storage in the _validate...Call() methods. 
+        //        However, from code readability perspective it might be better to have a unified flow
+        //        of just enbaling all first and then independently processing
+        //        because in all other 'enable' cases we will have to SLOAD at least some data
+        //
+        //        Decided to just separate those flows for now. it makes things much easier to read,
+        //        use, and understand.
+        //        Can do optimization later to separate the flow that has all the required data
+        //        to validate a userOp (or at least some actions) from the calldata (userOp.signature),
+        //        not storage
+        //        
+        // - enable action permission for signer
+        // - enable policy for signer
+        // - enable policy for action permission
+
+        SignerId signerId;
+        bytes memory cleanSig;
+        address signerValidator;
+
+        // if this is enable mode, we know the signer from it
+        // otherwise we get the signer from signature
+        // however it is cheap to get it from the signature
         if(_isEnableMode(userOp.signature)) {
-           (bytes32 signerId, bytes memory cleanSig) = _validateAndEnablePermissions(userOp);
+          // (SignerId signerId, bytes memory cleanSig) = _validateAndEnablePermissions(userOp);
+          // signer validator can also be obtained from enable data in many cases, saving one SLOAD
         } else {
-            bytes32 signerId = bytes32(userOp.signature[1:33]);
-            // parse cleanSig from userOp.signature
+            signerId = SignerId.wrap(bytes32(userOp.signature[1:33]));
+            cleanSig = userOp.signature[33:];
+            signerValidator = _permissionValidatorStorage().signers[signerId][msg.sender];
         }
 
-        ISignerValidator(signerValidator).checkSignature(signerId, userOpHash, sig);
-        // if 0xffffff => return SIG_VALIDATION_FAILED
+        if (ISignerValidator(signerValidator).checkSignature(SignerId.unwrap(signerId), msg.sender, userOpHash, cleanSig) == EIP1271_FAILED) {
+            return VALIDATION_FAILED;
+        }
+
+        console2.log("Signature validation at ISignerValidator.checkSignature passed");
 
         //flows based on selector
         if (selector == IERC7579Account.execute.selector) {
@@ -145,7 +185,14 @@ contract PermissionValidator is ERC7579ValidatorBase, IPermissionValidator {
      *
      * @param data The data to initialize the module with
      */
-    function onInstall(bytes calldata data) external override { }
+    function onInstall(bytes calldata data) external override {
+        if(uint256(uint8(bytes1(data[:1]))) == TYPE_VALIDATOR) {
+            // make the temporary onInstall that just enables some fixed set of policies per signer
+            // along with this validator initialization itself
+            // for testing purposes
+            _enableSigner(SignerId.wrap(bytes32(data[1:33])), address(bytes20(data[33:53])), msg.sender, data[53:]);
+        }
+    }
 
     /**
      * De-initialize the module with the given data
@@ -160,13 +207,16 @@ contract PermissionValidator is ERC7579ValidatorBase, IPermissionValidator {
      *
      * @return true if the module is initialized, false otherwise
      */
-    function isInitialized(address smartAccount) external view returns (bool) { }
+    function isInitialized(address smartAccount) external view returns (bool) {
+        return true;
+    }
 
     /*//////////////////////////////////////////////////////////////////////////
                                      INTERNAL
     //////////////////////////////////////////////////////////////////////////*/
 
     function _validate7579ExecuteCall(
+        SignerId signerId,
         PackedUserOperation calldata userOp, 
         bytes32 userOpHash
     ) internal returns (ValidationData) {
@@ -179,42 +229,58 @@ contract PermissionValidator is ERC7579ValidatorBase, IPermissionValidator {
         // b) fallback to some handler 
         //    will have to think how to properly install/uninstall it on the account
         //    ideally via 7484 integration
+        return VALIDATION_SUCCESS;
         
     }
 
     function _validateNativeFunctionCall(
+        SignerId signerId,
         PackedUserOperation calldata userOp, 
         bytes32 userOpHash
     ) internal returns (ValidationData) {
         // we expect this to be single action userOp, not a batched one
+        // Validate Single Action
+
+        // - validate general rules
+        // - validate action permission
+        return VALIDATION_SUCCESS;
+    }
+
+    function _enableSigner(
+        SignerId signerId, 
+        address signerValidator, 
+        address smartAccount, 
+        bytes calldata signerData
+    ) internal {   
         
-        // 1. check enable mode flag (means we enable something before validating userOp.calldata)
-        // enable mode can be : 
-        // - enable signer => 
-        //        in this case we know everything about the permissions we need to apply from 
-        //        the signer enable object and we can save some SLOADs by not fetching the data
-        //        from the storage. Estimate is it worth it having separate procedure for this 
-        //        branch in terms of code readability / gas savings tradeoff
-        //        as from code readability perspective it might be better to have a unified flow
-        //        of just enbaling all first and then independently processing
-        //        because in all other 'enable' cases we will have to SLOAD at least some data
-        // - enable action permission for signer
-        // - enable policy for signer
-        // - enable policy for action permission
+        // set trusted forwarder via SA
+        // This module SHOULD be installed as an executor on the smart account
+        // to be able to call executeFromExecutor
+        _execute(
+            smartAccount, 
+            signerValidator,
+            0, 
+            abi.encodeWithSelector(TrustedForwarder.setTrustedForwarder.selector, signerId, address(this))
+        );
 
-        // if this is enable mode, we know the signer from it
-        // otherwise we get the signer from signature
-        // however it is cheap to get it from the signature
-
-        // 2. validate Single Action
-
-        /*
-         - validate signer
-         - validate general rules
-         - validate action permission
-        */
-
+        // set signerValidator for signerId and smartAccount
+        _permissionValidatorStorage().signers[signerId][smartAccount] = signerValidator;
         
+        // setup signerValidator for given signerId and smartAccount
+        bytes memory _data = abi.encodePacked(signerId, signerData);
+        (bool success, ) = signerValidator.call(
+            abi.encodePacked(
+                abi.encodeCall(IERC7579Module.onInstall, (_data)),
+                address(this),
+                smartAccount
+            )
+        );
+        if (!success) revert();
+    }
+
+    function _isEnableMode(bytes calldata signature) internal pure returns (bool) {
+        //return signature[0] == 0x01;
+        return false;
     }
 
     /*//////////////////////////////////////////////////////////////////////////
@@ -247,6 +313,6 @@ contract PermissionValidator is ERC7579ValidatorBase, IPermissionValidator {
      * @return true if the module is of the given type, false otherwise
      */
     function isModuleType(uint256 typeID) external pure override returns (bool) {
-        return typeID == TYPE_VALIDATOR;
+        return typeID == TYPE_VALIDATOR || typeID == TYPE_EXECUTOR;
     }
 }
