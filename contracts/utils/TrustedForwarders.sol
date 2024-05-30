@@ -3,8 +3,18 @@ pragma solidity ^0.8.25;
 
 // Credits: @rhinestone @zeroknots
 
-abstract contract TrustedForwarder {
-    // account => trustedForwarder
+abstract contract TrustedForwarderWithId {
+    
+    // id => account => trustedForwarder
+    // This approach with Id allows setting various Trusted Forwarders for the same account
+    // It can in theory be required when the same sub-module (that inherits this) is used with 
+    // different multiplexers on one account. 
+    // For example, same SignerValidator is used via PermissionsManager and some SignerMultiplexer
+    // id is the config id of the sub-module
+    // 
+    // However, it adds one SSTORE for every activation of a submodule.
+    // To reduce SSTORE's, the id can be removed. In this case the submodule will only 
+    // be usable with one trusted forwarder (multiplexer) per smart account.
     mapping(bytes32 id => mapping(address account => address)) public trustedForwarder;
 
     /**

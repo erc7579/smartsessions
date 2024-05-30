@@ -3,17 +3,17 @@ pragma solidity ^0.8.23;
 
 import { ERC7579ValidatorBase, ERC7579ExecutorBase } from "modulekit/Modules.sol";
 import { PackedUserOperation } from "modulekit/external/ERC4337.sol";
-import { IPermissionValidator } from "contracts/interfaces/validators/IPermissionValidator.sol";
+import { IPermissionManager } from "contracts/interfaces/validators/IPermissionManager.sol";
 import { IERC7579Account } from  "erc7579/interfaces/IERC7579Account.sol";
 import { IModule as IERC7579Module } from "erc7579/interfaces/IERC7579Module.sol";
 import { IAccountExecute} from "modulekit/external/ERC4337.sol";
 import { ISignerValidator } from "contracts/interfaces/ISignerValidator.sol";
-import { TrustedForwarder } from "contracts/utils/TrustedForwarder.sol";
+import { TrustedForwarderWithId } from "contracts/utils/TrustedForwarders.sol";
 
 import "forge-std/console2.sol";
 
 
-contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermissionValidator {
+contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermissionManager {
     /*//////////////////////////////////////////////////////////////////////////
                             CONSTANTS & STORAGE
     //////////////////////////////////////////////////////////////////////////*/
@@ -47,7 +47,7 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         
         // change bytes to struct similar to what @zeroknots did, but also add library to parse it to get list of addresses
         // struct of 5 items bytes32 each will give us 160bytes = 8 addresses
-        mapping(SignerId => mapping (address smartAccount => bytes)) userOpPolicies;  
+        mapping(SignerId => mapping (address smartAccount => bytes /*AddressArray*/)) userOpPolicies;  
     }
 
     function _permissionValidatorStorage() internal pure returns (PermissionValidatorStorage storage state) {
@@ -140,8 +140,9 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         if (ISignerValidator(signerValidator).checkSignature(SignerId.unwrap(signerId), msg.sender, userOpHash, cleanSig) == EIP1271_FAILED) {
             return VALIDATION_FAILED;
         }
-
         console2.log("Signature validation at ISignerValidator.checkSignature passed");
+
+        // Check userOp level Policies
 
         //flows based on selector
         if (selector == IERC7579Account.execute.selector) {
@@ -190,7 +191,19 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
             // make the temporary onInstall that just enables some fixed set of policies per signer
             // along with this validator initialization itself
             // for testing purposes
-            _enableSigner(SignerId.wrap(bytes32(data[1:33])), address(bytes20(data[33:53])), msg.sender, data[53:]);
+            _enableSigner(
+                SignerId.wrap(bytes32(data[1:33])), //signerId
+                address(bytes20(data[33:53])),      //signerValidator
+                msg.sender,                         //smartAccount
+                data[53:73]                         //signerData = 20bytes only for testing purposes, single EOA address
+            );
+
+            //enable couple of general permissions for the signerId
+            // get address[] from data
+            //  then in the _enableUserOpPolicies()
+            //         1. store addresses of the policies in the storage
+            //         2. setTrustedForwarder for all of the userOp policies
+            //         3. setUp the policies for the signerId via onInstall 
         }
     }
 
@@ -260,7 +273,7 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
             smartAccount, 
             signerValidator,
             0, 
-            abi.encodeWithSelector(TrustedForwarder.setTrustedForwarder.selector, signerId, address(this))
+            abi.encodeWithSelector(TrustedForwarderWithId.setTrustedForwarder.selector, signerId, address(this))
         );
 
         // set signerValidator for signerId and smartAccount
@@ -277,6 +290,27 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         );
         if (!success) revert();
     }
+
+    function _enableActionPermission() internal {
+        // set trusted forwarder via SA
+        // This module SHOULD be installed as an executor on the smart account
+        // to be able to call executeFromExecutor
+
+        // do not set, if it has already been set for a given signerId. 
+        // this may happen when same sub-module is used several times for the same
+        // signerId and SA pair = for example: 
+        // same rateLimit policy is used in several action permissions
+        
+        /* if(!TrustedForwarder(signerValidator).isTrustedForwarder(address(this))) {
+            _execute(
+                smartAccount, 
+                some IPolicy,
+                0, 
+                abi.encodeWithSelector(TrustedForwarderWithId.setTrustedForwarder.selector, signerId, address(this))
+            );
+        }
+        */
+    } 
 
     function _isEnableMode(bytes calldata signature) internal pure returns (bool) {
         //return signature[0] == 0x01;

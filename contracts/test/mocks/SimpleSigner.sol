@@ -2,11 +2,11 @@
 
 pragma solidity ^0.8.23;
 
-import { TrustedForwarder } from "contracts/utils/TrustedForwarder.sol";
+import { TrustedForwarderWithId } from "contracts/utils/TrustedForwarders.sol";
 import { ISignerValidator } from "contracts/interfaces/ISignerValidator.sol";
 import {ECDSA} from "solady/utils/ECDSA.sol";
 
-contract SimpleSigner is ISignerValidator, TrustedForwarder {
+contract SimpleSigner is ISignerValidator, TrustedForwarderWithId {
 
     mapping(address => uint256) public usedIds;
     mapping(bytes32 signerId => mapping(address smartAccount => address)) public signer;
