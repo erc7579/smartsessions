@@ -2,15 +2,17 @@
 
 pragma solidity ^0.8.23;
 
-import { TrustedForwarderWithId } from "contracts/utils/TrustedForwarders.sol";
+//import { TrustedForwarderWithId } from "contracts/utils/TrustedForwarders.sol";
 import { ISignerValidator } from "contracts/interfaces/ISignerValidator.sol";
 import {ECDSA} from "solady/utils/ECDSA.sol";
 
-contract SimpleSigner is ISignerValidator, TrustedForwarderWithId {
+contract SimpleSigner is ISignerValidator/*, TrustedForwarderWithId*/ {
 
     mapping(address => uint256) public usedIds;
     mapping(bytes32 signerId => mapping(address smartAccount => address)) public signer;
 
+    // can use sender as argument here as the method is view
+    // so even external calls with arbitrary sender can not break things
     function checkSignature(bytes32 signerId, address sender, bytes32 hash, bytes calldata sig)
         external
         view
@@ -30,14 +32,14 @@ contract SimpleSigner is ISignerValidator, TrustedForwarderWithId {
     }
 
     function _onInstallSigner(bytes32 signerId, bytes calldata _data) internal {
-        address smartAccount = _getAccount(signerId);
+        address smartAccount = msg.sender/*_getAccount(signerId)*/;
         require(signer[signerId][smartAccount] == address(0));
         usedIds[smartAccount]++;
         signer[signerId][smartAccount] = address(bytes20(_data[0:20]));
     }
 
     function _onUninstallSigner(bytes32 signerId, bytes calldata) internal {
-        address smartAccount = _getAccount(signerId);
+        address smartAccount = msg.sender /*_getAccount(signerId)*/;
         require(signer[signerId][smartAccount] != address(0));
         usedIds[smartAccount]--;
     }

@@ -8,7 +8,8 @@ import { IERC7579Account } from  "erc7579/interfaces/IERC7579Account.sol";
 import { IModule as IERC7579Module } from "erc7579/interfaces/IERC7579Module.sol";
 import { IAccountExecute} from "modulekit/external/ERC4337.sol";
 import { ISignerValidator } from "contracts/interfaces/ISignerValidator.sol";
-import { TrustedForwarderWithId } from "contracts/utils/TrustedForwarders.sol";
+import { ITrustedForwarder } from "contracts/utils/ITrustedForwarder.sol";
+import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 import "forge-std/console2.sol";
 
@@ -187,6 +188,7 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
      * @param data The data to initialize the module with
      */
     function onInstall(bytes calldata data) external override {
+        //if this module is being installed as a validator
         if(uint256(uint8(bytes1(data[:1]))) == TYPE_VALIDATOR) {
             // make the temporary onInstall that just enables some fixed set of policies per signer
             // along with this validator initialization itself
@@ -265,52 +267,70 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         address smartAccount, 
         bytes calldata signerData
     ) internal {   
-        
-        // set trusted forwarder via SA
-        // This module SHOULD be installed as an executor on the smart account
-        // to be able to call executeFromExecutor
-        _execute(
-            smartAccount, 
-            signerValidator,
-            0, 
-            abi.encodeWithSelector(TrustedForwarderWithId.setTrustedForwarder.selector, signerId, address(this))
-        );
+
+        bytes memory _data = abi.encodePacked(signerId, signerData);
 
         // set signerValidator for signerId and smartAccount
         _permissionValidatorStorage().signers[signerId][smartAccount] = signerValidator;
-        
-        // setup signerValidator for given signerId and smartAccount
-        bytes memory _data = abi.encodePacked(signerId, signerData);
-        (bool success, ) = signerValidator.call(
-            abi.encodePacked(
-                abi.encodeCall(IERC7579Module.onInstall, (_data)),
-                address(this),
-                smartAccount
-            )
-        );
-        if (!success) revert();
+
+        _initSubmodule(signerValidator, signerId, smartAccount, _data);
     }
 
     function _enableActionPermission() internal {
-        // set trusted forwarder via SA
-        // This module SHOULD be installed as an executor on the smart account
-        // to be able to call executeFromExecutor
-
-        // do not set, if it has already been set for a given signerId. 
-        // this may happen when same sub-module is used several times for the same
-        // signerId and SA pair = for example: 
-        // same rateLimit policy is used in several action permissions
         
-        /* if(!TrustedForwarder(signerValidator).isTrustedForwarder(address(this))) {
+    }
+
+    function _initSubmodule( 
+        address signerValidator, 
+        SignerId signerId,
+        address smartAccount, 
+        bytes memory _data
+    ) internal {
+        try IERC165(signerValidator).supportsInterface(type(ITrustedForwarder).interfaceId) returns (bool supported) {
+            if(supported) {
+                // set trusted forwarder via SA
+                // This module SHOULD be installed as an executor on the smart account
+                // to be able to call executeFromExecutor
+                // The check allows to avoid excess sstore's in case sub-module uses id-less approach
+                if(!ITrustedForwarder(signerValidator).isTrustedForwarder(address(this), smartAccount, SignerId.unwrap(signerId))) {
+                    _execute(
+                        smartAccount, 
+                        signerValidator,
+                        0, 
+                        abi.encodeWithSelector(ITrustedForwarder.setTrustedForwarder.selector, address(this), signerId)
+                    );
+                }
+                
+                // setup signerValidator for given signerId and smartAccount
+                (bool success, ) = signerValidator.call(
+                    abi.encodePacked(
+                        abi.encodeCall(IERC7579Module.onInstall, (_data)),
+                        address(this),
+                        smartAccount
+                    )
+                );
+                if (!success) revert();
+            } else {
+                // sub-module doesn't support trusted forwarder
+                // so it doesn't use msg.sender except in onInstall
+                // so we can just do onInstall via executeFromExecutor
+                _execute(
+                    smartAccount, 
+                    signerValidator,
+                    0, 
+                    abi.encodeWithSelector(IERC7579Module.onInstall.selector, _data)
+                );
+            }
+        } catch (bytes memory /*error*/) {
+            // sub-module doesn't support trusted forwarder
             _execute(
                 smartAccount, 
-                some IPolicy,
+                signerValidator,
                 0, 
-                abi.encodeWithSelector(TrustedForwarderWithId.setTrustedForwarder.selector, signerId, address(this))
+                abi.encodeWithSelector(IERC7579Module.onInstall.selector, _data)
             );
         }
-        */
-    } 
+    }
 
     function _isEnableMode(bytes calldata signature) internal pure returns (bool) {
         //return signature[0] == 0x01;
