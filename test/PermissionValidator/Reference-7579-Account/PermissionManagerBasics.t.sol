@@ -12,6 +12,8 @@ import {
 import { MODULE_TYPE_VALIDATOR, MODULE_TYPE_EXECUTOR } from "modulekit/external/ERC7579.sol";
 import { PermissionManager } from "contracts/validators/PermissionManager.sol";
 import { SimpleSigner } from "contracts/test/mocks/SimpleSigner.sol";
+import { UsageLimitPolicy } from "contracts/test/mocks/UsageLimitPolicy.sol";
+import { SimpleGasPolicy } from "contracts/test/mocks/SimpleGasPolicy.sol";
 
 import "forge-std/console2.sol";
 
@@ -22,11 +24,15 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
     // account and modules
     AccountInstance internal instance;
     PermissionManager internal permissionManager;
+    
+    bytes32 signerId;
+
     SimpleSigner internal simpleSignerValidator;
     address sessionSigner1;
     uint256 sessionSigner1Pk;
 
-    bytes32 signerId;
+    UsageLimitPolicy internal usageLimitPolicy;
+    SimpleGasPolicy internal simpleGasPolicy;
 
     function setUp() public {
         init();
@@ -35,11 +41,17 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
         permissionManager = new PermissionManager();
         vm.label(address(permissionManager), "PermissionManager");
 
-        // Create the signer
+        // Create the signer validator
         simpleSignerValidator = new SimpleSigner();
         vm.label(address(simpleSignerValidator), "SimpleSignerValidator");
 
-        // Create the account and install as a validator and as an executor
+        // Deploy Policies
+        usageLimitPolicy = new UsageLimitPolicy();
+        vm.label(address(usageLimitPolicy), "UsageLimitPolicy");
+        simpleGasPolicy = new SimpleGasPolicy();
+        vm.label(address(simpleGasPolicy), "SimpleGasPolicy");
+
+        // Create the account and install PermissionManager as a validator and as an executor
         instance = makeAccountInstance("PermissionManager");
         vm.deal(address(instance.account), 10 ether);
 
@@ -57,12 +69,25 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
         instance.installModule({
             moduleTypeId: MODULE_TYPE_VALIDATOR,
             module: address(permissionManager),
-            data: abi.encodePacked(bytes1(uint8(MODULE_TYPE_VALIDATOR)), signerId, simpleSignerValidator, sessionSigner1)
+            data: abi.encodePacked(
+                uint8(MODULE_TYPE_VALIDATOR), //1 byte
+                signerId, 
+                // data for setting up the signer
+                simpleSignerValidator, 
+                sessionSigner1,
+                // data for setting up the userOp Policies
+                uint8(0x02), // number of policies
+                address(usageLimitPolicy),
+                uint256(10), // limit
+                address(simpleGasPolicy), 
+                uint256(2**256-1) // limit
+            )
         });
-        
-        /*
 
-        */
+        assertTrue(simpleSignerValidator.isInitialized(instance.account));
+        assertTrue(usageLimitPolicy.isInitialized(instance.account));
+        assertTrue(simpleGasPolicy.isInitialized(instance.account));
+        
     }
 
     function testExec() public {

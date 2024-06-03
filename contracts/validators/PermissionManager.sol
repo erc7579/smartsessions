@@ -3,12 +3,14 @@ pragma solidity ^0.8.23;
 
 import { ERC7579ValidatorBase, ERC7579ExecutorBase } from "modulekit/Modules.sol";
 import { PackedUserOperation } from "modulekit/external/ERC4337.sol";
+import { AddressArray, AddressArrayLib } from "contracts/utils/AddressArrayLib.sol";
 import { IPermissionManager } from "contracts/interfaces/validators/IPermissionManager.sol";
 import { IERC7579Account } from  "erc7579/interfaces/IERC7579Account.sol";
 import { IModule as IERC7579Module } from "erc7579/interfaces/IERC7579Module.sol";
 import { IAccountExecute} from "modulekit/external/ERC4337.sol";
 import { ISignerValidator } from "contracts/interfaces/ISignerValidator.sol";
 import { ITrustedForwarder } from "contracts/utils/ITrustedForwarder.sol";
+import { IUserOpPolicy, IActionPolicy } from "contracts/interfaces/IPolicies.sol";
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 import "forge-std/console2.sol";
@@ -22,7 +24,7 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
     // bytes32(uint256(keccak256('erc7579.module.permissionvalidator')) - 1)
     bytes32 constant PERMISSION_VALIDATOR_STORAGE_SLOT = 0x73a9885e8be4b58095971868aa2af983b5913f3e08c5b78a3ca0cb6b827458f8;
 
-    type SignerId is bytes32;
+    using AddressArrayLib for AddressArray;
 
     struct PermissionValidatorStorage {
         // Note on the signerId. 
@@ -48,7 +50,7 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         
         // change bytes to struct similar to what @zeroknots did, but also add library to parse it to get list of addresses
         // struct of 5 items bytes32 each will give us 160bytes = 8 addresses
-        mapping(SignerId => mapping (address smartAccount => bytes /*AddressArray*/)) userOpPolicies;  
+        mapping(SignerId => mapping (address smartAccount => AddressArray)) userOpPolicies;  
     }
 
     function _permissionValidatorStorage() internal pure returns (PermissionValidatorStorage storage state) {
@@ -144,8 +146,19 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         console2.log("Signature validation at ISignerValidator.checkSignature passed");
 
         // Check userOp level Policies
+        AddressArray storage policies = _permissionValidatorStorage().userOpPolicies[signerId][msg.sender];
+        for(uint256 i; i < policies.length(); i++) {
+            // temporary; 
+            // in fact we need to intersect validation datas from all policies and pass next to then intersect with
+            // validation data from the action policies
+            //console2.log("Policy address: ", policies.get(i));
+            uint256 vd = IUserOpPolicy(policies.get(i)).checkUserOp(SignerId.unwrap(signerId), userOp); 
+        }
+
+        console2.log("UserOp Policied verification passed");
 
         //flows based on selector
+        // CHANGE to receiving and intersecting validation data from policies
         if (selector == IERC7579Account.execute.selector) {
             return _validate7579ExecuteCall(signerId, userOp, userOpHash);
         } else {
@@ -188,24 +201,32 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
      * @param data The data to initialize the module with
      */
     function onInstall(bytes calldata data) external override {
+        
+        // the temporary onInstall that just enables some fixed set of policies per signer
+
         //if this module is being installed as a validator
         if(uint256(uint8(bytes1(data[:1]))) == TYPE_VALIDATOR) {
-            // make the temporary onInstall that just enables some fixed set of policies per signer
             // along with this validator initialization itself
             // for testing purposes
+            SignerId signerId = SignerId.wrap(bytes32(data[1:33]));
+
             _enableSigner(
-                SignerId.wrap(bytes32(data[1:33])), //signerId
+                signerId, //signerId
                 address(bytes20(data[33:53])),      //signerValidator
                 msg.sender,                         //smartAccount
                 data[53:73]                         //signerData = 20bytes only for testing purposes, single EOA address
             );
 
             //enable couple of general permissions for the signerId
-            // get address[] from data
-            //  then in the _enableUserOpPolicies()
-            //         1. store addresses of the policies in the storage
-            //         2. setTrustedForwarder for all of the userOp policies
-            //         3. setUp the policies for the signerId via onInstall 
+            uint256 numberOfUserOpPolicies = uint256(uint8(bytes1(data[73:74])));
+            for(uint256 i; i < numberOfUserOpPolicies; i++) {
+                // get address of the policy
+                address policyAddress = address(bytes20(data[74 + i*(20+32): 94 + i*(20+32)]));
+                bytes calldata policyData = data[94 + i*(20+32): 94+32 + i*(20+32)];
+                //console2.log("Policy address: ", policyAddress);
+                //console2.logBytes(policyData);
+                _enableUserOpPolicy(signerId, policyAddress, msg.sender, policyData);
+            }
         }
     }
 
@@ -267,7 +288,6 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         address smartAccount, 
         bytes calldata signerData
     ) internal {   
-
         bytes memory _data = abi.encodePacked(signerId, signerData);
 
         // set signerValidator for signerId and smartAccount
@@ -276,35 +296,58 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         _initSubmodule(signerValidator, signerId, smartAccount, _data);
     }
 
-    function _enableActionPermission() internal {
-        
+    function _enableUserOpPolicy(
+        SignerId signerId, 
+        address userOpPolicy, 
+        address smartAccount, 
+        bytes calldata policyData
+    ) internal {
+        bytes memory _data = abi.encodePacked(signerId, policyData);
+
+        // set userOpPolicy for signerId and smartAccount
+        _addUserOpPolicy(signerId, smartAccount, userOpPolicy);
+
+        _initSubmodule(userOpPolicy, signerId, smartAccount, _data);
+    }
+
+    function _addUserOpPolicy(SignerId signerId, address smartAccount, address userOpPolicy) internal {
+        AddressArray storage policies = _permissionValidatorStorage().userOpPolicies[signerId][smartAccount];
+        if(!policies.contains(userOpPolicy)) {
+            policies.push(userOpPolicy);
+            //console2.log("check from storage: ", _permissionValidatorStorage().userOpPolicies[signerId][smartAccount].data[policies.lastUsedIndex()]);
+        } else {
+            // same policy can not be used twice for the same signerId and smartAccount, as
+            // inside the policy contract the config is stored as signerId=>smartAccount=>config
+
+            revert UserOpPolicyAlreadyUsed(signerId, smartAccount, userOpPolicy);
+        }
     }
 
     function _initSubmodule( 
-        address signerValidator, 
+        address subModule, 
         SignerId signerId,
         address smartAccount, 
-        bytes memory _data
+        bytes memory subModuleInitData
     ) internal {
-        try IERC165(signerValidator).supportsInterface(type(ITrustedForwarder).interfaceId) returns (bool supported) {
+        try IERC165(subModule).supportsInterface(type(ITrustedForwarder).interfaceId) returns (bool supported) {
             if(supported) {
                 // set trusted forwarder via SA
                 // This module SHOULD be installed as an executor on the smart account
                 // to be able to call executeFromExecutor
                 // The check allows to avoid excess sstore's in case sub-module uses id-less approach
-                if(!ITrustedForwarder(signerValidator).isTrustedForwarder(address(this), smartAccount, SignerId.unwrap(signerId))) {
+                if(!ITrustedForwarder(subModule).isTrustedForwarder(address(this), smartAccount, SignerId.unwrap(signerId))) {
                     _execute(
                         smartAccount, 
-                        signerValidator,
+                        subModule,
                         0, 
                         abi.encodeWithSelector(ITrustedForwarder.setTrustedForwarder.selector, address(this), signerId)
                     );
                 }
                 
                 // setup signerValidator for given signerId and smartAccount
-                (bool success, ) = signerValidator.call(
+                (bool success, ) = subModule.call(
                     abi.encodePacked(
-                        abi.encodeCall(IERC7579Module.onInstall, (_data)),
+                        abi.encodeCall(IERC7579Module.onInstall, (subModuleInitData)),
                         address(this),
                         smartAccount
                     )
@@ -316,18 +359,18 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
                 // so we can just do onInstall via executeFromExecutor
                 _execute(
                     smartAccount, 
-                    signerValidator,
+                    subModule,
                     0, 
-                    abi.encodeWithSelector(IERC7579Module.onInstall.selector, _data)
+                    abi.encodeWithSelector(IERC7579Module.onInstall.selector, subModuleInitData)
                 );
             }
         } catch (bytes memory /*error*/) {
             // sub-module doesn't support trusted forwarder
             _execute(
                 smartAccount, 
-                signerValidator,
+                subModule,
                 0, 
-                abi.encodeWithSelector(IERC7579Module.onInstall.selector, _data)
+                abi.encodeWithSelector(IERC7579Module.onInstall.selector, subModuleInitData)
             );
         }
     }

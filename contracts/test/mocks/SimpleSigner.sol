@@ -2,9 +2,12 @@
 
 pragma solidity ^0.8.23;
 
-//import { TrustedForwarderWithId } from "contracts/utils/TrustedForwarders.sol";
 import { ISignerValidator } from "contracts/interfaces/ISignerValidator.sol";
 import {ECDSA} from "solady/utils/ECDSA.sol";
+
+// removing trusted forwarder dependency here as it is only required during onInstall/onUninstall
+// and not during usage (checkSignature)
+// import { TrustedForwarderWithId } from "contracts/utils/TrustedForwarders.sol";
 
 contract SimpleSigner is ISignerValidator/*, TrustedForwarderWithId*/ {
 
@@ -41,6 +44,7 @@ contract SimpleSigner is ISignerValidator/*, TrustedForwarderWithId*/ {
     function _onUninstallSigner(bytes32 signerId, bytes calldata) internal {
         address smartAccount = msg.sender /*_getAccount(signerId)*/;
         require(signer[signerId][smartAccount] != address(0));
+        delete signer[signerId][smartAccount];
         usedIds[smartAccount]--;
     }
 
@@ -48,16 +52,20 @@ contract SimpleSigner is ISignerValidator/*, TrustedForwarderWithId*/ {
         return usedIds[smartAccount] > 0;
     }
 
-    function onInstall(bytes calldata data) external payable {
+    function onInstall(bytes calldata data) external {
         bytes32 id = bytes32(data[0:32]);
         bytes calldata _data = data[32:];
         _onInstallSigner(id, _data);
     }
 
-    function onUninstall(bytes calldata data) external payable {
+    function onUninstall(bytes calldata data) external {
         bytes32 id = bytes32(data[0:32]);
         bytes calldata _data = data[32:];
         _onUninstallSigner(id, _data);
+    }
+
+    function isModuleType(uint256 id) external pure returns (bool) {
+        return id == 111;
     }
 
 }

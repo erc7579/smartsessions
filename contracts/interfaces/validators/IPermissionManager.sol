@@ -3,6 +3,10 @@ pragma solidity ^0.8.23;
 
 interface IPermissionManager {
 
+    type SignerId is bytes32;
+
     error ExecuteUserOpIsNotSupported();
+
+    error UserOpPolicyAlreadyUsed(SignerId signerId, address smartAccount, address userOpPolicy);
 
 }
