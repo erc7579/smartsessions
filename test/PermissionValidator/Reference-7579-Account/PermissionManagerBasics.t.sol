@@ -94,6 +94,7 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
         // Create a target address and send some ether to it
         address target = makeAddr("target");
         uint256 value = 1 ether;
+        console2.log("target ", target);
 
         // Get the current balance of the target
         uint256 prevBalance = target.balance;
@@ -102,7 +103,7 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
         UserOpData memory userOpData = instance.getExecOps({
             target: target,
             value: value,
-            callData: "",
+            callData: "0xdeaf",
             txValidator: address(permissionManager)
         });
 
@@ -123,3 +124,13 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
         assertEq(target.balance, prevBalance+value, "Balance not increased");
     }
 }
+
+/*
+0x
+0000000000000000000000000000000000000000000000000000000000000040
+000000000000000000000000000000000000000000000000000000000000003c   0x3c = 60
+2d1d989af240b673c84ceeb3e6279ea98a2cfd05
+0000000000000000000000000000000000000000000000000de0b6b3a7640000
+313231323132313200000000
+
+*/
