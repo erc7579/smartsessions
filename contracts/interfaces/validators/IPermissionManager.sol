@@ -8,6 +8,6 @@ interface IPermissionManager {
 
     error ExecuteUserOpIsNotSupported();
 
-    error UserOpPolicyAlreadyUsed(SignerId signerId, address smartAccount, address userOpPolicy);
+    error PolicyAlreadyUsed(address userOpPolicy);
 
 }

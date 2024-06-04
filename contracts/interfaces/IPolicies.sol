@@ -14,8 +14,12 @@ interface IUserOpPolicy is IERC7579Module {
 
 interface IActionPolicy is IERC7579Module {
 
-    function checkAction(bytes32 id, PackedUserOperation calldata userOp /* execution */)
-        external
-        returns (uint256);
+    function checkAction(
+        bytes32 id, 
+        address target,
+        uint256 value,
+        bytes calldata data,
+        PackedUserOperation calldata userOp
+    ) external returns (uint256);
 
 }

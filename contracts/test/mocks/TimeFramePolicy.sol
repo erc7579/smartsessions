@@ -3,50 +3,49 @@
 pragma solidity ^0.8.23;
 
 import { IUserOpPolicy, IActionPolicy, PackedUserOperation, VALIDATION_SUCCESS } from "contracts/interfaces/IPolicies.sol";
+import { _packValidationData } from "@ERC4337/account-abstraction/contracts/core/Helpers.sol";
 
-contract UsageLimitPolicy is IUserOpPolicy, IActionPolicy {
+contract TimeFramePolicy is IUserOpPolicy, IActionPolicy {
 
-    struct UsageLimitConfig {
-        uint256 limit;
-        uint256 used;
+    struct TimeFrameConfig {
+        uint48 validUntil;
+        uint48 validAfter;
     }
 
     mapping(address => uint256) public usedIds;
-    mapping(bytes32 signerId => mapping(address smartAccount => UsageLimitConfig)) public usageLimitConfigs;
+    mapping(bytes32 signerId => mapping(address smartAccount => TimeFrameConfig)) public timeFrameConfigs;
 
     function checkUserOp(bytes32 id, PackedUserOperation calldata userOp)
         external
         returns (uint256) 
     {
-        return _checkUsageLimit(id, userOp.sender);   
+        return _checkTimeFrame(id, userOp.sender);   
     }
 
     function checkAction(bytes32 id, address, uint256, bytes calldata, PackedUserOperation calldata userOp)
         external
         returns (uint256) 
     {
-        return _checkUsageLimit(id, userOp.sender);
+        return _checkTimeFrame(id, userOp.sender);
     }
 
-    function _checkUsageLimit(bytes32 id, address smartAccount) internal returns (uint256) {
-        UsageLimitConfig storage config = usageLimitConfigs[id][smartAccount];
-        if (++config.used > config.limit) {
-            revert("UsageLimitPolicy: usage limit exceeded");
-        }
-        return VALIDATION_SUCCESS;
+    function _checkTimeFrame(bytes32 id, address smartAccount) internal view returns (uint256) {
+        TimeFrameConfig storage config = timeFrameConfigs[id][smartAccount];
+        return _packValidationData(false, config.validAfter, config.validUntil);
     }
 
     function _onInstallPolicy(bytes32 id, bytes calldata _data) internal {
-        address smartAccount = msg.sender/*_getAccount(signerId)*/;
-        require(usageLimitConfigs[id][smartAccount].limit == 0);
+        address smartAccount = msg.sender;
+        require(timeFrameConfigs[id][smartAccount].validUntil == 0 && timeFrameConfigs[id][smartAccount].validAfter == 0);
         usedIds[smartAccount]++;
-        usageLimitConfigs[id][smartAccount].limit = uint256(bytes32(_data[0:32]));
+        timeFrameConfigs[id][smartAccount].validUntil = uint48(uint128(bytes16(_data[0:16])));
+        timeFrameConfigs[id][smartAccount].validAfter = uint48(uint128(bytes16(_data[16:32])));
     }
 
     function _onUninstallPolicy(bytes32 id, bytes calldata) internal {
-        address smartAccount = msg.sender /*_getAccount(signerId)*/;
-        require(usageLimitConfigs[id][smartAccount].limit != 0);
-        delete usageLimitConfigs[id][smartAccount];
+        address smartAccount = msg.sender;
+        require(timeFrameConfigs[id][smartAccount].validUntil != 0 || timeFrameConfigs[id][smartAccount].validAfter != 0);
+        delete timeFrameConfigs[id][smartAccount];
         usedIds[smartAccount]--;
     }
 

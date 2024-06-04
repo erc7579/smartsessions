@@ -163,7 +163,7 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
             // temporary; 
             // in fact we need to intersect validation datas from all policies and pass next to then intersect with
             // validation data from the action policies
-            //console2.log("Policy address: ", policies.get(i));
+            console2.log("Validating Policy @ address: ", policies.get(i));
             uint256 vd = IUserOpPolicy(policies.get(i)).checkUserOp(SignerId.unwrap(signerId), userOp); 
         }
 
@@ -240,6 +240,19 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
                 //console2.log("Policy address: ", policyAddress);
                 //console2.logBytes(policyData);
                 _enableUserOpPolicy(signerId, policyAddress, msg.sender, policyData);
+            }
+
+            uint256 pointer = 74 + numberOfUserOpPolicies*(20+32);
+            uint256 numberOfActionPolicies = uint256(uint8(bytes1(data[pointer:++pointer])));
+            ActionId actionId = ActionId.wrap(bytes32(data[pointer:pointer+32]));
+            pointer += 32;
+            for(uint256 i; i < numberOfActionPolicies; i++) {
+                // get address of the policy
+                address policyAddress = address(bytes20(data[pointer + i*(20+32): pointer+20 + i*(20+32)]));
+                bytes calldata policyData = data[pointer+20 + i*(20+32): pointer+20+32 + i*(20+32)];
+                //console2.log("Action Policy address: ", policyAddress);
+                //console2.logBytes(policyData);
+                _enableActionPolicy(signerId, actionId, policyAddress, msg.sender, policyData);
             }
         }
     }
@@ -355,7 +368,7 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         // set signerValidator for signerId and smartAccount
         _permissionValidatorStorage().signers[signerId][smartAccount] = signerValidator;
 
-        _initSubmodule(signerValidator, signerId, smartAccount, _data);
+        _initSubmodule(signerValidator, SignerId.unwrap(signerId), smartAccount, _data);
     }
 
     function _enableUserOpPolicy(
@@ -366,27 +379,42 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
     ) internal {
         bytes memory _data = abi.encodePacked(signerId, policyData);
 
-        // set userOpPolicy for signerId and smartAccount
-        _addUserOpPolicy(signerId, smartAccount, userOpPolicy);
+        AddressArray storage policies = _permissionValidatorStorage().userOpPolicies[signerId][smartAccount];
+        _addPolicy(policies, userOpPolicy);
 
-        _initSubmodule(userOpPolicy, signerId, smartAccount, _data);
+        _initSubmodule(userOpPolicy, SignerId.unwrap(signerId), smartAccount, _data);
     }
 
-    function _addUserOpPolicy(SignerId signerId, address smartAccount, address userOpPolicy) internal {
-        AddressArray storage policies = _permissionValidatorStorage().userOpPolicies[signerId][smartAccount];
-        if(!policies.contains(userOpPolicy)) {
-            policies.push(userOpPolicy);
+    function _enableActionPolicy(
+        SignerId signerId, 
+        ActionId actionId, 
+        address actionPolicy, 
+        address smartAccount, 
+        bytes calldata policyData
+    ) internal {
+        bytes32 id = keccak256(abi.encodePacked(signerId, actionId));
+        bytes memory _data = abi.encodePacked(id, policyData);
+
+        AddressArray storage policies = _permissionValidatorStorage().actionPolicies[signerId][actionId][smartAccount];
+        _addPolicy(policies, actionPolicy);
+
+        _initSubmodule(actionPolicy, id, smartAccount, _data);
+    }
+
+    function _addPolicy(AddressArray storage policies, address policy) internal {            
+        if(!policies.contains(policy)) {
+            policies.push(policy);
             //console2.log("check from storage: ", _permissionValidatorStorage().userOpPolicies[signerId][smartAccount].data[policies.lastUsedIndex()]);
         } else {
             // same policy can not be used twice for the same signerId and smartAccount, as
             // inside the policy contract the config is stored as signerId=>smartAccount=>config
-            revert UserOpPolicyAlreadyUsed(signerId, smartAccount, userOpPolicy);
+            revert PolicyAlreadyUsed(policy);
         }
     }
 
     function _initSubmodule( 
         address subModule, 
-        SignerId signerId,
+        bytes32 id,
         address smartAccount, 
         bytes memory subModuleInitData
     ) internal {
@@ -396,21 +424,21 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
                 // This module SHOULD be installed as an executor on the smart account
                 // to be able to call executeFromExecutor
                 // The check allows to avoid excess sstore's in case sub-module uses id-less approach
-                if(!ITrustedForwarder(subModule).isTrustedForwarder(address(this), smartAccount, SignerId.unwrap(signerId))) {
+                if(!ITrustedForwarder(subModule).isTrustedForwarder(address(this), smartAccount, id)) {
                     _execute(
                         smartAccount, 
                         subModule,
                         0, 
-                        abi.encodeWithSelector(ITrustedForwarder.setTrustedForwarder.selector, address(this), signerId)
+                        abi.encodeWithSelector(ITrustedForwarder.setTrustedForwarder.selector, address(this), id)
                     );
                 }
                 
-                // setup signerValidator for given signerId and smartAccount
+                // configure submodule via trusted forwarder
                 (bool success, ) = subModule.call(
                     abi.encodePacked(
                         abi.encodeCall(IERC7579Module.onInstall, (subModuleInitData)),
-                        address(this),
-                        smartAccount
+                        address(this), //append self address
+                        smartAccount   //append smart account address as original msg.sender
                     )
                 );
                 if (!success) revert();

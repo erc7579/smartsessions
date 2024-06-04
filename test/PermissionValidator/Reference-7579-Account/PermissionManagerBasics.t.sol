@@ -14,6 +14,8 @@ import { PermissionManager } from "contracts/validators/PermissionManager.sol";
 import { SimpleSigner } from "contracts/test/mocks/SimpleSigner.sol";
 import { UsageLimitPolicy } from "contracts/test/mocks/UsageLimitPolicy.sol";
 import { SimpleGasPolicy } from "contracts/test/mocks/SimpleGasPolicy.sol";
+import { TimeFramePolicy } from "contracts/test/mocks/TimeFramePolicy.sol";
+import { Counter } from "contracts/test/Counter.sol";
 
 import "forge-std/console2.sol";
 
@@ -33,9 +35,15 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
 
     UsageLimitPolicy internal usageLimitPolicy;
     SimpleGasPolicy internal simpleGasPolicy;
+    TimeFramePolicy internal timeFramePolicy;
+
+    Counter counterContract;
 
     function setUp() public {
         init();
+
+        // Create the counter contract
+        counterContract = new Counter();
 
         // Create the validator
         permissionManager = new PermissionManager();
@@ -50,6 +58,8 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
         vm.label(address(usageLimitPolicy), "UsageLimitPolicy");
         simpleGasPolicy = new SimpleGasPolicy();
         vm.label(address(simpleGasPolicy), "SimpleGasPolicy");
+        timeFramePolicy = new TimeFramePolicy();
+        vm.label(address(timeFramePolicy), "TimeFramePolicy");
 
         // Create the account and install PermissionManager as a validator and as an executor
         instance = makeAccountInstance("PermissionManager");
@@ -66,10 +76,7 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
             data: abi.encodePacked(bytes1(uint8(MODULE_TYPE_EXECUTOR)))
         });
 
-        instance.installModule({
-            moduleTypeId: MODULE_TYPE_VALIDATOR,
-            module: address(permissionManager),
-            data: abi.encodePacked(
+        bytes memory validatorInstallData = abi.encodePacked(
                 uint8(MODULE_TYPE_VALIDATOR), //1 byte
                 signerId, 
                 // data for setting up the signer
@@ -81,7 +88,22 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
                 uint256(10), // limit
                 address(simpleGasPolicy), 
                 uint256(2**256-1) // limit
-            )
+            );
+
+        validatorInstallData = abi.encodePacked(
+            validatorInstallData,
+                uint8(0x02), // number of policies
+                keccak256(abi.encodePacked(address(counterContract), counterContract.incr.selector)),//action Id
+                address(usageLimitPolicy),
+                uint256(2), // limit
+                address(timeFramePolicy),
+                uint256(((block.timestamp + 1000) << 128) + (block.timestamp ))
+        );
+
+        instance.installModule({
+            moduleTypeId: MODULE_TYPE_VALIDATOR,
+            module: address(permissionManager),
+            data: validatorInstallData
         });
 
         assertTrue(simpleSignerValidator.isInitialized(instance.account));
