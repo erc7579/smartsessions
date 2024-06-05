@@ -6,6 +6,7 @@ import { PackedUserOperation } from "modulekit/external/ERC4337.sol";
 import { AddressArray, AddressArrayLib } from "contracts/utils/lib/AddressArrayLib.sol";
 import { ModeLib, ExecutionMode, ExecType, CallType, CALLTYPE_BATCH, CALLTYPE_SINGLE, EXECTYPE_DEFAULT, EXECTYPE_TRY } from "contracts/utils/lib/ModeLib.sol";
 import { ExecutionLib } from "erc7579/lib/ExecutionLib.sol";
+import { ValidationDataLib } from "contracts/utils/lib/ValidationDataLib.sol";
 
 // ??
 //import { ERC7579ValidatorLib } from "module-bases/utils/ERC7579ValidatorLib.sol";
@@ -30,11 +31,9 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
     bytes32 constant PERMISSION_VALIDATOR_STORAGE_SLOT = 0x73a9885e8be4b58095971868aa2af983b5913f3e08c5b78a3ca0cb6b827458f8;
 
     using AddressArrayLib for AddressArray;
-    
     using ExecutionLib for bytes;
-    // using ERC7579ValidatorLib for bytes;
-
     using ModeLib for ExecutionMode;
+    using ValidationDataLib for ValidationData;
 
     struct PermissionValidatorStorage {
         // Note on the signerId. 
@@ -79,7 +78,7 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
      * @param userOp UserOperation to be validated
      * @param userOpHash Hash of the UserOperation to be validated
      *
-     * @return sigValidationResult the result of the signature validation, which can be:
+     * @return vd (ValidatioData) => the result of the signature validation, which can be:
      *  - 0 if the signature is valid
      *  - 1 if the signature is invalid
      *  - <20-byte> aggregatorOrSigFail, <6-byte> validUntil and <6-byte> validAfter (see ERC-4337
@@ -91,7 +90,7 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
     )
         external
         override
-        returns (ValidationData)
+        returns (ValidationData vd)
     {   
 
         bytes4 selector = bytes4(userOp.callData[0:4]);
@@ -157,27 +156,17 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
 
         // Check userOp level Policies
         AddressArray storage policies = _permissionValidatorStorage().userOpPolicies[signerId][msg.sender];
-
-        //wrap into a validateUserOpPolicies(id, policies, userOp) method 
-        for(uint256 i; i < policies.length(); i++) {
-            // temporary; 
-            // in fact we need to intersect validation datas from all policies and pass next to then intersect with
-            // validation data from the action policies
-            console2.log("Validating Policy @ address: ", policies.get(i));
-            uint256 vd = IUserOpPolicy(policies.get(i)).checkUserOp(SignerId.unwrap(signerId), userOp); 
-        }
-
+        vd = _validateUserOpPolicies(signerId, policies, userOp);
         console2.log("UserOp Policies verification passed");
 
         //flows based on selector
         // CHANGE to receiving and intersecting validation data from policies
         if (selector == IERC7579Account.execute.selector) {
-            return _validate7579ExecuteCall(signerId, userOp);
+            vd = vd.intersectValidationData(_validate7579ExecuteCall(signerId, userOp));
         } else {
-            return _validateNativeFunctionCall(signerId, userOp, userOpHash);
+            vd = vd.intersectValidationData(_validateNativeFunctionCall(signerId, userOp, userOpHash));
         }
-
-        //intersect vd's from userOp policies and action policies
+        console2.log("Action policies validation passed");
     }
 
     /**
@@ -245,6 +234,8 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
             uint256 pointer = 74 + numberOfUserOpPolicies*(20+32);
             uint256 numberOfActionPolicies = uint256(uint8(bytes1(data[pointer:++pointer])));
             ActionId actionId = ActionId.wrap(bytes32(data[pointer:pointer+32]));
+            //console2.log("ActionId submitted at onInstall");
+            //console2.logBytes32(ActionId.unwrap(actionId));
             pointer += 32;
             for(uint256 i; i < numberOfActionPolicies; i++) {
                 // get address of the policy
@@ -275,13 +266,13 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
     }
 
     /*//////////////////////////////////////////////////////////////////////////
-                                     INTERNAL
+                            INTERNAL VALIDATION METHODS
     //////////////////////////////////////////////////////////////////////////*/
 
     function _validate7579ExecuteCall(
         SignerId signerId,
         PackedUserOperation calldata userOp
-    ) internal returns (ValidationData) {
+    ) internal returns (ValidationData vd) {
 
         // check execution modes and handle stuff accordingly
         // single call, batch call, delegatecall
@@ -295,7 +286,7 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         
         if (callType == CALLTYPE_SINGLE) {
             (address target, uint256 value, bytes calldata actionCallData) = erc7579ExecutionCalldata.decodeSingle();
-            _validateSingleExecution(signerId, target, value, actionCallData, userOp);
+            vd = _validateSingleExecution(signerId, target, value, actionCallData, userOp);
         } else if (callType == CALLTYPE_BATCH) {
             // _handleBatchExecution(executionCalldata, execType);
         } else {
@@ -310,8 +301,6 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         // b) fallback to some handler 
         //    will have to think how to properly install/uninstall it on the account
         //    ideally via 7484 integration
-        return VALIDATION_SUCCESS;
-        
     }
 
     function _validateNativeFunctionCall(
@@ -334,19 +323,20 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         bytes calldata data,
         PackedUserOperation calldata userOp
     ) 
-    internal returns(uint256) 
+    internal returns (ValidationData vd) 
     {    
-        console2.log(target);
-        console2.log(value);
-        console2.logBytes(data);
-        ActionId actionId = ActionId.wrap(keccak256(abi.encodePacked(target, data[0:4])));
-        console2.logBytes32(ActionId.unwrap(actionId));
+        ActionId actionId = ActionId.wrap(keccak256(abi.encodePacked(
+            target, 
+            data.length >= 4 ? bytes4(data[0:4]) : bytes4(0)
+        )));
+        //console2.log("actionId detected at validation");
+        //console2.logBytes32(ActionId.unwrap(actionId));
 
         AddressArray storage policies = _permissionValidatorStorage().actionPolicies[signerId][actionId][msg.sender];
+        console2.log("action policies detected", policies.length());
 
         //get list of action policies and validate thru them
-        /*
-        vd = validateActionPolicies(
+        vd = _validateActionPolicies(
             keccak256(abi.encodePacked(signerId, actionId)),
             policies,
             target,
@@ -354,8 +344,108 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
             data, 
             userOp
         );
-        */
     }
+
+    function _validateUserOpPolicies(
+        SignerId signerId,
+        AddressArray storage policies,
+        PackedUserOperation calldata userOp
+    ) internal returns (ValidationData vd) {
+        for(uint256 i; i < policies.length(); i++) {
+            console2.log("Validating UserOp Policy @ address: ", policies.get(i));
+            vd = vd.intersectValidationData( 
+                ValidationData.wrap(
+                    uint256(bytes32(
+                        _safeCallSubmoduleViaTrustedForwarder(
+                            policies.get(i), 
+                            abi.encodeWithSelector(
+                                IUserOpPolicy.checkUserOp.selector, 
+                                SignerId.unwrap(signerId), 
+                                userOp
+                            )
+                        )
+                    ))
+                )
+            ); 
+        }
+    }
+
+    function _validateActionPolicies(
+        bytes32 id,
+        AddressArray storage policies,
+        address target,
+        uint256 value,
+        bytes calldata data,
+        PackedUserOperation calldata userOp
+    ) internal returns (ValidationData vd) {
+        for(uint256 i; i < policies.length(); i++) {
+            console2.log("Validating Action Policy @ address: ", policies.get(i));
+            vd = vd.intersectValidationData( 
+                ValidationData.wrap(
+                    uint256(bytes32(
+                        _safeCallSubmoduleViaTrustedForwarder(
+                            policies.get(i), 
+                            abi.encodeWithSelector(
+                                IActionPolicy.checkAction.selector, 
+                                id, 
+                                target, 
+                                value, 
+                                data, 
+                                userOp
+                            )
+                        )
+                    ))
+                )
+            ); 
+        }
+    }
+
+    function _safeCallSubmoduleViaTrustedForwarder(address submodule, bytes memory data) internal returns (bytes memory) {
+        // if the submodule supports trusted forwarder, use it
+        try IERC165(submodule).supportsInterface(type(ITrustedForwarder).interfaceId) returns (bool supported) {
+            if(supported) {
+                // call submodule via trusted forwarder
+                return _callSubModuleAndHandleReturnData(
+                    submodule, 
+                    abi.encodePacked(
+                        data,
+                        address(this), //append self address
+                        msg.sender   //append smart account address as original msg.sender
+                    )
+                );
+            } else {
+                return _callSubModuleAndHandleReturnData(submodule, data);
+            }
+        } catch (bytes memory /*error*/) {
+            // sub-module doesn't support IERC165
+            return _callSubModuleAndHandleReturnData(submodule, data);
+            
+        }
+    }
+
+    function _callSubModuleAndHandleReturnData(address submodule, bytes memory data) internal returns (bytes memory) {
+        (bool success, bytes memory returnData) = submodule.call(data);
+        if (!success) {
+            // revert with the return data
+            assembly {
+                revert(add(returnData, 0x20), mload(returnData))
+            }
+        }
+        return returnData;
+    }
+
+    function _clean7579ExecutionCalldata(bytes calldata userOpCallData) internal pure returns (bytes calldata erc7579ExecutionCalldata) {
+        bytes calldata data  = userOpCallData;
+        assembly {
+            let baseOffset := add(data.offset, 0x24) //skip 4 bytes of selector and 32 bytes of execution mode
+            erc7579ExecutionCalldata.offset := add(baseOffset, calldataload(baseOffset))
+            erc7579ExecutionCalldata.length := calldataload(sub(erc7579ExecutionCalldata.offset, 0x20))
+        }
+    }
+
+    /*//////////////////////////////////////////////////////////////////////////
+                            INTERNAL CONFIGURATION METHODS
+    //////////////////////////////////////////////////////////////////////////*/
 
     function _enableSigner(
         SignerId signerId, 
@@ -423,7 +513,7 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
                 // set trusted forwarder via SA
                 // This module SHOULD be installed as an executor on the smart account
                 // to be able to call executeFromExecutor
-                // The check allows to avoid excess sstore's in case sub-module uses id-less approach
+                // The if check allows to avoid excess sstore's in case sub-module uses id-less approach
                 if(!ITrustedForwarder(subModule).isTrustedForwarder(address(this), smartAccount, id)) {
                     _execute(
                         smartAccount, 
@@ -467,15 +557,6 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
     function _isEnableMode(bytes calldata signature) internal pure returns (bool) {
         //return signature[0] == 0x01;
         return false;
-    }
-
-    function _clean7579ExecutionCalldata(bytes calldata userOpCallData) internal pure returns (bytes calldata erc7579ExecutionCalldata) {
-        bytes calldata data  = userOpCallData;
-        assembly {
-            let baseOffset := add(data.offset, 0x24) //skip 4 bytes of selector and 32 bytes of execution mode
-            erc7579ExecutionCalldata.offset := add(baseOffset, calldataload(baseOffset))
-            erc7579ExecutionCalldata.length := calldataload(sub(erc7579ExecutionCalldata.offset, 0x20))
-        }
     }
 
     /*//////////////////////////////////////////////////////////////////////////

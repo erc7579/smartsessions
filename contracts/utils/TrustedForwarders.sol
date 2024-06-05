@@ -5,6 +5,12 @@ import { ITrustedForwarder } from "contracts/utils/ITrustedForwarder.sol";
 
 // Credits: @rhinestone @zeroknots
 
+// !WARNING: One should be careful with the TrustedForwarder as calldata is 
+// appended with 2 extra addresses, so should have this in mind when parsing calldata
+// in the submodule that is TrustedForwarder
+
+// ** TrustedForwarderWithId **
+//
 // This approach with Id allows setting various Trusted Forwarders for the same account
 // It can in theory be required when the same sub-module (that inherits this) is used with 
 // different multiplexers on one account. 
@@ -76,7 +82,8 @@ abstract contract TrustedForwarderWithId is ITrustedForwarder {
 
 }
 
-
+// ** TrustedForwarder **
+//
 // This approach allows setting only one Trusted Forwarder for the same Smart Account per sub-module
 // It ignores the id, however it doesn't check if the same address has already been set as Trusted Forwarder
 // So ensure you are checking this in the caller contract to avoid excess SSTORE's
@@ -124,7 +131,7 @@ abstract contract TrustedForwarder is ITrustedForwarder {
      *
      * @return account the sender of the transaction
      */
-    function _getAccount(bytes32) internal view returns (address account) {
+    function _getAccount() internal view returns (address account) {
         account = msg.sender;
         address _account;
         address forwarder;

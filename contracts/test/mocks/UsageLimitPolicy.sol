@@ -3,8 +3,16 @@
 pragma solidity ^0.8.23;
 
 import { IUserOpPolicy, IActionPolicy, PackedUserOperation, VALIDATION_SUCCESS } from "contracts/interfaces/IPolicies.sol";
+import { TrustedForwarder } from "contracts/utils/TrustedForwarders.sol";
 
-contract UsageLimitPolicy is IUserOpPolicy, IActionPolicy {
+/*
+    Since this policy increments .used on every check,
+    malicious actor could grief the contract by calling those checks,
+    so we have to only allow the checks to be called by the authorized SA
+    That is done by inheriting TrustedForwarder
+*/
+
+contract UsageLimitPolicy is IUserOpPolicy, IActionPolicy, TrustedForwarder {
 
     struct UsageLimitConfig {
         uint256 limit;
@@ -18,18 +26,21 @@ contract UsageLimitPolicy is IUserOpPolicy, IActionPolicy {
         external
         returns (uint256) 
     {
-        return _checkUsageLimit(id, userOp.sender);   
+        return _checkUsageLimit(id, _getAccount());   
     }
 
     function checkAction(bytes32 id, address, uint256, bytes calldata, PackedUserOperation calldata userOp)
         external
         returns (uint256) 
     {
-        return _checkUsageLimit(id, userOp.sender);
+        return _checkUsageLimit(id, _getAccount());
     }
 
     function _checkUsageLimit(bytes32 id, address smartAccount) internal returns (uint256) {
         UsageLimitConfig storage config = usageLimitConfigs[id][smartAccount];
+        if(config.limit == 0) {
+            revert("UsageLimitPolicy: policy not installed");
+        }
         if (++config.used > config.limit) {
             revert("UsageLimitPolicy: usage limit exceeded");
         }
@@ -37,14 +48,14 @@ contract UsageLimitPolicy is IUserOpPolicy, IActionPolicy {
     }
 
     function _onInstallPolicy(bytes32 id, bytes calldata _data) internal {
-        address smartAccount = msg.sender/*_getAccount(signerId)*/;
+        address smartAccount = _getAccount();
         require(usageLimitConfigs[id][smartAccount].limit == 0);
         usedIds[smartAccount]++;
         usageLimitConfigs[id][smartAccount].limit = uint256(bytes32(_data[0:32]));
     }
 
     function _onUninstallPolicy(bytes32 id, bytes calldata) internal {
-        address smartAccount = msg.sender /*_getAccount(signerId)*/;
+        address smartAccount = _getAccount();
         require(usageLimitConfigs[id][smartAccount].limit != 0);
         delete usageLimitConfigs[id][smartAccount];
         usedIds[smartAccount]--;

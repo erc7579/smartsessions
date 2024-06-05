@@ -3,8 +3,9 @@
 pragma solidity ^0.8.23;
 
 import { IUserOpPolicy, PackedUserOperation, VALIDATION_SUCCESS } from "contracts/interfaces/IPolicies.sol";
+import { TrustedForwarder } from "contracts/utils/TrustedForwarders.sol";
 
-contract SimpleGasPolicy is IUserOpPolicy {
+contract SimpleGasPolicy is IUserOpPolicy, TrustedForwarder {
 
     struct UsageLimitConfig {
         uint256 gasLimit;
@@ -18,7 +19,7 @@ contract SimpleGasPolicy is IUserOpPolicy {
         external
         returns (uint256) 
     {
-        UsageLimitConfig storage config = usageLimitConfigs[id][userOp.sender];
+        UsageLimitConfig storage config = usageLimitConfigs[id][_getAccount()];
         uint256 totalUserOpGasLimit = uint128(bytes16(userOp.accountGasLimits)) + uint128(uint256(userOp.accountGasLimits)) + userOp.preVerificationGas;
         if (config.gasUsed + totalUserOpGasLimit > config.gasLimit) {
             revert("UsageLimitPolicy: usage limit exceeded");
@@ -31,14 +32,14 @@ contract SimpleGasPolicy is IUserOpPolicy {
     }
 
     function _onInstallPolicy(bytes32 id, bytes calldata _data) internal {
-        address smartAccount = msg.sender/*_getAccount(signerId)*/;
+        address smartAccount = _getAccount();
         require(usageLimitConfigs[id][smartAccount].gasLimit == 0);
         usedIds[smartAccount]++;
         usageLimitConfigs[id][smartAccount].gasLimit = uint256(bytes32(_data[0:32]));
     }
 
     function _onUninstallPolicy(bytes32 id, bytes calldata) internal {
-        address smartAccount = msg.sender /*_getAccount(signerId)*/;
+        address smartAccount = _getAccount();
         require(usageLimitConfigs[id][smartAccount].gasLimit != 0);
         delete usageLimitConfigs[id][smartAccount];
         usedIds[smartAccount]--;

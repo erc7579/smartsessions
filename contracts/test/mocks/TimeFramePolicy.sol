@@ -5,6 +5,10 @@ pragma solidity ^0.8.23;
 import { IUserOpPolicy, IActionPolicy, PackedUserOperation, VALIDATION_SUCCESS } from "contracts/interfaces/IPolicies.sol";
 import { _packValidationData } from "@ERC4337/account-abstraction/contracts/core/Helpers.sol";
 
+import "forge-std/console2.sol";
+
+// This submodule doesn't need to be TrustedForwarder as both checks are view
+
 contract TimeFramePolicy is IUserOpPolicy, IActionPolicy {
 
     struct TimeFrameConfig {
@@ -16,14 +20,14 @@ contract TimeFramePolicy is IUserOpPolicy, IActionPolicy {
     mapping(bytes32 signerId => mapping(address smartAccount => TimeFrameConfig)) public timeFrameConfigs;
 
     function checkUserOp(bytes32 id, PackedUserOperation calldata userOp)
-        external
+        external view
         returns (uint256) 
     {
         return _checkTimeFrame(id, userOp.sender);   
     }
 
     function checkAction(bytes32 id, address, uint256, bytes calldata, PackedUserOperation calldata userOp)
-        external
+        external view
         returns (uint256) 
     {
         return _checkTimeFrame(id, userOp.sender);
@@ -31,7 +35,7 @@ contract TimeFramePolicy is IUserOpPolicy, IActionPolicy {
 
     function _checkTimeFrame(bytes32 id, address smartAccount) internal view returns (uint256) {
         TimeFrameConfig storage config = timeFrameConfigs[id][smartAccount];
-        return _packValidationData(false, config.validAfter, config.validUntil);
+        return _packValidationData(false, config.validUntil, config.validAfter);
     }
 
     function _onInstallPolicy(bytes32 id, bytes calldata _data) internal {
