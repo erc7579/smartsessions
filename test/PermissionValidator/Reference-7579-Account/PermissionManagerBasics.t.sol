@@ -16,6 +16,7 @@ import { UsageLimitPolicy } from "contracts/test/mocks/UsageLimitPolicy.sol";
 import { SimpleGasPolicy } from "contracts/test/mocks/SimpleGasPolicy.sol";
 import { TimeFramePolicy } from "contracts/test/mocks/TimeFramePolicy.sol";
 import { Counter } from "contracts/test/Counter.sol";
+import { EIP1271_MAGIC_VALUE, IERC1271 } from "module-bases/interfaces/IERC1271.sol";
 
 import "forge-std/console2.sol";
 
@@ -76,6 +77,7 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
             data: abi.encodePacked(bytes1(uint8(MODULE_TYPE_EXECUTOR)))
         });
 
+        // Signer and userOpPolicies
         bytes memory validatorInstallData = abi.encodePacked(
                 uint8(MODULE_TYPE_VALIDATOR), //1 byte
                 signerId, 
@@ -90,6 +92,7 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
                 uint256(2**256-1) // limit
             );
 
+        // action policies
         validatorInstallData = abi.encodePacked(
             validatorInstallData,
                 uint8(0x02), // number of policies
@@ -98,6 +101,14 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
                 uint256(2), // limit
                 address(timeFramePolicy),
                 uint256(((block.timestamp + 1000) << 128) + (block.timestamp ))
+        );
+
+        // 1271 policies
+        validatorInstallData = abi.encodePacked(
+            validatorInstallData,
+                uint8(0x01), // number of policies
+                address(timeFramePolicy),
+                uint256(((block.timestamp + 11111) << 128) + (block.timestamp + 500))
         );
 
         instance.installModule({
@@ -143,6 +154,36 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
 
         // Check if the balance of the target has NOT increased
         assertEq(address(counterContract).balance, prevBalance+value, "Balance not increased");
+    }
+
+    function test1271SignaturePermission() public {
+        // make the message hash
+        bytes32 plainHash = keccak256("Message to sign");
+
+        // sign the hash
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(sessionSigner1Pk, plainHash);
+
+        // append the signature with 1271+712 data
+        // SKIP FOR NOW 
+        // as 7579 reference implementation doesn't support it
+
+        // prepend the signature with PermissionManager-specific data
+        bytes memory signature  = abi.encodePacked(
+            bytes1(0x00), //not enable mode
+            signerId,
+            r,s,v
+        );
+
+        // prepend the signature with PermissionManager address
+        signature = abi.encodePacked(address(permissionManager), signature);
+
+        // should not pass immediately
+        assertEq(bytes4(0xFFFFFFFF), IERC1271(instance.account).isValidSignature(plainHash, signature));
+
+        // should pass after the vm.warp
+        vm.warp(block.timestamp + 501);
+        assertEq(EIP1271_MAGIC_VALUE, IERC1271(instance.account).isValidSignature(plainHash, signature));
+
     }
 }
 

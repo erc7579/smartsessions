@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.23;
 
-import { IUserOpPolicy, IActionPolicy, PackedUserOperation, VALIDATION_SUCCESS } from "contracts/interfaces/IPolicies.sol";
+import { IUserOpPolicy, IActionPolicy, I1271Policy, PackedUserOperation, VALIDATION_SUCCESS } from "contracts/interfaces/IPolicies.sol";
 import { _packValidationData } from "@ERC4337/account-abstraction/contracts/core/Helpers.sol";
 
 import "forge-std/console2.sol";
@@ -33,8 +33,30 @@ contract TimeFramePolicy is IUserOpPolicy, IActionPolicy {
         return _checkTimeFrame(id, userOp.sender);
     }
 
+    function check1271SignedAction(
+        bytes32 id, 
+        address smartAccount,
+        address,
+        bytes32,
+        bytes calldata
+    ) external view returns (bool) {
+        TimeFrameConfig storage config = timeFrameConfigs[id][smartAccount];
+        if(config.validUntil == 0 && config.validAfter == 0) {
+            revert ("TimeFramePolicy: policy not installed");
+        }
+        uint256 validUntil = config.validUntil;
+        uint256 validAfter = config.validAfter;
+        if ((block.timestamp < validUntil || validUntil == 0) && block.timestamp > validAfter) {
+            return true;
+        }
+        return false;
+    }
+
     function _checkTimeFrame(bytes32 id, address smartAccount) internal view returns (uint256) {
         TimeFrameConfig storage config = timeFrameConfigs[id][smartAccount];
+        if(config.validUntil == 0 && config.validAfter == 0) {
+            revert ("TimeFramePolicy: policy not installed");
+        }
         return _packValidationData(false, config.validUntil, config.validAfter);
     }
 
@@ -70,7 +92,7 @@ contract TimeFramePolicy is IUserOpPolicy, IActionPolicy {
     }
 
     function isModuleType(uint256 id) external pure returns (bool) {
-        return id == 222 || id == 223;
+        return id == 222 || id == 223 || id == 224;
     }
 
 }

@@ -17,10 +17,20 @@ import { IModule as IERC7579Module } from "erc7579/interfaces/IERC7579Module.sol
 import { IAccountExecute} from "modulekit/external/ERC4337.sol";
 import { ISignerValidator } from "contracts/interfaces/ISignerValidator.sol";
 import { ITrustedForwarder } from "contracts/utils/ITrustedForwarder.sol";
-import { IUserOpPolicy, IActionPolicy } from "contracts/interfaces/IPolicies.sol";
+import { IUserOpPolicy, IActionPolicy, I1271Policy } from "contracts/interfaces/IPolicies.sol";
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 import "forge-std/console2.sol";
+
+/**
+
+TODO:
+    - 1271 permissions (timeframe, domain)
+    - Enable permission along the first usage
+        - renounce permissions even those are not used
+    - Check Policies/Signers via Registry before enabling
+
+ */
 
 contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermissionManager {
     /*//////////////////////////////////////////////////////////////////////////
@@ -60,6 +70,8 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         mapping(SignerId => mapping (address smartAccount => AddressArray)) userOpPolicies;  
         
         mapping(SignerId => mapping (ActionId => mapping (address smartAccount => AddressArray))) actionPolicies;  
+
+        mapping(SignerId => mapping (address smartAccount => AddressArray)) erc1271Policies;
     }
 
     function _permissionValidatorStorage() internal pure returns (PermissionValidatorStorage storage state) {
@@ -190,8 +202,33 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         virtual
         override
         returns (bytes4 sigValidationResult)
-    {
-        return EIP1271_FAILED;
+    {   
+        SignerId signerId;
+        bytes memory cleanSig;
+        address signerValidator;
+        // if this is enable mode, we know the signer from it
+        // otherwise we get the signer from signature
+        // however it is cheap to get it from the signature
+        if(_isEnableMode(signature)) {
+          // (SignerId signerId, bytes memory cleanSig) = _validateAndEnablePermissions(userOp);
+          // signer validator can also be obtained from enable data in many cases, saving one SLOAD
+        } else {
+            signerId = SignerId.wrap(bytes32(signature[1:33]));
+            
+            cleanSig = signature[33:];
+            signerValidator = _permissionValidatorStorage().signers[signerId][msg.sender];
+        }
+
+        if (ISignerValidator(signerValidator).checkSignature(SignerId.unwrap(signerId), msg.sender, hash, cleanSig) == EIP1271_FAILED) {
+            return EIP1271_FAILED;
+        }
+        console2.log("1271 Signature validation passed");
+
+        // check policies
+        // since it is vew, can safely introduce policies based on sender. 
+        // it will be SA's job to ensure sender is correct, otherwise it will be unsafe for SA itself
+        AddressArray storage policies = _permissionValidatorStorage().erc1271Policies[signerId][msg.sender];
+        return _validateERC1271Policies(signerId, policies, sender, hash, signature);
     }
 
     /*//////////////////////////////////////////////////////////////////////////
@@ -244,6 +281,16 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
                 //console2.log("Action Policy address: ", policyAddress);
                 //console2.logBytes(policyData);
                 _enableActionPolicy(signerId, actionId, policyAddress, msg.sender, policyData);
+            }
+            pointer += numberOfActionPolicies*(20+32);
+            uint256 numberOf1271Policies = uint256(uint8(bytes1(data[pointer:++pointer])));
+            for(uint256 i; i < numberOf1271Policies; i++) {
+                // get address of the policy
+                address policyAddress = address(bytes20(data[pointer + i*(20+32): pointer+20 + i*(20+32)]));
+                bytes calldata policyData = data[pointer+20 + i*(20+32): pointer+20+32 + i*(20+32)];
+                //console2.log("1271 Policy address: ", policyAddress);
+                //console2.logBytes(policyData);
+                _enableERC1271Policy(signerId, policyAddress, msg.sender, policyData);
             }
         }
     }
@@ -400,6 +447,23 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         }
     }
 
+    function _validateERC1271Policies(
+        SignerId signerId,
+        AddressArray storage policies,
+        address sender,
+        bytes32 hash,
+        bytes calldata signature
+    ) internal view returns (bytes4 sigValidationResult) {
+        bytes32 id = keccak256(abi.encodePacked("ERC1271 Policy", SignerId.unwrap(signerId)));
+        for(uint256 i; i < policies.length(); i++) {
+            console2.log("Validating ERC1271 Policy @ address: ", policies.get(i));
+            if(!I1271Policy(policies.get(i)).check1271SignedAction(id, msg.sender, sender, hash, signature)) {
+                return EIP1271_FAILED;
+            }
+        }
+        return EIP1271_SUCCESS;
+    }
+
     function _safeCallSubmoduleViaTrustedForwarder(address submodule, bytes memory data) internal returns (bytes memory) {
         // if the submodule supports trusted forwarder, use it
         try IERC165(submodule).supportsInterface(type(ITrustedForwarder).interfaceId) returns (bool supported) {
@@ -482,13 +546,26 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         address smartAccount, 
         bytes calldata policyData
     ) internal {
-        bytes32 id = keccak256(abi.encodePacked(signerId, actionId));
-        bytes memory _data = abi.encodePacked(id, policyData);
-
         AddressArray storage policies = _permissionValidatorStorage().actionPolicies[signerId][actionId][smartAccount];
         _addPolicy(policies, actionPolicy);
 
+        bytes32 id = keccak256(abi.encodePacked(signerId, actionId));
+        bytes memory _data = abi.encodePacked(id, policyData);
         _initSubmodule(actionPolicy, id, smartAccount, _data);
+    }
+
+    function _enableERC1271Policy(
+        SignerId signerId, 
+        address erc1271Policy, 
+        address smartAccount, 
+        bytes calldata policyData
+    ) internal {
+        AddressArray storage policies = _permissionValidatorStorage().erc1271Policies[signerId][smartAccount];
+        _addPolicy(policies, erc1271Policy);
+
+        bytes32 id = keccak256(abi.encodePacked("ERC1271 Policy", SignerId.unwrap(signerId)));
+        bytes memory _data = abi.encodePacked(id, policyData);
+        _initSubmodule(erc1271Policy, id, smartAccount, _data);
     }
 
     function _addPolicy(AddressArray storage policies, address policy) internal {            

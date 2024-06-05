@@ -23,3 +23,17 @@ interface IActionPolicy is IERC7579Module {
     ) external returns (uint256);
 
 }
+
+
+interface I1271Policy is IERC7579Module {
+
+    // request sender is probably protocol, so can introduce policies based on it.
+    function check1271SignedAction(
+        bytes32 id, 
+        address smartAccount,
+        address requestSender,
+        bytes32 hash,
+        bytes calldata signature
+    ) external view returns (bool);
+
+}
