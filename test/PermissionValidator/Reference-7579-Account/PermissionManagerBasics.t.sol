@@ -160,8 +160,12 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
         // make the message hash
         bytes32 plainHash = keccak256("Message to sign");
 
-        // sign the hash
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(sessionSigner1Pk, plainHash);
+        // make 712 hash
+        // SKIP FOR NOW as 7579 reference implementation doesn't support it
+        bytes32 typedDataHash = plainHash;
+
+        // sign hash
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(sessionSigner1Pk, typedDataHash);
 
         // append the signature with 1271+712 data
         // SKIP FOR NOW 
@@ -186,13 +190,3 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
 
     }
 }
-
-/*
-0x
-0000000000000000000000000000000000000000000000000000000000000040
-000000000000000000000000000000000000000000000000000000000000003c   0x3c = 60
-2d1d989af240b673c84ceeb3e6279ea98a2cfd05
-0000000000000000000000000000000000000000000000000de0b6b3a7640000
-313231323132313200000000
-
-*/
