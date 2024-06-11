@@ -9,7 +9,7 @@ import {
     AccountInstance,
     UserOpData
 } from "modulekit/ModuleKit.sol";
-import { MODULE_TYPE_VALIDATOR, MODULE_TYPE_EXECUTOR } from "modulekit/external/ERC7579.sol";
+import { MODULE_TYPE_VALIDATOR, MODULE_TYPE_EXECUTOR, Execution } from "modulekit/external/ERC7579.sol";
 import { PermissionManager } from "contracts/validators/PermissionManager.sol";
 import { SimpleSigner } from "contracts/test/mocks/SimpleSigner.sol";
 import { UsageLimitPolicy } from "contracts/test/mocks/UsageLimitPolicy.sol";
@@ -98,7 +98,7 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
                 uint8(0x02), // number of policies
                 keccak256(abi.encodePacked(address(counterContract), counterContract.incr.selector)),//action Id
                 address(usageLimitPolicy),
-                uint256(2), // limit
+                uint256(5), // limit
                 address(timeFramePolicy),
                 uint256(((block.timestamp + 1000) << 128) + (block.timestamp ))
         );
@@ -123,7 +123,7 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
         
     }
 
-    function testExec() public {
+    function testSingleExec() public {
         // Create a target address and send some ether to it
         //address target = makeAddr("target");
         uint256 value = 1 ether;
@@ -154,6 +154,47 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
 
         // Check if the balance of the target has NOT increased
         assertEq(address(counterContract).balance, prevBalance+value, "Balance not increased");
+    }
+
+    function testBatchExec() public {
+        // Create a target address and send some ether to it
+        //address target = makeAddr("target");
+        uint256 value = 1 ether;
+        uint256 numberOfExecs = 3;
+
+        // Get the current balance of the target
+        uint256 prevBalance = address(counterContract).balance;
+
+        Execution[] memory executions = new Execution[](numberOfExecs);
+        for (uint256 i = 0; i < numberOfExecs; i++) {
+            executions[i] = Execution({
+                target: address(counterContract),
+                value: value,
+                callData: abi.encodeWithSelector(counterContract.incr.selector)
+            });
+        }
+
+        // Get the UserOp data (UserOperation and UserOperationHash)
+        UserOpData memory userOpData = instance.getExecOps({
+            executions: executions,
+            txValidator: address(permissionManager)
+        });
+
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(sessionSigner1Pk, userOpData.userOpHash);
+
+        // Set the signature
+        bytes memory signature = abi.encodePacked(
+            bytes1(0x00), //not enable mode
+            signerId,
+            r,s,v
+        );
+        userOpData.userOp.signature = signature;
+        
+        // Execute the UserOp
+        userOpData.execUserOps();
+
+        // Check if the balance of the target has NOT increased
+        assertEq(address(counterContract).balance, prevBalance+value*numberOfExecs, "Balance not increased");
     }
 
     function test1271SignaturePermission() public {
