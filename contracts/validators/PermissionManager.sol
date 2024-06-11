@@ -4,7 +4,7 @@ pragma solidity ^0.8.23;
 import { ERC7579ValidatorBase, ERC7579ExecutorBase } from "modulekit/Modules.sol";
 import { PackedUserOperation } from "modulekit/external/ERC4337.sol";
 import { AddressArray, AddressArrayLib } from "contracts/utils/lib/AddressArrayLib.sol";
-import { ModeLib, ExecutionMode, ExecType, CallType, CALLTYPE_BATCH, CALLTYPE_SINGLE, EXECTYPE_DEFAULT, EXECTYPE_TRY } from "contracts/utils/lib/ModeLib.sol";
+import { ModeLib, ExecutionMode, ExecType, CallType, CALLTYPE_BATCH, CALLTYPE_SINGLE, CALLTYPE_STATIC, CALLTYPE_DELEGATECALL, EXECTYPE_DEFAULT, EXECTYPE_TRY } from "contracts/utils/lib/ModeLib.sol";
 import { ExecutionLib } from "erc7579/lib/ExecutionLib.sol";
 import { ValidationDataLib } from "contracts/utils/lib/ValidationDataLib.sol";
 
@@ -16,8 +16,9 @@ import { IERC7579Account, Execution } from  "erc7579/interfaces/IERC7579Account.
 import { IModule as IERC7579Module } from "erc7579/interfaces/IERC7579Module.sol";
 import { IAccountExecute} from "modulekit/external/ERC4337.sol";
 import { ISignerValidator } from "contracts/interfaces/ISignerValidator.sol";
-import { ITrustedForwarder } from "contracts/utils/ITrustedForwarder.sol";
+import { ITrustedForwarder } from "contracts/utils/interfaces/ITrustedForwarder.sol";
 import { IUserOpPolicy, IActionPolicy, I1271Policy } from "contracts/interfaces/IPolicies.sol";
+import { IAccountConfig } from "contracts/utils/interfaces/IAccountConfig.sol";
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 import "forge-std/console2.sol";
@@ -176,7 +177,10 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         if (selector == IERC7579Account.execute.selector) {
             vd = vd.intersectValidationData(_validate7579ExecuteCall(signerId, userOp));
         } else {
-            vd = vd.intersectValidationData(_validateNativeFunctionCall(signerId, userOp, userOpHash));
+            vd = vd.intersectValidationData(
+                // this is SA native function call. Such calls don't involve any value transfer
+                _validateSingleExecution(signerId, userOp.sender, 0, userOp.callData, userOp)
+            );
         }
         console2.log("Action policies validation passed");
     }
@@ -222,7 +226,7 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         if (ISignerValidator(signerValidator).checkSignature(SignerId.unwrap(signerId), msg.sender, hash, cleanSig) == EIP1271_FAILED) {
             return EIP1271_FAILED;
         }
-        console2.log("1271 Signature validation passed");
+        console2.log("1271 Signature validation happened");
 
         // check policies
         // since it is vew, can safely introduce policies based on sender. 
@@ -320,13 +324,15 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         SignerId signerId,
         PackedUserOperation calldata userOp
     ) internal returns (ValidationData vd) {
+        ExecutionMode mode = ExecutionMode.wrap(bytes32(userOp.callData[4:36]));
 
-        // check execution modes and handle stuff accordingly
-        // single call, batch call, delegatecall
+        // check if account supports execution mode that is in the userOp.callData
+        if(!IAccountConfig(userOp.sender).supportsExecutionMode(mode)) {
+            return VALIDATION_FAILED;
+        }
         
         // first argument in userOp.callData is the execution mode (32 bytes)
-        (CallType callType, ) = ExecutionMode.wrap(bytes32(userOp.callData[4:36])).decodeBasic();
-        
+        (CallType callType, ) = mode.decodeBasic();
         bytes calldata erc7579ExecutionCalldata = _clean7579ExecutionCalldata(userOp.callData);
 
         //console2.logBytes(erc7579ExecutionCalldata);
@@ -335,12 +341,28 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
             (address target, uint256 value, bytes calldata actionCallData) = erc7579ExecutionCalldata.decodeSingle();
             vd = _validateSingleExecution(signerId, target, value, actionCallData, userOp);
         } else if (callType == CALLTYPE_BATCH) {
-            // _handleBatchExecution(executionCalldata, execType);
-        } else {
-            // 
+            (Execution[] calldata executions) = erc7579ExecutionCalldata.decodeBatch();
+            for(uint256 i; i < executions.length; i++) {
+                vd = vd.intersectValidationData(
+                    _validateSingleExecution(
+                        signerId, 
+                        executions[i].target, 
+                        executions[i].value, 
+                        executions[i].callData, 
+                        userOp
+                    )
+                );
+            }           
+        } else if (callType == CALLTYPE_DELEGATECALL) {
+            vd = _validateSingleExecution(
+                signerId, 
+                address(uint160(bytes20(erc7579ExecutionCalldata[0:20]))), 
+                0,
+                erc7579ExecutionCalldata[20:], 
+                userOp
+            );
         }
 
-        // handle special case of empty calldata
 
         // if the execution mode is not known (some custom one),
         // then the solutions are:
@@ -348,19 +370,6 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         // b) fallback to some handler 
         //    will have to think how to properly install/uninstall it on the account
         //    ideally via 7484 integration
-    }
-
-    function _validateNativeFunctionCall(
-        SignerId signerId,
-        PackedUserOperation calldata userOp, 
-        bytes32 userOpHash
-    ) internal returns (ValidationData) {
-        // we expect this to be single action userOp, not a batched one
-        // Validate Single Action
-
-        // - validate general rules
-        // - validate action permission
-        return VALIDATION_SUCCESS;
     }
 
     function _validateSingleExecution(
@@ -372,6 +381,8 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
     ) 
     internal returns (ValidationData vd) 
     {    
+        // if calldata is less than 4 bytes, consider this a value transfer
+        // use ActionId = keccak(target, 0x00000000) for value transfers for a given target
         ActionId actionId = ActionId.wrap(keccak256(abi.encodePacked(
             target, 
             data.length >= 4 ? bytes4(data[0:4]) : bytes4(0)

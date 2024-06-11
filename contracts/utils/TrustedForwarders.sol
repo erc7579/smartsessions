@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity ^0.8.25;
 
-import { ITrustedForwarder } from "contracts/utils/ITrustedForwarder.sol";
+import { ITrustedForwarder } from "contracts/utils/interfaces/ITrustedForwarder.sol";
 
 // Credits: @rhinestone @zeroknots
 
