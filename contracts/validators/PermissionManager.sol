@@ -11,7 +11,7 @@ import { ValidationDataLib } from "contracts/utils/lib/ValidationDataLib.sol";
 // ??
 //import { ERC7579ValidatorLib } from "module-bases/utils/ERC7579ValidatorLib.sol";
 
-import { IPermissionManager } from "contracts/interfaces/validators/IPermissionManager.sol";
+import { IPermissionManager, NO_SIGNATURE_VALIDATION_REQUIRED } from "contracts/interfaces/validators/IPermissionManager.sol";
 import { IERC7579Account, Execution } from  "erc7579/interfaces/IERC7579Account.sol";
 import { IModule as IERC7579Module } from "erc7579/interfaces/IERC7579Module.sol";
 import { IAccountExecute} from "modulekit/external/ERC4337.sol";
@@ -26,7 +26,6 @@ import "forge-std/console2.sol";
 /**
 
 TODO:
-    - 1271 permissions (timeframe, domain)
     - Enable permission along the first usage
         - renounce permissions even those are not used
     - Check Policies/Signers via Registry before enabling
@@ -147,20 +146,23 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         // - enable policy for action permission
 
         SignerId signerId;
-        bytes memory cleanSig;
+        bytes calldata cleanSig;
         address signerValidator;
 
         // if this is enable mode, we know the signer from it
-        // otherwise we get the signer from signature
-        // however it is cheap to get it from the signature
+        // otherwise we get the signer from the signature
         if(_isEnableMode(userOp.signature)) {
-          // (SignerId signerId, bytes memory cleanSig) = _validateAndEnablePermissions(userOp);
-          // signer validator can also be obtained from enable data in many cases, saving one SLOAD
+            console2.log("Enable Mode activated");
+            (signerId, cleanSig, signerValidator) = _validateAndEnablePermissions(userOp);
         } else {
             signerId = SignerId.wrap(bytes32(userOp.signature[1:33]));
             cleanSig = userOp.signature[33:];
             signerValidator = _permissionValidatorStorage().signers[signerId][msg.sender];
         }
+
+        /**  
+         *  Check signature and policies
+         */
 
         if (ISignerValidator(signerValidator).checkSignature(SignerId.unwrap(signerId), msg.sender, userOpHash, cleanSig) == EIP1271_FAILED) {
             return VALIDATION_FAILED;
@@ -207,26 +209,24 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         override
         returns (bytes4 sigValidationResult)
     {   
-        SignerId signerId;
-        bytes memory cleanSig;
-        address signerValidator;
-        // if this is enable mode, we know the signer from it
-        // otherwise we get the signer from signature
-        // however it is cheap to get it from the signature
-        if(_isEnableMode(signature)) {
-          // (SignerId signerId, bytes memory cleanSig) = _validateAndEnablePermissions(userOp);
-          // signer validator can also be obtained from enable data in many cases, saving one SLOAD
-        } else {
-            signerId = SignerId.wrap(bytes32(signature[1:33]));
-            
-            cleanSig = signature[33:];
-            signerValidator = _permissionValidatorStorage().signers[signerId][msg.sender];
+        // for security reasons we do not allow requests from self,
+        // otherwise anyone with 1271 permissions can enable any other permissions for themselves
+        // TODO: TEST IT
+        if (sender == address(this)) {
+            return EIP1271_FAILED;          
+        }        
+        SignerId signerId = SignerId.wrap(bytes32(signature[1:33]));
+        bytes memory cleanSig = signature[33:];
+        address signerValidator = _permissionValidatorStorage().signers[signerId][msg.sender];
+        if (signerValidator != NO_SIGNATURE_VALIDATION_REQUIRED) {
+            if (signerValidator == address(0)) {
+                revert("SignerId not enabled");
+            }
+            if (ISignerValidator(signerValidator).checkSignature(SignerId.unwrap(signerId), msg.sender, hash, cleanSig) == EIP1271_FAILED) {
+                return EIP1271_FAILED;
+            }
+            console2.log("1271 Signature validation happened");
         }
-
-        if (ISignerValidator(signerValidator).checkSignature(SignerId.unwrap(signerId), msg.sender, hash, cleanSig) == EIP1271_FAILED) {
-            return EIP1271_FAILED;
-        }
-        console2.log("1271 Signature validation happened");
 
         // check policies
         // since it is vew, can safely introduce policies based on sender. 
@@ -297,6 +297,13 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
                 _enableERC1271Policy(signerId, policyAddress, msg.sender, policyData);
             }
         }
+
+
+        // TODO: 
+        // make proper flow that uses the standard enable permissions routine
+        // with the exception we do not need to check the signature here
+        // as onInstall is only called by the SA itself => the call has already been authorized
+        // _enablePermissions(__);
     }
 
     /**
@@ -314,6 +321,91 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
      */
     function isInitialized(address smartAccount) external view returns (bool) {
         return true;
+    }
+
+    function _validateAndEnablePermissions(PackedUserOperation calldata userOp) 
+        internal 
+        returns (SignerId signerId, bytes calldata cleanSig, address signerValidator)
+    {
+
+        //(temp)
+        cleanSig = userOp.signature[33:];
+        
+        // 1. parse enableData and make enableDataHash
+        
+        console2.logBytes(userOp.signature);
+        
+        (
+            uint8 permissionIndex,
+            bytes calldata permissionEnableData,
+            bytes calldata permissionEnableDataSignature,
+            bytes calldata permissionData
+            //cleanSig
+        ) = _decodeEnableModeUserOpSignature(userOp.signature);
+        
+        console2.log("Permission Index: ", permissionIndex);
+        console2.logBytes(permissionData);
+
+        // get chainId and permissionDataDigest from permissionEnableData with permissionIndex
+        // check chainId 
+        // make permissionDataDigest from permissionData and compare with permissionDataDigest obtained from permissionEnableData
+        
+        /*
+        (
+            uint64 permissionChainId,
+            bytes32 permissionDigest
+        ) = _parsePermissionFromPermissionEnableData(
+                permissionEnableData,
+                permissionIndex
+            );
+
+        if (permissionChainId != block.chainid) {
+            revert("Permission Chain Id Mismatch");
+        }
+
+        bytes32 computedDigest = _getPermissionDataDigest(permissionData);
+        if (permissionDigest != computedDigest) {
+            revert("PermissionDigest Mismatch");
+        }
+        */
+
+        /*
+         2. check that it was properly signed
+            what if the validator for this signerId is this module itself?
+            it means anyone with 1271 permissions (as the scope for 1271 polices is very limited)
+            will be able to enable any other permissions for themselves
+            there are three solutions:
+             - mark permissions enable data with magic value and revert in 1271 flow in this module if detected
+             - make strong advise for users not to use 1271 permissions at all unless they 100% trust the dApp
+             - always enable sender-based policies for 1271 permissions so it only validates if the isValidSignature 
+                request has been sent by protocol. at least can restrict address(this) to be the sender. so at least
+                it won't be possible to enable more permissions thru 1271
+             - come up with a proper way of passing the correctly verified data about what has been signed from
+                the Smart account to PermissionsValidator.isValidSignatureWithSender
+        */
+
+        /*
+        _validatePermissionEnableDataSignature(
+            permissionEnableData,
+            permissionEnableDataSignature,
+            msg.sender //smartAccount
+        );
+        */
+
+        // 3. enable permissions 
+
+        // (signerId, signerValidator) = _enablePermissions(permissionData);
+
+
+        // can Enable Data be struct ideally to be able to sign it with 1271 properly?
+        // no, it's gonna be dynamic bytes array
+
+        // signer validator can also be obtained from enable data in many cases, saving one SLOAD
+        // but if it was not the case (userOp was enabling only polciies, not the signer)
+        // then we have to SLOAD it
+        if (signerValidator == address(0)) {
+            signerValidator = _permissionValidatorStorage().signers[signerId][msg.sender];
+        }
     }
 
     /*//////////////////////////////////////////////////////////////////////////
@@ -643,8 +735,75 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
     }
 
     function _isEnableMode(bytes calldata signature) internal pure returns (bool) {
-        //return signature[0] == 0x01;
-        return false;
+        return signature[0] == 0x01;
+    }
+
+    function _decodeEnableModeUserOpSignature(bytes calldata signature) internal pure returns (
+        uint8 permissionIndex,
+        bytes calldata permissionEnableData,
+        bytes calldata permissionEnableDataSignature,
+        bytes calldata permissionData
+    ) {
+        permissionIndex = uint8(signature[1]);
+
+        //temp
+        permissionEnableData = signature[2:34];
+        permissionEnableDataSignature = signature[34:66];
+
+        /*
+        0x
+        01 // enable mode flag
+        01 // permissionIndex
+        0000000000000000000000000000000000000000000000000000000000000080 // permissionEnableData offset
+        00000000000000000000000000000000000000000000000000000000000000a0 // permissionEnableDataSignature offset
+        00000000000000000000000000000000000000000000000000000000000000c0 // permissionData offset
+        0000000000000000000000000000000000000000000000000000000000000280 // cleanSigOffset
+        0000000000000000000000000000000000000000000000000000000000000000 // permissionEnableData
+        0000000000000000000000000000000000000000000000000000000000000000 // permissionEnableDataSignature
+        0000000000000000000000000000000000000000000000000000000000000188 // permissionData length
+        === permissionData ==
+        5d5f7ea3a5cc54ab2b29951ab1b6fe12b49f67d9b348a0db68eca805921e4c58 // signer, 32
+        01020201 // descriptor , 4
+        15cf58144ef33af1e14b5208015d11f9143e27b9 // signer validator address , 20
+        00000014 // signer validator data length , 4
+        db1a3d8defd683eaa1e2b99613917c6264571f1a212224d2f2d262cd093ee13240ca4873fccbba3c00000020000000000000000000000000000000000000000000000000000000000000000a2a07706473244bc757e10f2a9e86fb532828afe300000020ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffc92773bb6d2f7693a7561aaf3c2e3f3d161b7b70e085358ac9ed27b74ad45a46212224d2f2d262cd093ee13240ca4873fccbba3c0000002000000000000000000000000000000000000000000000000000000000000000053d7ebc40af7092e3f1c81f2e996cba5cae2090d70000002000000000000000000000000064262668000000000000000000000000642622803d7ebc40af7092e3f1c81f2e996cba5cae2090d70000002000000000000000000000000064264de700000000000000000000000064262474000000000000000000000000000000000000000000000000
+        0000000000000000000000000000000000000000000000000000000000000041
+        b808a9184de43655b2ff55ac5049e6c94824c4caa792d549c3987a386954d7ca2c2038f87b3569b5d80a005f7f9e3b0504b18af13e2bc5a83b1de9207da4143d1b00000000000000000000000000000000000000000000000000000000000000
+        */
+
+        //uint256 offset;
+
+        assembly {
+            let baseOffset := add(signature.offset, 0x02)
+            let offset := baseOffset
+            
+            // get permissionEnableData
+            let dataPointer := add(baseOffset, calldataload(offset))
+            permissionEnableData.offset := add(0x20, dataPointer)
+            permissionEnableData.length := calldataload(dataPointer)
+
+            // get permissionEnableDataSignature
+            offset := add(offset, 0x20)
+            dataPointer := add(baseOffset, calldataload(offset))
+            permissionEnableDataSignature.offset := add(0x20, dataPointer)
+            permissionEnableDataSignature.length := calldataload(dataPointer)
+
+            // get permissionData
+            offset := add(offset, 0x20)
+            dataPointer := add(baseOffset, calldataload(offset))
+            permissionData.offset := add(0x20, dataPointer)
+            permissionData.length := calldataload(dataPointer)
+        }
+    }
+
+    /*//////////////////////////////////////////////////////////////////////////
+                                     PUBLIC INTERFACE
+    //////////////////////////////////////////////////////////////////////////*/
+
+    // signerId can be enabled counterfactually, when enable data has been signed
+    // but not submitted to the chain yet
+    function isSignerIdEnabledOnchain(bytes32 signerId, address smartAccount) external view returns (bool) {
+        return _permissionValidatorStorage().signers[SignerId.wrap(signerId)][smartAccount] != address(0);
     }
 
     /*//////////////////////////////////////////////////////////////////////////

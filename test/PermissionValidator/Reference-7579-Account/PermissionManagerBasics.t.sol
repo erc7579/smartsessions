@@ -34,6 +34,9 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
     address sessionSigner1;
     uint256 sessionSigner1Pk;
 
+    address sessionSigner2;
+    uint256 sessionSigner2Pk;
+
     UsageLimitPolicy internal usageLimitPolicy;
     SimpleGasPolicy internal simpleGasPolicy;
     TimeFramePolicy internal timeFramePolicy;
@@ -67,6 +70,7 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
         vm.deal(address(instance.account), 10 ether);
 
         (sessionSigner1, sessionSigner1Pk) = makeAddrAndKey("sessionSigner1");
+        (sessionSigner2, sessionSigner2Pk) = makeAddrAndKey("sessionSigner2");
 
         //example signerId
         signerId = keccak256(abi.encodePacked("Signer Id for ", instance.account, simpleSignerValidator, block.timestamp));
@@ -124,8 +128,6 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
     }
 
     function testSingleExec() public {
-        // Create a target address and send some ether to it
-        //address target = makeAddr("target");
         uint256 value = 1 ether;
 
         // Get the current balance of the target
@@ -157,8 +159,6 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
     }
 
     function testBatchExec() public {
-        // Create a target address and send some ether to it
-        //address target = makeAddr("target");
         uint256 value = 1 ether;
         uint256 numberOfExecs = 3;
 
@@ -228,6 +228,110 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
         // should pass after the vm.warp
         vm.warp(block.timestamp + 501);
         assertEq(EIP1271_MAGIC_VALUE, IERC1271(instance.account).isValidSignature(plainHash, signature));
-
     }
+
+    function testEnableAndUsePermission() public {
+        //make new signerId
+        bytes32 newSignerId = keccak256(abi.encodePacked("Signer Id for ", instance.account, simpleSignerValidator, block.timestamp+1000));
+
+        assertFalse(permissionManager.isSignerIdEnabledOnchain(newSignerId, instance.account));
+
+        uint256 value = 1 ether;
+        uint256 prevBalance = address(counterContract).balance;
+
+        // Get the UserOp data (UserOperation and UserOperationHash)
+        UserOpData memory userOpData = instance.getExecOps({
+            target: address(counterContract),
+            value: value,
+            callData: abi.encodeWithSelector(counterContract.incr.selector),
+            txValidator: address(permissionManager)
+        });
+
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(sessionSigner1Pk, userOpData.userOpHash);
+
+        // ======== Construct Permission Data =========
+
+        bytes4 permissionDataStructureDescriptor = bytes4(
+            (uint32(1) << 24) + // setup signer mode = true
+            (uint32(2) << 16) + // number of userOp policies
+            (uint32(2) << 8) + // number of action policies
+            uint32(1) // number of 1271 policies
+        );
+        console2.logBytes4(permissionDataStructureDescriptor);
+
+        // initial data and signer Id config
+        bytes memory permissionData = abi.encodePacked(
+            newSignerId,
+            permissionDataStructureDescriptor,
+            simpleSignerValidator,  //signer validator
+            uint32(20), // signer validator config data length
+            sessionSigner1 // signer validator config data
+        );
+
+        // userOp policies
+        permissionData = abi.encodePacked(
+            permissionData,
+            address(usageLimitPolicy), // usageLimitPolicy address
+            uint32(32), // usageLimitPolicy config data length
+            uint256(10), // limit
+            address(simpleGasPolicy), // simpleGasPolicy address
+            uint32(32), // simpleGasPolicy config data length
+            uint256(2**256-1) // limit
+        );
+
+        bytes32 actionId = keccak256(abi.encodePacked(address(counterContract), counterContract.incr.selector));//action Id
+
+        // action policies
+        permissionData = abi.encodePacked(
+            permissionData,
+            actionId,
+            address(usageLimitPolicy),
+            uint32(32), // usageLimitPolicy config data length
+            uint256(5), // limit
+            address(timeFramePolicy),
+            uint32(32), // timeFramePolicy config data length
+            uint256(((block.timestamp + 1000) << 128) + (block.timestamp ))
+        );
+
+        // 1271 policies
+        permissionData = abi.encodePacked(
+            permissionData,
+            address(timeFramePolicy),
+            uint32(32), // timeFramePolicy config data length
+            uint256(((block.timestamp + 11111) << 128) + (block.timestamp + 500))
+        );
+
+        // ========= Construct Session Enable Data ===========
+        bytes memory sessionEnableData;
+
+        // ========= Sign the Session Enable Data Hash ===========
+        bytes memory sessionEnableSignature;
+
+        // Permission index and signature over userOpHash
+        uint8 permissionIndex = 1;
+        bytes memory cleanSig = abi.encodePacked(r,s,v);
+
+        // Set the signature
+        bytes memory signature = abi.encodePacked(
+            bytes1(0x01), //Enable mode
+            permissionIndex, // index of permission in sessionEnableData
+            abi.encode(
+                sessionEnableData,
+                sessionEnableSignature,
+                permissionData,
+                cleanSig
+            )
+        );
+        userOpData.userOp.signature = signature;
+        
+        // Execute the UserOp
+        userOpData.execUserOps();
+
+        // Check if the balance of the target has NOT increased
+        assertEq(address(counterContract).balance, prevBalance+value, "Balance not increased");
+
+    }    
+
+
+
 }
