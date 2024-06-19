@@ -27,8 +27,8 @@ import "forge-std/console2.sol";
 /**
 
 TODO:
-    - Enable permission along the first usage
-        - renounce permissions even those are not used
+    - Rebuild onInstall to a standard enablePermissions flow
+    - Renounce permissions even those are not used
     - Check Policies/Signers via Registry before enabling
 
  */
@@ -142,17 +142,15 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         //        Can do optimization later to separate the flow that has all the required data
         //        to validate a userOp (or at least some actions) from the calldata (userOp.signature),
         //        not storage
-        //        
-        // - enable action permission for signer
-        // - enable policy for signer
-        // - enable policy for action permission
+        //        optimized this so, when the signer validator is available from enable data,
+        //        we take it from there and return to validation flow
 
         SignerId signerId;
         bytes calldata cleanSig;
         address signerValidator;
 
-        // if this is enable mode, we know the signer from it
-        // otherwise we get the signer from the signature
+        // if this is enable mode, we know the signerValidator from it
+        // otherwise we get the signerValidator from the storage
         if(_isEnableMode(userOp.signature)) {
             console2.log("Enable Mode activated");
             (signerId, cleanSig, signerValidator) = _validateAndEnablePermissions(userOp);
@@ -177,8 +175,7 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         vd = _validateUserOpPolicies(signerId, policies, userOp);
         console2.log("UserOp Policies verification passed");
 
-        //flows based on selector
-        // CHANGE to receiving and intersecting validation data from policies
+        // Check action policies
         if (selector == IERC7579Account.execute.selector) {
             vd = vd.intersectValidationData(_validate7579ExecuteCall(signerId, userOp));
         } else {
@@ -222,7 +219,8 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         bytes memory cleanSig = signature[33:];
         address signerValidator = _permissionValidatorStorage().signers[signerId][msg.sender];
         
-        // in some cases we do not need signer validation, then NO_SIGNATURE_VALIDATION_REQUIRED should be stored as signer validator for such signer id
+        // in some cases we do not need signer validation, 
+        // in this case NO_SIGNATURE_VALIDATION_REQUIRED should be stored as signer validator for such signer id
         if (signerValidator != NO_SIGNATURE_VALIDATION_REQUIRED) {
             if (signerValidator == address(0)) {
                 revert("SignerId not enabled");
@@ -234,8 +232,8 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         }
 
         // check policies
-        // since it is vew, can safely introduce policies based on sender. 
-        // it will be SA's job to ensure sender is correct, otherwise it will be unsafe for SA itself
+        // since it is view, can safely introduce policies based on sender (blacklist/whitelist senders etc)
+        // it will be SA's job to ensure it passes correct sender, otherwise it will be unsafe for SA itself
         AddressArray storage policies = _permissionValidatorStorage().erc1271Policies[signerId][msg.sender];
         return _validateERC1271Policies(signerId, policies, sender, hash, signature);
     }
@@ -331,15 +329,8 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
     function _validateAndEnablePermissions(PackedUserOperation calldata userOp) 
         internal 
         returns (SignerId, bytes calldata, address)
-    {
-
-        //(temp)
-        // cleanSig = userOp.signature[33:];
-        
+    {        
         // 1. parse enableData and make enableDataHash
-        
-        //console2.logBytes(userOp.signature);
-        
         (
             uint8 permissionIndex,
             bytes calldata permissionEnableData,
@@ -348,15 +339,7 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
             bytes calldata cleanSig
         ) = _decodeEnableModeUserOpSignature(userOp.signature);
         
-        /*
-        console2.log("Permission Index: ", permissionIndex);
-        console2.logBytes(permissionEnableData);
-        console2.logBytes(permissionEnableDataSignature);
-        console2.logBytes(permissionData);
-        console2.logBytes(userOpSig);
-        */
-
-        // get chainId and permissionDataDigest from permissionEnableData with permissionIndex
+        // 2. get chainId and permissionDataDigest from permissionEnableData with permissionIndex
         // check chainId 
         // make permissionDataDigest from permissionData and compare with permissionDataDigest obtained from permissionEnableData
         {
@@ -379,7 +362,7 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         }
 
         /*
-         2. check that it was properly signed
+         3. check that it was properly signed
             what if the validator for this signerId is this module itself?
             it means anyone with 1271 permissions (as the scope for 1271 polices is very limited)
             will be able to enable any other permissions for themselves
@@ -388,7 +371,7 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
              - make strong advise for users not to use 1271 permissions at all unless they 100% trust the dApp
              - always enable sender-based policies for 1271 permissions so it only validates if the isValidSignature 
                 request has been sent by protocol. at least can restrict address(this) to be the sender. so at least
-                it won't be possible to enable more permissions thru 1271
+                it won't be possible to enable more permissions thru 1271 (using this approach currently)
              - come up with a proper way of passing the correctly verified data about what has been signed from
                 the Smart account to PermissionsValidator.isValidSignatureWithSender
         */
@@ -401,16 +384,14 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         
         console2.log("permission enable sig validated successfully");
 
-        // 3. enable permissions 
+        // 4. enable permissions 
         (SignerId signerId, address signerValidator) = _enablePermission(permissionData);
         console2.log("permissions enabled");
 
 
-        // signer validator can also be obtained from enable data in many cases, saving one SLOAD
-        // but if it was not the case (userOp was enabling only polciies, not the signer)
+        // signer validator can be obtained from enable data in many cases, saving one SLOAD
+        // but if it was not the case (userOp was enabling only policies, not the signer)
         // then we have to SLOAD it
-        
-        
         if (signerValidator == address(0)) {
             signerValidator = _permissionValidatorStorage().signers[signerId][msg.sender];
         }
@@ -447,12 +428,9 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         if(!IAccountConfig(userOp.sender).supportsExecutionMode(mode)) {
             return VALIDATION_FAILED;
         }
-        
-        // first argument in userOp.callData is the execution mode (32 bytes)
+
         (CallType callType, ) = mode.decodeBasic();
         bytes calldata erc7579ExecutionCalldata = _clean7579ExecutionCalldata(userOp.callData);
-
-        //console2.logBytes(erc7579ExecutionCalldata);
         
         if (callType == CALLTYPE_SINGLE) {
             (address target, uint256 value, bytes calldata actionCallData) = erc7579ExecutionCalldata.decodeSingle();
@@ -481,7 +459,7 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         }
 
 
-        // if the execution mode is not known (some custom one),
+        // TODO: if the execution mode is not known (some custom one),
         // then the solutions are:
         // a) revert
         // b) fallback to some handler 
@@ -500,12 +478,11 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
     {    
         // if calldata is less than 4 bytes, consider this a value transfer
         // use ActionId = keccak(target, 0x00000000) for value transfers for a given target
+        // TODO: test it
         ActionId actionId = ActionId.wrap(keccak256(abi.encodePacked(
             target, 
             data.length >= 4 ? bytes4(data[0:4]) : bytes4(0)
         )));
-        //console2.log("actionId detected at validation");
-        //console2.logBytes32(ActionId.unwrap(actionId));
 
         AddressArray storage policies = _permissionValidatorStorage().actionPolicies[signerId][actionId][msg.sender];
         console2.log("action policies detected", policies.length());
@@ -701,8 +678,11 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
             policies.push(policy);
             //console2.log("check from storage: ", _permissionValidatorStorage().userOpPolicies[signerId][smartAccount].data[policies.lastUsedIndex()]);
         } else {
-            // same policy can not be used twice for the same signerId and smartAccount, as
-            // inside the policy contract the config is stored as signerId=>smartAccount=>config
+            // same policy can not be used twice as the policy of the sane type (userOp, action, 1271)
+            // for the same id and smartAccount, as inside the policy contract the config is stored as id=>smartAccount=>config
+            // so same policy can be used as 1271 and userOp and action for the same SA, as ids will be different
+            // also same policy can be used several times as action policy for the same signerId and SA, as soon as it is used
+            // with different actionIds (contract + selector)
             revert PolicyAlreadyUsed(policy);
         }
     }
@@ -749,7 +729,7 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
                 );
             }
         } catch (bytes memory /*error*/) {
-            // sub-module doesn't support trusted forwarder
+            // sub-module doesn't support IERC165 => it doesn't support trusted forwarder => see above
             _execute(
                 smartAccount, 
                 subModule,
@@ -771,26 +751,6 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         bytes calldata cleanSig
     ) {
         permissionIndex = uint8(signature[1]);
-        /*
-        0x
-        01 // enable mode flag
-        01 // permissionIndex
-        0000000000000000000000000000000000000000000000000000000000000080 // permissionEnableData offset
-        00000000000000000000000000000000000000000000000000000000000000a0 // permissionEnableDataSignature offset
-        00000000000000000000000000000000000000000000000000000000000000c0 // permissionData offset
-        0000000000000000000000000000000000000000000000000000000000000280 // cleanSigOffset
-        0000000000000000000000000000000000000000000000000000000000000000 // permissionEnableData
-        0000000000000000000000000000000000000000000000000000000000000000 // permissionEnableDataSignature
-        0000000000000000000000000000000000000000000000000000000000000188 // permissionData length
-        === permissionData ==
-        5d5f7ea3a5cc54ab2b29951ab1b6fe12b49f67d9b348a0db68eca805921e4c58 // signer, 32
-        01020201 // descriptor , 4
-        15cf58144ef33af1e14b5208015d11f9143e27b9 // signer validator address , 20
-        00000014 // signer validator data length , 4
-        db1a3d8defd683eaa1e2b99613917c6264571f1a212224d2f2d262cd093ee13240ca4873fccbba3c00000020000000000000000000000000000000000000000000000000000000000000000a2a07706473244bc757e10f2a9e86fb532828afe300000020ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffc92773bb6d2f7693a7561aaf3c2e3f3d161b7b70e085358ac9ed27b74ad45a46212224d2f2d262cd093ee13240ca4873fccbba3c0000002000000000000000000000000000000000000000000000000000000000000000053d7ebc40af7092e3f1c81f2e996cba5cae2090d70000002000000000000000000000000064262668000000000000000000000000642622803d7ebc40af7092e3f1c81f2e996cba5cae2090d70000002000000000000000000000000064264de700000000000000000000000064262474000000000000000000000000000000000000000000000000
-        0000000000000000000000000000000000000000000000000000000000000041
-        b808a9184de43655b2ff55ac5049e6c94824c4caa792d549c3987a386954d7ca2c2038f87b3569b5d80a005f7f9e3b0504b18af13e2bc5a83b1de9207da4143d1b00000000000000000000000000000000000000000000000000000000000000
-        */
 
         assembly {
             let baseOffset := add(signature.offset, 0x02)
@@ -827,6 +787,7 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
     ) internal view returns (uint64 permissionChainId, bytes32 permissionDigest) {
         assembly {
             let baseOffset := permissionEnableData.offset
+            // 40 = chainId (8bytes) + digest (32 bytes)
             let offset := add(baseOffset, mul(40, permissionIndex))
             permissionChainId := shr(
                 192,
@@ -834,8 +795,6 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
             )
             permissionDigest := calldataload(add(offset, 8))
         }
-        //console2.log(permissionChainId);
-        //console2.logBytes32(permissionDigest);
     }
 
     function _enablePermission(bytes calldata permissionData) internal returns (SignerId, address) {
@@ -860,12 +819,13 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         // enable userOp policies
         offset += _parseAndEnableUserOpPolicies(signerId, permissionDescriptor, permissionData[offset:]);
 
+        // enable action policies
         offset += _parseAndEnableActionPolicies(signerId, permissionDescriptor, permissionData[offset:]);
 
+        // enable 1271 policies
         _parseAndEnable1271Policies(signerId, permissionDescriptor, permissionData[offset:]);
 
         return(signerId, signerValidator);
-
     }
 
     function _parseAndEnableSigner(SignerId signerId, bytes calldata permissionData) 
