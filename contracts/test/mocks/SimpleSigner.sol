@@ -23,15 +23,17 @@ contract SimpleSigner is ISignerValidator/*, TrustedForwarderWithId*/ {
         returns (bytes4)
     {
         address owner = signer[signerId][sender];
-        if (owner == ECDSA.recover(hash, sig)) {
+        address recovered;
+        recovered = ECDSA.recover(hash, sig);
+        if (owner == recovered) {
             return 0x1626ba7e;
         }
         bytes32 ethHash = ECDSA.toEthSignedMessageHash(hash);
-        address recovered = ECDSA.recover(ethHash, sig);
-        if (owner != recovered) {
-            return 0xffffffff;
+        recovered = ECDSA.recover(ethHash, sig);
+        if (owner == recovered) {
+            return 0x1626ba7e;
         }
-        return 0x1626ba7e;
+        return 0xffffffff;
     }
 
     function _onInstallSigner(bytes32 signerId, bytes calldata _data) internal {

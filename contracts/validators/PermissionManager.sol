@@ -165,6 +165,7 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
          */
 
         if (ISignerValidator(signerValidator).checkSignature(SignerId.unwrap(signerId), msg.sender, userOpHash, cleanSig) == EIP1271_FAILED) {
+            console2.log("wrong signature");
             return VALIDATION_FAILED;
         }
         console2.log("Signature validation at ISignerValidator.checkSignature passed");
@@ -327,7 +328,7 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
 
     function _validateAndEnablePermissions(PackedUserOperation calldata userOp) 
         internal 
-        returns (SignerId signerId, bytes calldata cleanSig, address signerValidator)
+        returns (SignerId, bytes calldata, address)
     {
 
         //(temp)
@@ -335,14 +336,14 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         
         // 1. parse enableData and make enableDataHash
         
-        console2.logBytes(userOp.signature);
+        //console2.logBytes(userOp.signature);
         
         (
             uint8 permissionIndex,
             bytes calldata permissionEnableData,
             bytes calldata permissionEnableDataSignature,
             bytes calldata permissionData,
-            bytes calldata userOpSig
+            bytes calldata cleanSig
         ) = _decodeEnableModeUserOpSignature(userOp.signature);
         
         /*
@@ -356,21 +357,23 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         // get chainId and permissionDataDigest from permissionEnableData with permissionIndex
         // check chainId 
         // make permissionDataDigest from permissionData and compare with permissionDataDigest obtained from permissionEnableData
-        (
-            uint64 permissionChainId,
-            bytes32 permissionDigest
-        ) = _parsePermissionFromPermissionEnableData(
-                permissionEnableData,
-                permissionIndex
-            );
+        {
+            (
+                uint64 permissionChainId,
+                bytes32 permissionDigest
+            ) = _parsePermissionFromPermissionEnableData(
+                    permissionEnableData,
+                    permissionIndex
+                );
 
-        if (permissionChainId != block.chainid) {
-            revert("Permission Chain Id Mismatch");
-        }
+            if (permissionChainId != block.chainid) {
+                revert("Permission Chain Id Mismatch");
+            }
 
-        bytes32 computedDigest = keccak256(permissionData);
-        if (permissionDigest != computedDigest) {
-            revert("PermissionDigest Mismatch");
+            bytes32 computedDigest = keccak256(permissionData);
+            if (permissionDigest != computedDigest) {
+                revert("PermissionDigest Mismatch");
+            }
         }
 
         /*
@@ -393,10 +396,11 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
             keccak256(permissionEnableData), //hash of the permissionEnableData
             permissionEnableDataSignature
         );
+        
+        console2.log("permission enable sig validated successfully");
 
         // 3. enable permissions 
-
-        // (signerId, signerValidator) = _enablePermissions(permissionData);
+        (SignerId signerId, address signerValidator) = _enablePermission(permissionData);
 
 
         // can Enable Data be struct ideally to be able to sign it with 1271 properly?
@@ -411,7 +415,7 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
             signerValidator = _permissionValidatorStorage().signers[signerId][msg.sender];
         }
         */
-        cleanSig = userOpSig;
+        return(signerId, cleanSig, signerValidator);
     }
 
     /*//////////////////////////////////////////////////////////////////////////
@@ -830,8 +834,42 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
             )
             permissionDigest := calldataload(add(offset, 8))
         }
-        console2.log(permissionChainId);
-        console2.logBytes32(permissionDigest);
+        //console2.log(permissionChainId);
+        //console2.logBytes32(permissionDigest);
+    }
+
+    function _enablePermission(bytes calldata permissionData) internal returns (SignerId, address) {
+
+        uint256 offset;
+        SignerId signerId = SignerId.wrap(bytes32(permissionData[0:32]));
+        
+        //TODO: WORK WITH THIS DESCRIPTIOR VIA LIBRARY
+        bytes4 permissionDescriptor = bytes4(permissionData[32:36]);
+
+        console2.logBytes4(permissionDescriptor);
+
+        address signerValidator;
+        
+        // enable signer if required
+        if((permissionDescriptor >> 24) == 0x00000001) {
+            bytes calldata signerValidatorConfigureData;
+            (signerValidator, signerValidatorConfigureData) = _parseSignerValidatorData(permissionData);
+            _enableSigner(
+                signerId, //signerId
+                signerValidator,
+                msg.sender,                         //smartAccount
+                signerValidatorConfigureData        //signerData = 20bytes only for testing purposes, single EOA address
+            );
+        }
+        console2.log("signer validator in storage ", _permissionValidatorStorage().signers[signerId][msg.sender]);
+        return(signerId, signerValidator);
+
+    }
+
+    function _parseSignerValidatorData(bytes calldata permissionData) internal pure returns (address signerValidator, bytes calldata signerValidatorConfigureData) {
+        signerValidator = address(uint160(bytes20(permissionData[36:56])));
+        uint32 dataLength =  uint32(bytes4(permissionData[56:60]));
+        signerValidatorConfigureData = permissionData[60:60+dataLength];
     }
 
     /*//////////////////////////////////////////////////////////////////////////

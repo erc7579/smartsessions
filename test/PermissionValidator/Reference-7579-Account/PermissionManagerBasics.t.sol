@@ -283,7 +283,7 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
             permissionDataStructureDescriptor,
             simpleSignerValidator,  //signer validator
             uint32(20), // signer validator config data length
-            sessionSigner1 // signer validator config data
+            sessionSigner2 // signer validator config data
         );
 
         // userOp policies
