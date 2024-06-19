@@ -65,6 +65,7 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
         // Deploy Policies
         usageLimitPolicy = new UsageLimitPolicy();
         vm.label(address(usageLimitPolicy), "UsageLimitPolicy");
+        console2.log("Usage limit policy address: ", address(usageLimitPolicy));
         simpleGasPolicy = new SimpleGasPolicy();
         vm.label(address(simpleGasPolicy), "SimpleGasPolicy");
         timeFramePolicy = new TimeFramePolicy();

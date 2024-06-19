@@ -7,6 +7,7 @@ import { AddressArray, AddressArrayLib } from "contracts/utils/lib/AddressArrayL
 import { ModeLib, ExecutionMode, ExecType, CallType, CALLTYPE_BATCH, CALLTYPE_SINGLE, CALLTYPE_STATIC, CALLTYPE_DELEGATECALL, EXECTYPE_DEFAULT, EXECTYPE_TRY } from "contracts/utils/lib/ModeLib.sol";
 import { ExecutionLib } from "erc7579/lib/ExecutionLib.sol";
 import { ValidationDataLib } from "contracts/utils/lib/ValidationDataLib.sol";
+import { PermissionDescriptor, PermissionDescriptorLib } from "contracts/utils/lib/PermissionDescriptorLib.sol";
 
 // ??
 //import { ERC7579ValidatorLib } from "module-bases/utils/ERC7579ValidatorLib.sol";
@@ -44,6 +45,7 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
     using ExecutionLib for bytes;
     using ModeLib for ExecutionMode;
     using ValidationDataLib for ValidationData;
+    using PermissionDescriptorLib for PermissionDescriptor;
 
     struct PermissionValidatorStorage {
         // Note on the signerId. 
@@ -401,20 +403,18 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
 
         // 3. enable permissions 
         (SignerId signerId, address signerValidator) = _enablePermission(permissionData);
+        console2.log("permissions enabled");
 
-
-        // can Enable Data be struct ideally to be able to sign it with 1271 properly?
-        // no, it's gonna be dynamic bytes array
 
         // signer validator can also be obtained from enable data in many cases, saving one SLOAD
         // but if it was not the case (userOp was enabling only polciies, not the signer)
         // then we have to SLOAD it
         
-        /*
+        
         if (signerValidator == address(0)) {
             signerValidator = _permissionValidatorStorage().signers[signerId][msg.sender];
         }
-        */
+        
         return(signerId, cleanSig, signerValidator);
     }
 
@@ -840,37 +840,103 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
 
     function _enablePermission(bytes calldata permissionData) internal returns (SignerId, address) {
 
-        uint256 offset;
         SignerId signerId = SignerId.wrap(bytes32(permissionData[0:32]));
         
-        //TODO: WORK WITH THIS DESCRIPTIOR VIA LIBRARY
-        bytes4 permissionDescriptor = bytes4(permissionData[32:36]);
+        PermissionDescriptor permissionDescriptor = PermissionDescriptor.wrap(bytes4(permissionData[32:36]));
+        console2.logBytes4(PermissionDescriptor.unwrap(permissionDescriptor));
 
-        console2.logBytes4(permissionDescriptor);
+        uint256 offset = 36;
 
         address signerValidator;
+        uint256 addOffset;
         
         // enable signer if required
-        if((permissionDescriptor >> 24) == 0x00000001) {
-            bytes calldata signerValidatorConfigureData;
-            (signerValidator, signerValidatorConfigureData) = _parseSignerValidatorData(permissionData);
-            _enableSigner(
-                signerId, //signerId
-                signerValidator,
-                msg.sender,                         //smartAccount
-                signerValidatorConfigureData        //signerData = 20bytes only for testing purposes, single EOA address
-            );
+        if(permissionDescriptor.isSignerEnableMode()) {
+            (addOffset, signerValidator) = _parseAndEnableSigner(signerId, permissionData[offset:]);
+            offset += addOffset;
         }
-        console2.log("signer validator in storage ", _permissionValidatorStorage().signers[signerId][msg.sender]);
+        console2.log("offset fter enabl signer ", offset);
+
+        // enable userOp policies
+        offset += _parseAndEnableUserOpPolicies(signerId, permissionDescriptor, permissionData[offset:]);
+
+        offset += _parseAndEnableActionPolicies(signerId, permissionDescriptor, permissionData[offset:]);
+
+        _parseAndEnable1271Policies(signerId, permissionDescriptor, permissionData[offset:]);
+
         return(signerId, signerValidator);
 
     }
 
-    function _parseSignerValidatorData(bytes calldata permissionData) internal pure returns (address signerValidator, bytes calldata signerValidatorConfigureData) {
-        signerValidator = address(uint160(bytes20(permissionData[36:56])));
-        uint32 dataLength =  uint32(bytes4(permissionData[56:60]));
-        signerValidatorConfigureData = permissionData[60:60+dataLength];
+    function _parseAndEnableSigner(SignerId signerId, bytes calldata permissionData) 
+        internal  
+        returns (uint256 addOffset, address signerValidator) 
+    {
+        signerValidator = address(uint160(bytes20(permissionData[0:20])));
+        uint32 dataLength = uint32(bytes4(permissionData[20:24]));
+        console2.log(dataLength);
+        bytes calldata signerValidatorConfigureData = permissionData[24:24+dataLength];
+        _enableSigner(
+                signerId,
+                signerValidator,
+                msg.sender, //smartAccount
+                signerValidatorConfigureData        
+            );
+        addOffset = 24 + dataLength;
     }
+
+    function _parseAndEnableUserOpPolicies(
+        SignerId signerId, 
+        PermissionDescriptor permissionDescriptor,
+        bytes calldata permissionData
+    ) internal returns (uint256 addOffset) {
+        uint256 numberOfPolicies = permissionDescriptor.getUserOpPoliciesNumber();
+        console2.log("num of userOp policies ", numberOfPolicies);
+        for (uint256 i; i<numberOfPolicies; i++) {
+            (address userOpPolicy, bytes calldata policyData) = _parsePolicy(permissionData[addOffset:]);
+            addOffset += 24+policyData.length;
+            _enableUserOpPolicy(signerId, userOpPolicy, msg.sender, policyData);
+        }
+    }
+
+    function _parseAndEnableActionPolicies(
+        SignerId signerId, 
+        PermissionDescriptor permissionDescriptor,
+        bytes calldata permissionData
+    ) internal returns (uint256) {
+        uint256 numberOfPolicies = permissionDescriptor.getActionPoliciesNumber();
+        ActionId actionId = ActionId.wrap(bytes32(permissionData[0:32]));
+        uint256 addOffset = 32;
+        console2.log("num of action policies ", numberOfPolicies);
+        for (uint256 i; i<numberOfPolicies; i++) {
+            (address actionPolicy, bytes calldata policyData) = _parsePolicy(permissionData[addOffset:]);
+            addOffset += 24+policyData.length;
+            _enableActionPolicy(signerId, actionId, actionPolicy, msg.sender, policyData);
+        }
+        return addOffset;
+    }
+
+    function _parseAndEnable1271Policies(
+        SignerId signerId, 
+        PermissionDescriptor permissionDescriptor,
+        bytes calldata permissionData
+    ) internal returns (uint256 addOffset) {
+        uint256 numberOfPolicies = permissionDescriptor.get1271PoliciesNumber();
+        console2.log("num of 1271 policies ", numberOfPolicies);
+        for (uint256 i; i<numberOfPolicies; i++) {
+            (address erc1271Policy, bytes calldata policyData) = _parsePolicy(permissionData[addOffset:]);
+            addOffset += 24+policyData.length;
+            _enableERC1271Policy(signerId, erc1271Policy, msg.sender, policyData);
+        }
+    }
+
+    function _parsePolicy(bytes calldata partialPermissionData) internal pure returns (address policy, bytes calldata policyData) {
+        policy = address(uint160(bytes20(partialPermissionData[0:20])));
+        console2.log("Enabling policy ", policy);
+        uint256 dataLength = uint256(uint32(bytes4(partialPermissionData[20:24])));
+        policyData = partialPermissionData[24:24+dataLength];
+    }
+
 
     /*//////////////////////////////////////////////////////////////////////////
                                      PUBLIC INTERFACE
