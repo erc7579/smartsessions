@@ -16,6 +16,7 @@ import { UsageLimitPolicy } from "contracts/test/mocks/UsageLimitPolicy.sol";
 import { SimpleGasPolicy } from "contracts/test/mocks/SimpleGasPolicy.sol";
 import { TimeFramePolicy } from "contracts/test/mocks/TimeFramePolicy.sol";
 import { Counter } from "contracts/test/Counter.sol";
+import { MockValidator } from "contracts/test/mocks/MockValidator.sol";
 import { EIP1271_MAGIC_VALUE, IERC1271 } from "module-bases/interfaces/IERC1271.sol";
 
 import "forge-std/console2.sol";
@@ -27,15 +28,17 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
     // account and modules
     AccountInstance internal instance;
     PermissionManager internal permissionManager;
+    MockValidator mockValidator;
     
     bytes32 signerId;
 
     SimpleSigner internal simpleSignerValidator;
     address sessionSigner1;
     uint256 sessionSigner1Pk;
-
     address sessionSigner2;
     uint256 sessionSigner2Pk;
+    address owner;
+    uint256 ownerPk;
 
     UsageLimitPolicy internal usageLimitPolicy;
     SimpleGasPolicy internal simpleGasPolicy;
@@ -49,9 +52,11 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
         // Create the counter contract
         counterContract = new Counter();
 
-        // Create the validator
+        // Create the validators
         permissionManager = new PermissionManager();
         vm.label(address(permissionManager), "PermissionManager");
+        mockValidator = new MockValidator();
+        vm.label(address(mockValidator), "MockValidator");
 
         // Create the signer validator
         simpleSignerValidator = new SimpleSigner();
@@ -69,8 +74,17 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
         instance = makeAccountInstance("PermissionManager");
         vm.deal(address(instance.account), 10 ether);
 
+        (owner, ownerPk) = makeAddrAndKey("owner");
         (sessionSigner1, sessionSigner1Pk) = makeAddrAndKey("sessionSigner1");
         (sessionSigner2, sessionSigner2Pk) = makeAddrAndKey("sessionSigner2");
+
+        // INSTALL MOCK validator and set ownership
+        instance.installModule({
+            moduleTypeId: MODULE_TYPE_VALIDATOR,
+            module: address(mockValidator),
+            data: abi.encodePacked(owner)
+        });
+
 
         //example signerId
         signerId = keccak256(abi.encodePacked("Signer Id for ", instance.account, simpleSignerValidator, block.timestamp));
@@ -247,10 +261,14 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
             txValidator: address(permissionManager)
         });
 
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(sessionSigner1Pk, userOpData.userOpHash);
-
+        // ======== sign the userOp with the newly enabled signer ============================
+        bytes memory cleanSig;
+        {
+            (uint8 v, bytes32 r, bytes32 s) = vm.sign(sessionSigner2Pk, userOpData.userOpHash);
+            cleanSig = abi.encodePacked(r,s,v);
+        }
+        
         // ======== Construct Permission Data =========
-
         bytes4 permissionDataStructureDescriptor = bytes4(
             (uint32(1) << 24) + // setup signer mode = true
             (uint32(2) << 16) + // number of userOp policies
@@ -301,23 +319,36 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
             uint256(((block.timestamp + 11111) << 128) + (block.timestamp + 500))
         );
 
+        bytes32 permissionDigest = keccak256(permissionData);
+        console2.log("Permission digest");
+        console2.logBytes32(permissionDigest);
+
         // ========= Construct Session Enable Data ===========
-        bytes memory sessionEnableData;
+        bytes memory permissionEnableData = abi.encodePacked(
+            //bytes1(0x02), // how many permissions is there
+            uint64(0x01), //mainnet chaid
+            permissionDigest,
+            uint64(block.chainid), //localhost chainid
+            permissionDigest
+        );
 
-        // ========= Sign the Session Enable Data Hash ===========
-        bytes memory sessionEnableSignature;
+  //      bytes32 sessionEnableDataDigest = keccak256(sessionEnableData);
 
-        // Permission index and signature over userOpHash
-        uint8 permissionIndex = 1;
-        bytes memory cleanSig = abi.encodePacked(r,s,v);
+        // ========= Sign the Session Enable Data Hash with owner's key ===========
+        bytes memory permissionEnableDataSignature;
+        {
+            (uint8 v1, bytes32 r1, bytes32 s1) = vm.sign(ownerPk, keccak256(permissionEnableData));
+            permissionEnableDataSignature = abi.encodePacked(r1,s1,v1);
+        }
+        permissionEnableDataSignature = abi.encodePacked(address(mockValidator), permissionEnableDataSignature);
 
         // Set the signature
         bytes memory signature = abi.encodePacked(
             bytes1(0x01), //Enable mode
-            permissionIndex, // index of permission in sessionEnableData
+            uint8(1), // index of permission in sessionEnableData
             abi.encode(
-                sessionEnableData,
-                sessionEnableSignature,
+                permissionEnableData,
+                permissionEnableDataSignature,
                 permissionData,
                 cleanSig
             )

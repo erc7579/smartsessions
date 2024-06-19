@@ -218,6 +218,8 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         SignerId signerId = SignerId.wrap(bytes32(signature[1:33]));
         bytes memory cleanSig = signature[33:];
         address signerValidator = _permissionValidatorStorage().signers[signerId][msg.sender];
+        
+        // in some cases we do not need signer validation, then NO_SIGNATURE_VALIDATION_REQUIRED should be stored as signer validator for such signer id
         if (signerValidator != NO_SIGNATURE_VALIDATION_REQUIRED) {
             if (signerValidator == address(0)) {
                 revert("SignerId not enabled");
@@ -329,7 +331,7 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
     {
 
         //(temp)
-        cleanSig = userOp.signature[33:];
+        // cleanSig = userOp.signature[33:];
         
         // 1. parse enableData and make enableDataHash
         
@@ -339,18 +341,21 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
             uint8 permissionIndex,
             bytes calldata permissionEnableData,
             bytes calldata permissionEnableDataSignature,
-            bytes calldata permissionData
-            //cleanSig
+            bytes calldata permissionData,
+            bytes calldata userOpSig
         ) = _decodeEnableModeUserOpSignature(userOp.signature);
         
+        /*
         console2.log("Permission Index: ", permissionIndex);
+        console2.logBytes(permissionEnableData);
+        console2.logBytes(permissionEnableDataSignature);
         console2.logBytes(permissionData);
+        console2.logBytes(userOpSig);
+        */
 
         // get chainId and permissionDataDigest from permissionEnableData with permissionIndex
         // check chainId 
         // make permissionDataDigest from permissionData and compare with permissionDataDigest obtained from permissionEnableData
-        
-        /*
         (
             uint64 permissionChainId,
             bytes32 permissionDigest
@@ -363,11 +368,10 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
             revert("Permission Chain Id Mismatch");
         }
 
-        bytes32 computedDigest = _getPermissionDataDigest(permissionData);
+        bytes32 computedDigest = keccak256(permissionData);
         if (permissionDigest != computedDigest) {
             revert("PermissionDigest Mismatch");
         }
-        */
 
         /*
          2. check that it was properly signed
@@ -384,13 +388,11 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
                 the Smart account to PermissionsValidator.isValidSignatureWithSender
         */
 
-        /*
         _validatePermissionEnableDataSignature(
-            permissionEnableData,
-            permissionEnableDataSignature,
-            msg.sender //smartAccount
+            msg.sender, //smartAccount
+            keccak256(permissionEnableData), //hash of the permissionEnableData
+            permissionEnableDataSignature
         );
-        */
 
         // 3. enable permissions 
 
@@ -403,14 +405,33 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         // signer validator can also be obtained from enable data in many cases, saving one SLOAD
         // but if it was not the case (userOp was enabling only polciies, not the signer)
         // then we have to SLOAD it
+        
+        /*
         if (signerValidator == address(0)) {
             signerValidator = _permissionValidatorStorage().signers[signerId][msg.sender];
         }
+        */
+        cleanSig = userOpSig;
     }
 
     /*//////////////////////////////////////////////////////////////////////////
                             INTERNAL VALIDATION METHODS
     //////////////////////////////////////////////////////////////////////////*/
+
+    function _validatePermissionEnableDataSignature(
+        address smartAccount,
+        bytes32 permissionEnableDataHash, 
+        bytes calldata permissionEnableDataSignature
+    ) internal view {
+        if (
+            IERC7579Account(smartAccount).isValidSignature(
+                permissionEnableDataHash, 
+                permissionEnableDataSignature
+            ) != EIP1271_SUCCESS
+        ) {
+            revert("Permission Enable Sig invalid");
+        } 
+    }
 
     function _validate7579ExecuteCall(
         SignerId signerId,
@@ -742,14 +763,10 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         uint8 permissionIndex,
         bytes calldata permissionEnableData,
         bytes calldata permissionEnableDataSignature,
-        bytes calldata permissionData
+        bytes calldata permissionData,
+        bytes calldata cleanSig
     ) {
         permissionIndex = uint8(signature[1]);
-
-        //temp
-        permissionEnableData = signature[2:34];
-        permissionEnableDataSignature = signature[34:66];
-
         /*
         0x
         01 // enable mode flag
@@ -771,8 +788,6 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         b808a9184de43655b2ff55ac5049e6c94824c4caa792d549c3987a386954d7ca2c2038f87b3569b5d80a005f7f9e3b0504b18af13e2bc5a83b1de9207da4143d1b00000000000000000000000000000000000000000000000000000000000000
         */
 
-        //uint256 offset;
-
         assembly {
             let baseOffset := add(signature.offset, 0x02)
             let offset := baseOffset
@@ -793,7 +808,30 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
             dataPointer := add(baseOffset, calldataload(offset))
             permissionData.offset := add(0x20, dataPointer)
             permissionData.length := calldataload(dataPointer)
+
+            // get cleanSig
+            offset := add(offset, 0x20)
+            dataPointer := add(baseOffset, calldataload(offset))
+            cleanSig.offset := add(0x20, dataPointer)
+            cleanSig.length := calldataload(dataPointer)
         }
+    }
+
+    function _parsePermissionFromPermissionEnableData(
+        bytes calldata permissionEnableData, 
+        uint8 permissionIndex
+    ) internal view returns (uint64 permissionChainId, bytes32 permissionDigest) {
+        assembly {
+            let baseOffset := permissionEnableData.offset
+            let offset := add(baseOffset, mul(40, permissionIndex))
+            permissionChainId := shr(
+                192,
+                calldataload(offset)
+            )
+            permissionDigest := calldataload(add(offset, 8))
+        }
+        console2.log(permissionChainId);
+        console2.logBytes32(permissionDigest);
     }
 
     /*//////////////////////////////////////////////////////////////////////////
