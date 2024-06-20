@@ -96,44 +96,62 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
             data: abi.encodePacked(bytes1(uint8(MODULE_TYPE_EXECUTOR)))
         });
 
-        // Signer and userOpPolicies
-        bytes memory validatorInstallData = abi.encodePacked(
-                uint8(MODULE_TYPE_VALIDATOR), //1 byte
-                signerId, 
-                // data for setting up the signer
-                simpleSignerValidator, 
-                sessionSigner1,
-                // data for setting up the userOp Policies
-                uint8(0x02), // number of policies
-                address(usageLimitPolicy),
-                uint256(10), // limit
-                address(simpleGasPolicy), 
-                uint256(2**256-1) // limit
-            );
+        // ======== Construct Permission Data =========
+        bytes4 permissionDataStructureDescriptor = bytes4(
+            (uint32(1) << 24) + // setup signer mode = true
+            (uint32(2) << 16) + // number of userOp policies
+            (uint32(2) << 8) + // number of action policies
+            uint32(1) // number of 1271 policies
+        );
+        console2.logBytes4(permissionDataStructureDescriptor);
+
+        // initial data and signer Id config
+        bytes memory permissionDataWithMode = abi.encodePacked(
+            uint8(MODULE_TYPE_VALIDATOR), //1 byte
+            signerId,
+            permissionDataStructureDescriptor,
+            simpleSignerValidator,  //signer validator
+            uint32(20), // signer validator config data length
+            sessionSigner1 // signer validator config data
+        );
+
+        // userOp policies
+        permissionDataWithMode = abi.encodePacked(
+            permissionDataWithMode,
+            address(usageLimitPolicy), // usageLimitPolicy address
+            uint32(32), // usageLimitPolicy config data length
+            uint256(10), // limit
+            address(simpleGasPolicy), // simpleGasPolicy address
+            uint32(32), // simpleGasPolicy config data length
+            uint256(2**256-1) // limit
+        );
+
+        bytes32 actionId = keccak256(abi.encodePacked(address(counterContract), counterContract.incr.selector));//action Id
 
         // action policies
-        validatorInstallData = abi.encodePacked(
-            validatorInstallData,
-                uint8(0x02), // number of policies
-                keccak256(abi.encodePacked(address(counterContract), counterContract.incr.selector)),//action Id
-                address(usageLimitPolicy),
-                uint256(5), // limit
-                address(timeFramePolicy),
-                uint256(((block.timestamp + 1000) << 128) + (block.timestamp ))
+        permissionDataWithMode = abi.encodePacked(
+            permissionDataWithMode,
+            actionId,
+            address(usageLimitPolicy),
+            uint32(32), // usageLimitPolicy config data length
+            uint256(5), // limit
+            address(timeFramePolicy),
+            uint32(32), // timeFramePolicy config data length
+            uint256(((block.timestamp + 1000) << 128) + (block.timestamp ))
         );
 
         // 1271 policies
-        validatorInstallData = abi.encodePacked(
-            validatorInstallData,
-                uint8(0x01), // number of policies
-                address(timeFramePolicy),
-                uint256(((block.timestamp + 11111) << 128) + (block.timestamp + 500))
+        permissionDataWithMode = abi.encodePacked(
+            permissionDataWithMode,
+            address(timeFramePolicy),
+            uint32(32), // timeFramePolicy config data length
+            uint256(((block.timestamp + 11111) << 128) + (block.timestamp + 500))
         );
 
         instance.installModule({
             moduleTypeId: MODULE_TYPE_VALIDATOR,
             module: address(permissionManager),
-            data: validatorInstallData
+            data: permissionDataWithMode
         });
 
         assertTrue(simpleSignerValidator.isInitialized(instance.account));

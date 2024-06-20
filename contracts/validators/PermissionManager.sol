@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.23;
+pragma solidity ^0.8.25;
 
 import { ERC7579ValidatorBase, ERC7579ExecutorBase } from "modulekit/Modules.sol";
 import { PackedUserOperation } from "modulekit/external/ERC4337.sol";
@@ -27,7 +27,6 @@ import "forge-std/console2.sol";
 /**
 
 TODO:
-    - Rebuild onInstall to a standard enablePermissions flow
     - Renounce permissions even those are not used
     - Check Policies/Signers via Registry before enabling
 
@@ -248,65 +247,10 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
      * @param data The data to initialize the module with
      */
     function onInstall(bytes calldata data) external override {
-        
-        // the temporary onInstall that just enables some fixed set of policies per signer
-
         //if this module is being installed as a validator
         if(uint256(uint8(bytes1(data[:1]))) == TYPE_VALIDATOR) {
-            // along with this validator initialization itself
-            // for testing purposes
-            SignerId signerId = SignerId.wrap(bytes32(data[1:33]));
-
-            _enableSigner(
-                signerId, //signerId
-                address(bytes20(data[33:53])),      //signerValidator
-                msg.sender,                         //smartAccount
-                data[53:73]                         //signerData = 20bytes only for testing purposes, single EOA address
-            );
-
-            //enable couple of general permissions for the signerId
-            uint256 numberOfUserOpPolicies = uint256(uint8(bytes1(data[73:74])));
-            for(uint256 i; i < numberOfUserOpPolicies; i++) {
-                // get address of the policy
-                address policyAddress = address(bytes20(data[74 + i*(20+32): 94 + i*(20+32)]));
-                bytes calldata policyData = data[94 + i*(20+32): 94+32 + i*(20+32)];
-                //console2.log("Policy address: ", policyAddress);
-                //console2.logBytes(policyData);
-                _enableUserOpPolicy(signerId, policyAddress, msg.sender, policyData);
-            }
-
-            uint256 pointer = 74 + numberOfUserOpPolicies*(20+32);
-            uint256 numberOfActionPolicies = uint256(uint8(bytes1(data[pointer:++pointer])));
-            ActionId actionId = ActionId.wrap(bytes32(data[pointer:pointer+32]));
-            //console2.log("ActionId submitted at onInstall");
-            //console2.logBytes32(ActionId.unwrap(actionId));
-            pointer += 32;
-            for(uint256 i; i < numberOfActionPolicies; i++) {
-                // get address of the policy
-                address policyAddress = address(bytes20(data[pointer + i*(20+32): pointer+20 + i*(20+32)]));
-                bytes calldata policyData = data[pointer+20 + i*(20+32): pointer+20+32 + i*(20+32)];
-                //console2.log("Action Policy address: ", policyAddress);
-                //console2.logBytes(policyData);
-                _enableActionPolicy(signerId, actionId, policyAddress, msg.sender, policyData);
-            }
-            pointer += numberOfActionPolicies*(20+32);
-            uint256 numberOf1271Policies = uint256(uint8(bytes1(data[pointer:++pointer])));
-            for(uint256 i; i < numberOf1271Policies; i++) {
-                // get address of the policy
-                address policyAddress = address(bytes20(data[pointer + i*(20+32): pointer+20 + i*(20+32)]));
-                bytes calldata policyData = data[pointer+20 + i*(20+32): pointer+20+32 + i*(20+32)];
-                //console2.log("1271 Policy address: ", policyAddress);
-                //console2.logBytes(policyData);
-                _enableERC1271Policy(signerId, policyAddress, msg.sender, policyData);
-            }
+            _enablePermission(data[1:]);
         }
-
-
-        // TODO: 
-        // make proper flow that uses the standard enable permissions routine
-        // with the exception we do not need to check the signature here
-        // as onInstall is only called by the SA itself => the call has already been authorized
-        // _enablePermissions(__);
     }
 
     /**
