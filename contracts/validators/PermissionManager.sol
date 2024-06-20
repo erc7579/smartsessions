@@ -77,6 +77,8 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
 
         mapping(SignerId => mapping (address smartAccount => AddressArray)) erc1271Policies;
 
+        mapping(address => mapping (bytes32 => bool)) renouncedPermissionEnableObjects;
+        
         mapping (address => uint256) nonces;
     }
 
@@ -267,7 +269,9 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
      *
      * @param data The data to de-initialize the module with
      */
-    function onUninstall(bytes calldata data) external override { }
+    function onUninstall(bytes calldata data) external override {
+        resetModule();
+    }
 
     /**
      * Check if the module is initialized
@@ -303,6 +307,12 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
                     permissionEnableData,
                     permissionIndex
                 );
+            
+            // check that this enable object has not been banned before being enabled
+            bytes32 permissionEnableObject = keccak256(abi.encodePacked(permissionChainId, permissionDigest));
+            if(_permissionValidatorStorage().renouncedPermissionEnableObjects[msg.sender][permissionEnableObject]) {
+                revert("Object has been renounced");
+            }
 
             if (permissionChainId != block.chainid) {
                 revert("Permission Chain Id Mismatch");
@@ -860,8 +870,13 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
      * @dev Makes all the signerIds in storage effectively unreachable
      * by incrementing the nonce that is mixed into the signerId
     */
-    function resetModule() external {
+    function resetModule() public {
         _permissionValidatorStorage().nonces[msg.sender]++;
+    }
+
+    function renouncePermissionEnableObject(uint64 chainId, bytes32 permissionDigest) public {
+        bytes32 permissionEnableObject = keccak256(abi.encodePacked(chainId, permissionDigest));
+        _permissionValidatorStorage().renouncedPermissionEnableObjects[msg.sender][permissionEnableObject] = true;
     }
 
     /*//////////////////////////////////////////////////////////////////////////
