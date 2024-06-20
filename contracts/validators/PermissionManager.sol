@@ -8,6 +8,7 @@ import { ModeLib, ExecutionMode, ExecType, CallType, CALLTYPE_BATCH, CALLTYPE_SI
 import { ExecutionLib } from "erc7579/lib/ExecutionLib.sol";
 import { ValidationDataLib } from "contracts/utils/lib/ValidationDataLib.sol";
 import { PermissionDescriptor, PermissionDescriptorLib } from "contracts/utils/lib/PermissionDescriptorLib.sol";
+import { NonceMixinLib } from "contracts/utils/lib/NonceMixinLib.sol";
 
 // ??
 //import { ERC7579ValidatorLib } from "module-bases/utils/ERC7579ValidatorLib.sol";
@@ -29,6 +30,7 @@ import "forge-std/console2.sol";
 TODO:
     - Renounce permissions even those are not used
     - Check Policies/Signers via Registry before enabling
+    - In policies contracts, change signerId to id
 
  */
 
@@ -45,6 +47,7 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
     using ModeLib for ExecutionMode;
     using ValidationDataLib for ValidationData;
     using PermissionDescriptorLib for PermissionDescriptor;
+    using NonceMixinLib for bytes32;
 
     struct PermissionValidatorStorage {
         // Note on the signerId. 
@@ -73,6 +76,8 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         mapping(SignerId => mapping (ActionId => mapping (address smartAccount => AddressArray))) actionPolicies;  
 
         mapping(SignerId => mapping (address smartAccount => AddressArray)) erc1271Policies;
+
+        mapping (address => uint256) nonces;
     }
 
     function _permissionValidatorStorage() internal pure returns (PermissionValidatorStorage storage state) {
@@ -154,7 +159,9 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
             console2.log("Enable Mode activated");
             (signerId, cleanSig, signerValidator) = _validateAndEnablePermissions(userOp);
         } else {
-            signerId = SignerId.wrap(bytes32(userOp.signature[1:33]));
+            signerId = SignerId.wrap(
+                (bytes32(userOp.signature[1:33])).mixinNonce(_permissionValidatorStorage().nonces[msg.sender])
+            );
             cleanSig = userOp.signature[33:];
             signerValidator = _permissionValidatorStorage().signers[signerId][msg.sender];
         }
@@ -214,7 +221,9 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         if (sender == address(this)) {
             return EIP1271_FAILED;          
         }        
-        SignerId signerId = SignerId.wrap(bytes32(signature[1:33]));
+        SignerId signerId = SignerId.wrap(
+            (bytes32(signature[1:33])).mixinNonce(_permissionValidatorStorage().nonces[msg.sender])
+        );
         bytes memory cleanSig = signature[33:];
         address signerValidator = _permissionValidatorStorage().signers[signerId][msg.sender];
         
@@ -314,12 +323,12 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
              - mark permissions enable data with magic value and revert in 1271 flow in this module if detected
              - make strong advise for users not to use 1271 permissions at all unless they 100% trust the dApp
              - always enable sender-based policies for 1271 permissions so it only validates if the isValidSignature 
-                request has been sent by protocol. at least can restrict address(this) to be the sender. so at least
-                it won't be possible to enable more permissions thru 1271 (using this approach currently)
+                request has been sent by protocol. at least can restrict address(this) to be the sender. 
+                so at least it won't be possible to enable more permissions thru 1271 
+                Using this approach currently => see isValidSignatureWithSender method
              - come up with a proper way of passing the correctly verified data about what has been signed from
                 the Smart account to PermissionsValidator.isValidSignatureWithSender
         */
-
         _validatePermissionEnableDataSignature(
             msg.sender, //smartAccount
             keccak256(permissionEnableData), //hash of the permissionEnableData
@@ -743,7 +752,9 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
 
     function _enablePermission(bytes calldata permissionData) internal returns (SignerId, address) {
 
-        SignerId signerId = SignerId.wrap(bytes32(permissionData[0:32]));
+        SignerId signerId = SignerId.wrap(
+            bytes32(permissionData[0:32]).mixinNonce(_permissionValidatorStorage().nonces[msg.sender])
+        );
         
         PermissionDescriptor permissionDescriptor = PermissionDescriptor.wrap(bytes4(permissionData[32:36]));
         console2.logBytes4(PermissionDescriptor.unwrap(permissionDescriptor));
@@ -841,6 +852,17 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         policyData = partialPermissionData[24:24+dataLength];
     }
 
+    /*//////////////////////////////////////////////////////////////////////////
+                                     RENOUNCE METHODS
+    //////////////////////////////////////////////////////////////////////////*/
+
+    /** 
+     * @dev Makes all the signerIds in storage effectively unreachable
+     * by incrementing the nonce that is mixed into the signerId
+    */
+    function resetModule() external {
+        _permissionValidatorStorage().nonces[msg.sender]++;
+    }
 
     /*//////////////////////////////////////////////////////////////////////////
                                      PUBLIC INTERFACE
@@ -848,8 +870,10 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
 
     // signerId can be enabled counterfactually, when enable data has been signed
     // but not submitted to the chain yet
-    function isSignerIdEnabledOnchain(bytes32 signerId, address smartAccount) external view returns (bool) {
-        return _permissionValidatorStorage().signers[SignerId.wrap(signerId)][smartAccount] != address(0);
+    function isSignerIdEnabledOnchain(bytes32 _signerId, address smartAccount) external view returns (bool) {
+        uint256 nonce = _permissionValidatorStorage().nonces[smartAccount];
+        SignerId signerId = SignerId.wrap(_signerId.mixinNonce(nonce));
+        return _permissionValidatorStorage().signers[signerId][smartAccount] != address(0);
     }
 
     /*//////////////////////////////////////////////////////////////////////////

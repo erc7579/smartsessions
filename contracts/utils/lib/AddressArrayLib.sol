@@ -48,11 +48,7 @@ library AddressArrayLib {
     function remove(AddressArray storage self, uint256 index) internal {
         if (index >= self.length()) revert IndexOutOfBounds(index, self.length());
         uint256 lastUsed = self.length() - 1;
-
-        for (uint256 i = index; i < lastUsed; i++) {
-            self.data[i] = self.data[i + 1];
-        }
-
+        self.data[index] = self.data[lastUsed];
         delete self.data[lastUsed];
         self.nextIndex--;
     }
