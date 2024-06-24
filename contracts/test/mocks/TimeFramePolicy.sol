@@ -17,6 +17,7 @@ contract TimeFramePolicy is IUserOpPolicy, IActionPolicy {
     }
 
     mapping(address => uint256) public usedIds;
+    mapping(bytes32 id => mapping(address => Status)) public status;
     mapping(bytes32 signerId => mapping(address smartAccount => TimeFrameConfig)) public timeFrameConfigs;
 
     function checkUserOp(bytes32 id, PackedUserOperation calldata userOp)
@@ -40,6 +41,7 @@ contract TimeFramePolicy is IUserOpPolicy, IActionPolicy {
         bytes32,
         bytes calldata
     ) external view returns (bool) {
+        require(status[id][smartAccount] == Status.Live);
         TimeFrameConfig storage config = timeFrameConfigs[id][smartAccount];
         if(config.validUntil == 0 && config.validAfter == 0) {
             revert ("TimeFramePolicy: policy not installed");
@@ -53,6 +55,7 @@ contract TimeFramePolicy is IUserOpPolicy, IActionPolicy {
     }
 
     function _checkTimeFrame(bytes32 id, address smartAccount) internal view returns (uint256) {
+        require(status[id][smartAccount] == Status.Live);
         TimeFrameConfig storage config = timeFrameConfigs[id][smartAccount];
         if(config.validUntil == 0 && config.validAfter == 0) {
             revert ("TimeFramePolicy: policy not installed");
@@ -62,16 +65,17 @@ contract TimeFramePolicy is IUserOpPolicy, IActionPolicy {
 
     function _onInstallPolicy(bytes32 id, bytes calldata _data) internal {
         address smartAccount = msg.sender;
-        require(timeFrameConfigs[id][smartAccount].validUntil == 0 && timeFrameConfigs[id][smartAccount].validAfter == 0);
+        require(status[id][smartAccount] == Status.NA);
         usedIds[smartAccount]++;
+        status[id][smartAccount] = Status.Live;
         timeFrameConfigs[id][smartAccount].validUntil = uint48(uint128(bytes16(_data[0:16])));
         timeFrameConfigs[id][smartAccount].validAfter = uint48(uint128(bytes16(_data[16:32])));
     }
 
     function _onUninstallPolicy(bytes32 id, bytes calldata) internal {
         address smartAccount = msg.sender;
-        require(timeFrameConfigs[id][smartAccount].validUntil != 0 || timeFrameConfigs[id][smartAccount].validAfter != 0);
-        delete timeFrameConfigs[id][smartAccount];
+        require(status[id][smartAccount] == Status.Live);
+        status[id][smartAccount] = Status.Deprecated;
         usedIds[smartAccount]--;
     }
 

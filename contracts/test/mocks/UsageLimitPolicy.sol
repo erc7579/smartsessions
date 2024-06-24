@@ -9,17 +9,24 @@ import { TrustedForwarder } from "contracts/utils/TrustedForwarders.sol";
     Since this policy increments .used on every check,
     malicious actor could grief the contract by calling those checks,
     so we have to only allow the checks to be called by the authorized SA
-    That is done by inheriting TrustedForwarder
+    That is achieved by inheriting TrustedForwarder
 */
+
+enum Status {
+    NA,
+    Live,
+    Deprecated
+}
+
+struct UsageLimitConfig {
+    uint256 limit;
+    uint256 used;
+}
 
 contract UsageLimitPolicy is IUserOpPolicy, IActionPolicy, TrustedForwarder {
 
-    struct UsageLimitConfig {
-        uint256 limit;
-        uint256 used;
-    }
-
     mapping(address => uint256) public usedIds;
+    mapping(bytes32 id => mapping(address => Status)) public status;
     mapping(bytes32 signerId => mapping(address smartAccount => UsageLimitConfig)) public usageLimitConfigs;
 
     function checkUserOp(bytes32 id, PackedUserOperation calldata userOp)
@@ -37,6 +44,7 @@ contract UsageLimitPolicy is IUserOpPolicy, IActionPolicy, TrustedForwarder {
     }
 
     function _checkUsageLimit(bytes32 id, address smartAccount) internal returns (uint256) {
+        require(status[id][smartAccount] == Status.Live);
         UsageLimitConfig storage config = usageLimitConfigs[id][smartAccount];
         if(config.limit == 0) {
             revert("UsageLimitPolicy: policy not installed");
@@ -49,15 +57,16 @@ contract UsageLimitPolicy is IUserOpPolicy, IActionPolicy, TrustedForwarder {
 
     function _onInstallPolicy(bytes32 id, bytes calldata _data) internal {
         address smartAccount = _getAccount();
-        require(usageLimitConfigs[id][smartAccount].limit == 0);
+        require(status[id][smartAccount] == Status.NA);
         usedIds[smartAccount]++;
+        status[id][smartAccount] = Status.Live;
         usageLimitConfigs[id][smartAccount].limit = uint256(bytes32(_data[0:32]));
     }
 
     function _onUninstallPolicy(bytes32 id, bytes calldata) internal {
         address smartAccount = _getAccount();
-        require(usageLimitConfigs[id][smartAccount].limit != 0);
-        delete usageLimitConfigs[id][smartAccount];
+        require(status[id][smartAccount] == Status.Live);
+        status[id][smartAccount] = Status.Deprecated;
         usedIds[smartAccount]--;
     }
 

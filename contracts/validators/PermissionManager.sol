@@ -28,9 +28,20 @@ import "forge-std/console2.sol";
 /**
 
 TODO:
-    - Renounce permissions even those are not used
+    - Renounce policies and signers
+        - what do we do with isInitialized in sub-modules if we bulk renounce submodules in the Permission Manager
+        without calling onUninstall on every sub-module. Probably need to introduce same nonce system for submodules as well
+        we need to make no hidden enabled configs are left in sub-modules
+        Also need to disable trustedForwarder config for given SA 
+        but how do we get all the submodules used for given SA, while indexing is by SignerIds. the only way is storing 
+        signerIds list for givenSA but this is extremely inefficient
+        Should we allow bulk disabling in this case at all? 
+        How do we disable the whole signerId in case it is compromised?
+    - Permissions hook (soending limits?)
     - Check Policies/Signers via Registry before enabling
     - In policies contracts, change signerId to id
+
+
 
  */
 
@@ -874,10 +885,37 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         _permissionValidatorStorage().nonces[msg.sender]++;
     }
 
+    function renounceUserOpPolicy(SignerId signerId, address policy) external {
+        _permissionValidatorStorage().userOpPolicies[signerId][msg.sender].removeElement(policy);
+        _safeCallSubmoduleViaTrustedForwarder(
+                            policy, 
+                            abi.encodeWithSelector(
+                                IERC7579Module.onUninstall.selector, 
+                                abi.encodePacked(SignerId.unwrap(signerId))
+                            )
+                        );
+    }
+
+
+    function renounceActionPolicy(SignerId signerId, ActionId actionId, address policy) external {
+
+    }
+
+    function renounce1271Policy(SignerId signerId, address policy) external {
+
+    }
+
+    /** 
+     * @dev Allows to renounce the permission that has not even been enabled on-chain.
+     * It does it by marking the permission enable object that have been signed as renounced
+     *
+    */
     function renouncePermissionEnableObject(uint64 chainId, bytes32 permissionDigest) public {
         bytes32 permissionEnableObject = keccak256(abi.encodePacked(chainId, permissionDigest));
         _permissionValidatorStorage().renouncedPermissionEnableObjects[msg.sender][permissionEnableObject] = true;
     }
+
+
 
     /*//////////////////////////////////////////////////////////////////////////
                                      PUBLIC INTERFACE

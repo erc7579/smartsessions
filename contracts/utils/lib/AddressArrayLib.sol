@@ -19,6 +19,7 @@ library AddressArrayLib {
 
     error IndexOutOfBounds(uint256 index, uint256 length);
     error ArrayFull();
+    error NoSuchElement();
     
     using AddressArrayLib for *;
 
@@ -45,12 +46,24 @@ library AddressArrayLib {
     }
 
     // Not recommended for large arrays
-    function remove(AddressArray storage self, uint256 index) internal {
+    function removeIndex(AddressArray storage self, uint256 index) internal {
         if (index >= self.length()) revert IndexOutOfBounds(index, self.length());
         uint256 lastUsed = self.length() - 1;
         self.data[index] = self.data[lastUsed];
         delete self.data[lastUsed];
         self.nextIndex--;
+    }
+
+    function removeElement(AddressArray storage self, address value) internal returns (uint256 removedIndex) {
+        for (uint256 i = 0; i < self.length(); i++) {
+            if (self.data[i] == value) {
+                uint256 lastUsed = self.length() - 1;
+                self.data[i] = self.data[lastUsed];
+                delete self.data[lastUsed];
+                return i;
+            }
+        }
+        revert NoSuchElement();
     }
 
     // Not recommended for large arrays
@@ -63,5 +76,14 @@ library AddressArrayLib {
         return false;
     }
 
+    // Not recommended for large arrays
+    function indexOf(AddressArray storage self, address value) internal view returns (uint256) {
+        for (uint256 i = 0; i < self.length(); i++) {
+            if (self.data[i] == value) {
+                return i;
+            }
+        }
+        revert NoSuchElement();
+    }
 
 }
