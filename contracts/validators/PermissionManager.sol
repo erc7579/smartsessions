@@ -37,6 +37,8 @@ TODO:
         signerIds list for givenSA but this is extremely inefficient
         Should we allow bulk disabling in this case at all? 
         How do we disable the whole signerId in case it is compromised?
+
+    - isInitialized for SA (just takes the length of the signerId's array stored at keccak(p))
     - Permissions hook (soending limits?)
     - Check Policies/Signers via Registry before enabling
     - In policies contracts, change signerId to id
