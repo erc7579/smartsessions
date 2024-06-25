@@ -90,7 +90,7 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
 
         mapping(SignerId => mapping (address smartAccount => AddressArray)) erc1271Policies;
 
-        mapping(address => mapping (bytes32 => bool)) renouncedPermissionEnableObjects;
+        mapping(bytes32 => mapping ( address => bool)) renouncedPermissionEnableObjects;
         
         mapping (address => uint256) nonces;
     }
@@ -100,6 +100,12 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
             state.slot := PERMISSION_VALIDATOR_STORAGE_SLOT
         }
     }
+
+    // TODO: just a random seed => need to recalculate?
+    uint256 private constant _SIGNERS_SLOT_SEED = 0x5a8d4c29;
+
+
+
 
     /*//////////////////////////////////////////////////////////////////////////
                                      MODULE LOGIC
@@ -323,7 +329,7 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
             
             // check that this enable object has not been banned before being enabled
             bytes32 permissionEnableObject = keccak256(abi.encodePacked(permissionChainId, permissionDigest));
-            if(_permissionValidatorStorage().renouncedPermissionEnableObjects[msg.sender][permissionEnableObject]) {
+            if(_permissionValidatorStorage().renouncedPermissionEnableObjects[permissionEnableObject][msg.sender]) {
                 revert("Object has been renounced");
             }
 
@@ -914,7 +920,7 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
     */
     function renouncePermissionEnableObject(uint64 chainId, bytes32 permissionDigest) public {
         bytes32 permissionEnableObject = keccak256(abi.encodePacked(chainId, permissionDigest));
-        _permissionValidatorStorage().renouncedPermissionEnableObjects[msg.sender][permissionEnableObject] = true;
+        _permissionValidatorStorage().renouncedPermissionEnableObjects[permissionEnableObject][msg.sender] = true;
     }
 
 
