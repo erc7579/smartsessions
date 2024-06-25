@@ -7,14 +7,20 @@ import { _packValidationData } from "@ERC4337/account-abstraction/contracts/core
 
 import "forge-std/console2.sol";
 
+struct TimeFrameConfig {
+    uint48 validUntil;
+    uint48 validAfter;
+}
+
+enum Status {
+    NA,
+    Live,
+    Deprecated
+}   
+
 // This submodule doesn't need to be TrustedForwarder as both checks are view
 
 contract TimeFramePolicy is IUserOpPolicy, IActionPolicy {
-
-    struct TimeFrameConfig {
-        uint48 validUntil;
-        uint48 validAfter;
-    }
 
     mapping(address => uint256) public usedIds;
     mapping(bytes32 id => mapping(address => Status)) public status;
