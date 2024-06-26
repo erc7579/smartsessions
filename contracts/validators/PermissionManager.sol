@@ -23,6 +23,8 @@ import { IUserOpPolicy, IActionPolicy, I1271Policy } from "contracts/interfaces/
 import { IAccountConfig } from "contracts/utils/interfaces/IAccountConfig.sol";
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
+import { AddressArrayMap4337, ArrayMap4337Lib } from "contracts/utils/lib/ArrayMap4337Lib.sol";
+
 import "forge-std/console2.sol";
 
 /**
@@ -61,6 +63,7 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
     using ValidationDataLib for ValidationData;
     using PermissionDescriptorLib for PermissionDescriptor;
     using NonceMixinLib for bytes32;
+    using ArrayMap4337Lib for AddressArrayMap4337;
 
     struct PermissionValidatorStorage {
         // Note on the signerId. 
@@ -84,7 +87,7 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
 
         mapping(SignerId => mapping (address smartAccount => address signerValidator)) signers;
         
-        mapping(SignerId => mapping (address smartAccount => AddressArray)) userOpPolicies;  
+        //mapping(SignerId => mapping (address smartAccount => AddressArray)) userOpPolicies;  
         
         mapping(SignerId => mapping (ActionId => mapping (address smartAccount => AddressArray))) actionPolicies;  
 
@@ -104,35 +107,26 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
     // TODO: just a random seed => need to recalculate?
     uint256 private constant _SIGNER_VALIDATORS_SLOT_SEED = 0x5a8d4c29;
 
+    uint256 private constant _USEROP_POLICIES_SLOT_SEED = 0x4bb928ff;
+
+    mapping (SignerId => AddressArrayMap4337) userOpPolicies;
 
     function getSignerValidator(SignerId signerId, address smartAccount) public view returns (address signerValidator) {
-        bytes32 check;
         assembly {
-            /*mstore(0x00, or(shl(0x20, smartAccount), _SIGNER_VALIDATORS_SLOT_SEED))
-            mstore(0x20, signerId)
-            signerValidator := sload(keccak256(0x08, 0x38))
-            check := mload(0x00)
-            */
             mstore(0x04, _SIGNER_VALIDATORS_SLOT_SEED)
             mstore(0x00, signerId)
             mstore(0x20, keccak256(0x00, 0x24))  //store hash
             mstore(0x00, smartAccount)
             signerValidator := sload(keccak256(0x00, 0x40))
         }
-        //console2.logBytes32(check);
     }
 
     function _setSignerValidator(SignerId signerId, address smartAccount, address signerValidator) internal {
         bytes32 check;
         assembly {
-            /*
-            mstore(0x00, or(shl(0x20, smartAccount), _SIGNER_VALIDATORS_SLOT_SEED))
-            mstore(0x20, signerId)
-            sstore(keccak256(0x08, 0x38), signerValidator)
-            */
             mstore(0x04, _SIGNER_VALIDATORS_SLOT_SEED)
             mstore(0x00, signerId)
-            mstore(0x20, keccak256(0x00, 0x24))  //store hash
+            mstore(0x20, keccak256(0x00, 0x24))  //store hash of outer key + slot seed
             mstore(0x00, smartAccount)
             sstore(keccak256(0x00, 0x40), signerValidator)
         }
@@ -230,8 +224,8 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         console2.log("Signature validation at ISignerValidator.checkSignature passed");
 
         // Check userOp level Policies
-        AddressArray storage policies = _permissionValidatorStorage().userOpPolicies[signerId][msg.sender];
-        vd = _validateUserOpPolicies(signerId, policies, userOp);
+        // AddressArray storage policies = _permissionValidatorStorage().userOpPolicies[signerId][msg.sender];
+        vd = _validateUserOpPolicies(signerId, msg.sender, userOp);
         console2.log("UserOp Policies verification passed");
 
         // Check action policies
@@ -516,16 +510,17 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
 
     function _validateUserOpPolicies(
         SignerId signerId,
-        AddressArray storage policies,
+        address smartAccount,
         PackedUserOperation calldata userOp
     ) internal returns (ValidationData vd) {
-        for(uint256 i; i < policies.length(); i++) {
-            console2.log("Validating UserOp Policy @ address: ", policies.get(i));
+        AddressArrayMap4337 storage policies = userOpPolicies[signerId];
+        for(uint256 i; i < policies.length(smartAccount); i++) {
+            console2.log("Validating UserOp Policy @ address: ", policies.get(smartAccount, i));
             vd = vd.intersectValidationData( 
                 ValidationData.wrap(
                     uint256(bytes32(
                         _callSubModuleAndHandleReturnData(
-                            policies.get(i), 
+                            policies.get(smartAccount, i), 
                             abi.encodePacked(
                                 abi.encodeWithSelector(
                                     IUserOpPolicy.checkUserOp.selector, 
@@ -663,9 +658,8 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
     ) internal {
         bytes memory _data = abi.encodePacked(signerId, policyData);
 
-        AddressArray storage policies = _permissionValidatorStorage().userOpPolicies[signerId][smartAccount];
-        _addPolicy(policies, userOpPolicy);
-
+        AddressArrayMap4337 storage policies = userOpPolicies[signerId];
+        _addPolicy(policies, smartAccount, userOpPolicy);
         _initSubmodule(userOpPolicy, SignerId.unwrap(signerId), smartAccount, _data);
     }
 
@@ -698,10 +692,22 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         _initSubmodule(erc1271Policy, id, smartAccount, _data);
     }
 
+    function _addPolicy(AddressArrayMap4337 storage policies, address smartAccount, address policy) internal {            
+        if(!policies.contains(smartAccount, policy)) {
+            policies.push(smartAccount, policy);
+        } else {
+            // same policy can not be used twice as the policy of the sane type (userOp, action, 1271)
+            // for the same id and smartAccount, as inside the policy contract the config is stored as id=>smartAccount=>config
+            // so same policy can be used as 1271 and userOp and action for the same SA, as ids will be different
+            // also same policy can be used several times as action policy for the same signerId and SA, as soon as it is used
+            // with different actionIds (contract + selector)
+            revert PolicyAlreadyUsed(policy);
+        }
+    }
+
     function _addPolicy(AddressArray storage policies, address policy) internal {            
         if(!policies.contains(policy)) {
             policies.push(policy);
-            //console2.log("check from storage: ", _permissionValidatorStorage().userOpPolicies[signerId][smartAccount].data[policies.lastUsedIndex()]);
         } else {
             // same policy can not be used twice as the policy of the sane type (userOp, action, 1271)
             // for the same id and smartAccount, as inside the policy contract the config is stored as id=>smartAccount=>config
@@ -937,7 +943,7 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
     }
 
     function renounceUserOpPolicy(SignerId signerId, address policy) external {
-        _permissionValidatorStorage().userOpPolicies[signerId][msg.sender].removeElement(policy);
+        userOpPolicies[signerId].remove(msg.sender, policy);
         _callSubModuleAndHandleReturnData(
                             policy, 
                             abi.encodePacked(
