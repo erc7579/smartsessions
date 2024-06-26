@@ -60,7 +60,6 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
     using NonceMixinLib for bytes32;
     using ArrayMap4337Lib for AddressArrayMap4337;
 
-    struct PermissionValidatorStorage {
         // Note on the signerId. 
         // For now we assume signerId is known by dApp in some way
         // There are several approaches to it. For example it can be:
@@ -79,47 +78,18 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         // - etc
         // - it will work since SDK knows what signers are for this validation algo/ do they?
         // can discuss this with SDK guys
-
-        mapping(bytes32 => mapping (address => bool)) renouncedPermissionEnableObjects;
         
-        mapping (address => uint256) nonces;
-    }
-
-    function _permissionValidatorStorage() internal pure returns (PermissionValidatorStorage storage state) {
-        assembly {
-            state.slot := PERMISSION_VALIDATOR_STORAGE_SLOT
-        }
-    }
 
     // TODO: just a random seed => need to recalculate?
     // signerValidators mapping
     uint256 private constant _SIGNER_VALIDATORS_SLOT_SEED = 0x5a8d4c29;
+    uint256 private constant _RENOUNCED_PERMISSIONS_SLOT_SEED = 0xa8cc43e2;
+    uint256 private constant _NONCES_SLOT_SEED = 0xfcc720b6;
 
 
     mapping (SignerId => AddressArrayMap4337) userOpPolicies;
     mapping(SignerId => mapping (ActionId => AddressArrayMap4337)) actionPolicies;  
     mapping(SignerId => AddressArrayMap4337) erc1271Policies;
-
-    function getSignerValidator(SignerId signerId, address smartAccount) public view returns (address signerValidator) {
-        assembly {
-            mstore(0x04, _SIGNER_VALIDATORS_SLOT_SEED)
-            mstore(0x00, signerId)
-            mstore(0x20, keccak256(0x00, 0x24))  //store hash
-            mstore(0x00, smartAccount)
-            signerValidator := sload(keccak256(0x00, 0x40))
-        }
-    }
-
-    function _setSignerValidator(SignerId signerId, address smartAccount, address signerValidator) internal {
-        bytes32 check;
-        assembly {
-            mstore(0x04, _SIGNER_VALIDATORS_SLOT_SEED)
-            mstore(0x00, signerId)
-            mstore(0x20, keccak256(0x00, 0x24))  //store hash of outer key + slot seed
-            mstore(0x00, smartAccount)
-            sstore(keccak256(0x00, 0x40), signerValidator)
-        }
-    }
 
     /*//////////////////////////////////////////////////////////////////////////
                                      MODULE LOGIC
@@ -195,7 +165,7 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
             (signerId, cleanSig, signerValidator) = _validateAndEnablePermissions(userOp);
         } else {
             signerId = SignerId.wrap(
-                (bytes32(userOp.signature[1:33])).mixinNonce(_permissionValidatorStorage().nonces[msg.sender])
+                (bytes32(userOp.signature[1:33])).mixinNonce(getNonce(msg.sender))
             );
             cleanSig = userOp.signature[33:];
             signerValidator = getSignerValidator(signerId, msg.sender);
@@ -257,7 +227,7 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
             return EIP1271_FAILED;          
         }        
         SignerId signerId = SignerId.wrap(
-            (bytes32(signature[1:33])).mixinNonce(_permissionValidatorStorage().nonces[msg.sender])
+            (bytes32(signature[1:33])).mixinNonce(getNonce(msg.sender))
         );
         bytes memory cleanSig = signature[33:];
         address signerValidator = getSignerValidator(signerId, msg.sender);
@@ -342,7 +312,7 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
             
             // check that this enable object has not been banned before being enabled
             bytes32 permissionEnableObject = keccak256(abi.encodePacked(permissionChainId, permissionDigest));
-            if(_permissionValidatorStorage().renouncedPermissionEnableObjects[permissionEnableObject][msg.sender]) {
+            if(isPermissionObjectRenounced(permissionEnableObject, msg.sender)) {
                 revert("Object has been renounced");
             }
 
@@ -804,7 +774,7 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
     function _enablePermission(bytes calldata permissionData) internal returns (SignerId, address) {
 
         SignerId signerId = SignerId.wrap(
-            bytes32(permissionData[0:32]).mixinNonce(_permissionValidatorStorage().nonces[msg.sender])
+            bytes32(permissionData[0:32]).mixinNonce(getNonce(msg.sender))
         );
         
         PermissionDescriptor permissionDescriptor = PermissionDescriptor.wrap(bytes4(permissionData[32:36]));
@@ -912,7 +882,7 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
      * by incrementing the nonce that is mixed into the signerId
     */
     function resetModule() public {
-        _permissionValidatorStorage().nonces[msg.sender]++;
+        incrementNonce(msg.sender);
     }
 
     function renounceUserOpPolicy(SignerId signerId, address policy) external {
@@ -946,7 +916,8 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
     */
     function renouncePermissionEnableObject(uint64 chainId, bytes32 permissionDigest) public {
         bytes32 permissionEnableObject = keccak256(abi.encodePacked(chainId, permissionDigest));
-        _permissionValidatorStorage().renouncedPermissionEnableObjects[permissionEnableObject][msg.sender] = true;
+        //_permissionValidatorStorage().renouncedPermissionEnableObjects[permissionEnableObject][msg.sender] = true;
+        _setRenounceStatus(permissionEnableObject, msg.sender, true);
     }
 
 
@@ -958,8 +929,7 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
     // signerId can be enabled counterfactually, when enable data has been signed
     // but not submitted to the chain yet
     function isSignerIdEnabledOnchain(bytes32 _signerId, address smartAccount) external view returns (bool) {
-        uint256 nonce = _permissionValidatorStorage().nonces[smartAccount];
-        SignerId signerId = SignerId.wrap(_signerId.mixinNonce(nonce));
+        SignerId signerId = SignerId.wrap(_signerId.mixinNonce(getNonce(smartAccount)));
         return getSignerValidator(signerId, smartAccount) != address(0);
     }
 
@@ -994,5 +964,69 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
      */
     function isModuleType(uint256 typeID) external pure override returns (bool) {
         return typeID == TYPE_VALIDATOR || typeID == TYPE_EXECUTOR;
+    }
+
+    /*//////////////////////////////////////////////////////////////////////////
+                                    MAPPINGS ACCESS
+    //////////////////////////////////////////////////////////////////////////*/
+
+    function getSignerValidator(SignerId signerId, address smartAccount) public view returns (address signerValidator) {
+        assembly {
+            mstore(0x04, _SIGNER_VALIDATORS_SLOT_SEED)
+            mstore(0x00, signerId)
+            mstore(0x20, keccak256(0x00, 0x24))  //store hash
+            mstore(0x00, smartAccount)
+            signerValidator := sload(keccak256(0x00, 0x40))
+        }
+    }
+
+    function _setSignerValidator(SignerId signerId, address smartAccount, address signerValidator) internal {
+        bytes32 check;
+        assembly {
+            mstore(0x04, _SIGNER_VALIDATORS_SLOT_SEED)
+            mstore(0x00, signerId)
+            mstore(0x20, keccak256(0x00, 0x24))  //store hash of outer key + slot seed
+            mstore(0x00, smartAccount)
+            sstore(keccak256(0x00, 0x40), signerValidator)
+        }
+    }
+
+    function isPermissionObjectRenounced(bytes32 permissionObj, address smartAccount) public view returns (bool res) {
+        assembly {
+            mstore(0x04, _RENOUNCED_PERMISSIONS_SLOT_SEED)
+            mstore(0x00, permissionObj)
+            mstore(0x20, keccak256(0x00, 0x24))  //store hash
+            mstore(0x00, smartAccount)
+            res := sload(keccak256(0x00, 0x40))
+        }
+    }
+
+    function _setRenounceStatus(bytes32 permissionObj, address smartAccount, bool status) internal {
+        bytes32 check;
+        assembly {
+            mstore(0x04, _RENOUNCED_PERMISSIONS_SLOT_SEED)
+            mstore(0x00, permissionObj)
+            mstore(0x20, keccak256(0x00, 0x24))  //store hash of outer key + slot seed
+            mstore(0x00, smartAccount)
+            sstore(keccak256(0x00, 0x40), status)
+        }
+    }
+
+    function getNonce(address smartAccount) public view returns (uint256 nonce) {
+        assembly {
+            mstore(0x04, _NONCES_SLOT_SEED)
+            mstore(0x00, smartAccount)
+            nonce := sload(keccak256(0x00, 0x40))
+        }
+    }
+
+    function incrementNonce(address smartAccount) internal {
+        bytes32 check;
+        assembly {
+            mstore(0x04, _NONCES_SLOT_SEED)
+            mstore(0x00, smartAccount)
+            let slot := keccak256(0x00, 0x40)
+            sstore(slot, add(sload(slot), 1))
+        }
     }
 }
