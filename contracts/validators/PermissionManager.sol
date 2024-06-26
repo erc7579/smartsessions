@@ -217,10 +217,6 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
             cleanSig = userOp.signature[33:];
             //signerValidator = _permissionValidatorStorage().signers[signerId][msg.sender];
             signerValidator = getSignerValidator(signerId, msg.sender);
-
-           // _setSignerValidator(SignerId.unwrap(signerId), msg.sender, signerValidator);
-           // console2.log("Signer validator we are storing ", signerValidator);
-           // console2.log("signer validator we are getting ", getSignerValidator(SignerId.unwrap(signerId), msg.sender));
         }
 
         /**  
@@ -528,12 +524,16 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
             vd = vd.intersectValidationData( 
                 ValidationData.wrap(
                     uint256(bytes32(
-                        _safeCallSubmoduleViaTrustedForwarder(
+                        _callSubModuleAndHandleReturnData(
                             policies.get(i), 
-                            abi.encodeWithSelector(
-                                IUserOpPolicy.checkUserOp.selector, 
-                                SignerId.unwrap(signerId), 
-                                userOp
+                            abi.encodePacked(
+                                abi.encodeWithSelector(
+                                    IUserOpPolicy.checkUserOp.selector, 
+                                    SignerId.unwrap(signerId), 
+                                    userOp
+                                ),
+                                address(this), //append self address
+                                msg.sender   //append smart account address as original msg.sender
                             )
                         )
                     ))
@@ -555,15 +555,19 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
             vd = vd.intersectValidationData( 
                 ValidationData.wrap(
                     uint256(bytes32(
-                        _safeCallSubmoduleViaTrustedForwarder(
+                        _callSubModuleAndHandleReturnData(
                             policies.get(i), 
-                            abi.encodeWithSelector(
-                                IActionPolicy.checkAction.selector, 
-                                id, 
-                                target, 
-                                value, 
-                                data, 
-                                userOp
+                            abi.encodePacked(
+                                abi.encodeWithSelector(
+                                    IActionPolicy.checkAction.selector, 
+                                    id, 
+                                    target, 
+                                    value, 
+                                    data, 
+                                    userOp
+                                ),
+                                address(this), //append self address
+                                msg.sender   //append smart account address as original msg.sender
                             )
                         )
                     ))
@@ -589,7 +593,7 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         return EIP1271_SUCCESS;
     }
 
-    function _safeCallSubmoduleViaTrustedForwarder(address submodule, bytes memory data) internal returns (bytes memory) {
+/*     function _safeCallSubmoduleViaTrustedForwarder(address submodule, bytes memory data) internal returns (bytes memory) {
         // if the submodule supports trusted forwarder, use it
         try IERC165(submodule).supportsInterface(type(ITrustedForwarder).interfaceId) returns (bool supported) {
             if(supported) {
@@ -605,12 +609,12 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
             } else {
                 return _callSubModuleAndHandleReturnData(submodule, data);
             }
-        } catch (bytes memory /*error*/) {
+        } catch (bytes memory) {
             // sub-module doesn't support IERC165
             return _callSubModuleAndHandleReturnData(submodule, data);
             
         }
-    }
+    } */
 
     function _callSubModuleAndHandleReturnData(address submodule, bytes memory data) internal returns (bytes memory) {
         (bool success, bytes memory returnData) = submodule.call(data);
@@ -934,11 +938,15 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
 
     function renounceUserOpPolicy(SignerId signerId, address policy) external {
         _permissionValidatorStorage().userOpPolicies[signerId][msg.sender].removeElement(policy);
-        _safeCallSubmoduleViaTrustedForwarder(
+        _callSubModuleAndHandleReturnData(
                             policy, 
-                            abi.encodeWithSelector(
-                                IERC7579Module.onUninstall.selector, 
-                                abi.encodePacked(SignerId.unwrap(signerId))
+                            abi.encodePacked(
+                                abi.encodeWithSelector(
+                                    IERC7579Module.onUninstall.selector, 
+                                    abi.encodePacked(SignerId.unwrap(signerId))
+                                ),
+                                address(this), //append self address
+                                msg.sender   //append smart account address as original msg.sender
                             )
                         );
     }
