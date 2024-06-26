@@ -87,13 +87,13 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
 
         mapping(SignerId => mapping (address smartAccount => address signerValidator)) signers;
         
-        //mapping(SignerId => mapping (address smartAccount => AddressArray)) userOpPolicies;  
+        // mapping(SignerId => mapping (address smartAccount => AddressArray)) userOpPolicies;  
         
-        mapping(SignerId => mapping (ActionId => mapping (address smartAccount => AddressArray))) actionPolicies;  
+        // mapping(SignerId => mapping (ActionId => mapping (address smartAccount => AddressArray))) actionPolicies;  
 
-        mapping(SignerId => mapping (address smartAccount => AddressArray)) erc1271Policies;
+        // mapping(SignerId => mapping (address smartAccount => AddressArray)) erc1271Policies;
 
-        mapping(bytes32 => mapping ( address => bool)) renouncedPermissionEnableObjects;
+        mapping(bytes32 => mapping (address => bool)) renouncedPermissionEnableObjects;
         
         mapping (address => uint256) nonces;
     }
@@ -107,9 +107,9 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
     // TODO: just a random seed => need to recalculate?
     uint256 private constant _SIGNER_VALIDATORS_SLOT_SEED = 0x5a8d4c29;
 
-    uint256 private constant _USEROP_POLICIES_SLOT_SEED = 0x4bb928ff;
-
     mapping (SignerId => AddressArrayMap4337) userOpPolicies;
+    mapping(SignerId => mapping (ActionId => AddressArrayMap4337)) actionPolicies;  
+    mapping(SignerId => AddressArrayMap4337) erc1271Policies;
 
     function getSignerValidator(SignerId signerId, address smartAccount) public view returns (address signerValidator) {
         assembly {
@@ -290,8 +290,7 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         // check policies
         // since it is view, can safely introduce policies based on sender (blacklist/whitelist senders etc)
         // it will be SA's job to ensure it passes correct sender, otherwise it will be unsafe for SA itself
-        AddressArray storage policies = _permissionValidatorStorage().erc1271Policies[signerId][msg.sender];
-        return _validateERC1271Policies(signerId, policies, sender, hash, signature);
+        return _validateERC1271Policies(signerId, msg.sender, sender, hash, signature);
     }
 
     /*//////////////////////////////////////////////////////////////////////////
@@ -494,13 +493,11 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
             data.length >= 4 ? bytes4(data[0:4]) : bytes4(0)
         )));
 
-        AddressArray storage policies = _permissionValidatorStorage().actionPolicies[signerId][actionId][msg.sender];
-        console2.log("action policies detected", policies.length());
-
         //get list of action policies and validate thru them
         vd = _validateActionPolicies(
-            keccak256(abi.encodePacked(signerId, actionId)),
-            policies,
+            signerId,
+            actionId,
+            msg.sender,
             target,
             value,
             data, 
@@ -528,7 +525,7 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
                                     userOp
                                 ),
                                 address(this), //append self address
-                                msg.sender   //append smart account address as original msg.sender
+                                smartAccount   //append smart account address as original msg.sender
                             )
                         )
                     ))
@@ -538,31 +535,36 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
     }
 
     function _validateActionPolicies(
-        bytes32 id,
-        AddressArray storage policies,
+        SignerId signerId,
+        ActionId actionId,
+        address smartAccount,
         address target,
         uint256 value,
         bytes calldata data,
         PackedUserOperation calldata userOp
     ) internal returns (ValidationData vd) {
-        for(uint256 i; i < policies.length(); i++) {
-            console2.log("Validating Action Policy @ address: ", policies.get(i));
+
+        AddressArrayMap4337 storage policies = actionPolicies[signerId][actionId];
+        console2.log("action policies detected", policies.length(smartAccount));
+
+        for(uint256 i; i < policies.length(smartAccount); i++) {
+            console2.log("Validating Action Policy @ address: ", policies.get(smartAccount, i));
             vd = vd.intersectValidationData( 
                 ValidationData.wrap(
                     uint256(bytes32(
                         _callSubModuleAndHandleReturnData(
-                            policies.get(i), 
+                            policies.get(smartAccount, i), 
                             abi.encodePacked(
                                 abi.encodeWithSelector(
                                     IActionPolicy.checkAction.selector, 
-                                    id, 
+                                    keccak256(abi.encodePacked(signerId, actionId)),  //id
                                     target, 
                                     value, 
                                     data, 
                                     userOp
                                 ),
                                 address(this), //append self address
-                                msg.sender   //append smart account address as original msg.sender
+                                smartAccount   //append smart account address as original msg.sender
                             )
                         )
                     ))
@@ -573,15 +575,16 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
 
     function _validateERC1271Policies(
         SignerId signerId,
-        AddressArray storage policies,
+        address smartAccount,
         address sender,
         bytes32 hash,
         bytes calldata signature
     ) internal view returns (bytes4 sigValidationResult) {
+        AddressArrayMap4337 storage policies = erc1271Policies[signerId];
         bytes32 id = keccak256(abi.encodePacked("ERC1271 Policy", SignerId.unwrap(signerId)));
-        for(uint256 i; i < policies.length(); i++) {
-            console2.log("Validating ERC1271 Policy @ address: ", policies.get(i));
-            if(!I1271Policy(policies.get(i)).check1271SignedAction(id, msg.sender, sender, hash, signature)) {
+        for(uint256 i; i < policies.length(smartAccount); i++) {
+            console2.log("Validating ERC1271 Policy @ address: ", policies.get(smartAccount, i));
+            if(!I1271Policy(policies.get(smartAccount, i)).check1271SignedAction(id, msg.sender, sender, hash, signature)) {
                 return EIP1271_FAILED;
             }
         }
@@ -656,10 +659,10 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         address smartAccount, 
         bytes calldata policyData
     ) internal {
-        bytes memory _data = abi.encodePacked(signerId, policyData);
-
         AddressArrayMap4337 storage policies = userOpPolicies[signerId];
         _addPolicy(policies, smartAccount, userOpPolicy);
+
+        bytes memory _data = abi.encodePacked(signerId, policyData);
         _initSubmodule(userOpPolicy, SignerId.unwrap(signerId), smartAccount, _data);
     }
 
@@ -670,8 +673,8 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         address smartAccount, 
         bytes calldata policyData
     ) internal {
-        AddressArray storage policies = _permissionValidatorStorage().actionPolicies[signerId][actionId][smartAccount];
-        _addPolicy(policies, actionPolicy);
+        AddressArrayMap4337 storage policies = actionPolicies[signerId][actionId];
+        _addPolicy(policies, smartAccount, actionPolicy);
 
         bytes32 id = keccak256(abi.encodePacked(signerId, actionId));
         bytes memory _data = abi.encodePacked(id, policyData);
@@ -684,8 +687,8 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         address smartAccount, 
         bytes calldata policyData
     ) internal {
-        AddressArray storage policies = _permissionValidatorStorage().erc1271Policies[signerId][smartAccount];
-        _addPolicy(policies, erc1271Policy);
+        AddressArrayMap4337 storage policies = erc1271Policies[signerId];
+        _addPolicy(policies, smartAccount, erc1271Policy);
 
         bytes32 id = keccak256(abi.encodePacked("ERC1271 Policy", SignerId.unwrap(signerId)));
         bytes memory _data = abi.encodePacked(id, policyData);
@@ -695,19 +698,6 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
     function _addPolicy(AddressArrayMap4337 storage policies, address smartAccount, address policy) internal {            
         if(!policies.contains(smartAccount, policy)) {
             policies.push(smartAccount, policy);
-        } else {
-            // same policy can not be used twice as the policy of the sane type (userOp, action, 1271)
-            // for the same id and smartAccount, as inside the policy contract the config is stored as id=>smartAccount=>config
-            // so same policy can be used as 1271 and userOp and action for the same SA, as ids will be different
-            // also same policy can be used several times as action policy for the same signerId and SA, as soon as it is used
-            // with different actionIds (contract + selector)
-            revert PolicyAlreadyUsed(policy);
-        }
-    }
-
-    function _addPolicy(AddressArray storage policies, address policy) internal {            
-        if(!policies.contains(policy)) {
-            policies.push(policy);
         } else {
             // same policy can not be used twice as the policy of the sane type (userOp, action, 1271)
             // for the same id and smartAccount, as inside the policy contract the config is stored as id=>smartAccount=>config

@@ -5,7 +5,8 @@ pragma solidity ^0.8.4;
 /// @author 
 ///
 /// @dev Note:
-/// sdsd\
+/// Key is always address, as per 4337, the last keccak should be on (address A || bytes32 x)
+/// x is the slot of the 4337 compliant ( address => address[] ) or ( address => bytes32[] ) mapping
 
 /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
 /*                          STRUCTS                           */
@@ -31,19 +32,7 @@ library ArrayMap4337Lib {
     /*                         CONSTANTS                          */
     /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
 
-    /// @dev The storage layout is given by:
-    /// ```
-    ///     mstore(0x04, _ENUMERABLE_WORD_SET_SLOT_SEED)
-    ///     mstore(0x00, set.slot)
-    ///     let rootSlot := keccak256(0x00, 0x24)
-    ///     mstore(0x20, rootSlot)
-    ///     mstore(0x00, value)
-    ///     let positionSlot := keccak256(0x00, 0x40)
-    ///     let valueSlot := add(rootSlot, sload(positionSlot))
-    ///     let valueInStorage := sload(valueSlot)
-    ///     let lazyLength := sload(not(rootSlot))
-    /// ```
-    uint256 private constant _ARRAY_SLOT_SEED = 0x1d3b4864;
+    // uint256 private constant _ARRAY_SLOT_SEED = 0x1d3b4864;
 
     /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
     /*                     GETTERS / SETTERS                      */
@@ -89,7 +78,7 @@ library ArrayMap4337Lib {
         }
     }
 
-    function remove (AddressArrayMap4337 storage s, address key, address element) internal returns (uint256) {
+    function remove(AddressArrayMap4337 storage s, address key, address element) internal returns (uint256) {
         uint256 length = s.length(key);
         for(uint256 i; i<length; i++) {
             if(s.get(key, i) == element) {
@@ -105,13 +94,15 @@ library ArrayMap4337Lib {
     /*                      PRIVATE HELPERS                       */
     /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
 
+    // DO NOT NEED IT, as we never use s.slot directly, only via keccak(address a . s.slot) 
+
     /// @dev Returns the root slot.
-    function _rootSlot(AddressArrayMap4337 storage s) private pure returns (bytes32 r) {
+/*     function _rootSlot(AddressArrayMap4337 storage s) private pure returns (bytes32 r) {
         /// @solidity memory-safe-assembly
         assembly {
             mstore(0x04, _ARRAY_SLOT_SEED)
             mstore(0x00, s.slot)
             r := keccak256(0x00, 0x24)
         }
-    }
+    } */
 }

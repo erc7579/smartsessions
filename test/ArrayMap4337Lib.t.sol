@@ -68,6 +68,5 @@ contract ArrayMap4337LibTest is Test {
         assertTrue(Addresses1ArrayMap1.contains(address(1), address(0xb0b)));
         assertTrue(Addresses2ArrayMap1.contains(address(1), address(0xa11ce)));
     }
-
 }
 
