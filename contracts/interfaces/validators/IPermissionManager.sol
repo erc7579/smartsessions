@@ -11,4 +11,7 @@ interface IPermissionManager {
     error ExecuteUserOpIsNotSupported();
 
     error PolicyAlreadyUsed(address userOpPolicy);
+
+    error SignerIdNotEnabled(bytes32 signerId);
+    error SignerIdAlreadyEnabled(bytes32 signerId);
 }

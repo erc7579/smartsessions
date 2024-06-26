@@ -9,9 +9,6 @@ import { ValidationDataLib } from "contracts/utils/lib/ValidationDataLib.sol";
 import { PermissionDescriptor, PermissionDescriptorLib } from "contracts/utils/lib/PermissionDescriptorLib.sol";
 import { NonceMixinLib } from "contracts/utils/lib/NonceMixinLib.sol";
 
-// ??
-//import { ERC7579ValidatorLib } from "module-bases/utils/ERC7579ValidatorLib.sol";
-
 import { IPermissionManager, NO_SIGNATURE_VALIDATION_REQUIRED } from "contracts/interfaces/validators/IPermissionManager.sol";
 import { IERC7579Account, Execution } from  "erc7579/interfaces/IERC7579Account.sol";
 import { IModule as IERC7579Module } from "erc7579/interfaces/IERC7579Module.sol";
@@ -22,24 +19,14 @@ import { IUserOpPolicy, IActionPolicy, I1271Policy } from "contracts/interfaces/
 import { IAccountConfig } from "contracts/utils/interfaces/IAccountConfig.sol";
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
-import { AddressArrayMap4337, ArrayMap4337Lib } from "contracts/utils/lib/ArrayMap4337Lib.sol";
+import { AddressArrayMap4337, Bytes32ArrayMap4337, ArrayMap4337Lib } from "contracts/utils/lib/ArrayMap4337Lib.sol";
 
 import "forge-std/console2.sol";
 
 /**
-
 TODO:
     - Renounce policies and signers
-        - what do we do with isInitialized in sub-modules if we bulk renounce submodules in the Permission Manager
-        without calling onUninstall on every sub-module. Probably need to introduce same nonce system for submodules as well
-        we need to make no hidden enabled configs are left in sub-modules
-        Also need to disable trustedForwarder config for given SA 
-        but how do we get all the submodules used for given SA, while indexing is by SignerIds. the only way is storing 
-        signerIds list for givenSA but this is extremely inefficient
-        Should we allow bulk disabling in this case at all? 
-        How do we disable the whole signerId in case it is compromised?
-
-    - isInitialized for SA (just takes the length of the signerId's array stored at keccak(p))
+        - disable trustedForwarder config for given SA !!!
     - Permissions hook (soending limits?)
     - Check Policies/Signers via Registry before enabling
     - In policies contracts, change signerId to id
@@ -58,6 +45,7 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
     using ValidationDataLib for ValidationData;
     using PermissionDescriptorLib for PermissionDescriptor;
     using NonceMixinLib for bytes32;
+    using ArrayMap4337Lib for Bytes32ArrayMap4337;
     using ArrayMap4337Lib for AddressArrayMap4337;
 
         // Note on the signerId. 
@@ -86,10 +74,11 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
     uint256 private constant _RENOUNCED_PERMISSIONS_SLOT_SEED = 0xa8cc43e2;
     uint256 private constant _NONCES_SLOT_SEED = 0xfcc720b6;
 
-
     mapping (SignerId => AddressArrayMap4337) userOpPolicies;
     mapping(SignerId => mapping (ActionId => AddressArrayMap4337)) actionPolicies;  
     mapping(SignerId => AddressArrayMap4337) erc1271Policies;
+    mapping(SignerId => Bytes32ArrayMap4337) enabledActionIds;
+    Bytes32ArrayMap4337 enabledSignerIds;
 
     /*//////////////////////////////////////////////////////////////////////////
                                      MODULE LOGIC
@@ -169,6 +158,9 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
             );
             cleanSig = userOp.signature[33:];
             signerValidator = getSignerValidator(signerId, msg.sender);
+            if(signerValidator == address(0)) {
+                revert SignerIdNotEnabled(SignerId.unwrap(signerId));
+            }
         }
 
         /**  
@@ -282,7 +274,7 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
      * @return true if the module is initialized, false otherwise
      */
     function isInitialized(address smartAccount) external view returns (bool) {
-        return true;
+        return enabledSignerIds.length(smartAccount) != 0;
     }
 
     function _validateAndEnablePermissions(PackedUserOperation calldata userOp) 
@@ -547,29 +539,6 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         return EIP1271_SUCCESS;
     }
 
-/*     function _safeCallSubmoduleViaTrustedForwarder(address submodule, bytes memory data) internal returns (bytes memory) {
-        // if the submodule supports trusted forwarder, use it
-        try IERC165(submodule).supportsInterface(type(ITrustedForwarder).interfaceId) returns (bool supported) {
-            if(supported) {
-                // call submodule via trusted forwarder
-                return _callSubModuleAndHandleReturnData(
-                    submodule, 
-                    abi.encodePacked(
-                        data,
-                        address(this), //append self address
-                        msg.sender   //append smart account address as original msg.sender
-                    )
-                );
-            } else {
-                return _callSubModuleAndHandleReturnData(submodule, data);
-            }
-        } catch (bytes memory) {
-            // sub-module doesn't support IERC165
-            return _callSubModuleAndHandleReturnData(submodule, data);
-            
-        }
-    } */
-
     function _callSubModuleAndHandleReturnData(address submodule, bytes memory data) internal returns (bytes memory) {
         (bool success, bytes memory returnData) = submodule.call(data);
         if (!success) {
@@ -603,6 +572,7 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         bytes memory _data = abi.encodePacked(signerId, signerData);
         // set signerValidator for signerId and smartAccount
         _setSignerValidator(signerId, smartAccount, signerValidator);
+        enabledSignerIds.push(smartAccount, SignerId.unwrap(signerId));
         _initSubmodule(signerValidator, SignerId.unwrap(signerId), smartAccount, _data);
     }
 
@@ -787,6 +757,10 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         
         // enable signer if required
         if(permissionDescriptor.isSignerEnableMode()) {
+            // if signerId already enabled, can not re-enable it. should use changeSignerValidator
+            if(getSignerValidator(signerId, msg.sender) != address(0)) {
+                revert SignerIdAlreadyEnabled(SignerId.unwrap(signerId));
+            } 
             (addOffset, signerValidator) = _parseAndEnableSigner(signerId, permissionData[offset:]);
             offset += addOffset;
         }
@@ -809,8 +783,11 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         returns (uint256 addOffset, address signerValidator) 
     {
         signerValidator = address(uint160(bytes20(permissionData[0:20])));
+        if (signerValidator == address(0)) {
+            revert();
+        }
         uint32 dataLength = uint32(bytes4(permissionData[20:24]));
-        console2.log(dataLength);
+        //console2.log(dataLength);
         bytes calldata signerValidatorConfigureData = permissionData[24:24+dataLength];
         _enableSigner(
                 signerId,
@@ -844,6 +821,12 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         ActionId actionId = ActionId.wrap(bytes32(permissionData[0:32]));
         uint256 addOffset = 32;
         console2.log("num of action policies ", numberOfPolicies);
+        if(numberOfPolicies != 0) {
+            Bytes32ArrayMap4337 storage actionIds = enabledActionIds[signerId];
+            if(!actionIds.contains(msg.sender, ActionId.unwrap(actionId))) {
+                actionIds.push(msg.sender, ActionId.unwrap(actionId));
+            }
+        }
         for (uint256 i; i<numberOfPolicies; i++) {
             (address actionPolicy, bytes calldata policyData) = _parsePolicy(permissionData[addOffset:]);
             addOffset += 24+policyData.length;
@@ -882,17 +865,40 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
      * by incrementing the nonce that is mixed into the signerId
     */
     function resetModule() public {
-        incrementNonce(msg.sender);
+        address smartAccount = msg.sender;
+        incrementNonce(smartAccount);
+        // - get all the signerIds
+        // - for every signerId get all the actionIds
+        // call onInstall for all sub-modules enabled for a given smartAccount:
+        // - signerValidators for every signerId
+        // - userOp and erc127Policies for every SignerId
+        // - actionPolicies for a given signerId + actionId
+        // clean enabledSignerIds(msg.sender)
+        // DO NOT NEED to clean enabledActionPolicies as old signerIds are not reachable after nonce increment
+        // DO NOT NEED to clean userOpPolicies, actionPolicies, erc1271Policies as old signerIds are not reachable after nonce increment
     }
 
-    function renounceUserOpPolicy(SignerId signerId, address policy) external {
+    function renounceSignerId(bytes32 _signerId) external {
+        address smartAccount = msg.sender;
+        SignerId signerId = SignerId.wrap(_signerId.mixinNonce(getNonce(msg.sender)));
+        // call onInstall for all sub-modules enabled for a given smartAccount and signerId:
+        // - signerValidator for a given signerId
+        // - userOp and erc127Policies for given SignerId
+        // - actionPolicies for a given signerId and all actionIds
+        // remove signerId from enabledSignerIds(smartAccount)
+        // clean userOpPolicies and erc1271Policies for a given signerId+smartAccount
+        // clean actionPolicies for a given signerId+smartAccount and all actionIds
+    }
+
+    function renounceUserOpPolicy(bytes32 _signerId, address policy) external {
+        SignerId signerId = SignerId.wrap(_signerId.mixinNonce(getNonce(msg.sender)));
         userOpPolicies[signerId].remove(msg.sender, policy);
         _callSubModuleAndHandleReturnData(
                             policy, 
                             abi.encodePacked(
                                 abi.encodeWithSelector(
                                     IERC7579Module.onUninstall.selector, 
-                                    abi.encodePacked(SignerId.unwrap(signerId))
+                                    SignerId.unwrap(signerId)
                                 ),
                                 address(this), //append self address
                                 msg.sender   //append smart account address as original msg.sender
@@ -901,12 +907,40 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
     }
 
 
-    function renounceActionPolicy(SignerId signerId, ActionId actionId, address policy) external {
+    function renounceActionPolicy(bytes32 _signerId, ActionId actionId, address policy) external {
+        SignerId signerId = SignerId.wrap(_signerId.mixinNonce(getNonce(msg.sender)));
+        actionPolicies[signerId][actionId].remove(msg.sender, policy);
 
+        bytes32 id = keccak256(abi.encodePacked(SignerId.unwrap(signerId), ActionId.unwrap(actionId)));
+        _callSubModuleAndHandleReturnData(
+                            policy, 
+                            abi.encodePacked(
+                                abi.encodeWithSelector(
+                                    IERC7579Module.onUninstall.selector, 
+                                    id
+                                ),
+                                address(this), //append self address
+                                msg.sender   //append smart account address as original msg.sender
+                            )
+                        );
     }
 
-    function renounce1271Policy(SignerId signerId, address policy) external {
+    function renounce1271Policy(bytes32 _signerId, address policy) external {
+        SignerId signerId = SignerId.wrap(_signerId.mixinNonce(getNonce(msg.sender)));
+        erc1271Policies[signerId].remove(msg.sender, policy);
 
+        bytes32 id = keccak256(abi.encodePacked("ERC1271 Policy", SignerId.unwrap(signerId)));
+        _callSubModuleAndHandleReturnData(
+                            policy, 
+                            abi.encodePacked(
+                                abi.encodeWithSelector(
+                                    IERC7579Module.onUninstall.selector, 
+                                    id
+                                ),
+                                address(this), //append self address
+                                msg.sender   //append smart account address as original msg.sender
+                            )
+                        );
     }
 
     /** 
@@ -916,7 +950,6 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
     */
     function renouncePermissionEnableObject(uint64 chainId, bytes32 permissionDigest) public {
         bytes32 permissionEnableObject = keccak256(abi.encodePacked(chainId, permissionDigest));
-        //_permissionValidatorStorage().renouncedPermissionEnableObjects[permissionEnableObject][msg.sender] = true;
         _setRenounceStatus(permissionEnableObject, msg.sender, true);
     }
 
@@ -928,9 +961,14 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
 
     // signerId can be enabled counterfactually, when enable data has been signed
     // but not submitted to the chain yet
-    function isSignerIdEnabledOnchain(bytes32 _signerId, address smartAccount) external view returns (bool) {
+    function isSignerIdEnabledOnchain(bytes32 _signerId, address smartAccount) public view returns (bool) {
         SignerId signerId = SignerId.wrap(_signerId.mixinNonce(getNonce(smartAccount)));
         return getSignerValidator(signerId, smartAccount) != address(0);
+    }
+
+
+    function changeSignerValidator(SignerId signerId, address newSignerValidator) external {
+        _setSignerValidator(signerId, msg.sender, newSignerValidator);
     }
 
     /*//////////////////////////////////////////////////////////////////////////
@@ -981,7 +1019,6 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
     }
 
     function _setSignerValidator(SignerId signerId, address smartAccount, address signerValidator) internal {
-        bytes32 check;
         assembly {
             mstore(0x04, _SIGNER_VALIDATORS_SLOT_SEED)
             mstore(0x00, signerId)
@@ -1002,7 +1039,6 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
     }
 
     function _setRenounceStatus(bytes32 permissionObj, address smartAccount, bool status) internal {
-        bytes32 check;
         assembly {
             mstore(0x04, _RENOUNCED_PERMISSIONS_SLOT_SEED)
             mstore(0x00, permissionObj)
@@ -1021,7 +1057,6 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
     }
 
     function incrementNonce(address smartAccount) internal {
-        bytes32 check;
         assembly {
             mstore(0x04, _NONCES_SLOT_SEED)
             mstore(0x00, smartAccount)
@@ -1029,4 +1064,5 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
             sstore(slot, add(sload(slot), 1))
         }
     }
+
 }
