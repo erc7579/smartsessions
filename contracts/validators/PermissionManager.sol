@@ -3,7 +3,6 @@ pragma solidity ^0.8.25;
 
 import { ERC7579ValidatorBase, ERC7579ExecutorBase } from "modulekit/Modules.sol";
 import { PackedUserOperation } from "modulekit/external/ERC4337.sol";
-import { AddressArray, AddressArrayLib } from "contracts/utils/lib/AddressArrayLib.sol";
 import { ModeLib, ExecutionMode, ExecType, CallType, CALLTYPE_BATCH, CALLTYPE_SINGLE, CALLTYPE_STATIC, CALLTYPE_DELEGATECALL, EXECTYPE_DEFAULT, EXECTYPE_TRY } from "contracts/utils/lib/ModeLib.sol";
 import { ExecutionLib } from "erc7579/lib/ExecutionLib.sol";
 import { ValidationDataLib } from "contracts/utils/lib/ValidationDataLib.sol";
@@ -44,9 +43,6 @@ TODO:
     - Permissions hook (soending limits?)
     - Check Policies/Signers via Registry before enabling
     - In policies contracts, change signerId to id
-
-
-
  */
 
 contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermissionManager {
@@ -57,7 +53,6 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
     // bytes32(uint256(keccak256('erc7579.module.permissionvalidator')) - 1)
     bytes32 constant PERMISSION_VALIDATOR_STORAGE_SLOT = 0x73a9885e8be4b58095971868aa2af983b5913f3e08c5b78a3ca0cb6b827458f8;
 
-    using AddressArrayLib for AddressArray;
     using ExecutionLib for bytes;
     using ModeLib for ExecutionMode;
     using ValidationDataLib for ValidationData;
@@ -85,14 +80,6 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         // - it will work since SDK knows what signers are for this validation algo/ do they?
         // can discuss this with SDK guys
 
-        mapping(SignerId => mapping (address smartAccount => address signerValidator)) signers;
-        
-        // mapping(SignerId => mapping (address smartAccount => AddressArray)) userOpPolicies;  
-        
-        // mapping(SignerId => mapping (ActionId => mapping (address smartAccount => AddressArray))) actionPolicies;  
-
-        // mapping(SignerId => mapping (address smartAccount => AddressArray)) erc1271Policies;
-
         mapping(bytes32 => mapping (address => bool)) renouncedPermissionEnableObjects;
         
         mapping (address => uint256) nonces;
@@ -105,7 +92,9 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
     }
 
     // TODO: just a random seed => need to recalculate?
+    // signerValidators mapping
     uint256 private constant _SIGNER_VALIDATORS_SLOT_SEED = 0x5a8d4c29;
+
 
     mapping (SignerId => AddressArrayMap4337) userOpPolicies;
     mapping(SignerId => mapping (ActionId => AddressArrayMap4337)) actionPolicies;  
@@ -209,7 +198,6 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
                 (bytes32(userOp.signature[1:33])).mixinNonce(_permissionValidatorStorage().nonces[msg.sender])
             );
             cleanSig = userOp.signature[33:];
-            //signerValidator = _permissionValidatorStorage().signers[signerId][msg.sender];
             signerValidator = getSignerValidator(signerId, msg.sender);
         }
 
@@ -272,7 +260,6 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
             (bytes32(signature[1:33])).mixinNonce(_permissionValidatorStorage().nonces[msg.sender])
         );
         bytes memory cleanSig = signature[33:];
-        //address signerValidator = _permissionValidatorStorage().signers[signerId][msg.sender];
         address signerValidator = getSignerValidator(signerId, msg.sender);
         
         // in some cases we do not need signer validation, 
@@ -401,7 +388,6 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         // but if it was not the case (userOp was enabling only policies, not the signer)
         // then we have to SLOAD it
         if (signerValidator == address(0)) {
-            //signerValidator = _permissionValidatorStorage().signers[signerId][msg.sender];
             signerValidator = getSignerValidator(signerId, msg.sender);
         }
         
@@ -645,11 +631,8 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         bytes calldata signerData
     ) internal {   
         bytes memory _data = abi.encodePacked(signerId, signerData);
-
         // set signerValidator for signerId and smartAccount
-        //_permissionValidatorStorage().signers[signerId][smartAccount] = signerValidator;
         _setSignerValidator(signerId, smartAccount, signerValidator);
-
         _initSubmodule(signerValidator, SignerId.unwrap(signerId), smartAccount, _data);
     }
 
@@ -977,7 +960,6 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
     function isSignerIdEnabledOnchain(bytes32 _signerId, address smartAccount) external view returns (bool) {
         uint256 nonce = _permissionValidatorStorage().nonces[smartAccount];
         SignerId signerId = SignerId.wrap(_signerId.mixinNonce(nonce));
-        //return _permissionValidatorStorage().signers[signerId][smartAccount] != address(0);
         return getSignerValidator(signerId, smartAccount) != address(0);
     }
 
