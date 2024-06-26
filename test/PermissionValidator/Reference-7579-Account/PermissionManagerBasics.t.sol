@@ -189,6 +189,7 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
 
         // Check if the balance of the target has NOT increased
         assertEq(address(counterContract).balance, prevBalance+value, "Balance not increased");
+        //permissionManager.getSignerValidator(signerId, instance.account);
     }
 
     function testBatchExec() public {

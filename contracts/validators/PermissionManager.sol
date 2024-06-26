@@ -102,10 +102,41 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
     }
 
     // TODO: just a random seed => need to recalculate?
-    uint256 private constant _SIGNERS_SLOT_SEED = 0x5a8d4c29;
+    uint256 private constant _SIGNER_VALIDATORS_SLOT_SEED = 0x5a8d4c29;
 
 
+    function getSignerValidator(SignerId signerId, address smartAccount) public view returns (address signerValidator) {
+        bytes32 check;
+        assembly {
+            /*mstore(0x00, or(shl(0x20, smartAccount), _SIGNER_VALIDATORS_SLOT_SEED))
+            mstore(0x20, signerId)
+            signerValidator := sload(keccak256(0x08, 0x38))
+            check := mload(0x00)
+            */
+            mstore(0x04, _SIGNER_VALIDATORS_SLOT_SEED)
+            mstore(0x00, signerId)
+            mstore(0x20, keccak256(0x00, 0x24))  //store hash
+            mstore(0x00, smartAccount)
+            signerValidator := sload(keccak256(0x00, 0x40))
+        }
+        //console2.logBytes32(check);
+    }
 
+    function _setSignerValidator(SignerId signerId, address smartAccount, address signerValidator) internal {
+        bytes32 check;
+        assembly {
+            /*
+            mstore(0x00, or(shl(0x20, smartAccount), _SIGNER_VALIDATORS_SLOT_SEED))
+            mstore(0x20, signerId)
+            sstore(keccak256(0x08, 0x38), signerValidator)
+            */
+            mstore(0x04, _SIGNER_VALIDATORS_SLOT_SEED)
+            mstore(0x00, signerId)
+            mstore(0x20, keccak256(0x00, 0x24))  //store hash
+            mstore(0x00, smartAccount)
+            sstore(keccak256(0x00, 0x40), signerValidator)
+        }
+    }
 
     /*//////////////////////////////////////////////////////////////////////////
                                      MODULE LOGIC
@@ -184,7 +215,12 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
                 (bytes32(userOp.signature[1:33])).mixinNonce(_permissionValidatorStorage().nonces[msg.sender])
             );
             cleanSig = userOp.signature[33:];
-            signerValidator = _permissionValidatorStorage().signers[signerId][msg.sender];
+            //signerValidator = _permissionValidatorStorage().signers[signerId][msg.sender];
+            signerValidator = getSignerValidator(signerId, msg.sender);
+
+           // _setSignerValidator(SignerId.unwrap(signerId), msg.sender, signerValidator);
+           // console2.log("Signer validator we are storing ", signerValidator);
+           // console2.log("signer validator we are getting ", getSignerValidator(SignerId.unwrap(signerId), msg.sender));
         }
 
         /**  
@@ -246,7 +282,8 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
             (bytes32(signature[1:33])).mixinNonce(_permissionValidatorStorage().nonces[msg.sender])
         );
         bytes memory cleanSig = signature[33:];
-        address signerValidator = _permissionValidatorStorage().signers[signerId][msg.sender];
+        //address signerValidator = _permissionValidatorStorage().signers[signerId][msg.sender];
+        address signerValidator = getSignerValidator(signerId, msg.sender);
         
         // in some cases we do not need signer validation, 
         // in this case NO_SIGNATURE_VALIDATION_REQUIRED should be stored as signer validator for such signer id
@@ -375,7 +412,8 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         // but if it was not the case (userOp was enabling only policies, not the signer)
         // then we have to SLOAD it
         if (signerValidator == address(0)) {
-            signerValidator = _permissionValidatorStorage().signers[signerId][msg.sender];
+            //signerValidator = _permissionValidatorStorage().signers[signerId][msg.sender];
+            signerValidator = getSignerValidator(signerId, msg.sender);
         }
         
         return(signerId, cleanSig, signerValidator);
@@ -607,7 +645,8 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         bytes memory _data = abi.encodePacked(signerId, signerData);
 
         // set signerValidator for signerId and smartAccount
-        _permissionValidatorStorage().signers[signerId][smartAccount] = signerValidator;
+        //_permissionValidatorStorage().signers[signerId][smartAccount] = signerValidator;
+        _setSignerValidator(signerId, smartAccount, signerValidator);
 
         _initSubmodule(signerValidator, SignerId.unwrap(signerId), smartAccount, _data);
     }
@@ -934,7 +973,8 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
     function isSignerIdEnabledOnchain(bytes32 _signerId, address smartAccount) external view returns (bool) {
         uint256 nonce = _permissionValidatorStorage().nonces[smartAccount];
         SignerId signerId = SignerId.wrap(_signerId.mixinNonce(nonce));
-        return _permissionValidatorStorage().signers[signerId][smartAccount] != address(0);
+        //return _permissionValidatorStorage().signers[signerId][smartAccount] != address(0);
+        return getSignerValidator(signerId, smartAccount) != address(0);
     }
 
     /*//////////////////////////////////////////////////////////////////////////
