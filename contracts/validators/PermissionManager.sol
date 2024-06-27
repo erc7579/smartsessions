@@ -166,10 +166,11 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         /**  
          *  Check signature and policies
          */
-
-        if (ISignerValidator(signerValidator).checkSignature(SignerId.unwrap(signerId), msg.sender, userOpHash, cleanSig) == EIP1271_FAILED) {
-            console2.log("wrong signature");
-            return VALIDATION_FAILED;
+        if (signerValidator != NO_SIGNATURE_VALIDATION_REQUIRED) {
+            if (ISignerValidator(signerValidator).checkSignature(SignerId.unwrap(signerId), msg.sender, userOpHash, cleanSig) == EIP1271_FAILED) {
+                console2.log("wrong signature");
+                return VALIDATION_FAILED;
+            }
         }
         console2.log("Signature validation at ISignerValidator.checkSignature passed");
 
@@ -969,6 +970,11 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
 
     function changeSignerValidator(SignerId signerId, address newSignerValidator) external {
         _setSignerValidator(signerId, msg.sender, newSignerValidator);
+    }
+
+    function isPermissionEnabled(bytes calldata data) public view returns (bool) {
+        // get the the data in the format similar to the signature (but without the r,s,v in the end)
+        // to re-use some code from the enable permission flow
     }
 
     /*//////////////////////////////////////////////////////////////////////////
