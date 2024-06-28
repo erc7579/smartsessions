@@ -18,6 +18,8 @@ import { TimeFramePolicy } from "contracts/test/mocks/TimeFramePolicy.sol";
 import { Counter } from "contracts/test/Counter.sol";
 import { MockValidator } from "contracts/test/mocks/MockValidator.sol";
 import { EIP1271_MAGIC_VALUE, IERC1271 } from "module-bases/interfaces/IERC1271.sol";
+import { UserOperationBuilder } from "contracts/utils/UserOpBuilder.sol";
+import { ModeLib } from "contracts/utils/lib/ModeLib.sol";
 
 import "forge-std/console2.sol";
 
@@ -287,6 +289,150 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
             cleanSig = abi.encodePacked(r,s,v);
         }
         
+        (bytes memory permissionData,
+        bytes memory permissionEnableData,
+        bytes memory permissionEnableDataSignature) = _getTestPermissionEnableContext(
+            newSignerId,
+            address(simpleSignerValidator),
+            abi.encodePacked(sessionSigner2),
+            address(usageLimitPolicy),
+            address(simpleGasPolicy),
+            address(timeFramePolicy),
+            ownerPk
+        );
+
+        // Set the signature
+        bytes memory signature = abi.encodePacked(
+            bytes1(0x01), //Enable mode
+            uint8(1), // index of permission in sessionEnableData
+            abi.encode(
+                permissionEnableData,
+                permissionEnableDataSignature,
+                permissionData
+            ),
+            cleanSig
+        );
+        userOpData.userOp.signature = signature;
+        
+        // Execute the UserOp
+        userOpData.execUserOps();
+
+        // Check if the balance of the target has NOT increased
+        assertEq(address(counterContract).balance, prevBalance+value, "Balance not increased");
+
+        // Check isPermissionEnabled after permission was in fact enabled. 
+        bytes memory partialContext = abi.encodePacked(
+            uint8(1), // index of permission in sessionEnableData
+            abi.encode(
+                permissionEnableData,
+                permissionEnableDataSignature,
+                permissionData 
+            )
+        );
+        (bool res, ) = permissionManager.isPermissionEnabled(partialContext, instance.account);
+        assertTrue(res);
+    }    
+
+    function testUserOpBuilderGeneralFlow() public {
+        // try to format a userOp with userOpBuilder
+
+        address ep = address(instance.aux.entrypoint);        
+        //deploy userOpBuilder
+        UserOperationBuilder userOpBuilder = new UserOperationBuilder(ep);
+
+        //make new signerId
+        bytes32 newSignerId = keccak256(abi.encodePacked("Signer Id for ", instance.account, simpleSignerValidator, block.timestamp+1000));
+
+        assertFalse(permissionManager.isSignerIdEnabledOnchain(newSignerId, instance.account));
+
+        uint256 value = 1 ether;
+        uint256 prevBalance = address(counterContract).balance;
+
+        // Get the UserOp data (UserOperation and UserOperationHash)
+        UserOpData memory userOpData = instance.getExecOps({
+            target: address(0),
+            value: 0,
+            callData: "",
+            txValidator: address(permissionManager)
+        });
+   
+        // build the context
+        (bytes memory permissionData,
+        bytes memory permissionEnableData,
+        bytes memory permissionEnableDataSignature) = _getTestPermissionEnableContext(
+            newSignerId,
+            address(simpleSignerValidator),
+            abi.encodePacked(sessionSigner2),
+            address(usageLimitPolicy),
+            address(simpleGasPolicy),
+            address(timeFramePolicy),
+            ownerPk
+        );
+
+        uint192 nonceKey = uint192(uint160(address(permissionManager))) << 32;
+        //console2.logBytes24(bytes24(nonceKey));
+
+        bytes memory context = abi.encodePacked(
+            nonceKey, 
+            ModeLib.encodeSimpleSingle(), //execution mode
+            uint8(1), // index of permission in sessionEnableData
+            abi.encode(
+                permissionEnableData,
+                permissionEnableDataSignature,
+                permissionData
+            )
+        );
+
+        // get nonce and calldata and replace it in the userOp
+        uint256 nonce = userOpBuilder.getNonce(instance.account, context);
+
+        Execution[] memory executions = new Execution[](1);
+        executions[0] = Execution(
+            address(counterContract),
+            value,
+            abi.encodeWithSelector(counterContract.incr.selector)
+        );
+        bytes memory callData = userOpBuilder.getCallData(instance.account, executions, context);
+
+        userOpData.userOp.nonce = nonce;
+        userOpData.userOp.callData = callData;
+        userOpData.userOpHash = instance.aux.entrypoint.getUserOpHash(userOpData.userOp);
+
+        // ======== sign the userOp with the newly enabled signer ============================
+        bytes memory cleanSig;
+        {
+            (uint8 v, bytes32 r, bytes32 s) = vm.sign(sessionSigner2Pk, userOpData.userOpHash);
+            cleanSig = abi.encodePacked(r,s,v);
+        }
+        userOpData.userOp.signature = cleanSig;
+
+        bytes memory formattedSig = userOpBuilder.formatSignature(instance.account, userOpData.userOp, context);
+        // console2.logBytes(formattedSig);
+        userOpData.userOp.signature = formattedSig;
+
+        // Execute the UserOp
+        userOpData.execUserOps();
+
+        // TODO: try to format the new userOp via userOpBuilder and make sure it formats properly
+        // after permission was
+    }
+
+
+    // -=====
+
+    function _getTestPermissionEnableContext(
+        bytes32 newSignerId,
+        address simpleSignerValidator,
+        bytes memory signerValidatorConfigData,
+        address usageLimitPolicy,
+        address simpleGasPolicy,
+        address timeFramePolicy,
+        uint256 permissionEnableDataSignerPrivateKey
+    ) internal view returns (
+        bytes memory permissionData,
+        bytes memory permissionEnableData,
+        bytes memory permissionEnableDataSignature
+    ) {
         // ======== Construct Permission Data =========
         bytes4 permissionDataStructureDescriptor = bytes4(
             (uint32(1) << 24) + // setup signer mode = true
@@ -297,12 +443,12 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
         console2.logBytes4(permissionDataStructureDescriptor);
 
         // initial data and signer Id config
-        bytes memory permissionData = abi.encodePacked(
+        permissionData = abi.encodePacked(
             newSignerId,
             permissionDataStructureDescriptor,
             simpleSignerValidator,  //signer validator
             uint32(20), // signer validator config data length
-            sessionSigner2 // signer validator config data
+            signerValidatorConfigData // (should be just public address of the new session signer)
         );
 
         // userOp policies
@@ -339,11 +485,11 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
         );
 
         bytes32 permissionDigest = keccak256(permissionData);
-        console2.log("Permission digest");
-        console2.logBytes32(permissionDigest);
+        //console2.log("Permission digest");
+        //console2.logBytes32(permissionDigest);
 
         // ========= Construct Session Enable Data ===========
-        bytes memory permissionEnableData = abi.encodePacked(
+        permissionEnableData = abi.encodePacked(
             //bytes1(0x02), // how many permissions is there
             uint64(0x01), //mainnet chaid
             permissionDigest,
@@ -351,49 +497,13 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
             permissionDigest
         );
 
-  //      bytes32 sessionEnableDataDigest = keccak256(sessionEnableData);
-
         // ========= Sign the Session Enable Data Hash with owner's key ===========
-        bytes memory permissionEnableDataSignature;
         {
-            (uint8 v1, bytes32 r1, bytes32 s1) = vm.sign(ownerPk, keccak256(permissionEnableData));
+            (uint8 v1, bytes32 r1, bytes32 s1) = vm.sign(permissionEnableDataSignerPrivateKey, keccak256(permissionEnableData));
             permissionEnableDataSignature = abi.encodePacked(r1,s1,v1);
         }
         permissionEnableDataSignature = abi.encodePacked(address(mockValidator), permissionEnableDataSignature);
-
-        // Set the signature
-        bytes memory signature = abi.encodePacked(
-            bytes1(0x01), //Enable mode
-            uint8(1), // index of permission in sessionEnableData
-            abi.encode(
-                permissionEnableData,
-                permissionEnableDataSignature,
-                permissionData,
-                cleanSig
-            )
-        );
-        userOpData.userOp.signature = signature;
-        
-        // Execute the UserOp
-        userOpData.execUserOps();
-
-        bytes memory partialContext = abi.encodePacked(
-            uint8(1), // index of permission in sessionEnableData
-            abi.encode(
-                permissionEnableData,
-                permissionEnableDataSignature,
-                permissionData,
-                cleanSig
-            )
-        );
-
-        (bool res, ) = permissionManager.isPermissionEnabled(partialContext, instance.account);
-        console2.logBool(res);
-        
-        // Check if the balance of the target has NOT increased
-        assertEq(address(counterContract).balance, prevBalance+value, "Balance not increased");
-
-    }    
+    }
 
 
 

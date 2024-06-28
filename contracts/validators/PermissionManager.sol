@@ -348,7 +348,7 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
             bytes calldata permissionEnableData,
             bytes calldata permissionEnableDataSignature,
             bytes calldata permissionData,
-             
+            /* cleanSig */
         ) = _decodeEnableModePackedData(data);
 
         _validatePermissionEnableData(permissionIndex, permissionEnableData, permissionData);
@@ -718,7 +718,7 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         return signature[0] == 0x01;
     }
 
-    function _decodeEnableModePackedData(bytes calldata packedData) internal pure returns (
+    function _decodeEnableModePackedData(bytes calldata packedData) public pure returns (
         uint8 permissionIndex,
         bytes calldata permissionEnableData,
         bytes calldata permissionEnableDataSignature,
@@ -726,13 +726,16 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         bytes calldata cleanSig
     ) {
         permissionIndex = uint8(packedData[0]);
+        console2.log("packed d length ", packedData.length);
+
+        uint256 dataPointer;
 
         assembly {
             let baseOffset := add(packedData.offset, 0x01)
             let offset := baseOffset
             
             // get permissionEnableData
-            let dataPointer := add(baseOffset, calldataload(offset))
+            dataPointer := add(baseOffset, calldataload(offset))
             permissionEnableData.offset := add(0x20, dataPointer)
             permissionEnableData.length := calldataload(dataPointer)
 
@@ -749,11 +752,24 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
             permissionData.length := calldataload(dataPointer)
 
             // get cleanSig
-            offset := add(offset, 0x20)
+            // if packeData is from erc7715 context, it probably doesn't contain cleanSig
+            // but that's ok as in isPermissionEnabled() we do not care about the cleanSig
+
+         /*    offset := add(offset, 0x20)
             dataPointer := add(baseOffset, calldataload(offset))
             cleanSig.offset := add(0x20, dataPointer)
-            cleanSig.length := calldataload(dataPointer)
+            cleanSig.length := calldataload(dataPointer) */
+            
+            // it's where permissionData ends
+            dataPointer := add(add(calldataload(offset), 0x20), permissionData.length)
+            // account for appended 0's
+            dataPointer := add(dataPointer, sub(0x20, mod(dataPointer, 0x20)))
+            // add 1 byte of permissionIndex
+            dataPointer := add(dataPointer, 0x01)
         }
+        //console2.log(dataPointer);
+        cleanSig = packedData[dataPointer:];
+        // console2.logBytes(cleanSig);
     }
 
     function _parsePermissionFromPermissionEnableData(
@@ -1034,6 +1050,7 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         if(!_isSignerIdEnabled(signerId, smartAccount)) {
             return (false, bytes32(permissionData[0:32]));
         }
+
         offset += _checkEnabledSignerId(smartAccount, signerId, permissionDescriptor, permissionData[offset:]);
 
         // If it is not enable mode (we just want to add some policies)
@@ -1058,6 +1075,9 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         (offset, enabledPolicies) = _checkEnabledPolicies(
             erc1271Policies[signerId], permissionDescriptor.get1271PoliciesNumber(), offset, enabledPolicies, smartAccount, permissionData
         );
+
+        console2.log("Enabled policies ", enabledPolicies);
+        console2.log("Total policies ", totalPolicies);
 
         //now have to return true or false based on checks
         // if exactly all policies are enabled => return true (means permission has been properly enabled)
@@ -1102,9 +1122,9 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         bytes calldata permissionData
     ) internal view returns(uint256, uint256) {
         for (uint256 i; i<numberOfPolicies; i++) {
-            (address userOpPolicy, bytes calldata policyData) = _parsePolicy(permissionData[offset:]);
+            (address policy, bytes calldata policyData) = _parsePolicy(permissionData[offset:]);
             offset += 24+policyData.length;
-            if(policies.contains(smartAccount, userOpPolicy)) {
+            if(policies.contains(smartAccount, policy)) {
                 enabledPolicies++;
             }
         }
