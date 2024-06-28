@@ -5,12 +5,6 @@ import { PackedUserOperation } from "modulekit/external/ERC4337.sol";
 import { Execution } from "erc7579/interfaces/IERC7579Account.sol";
 import { CallType } from "contracts/utils/lib/ModeLib.sol";
 
-struct Execution {
-    address target;
-    uint256 value;
-    bytes callData;
-}
-
 interface IUserOperationBuilder {
 
     error UnsupportedCallType(CallType);

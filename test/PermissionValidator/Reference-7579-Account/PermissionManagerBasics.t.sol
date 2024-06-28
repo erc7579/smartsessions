@@ -377,6 +377,17 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
         // Execute the UserOp
         userOpData.execUserOps();
 
+        bytes memory partialContext = abi.encodePacked(
+            uint8(1), // index of permission in sessionEnableData
+            abi.encode(
+                permissionEnableData,
+                permissionEnableDataSignature,
+                permissionData,
+                cleanSig
+            )
+        );
+        console2.logBool(permissionManager.isPermissionEnabled(partialContext, instance.account));
+
         // Check if the balance of the target has NOT increased
         assertEq(address(counterContract).balance, prevBalance+value, "Balance not increased");
 

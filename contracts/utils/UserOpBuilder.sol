@@ -1,14 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import { IUserOpBuilder, PackedUserOperation, Execution } from "contracts/utils/interfaces/IUserOpBuilder.sol";
+import { IUserOperationBuilder, PackedUserOperation, Execution } from "contracts/utils/interfaces/IUserOpBuilder.sol";
 import { IEntryPoint } from "modulekit/external/ERC4337.sol";
-import { IERC7579Account } from "erc7579/interfaces/IERC7579Account.sol";
+import { IERC7579Account } from "contracts/utils/interfaces/IERC7579Account.sol";
 import { ModeLib, ExecutionMode, ExecType, CallType, CALLTYPE_BATCH, CALLTYPE_SINGLE, CALLTYPE_STATIC, CALLTYPE_DELEGATECALL } from "contracts/utils/lib/ModeLib.sol";
 import { ExecutionLib } from "erc7579/lib/ExecutionLib.sol";
-
-import { IPermissionChecker } from "./IPermissionChecker.sol";
-import { ValidAfter, ValidUntil, SingleSignerPermission } from "src/ERC7579PermissionValidator/IERC7579PermissionValidator.sol";
 
 import "forge-std/Console2.sol";
 
@@ -37,14 +34,14 @@ contract UserOperationBuilder is IUserOperationBuilder {
 
     using ModeLib for ExecutionMode;
 
-    IEntryPoint public immutable entryPoint;
+    IEntryPoint public immutable ep;
 
     constructor(address _entryPoint) {
-        entryPoint = IEntryPoint(_entryPoint);
+        ep = IEntryPoint(_entryPoint);
     }
 
     function entryPoint() external view returns (address) {
-        return address(entryPoint);
+        return address(ep);
     }
 
     // we expect the context to contain the full key,
@@ -58,13 +55,13 @@ contract UserOperationBuilder is IUserOperationBuilder {
         returns (uint256 nonce)
     {
         uint192 key = uint192(bytes24(context[0:24])); // TODO: move to lib?
-        nonce = entryPoint.getNonce(address(smartAccount), key);
+        nonce = ep.getNonce(address(smartAccount), key);
     }
 
     function getCallData(
         address, /* smartAccount */
         Execution[] calldata executions,
-        bytes calldata /* context */
+        bytes calldata context
     )
         external
         view
@@ -88,7 +85,7 @@ contract UserOperationBuilder is IUserOperationBuilder {
                 )
             );
         } else if (callType == CALLTYPE_BATCH) {
-            callDataWithContext = abi.encodeCall(
+            callData = abi.encodeCall(
                 IERC7579Account.execute,
                 (mode, ExecutionLib.encodeBatch(executions))
             );
@@ -113,10 +110,12 @@ contract UserOperationBuilder is IUserOperationBuilder {
         } else if (context.length == 88) {
             // if by some (weird) reason the context contains only 32bytes signerId on top of 
             // the nonce_key and mode => then it is a context for just using the permission
-            return abi.encodePacked(0x00, context[56:88], userOp.signature);
+            return abi.encodePacked(bytes1(0x00), context[56:88], userOperation.signature);
         }
         
         address permissionValidator = address(bytes20(context[0:20]));
+
+        //if(smartAccount.isPermissionEnabled(context[56:], smartAccount)) {}
         
         // context is always created to enable permission, so it always contains the permission enable data
         // however we do not need it if the permission has already been enabled once 
