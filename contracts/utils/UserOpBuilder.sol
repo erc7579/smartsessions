@@ -3,9 +3,20 @@ pragma solidity ^0.8.25;
 
 import { IUserOperationBuilder, PackedUserOperation, Execution } from "contracts/utils/interfaces/IUserOpBuilder.sol";
 import { IEntryPoint } from "modulekit/external/ERC4337.sol";
+import { Exec } from "account-abstraction/utils/Exec.sol";
 import { IERC7579Account } from "contracts/utils/interfaces/IERC7579Account.sol";
-import { ModeLib, ExecutionMode, ExecType, CallType, CALLTYPE_BATCH, CALLTYPE_SINGLE, CALLTYPE_STATIC, CALLTYPE_DELEGATECALL } from "contracts/utils/lib/ModeLib.sol";
+import { 
+    ModeLib, 
+    ExecutionMode, 
+    ExecType, 
+    CallType, 
+    CALLTYPE_BATCH, 
+    CALLTYPE_SINGLE, 
+    CALLTYPE_STATIC, 
+    CALLTYPE_DELEGATECALL
+} from "contracts/utils/lib/ModeLib.sol";
 import { ExecutionLib } from "erc7579/lib/ExecutionLib.sol";
+import { IPermissionEnabled } from "contracts/validators/PermissionManager.sol";
 
 import "forge-std/Console2.sol";
 
@@ -115,7 +126,16 @@ contract UserOperationBuilder is IUserOperationBuilder {
         
         address permissionValidator = address(bytes20(context[0:20]));
 
-        //if(smartAccount.isPermissionEnabled(context[56:], smartAccount)) {}
+        try IPermissionEnabled(smartAccount).isPermissionEnabled(context[56:], smartAccount) returns (bool isEnabled, bytes32 _signerId) {
+            bytes32 signerId = bytes32(context[57:89]);
+            if(isEnabled) {
+                return abi.encodePacked(bytes1(0x00), signerId, userOperation.signature);
+            } else {
+                return abi.encodePacked(bytes1(0x01), context[56:], userOperation.signature);
+            }
+        } catch (bytes memory error) {
+            revert InvalidPermission(error);
+        }
         
         // context is always created to enable permission, so it always contains the permission enable data
         // however we do not need it if the permission has already been enabled once 

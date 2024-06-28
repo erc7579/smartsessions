@@ -23,6 +23,10 @@ import { AddressArrayMap4337, Bytes32ArrayMap4337, ArrayMap4337Lib } from "contr
 
 import "forge-std/console2.sol";
 
+interface IPermissionEnabled {
+    function isPermissionEnabled(bytes calldata data, address smartAccount) external view returns (bool, bytes32);
+}
+
 /**
 TODO:
     - Renounce policies and signers
@@ -32,7 +36,7 @@ TODO:
     - In policies contracts, change signerId to id
  */
 
-contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermissionManager {
+contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermissionManager, IPermissionEnabled {
     /*//////////////////////////////////////////////////////////////////////////
                             CONSTANTS & STORAGE
     //////////////////////////////////////////////////////////////////////////*/
@@ -1013,7 +1017,7 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
 
     // Checks if the permission has been or hasn't been enabled
     // Reverts if permission has not been enabled properly or altered an thus can not be enabled
-    function isPermissionEnabled(bytes calldata data, address smartAccount) public view returns (bool) {
+    function isPermissionEnabled(bytes calldata data, address smartAccount) public view returns (bool, bytes32) {
         bytes calldata permissionData = _validatePermission(smartAccount, data);
         if (permissionData.length < 36) {
             revert ("permission data too short");
@@ -1028,7 +1032,7 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
 
         // If such a signerId was not enabled, then the whole permission was definitely not enabled
         if(!_isSignerIdEnabled(signerId, smartAccount)) {
-            return false;
+            return (false, bytes32(permissionData[0:32]));
         }
         offset += _checkEnabledSignerId(smartAccount, signerId, permissionDescriptor, permissionData[offset:]);
 
@@ -1038,37 +1042,22 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         uint256 totalPolicies; 
         uint256 enabledPolicies;
 
-        uint256 numberOfPolicies = permissionDescriptor.getUserOpPoliciesNumber();
-        totalPolicies += numberOfPolicies;
-        for (uint256 i; i<numberOfPolicies; i++) {
-            (address userOpPolicy, bytes calldata policyData) = _parsePolicy(permissionData[offset:]);
-            offset += 24+policyData.length;
-            if(userOpPolicies[signerId].contains(smartAccount, userOpPolicy)) {
-                enabledPolicies++;
-            }
-        }
+        totalPolicies += permissionDescriptor.getUserOpPoliciesNumber();
+        (offset, enabledPolicies) = _checkEnabledPolicies(
+            userOpPolicies[signerId], permissionDescriptor.getUserOpPoliciesNumber(), offset, enabledPolicies, smartAccount, permissionData
+        );
 
-        numberOfPolicies = permissionDescriptor.getActionPoliciesNumber();
-        totalPolicies += numberOfPolicies;
+        totalPolicies += permissionDescriptor.getActionPoliciesNumber();
         ActionId actionId = ActionId.wrap(bytes32(permissionData[offset:offset+32]));
         offset += 32;
-        for (uint256 i; i<numberOfPolicies; i++) {
-            (address actionPolicy, bytes calldata policyData) = _parsePolicy(permissionData[offset:]);
-            offset += 24+policyData.length;
-            if(actionPolicies[signerId][actionId].contains(smartAccount, actionPolicy)) {
-                enabledPolicies++;
-            }
-        }
+        (offset, enabledPolicies) = _checkEnabledPolicies(
+            actionPolicies[signerId][actionId], permissionDescriptor.getActionPoliciesNumber(), offset, enabledPolicies, smartAccount, permissionData
+        );
 
-        numberOfPolicies = permissionDescriptor.get1271PoliciesNumber();
-        totalPolicies += numberOfPolicies;
-        for (uint256 i; i<numberOfPolicies; i++) {
-            (address erc1271Policy, bytes calldata policyData) = _parsePolicy(permissionData[offset:]);
-            offset += 24+policyData.length;
-            if(erc1271Policies[signerId].contains(smartAccount, erc1271Policy)) {
-                enabledPolicies++;
-            }
-        }
+        totalPolicies += permissionDescriptor.get1271PoliciesNumber();
+        (offset, enabledPolicies) = _checkEnabledPolicies(
+            erc1271Policies[signerId], permissionDescriptor.get1271PoliciesNumber(), offset, enabledPolicies, smartAccount, permissionData
+        );
 
         //now have to return true or false based on checks
         // if exactly all policies are enabled => return true (means permission has been properly enabled)
@@ -1077,9 +1066,9 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         // properly enabled (or enabled and altered) and CAN NOT be enabled as same policy can not 
         // be enabled twice for same signerId)
         if(enabledPolicies == 0) {
-            return false;
+            return (false, bytes32(permissionData[0:32]));
         } else if(enabledPolicies == totalPolicies) {
-            return true;
+            return (true, bytes32(permissionData[0:32]));
         } else {
             revert("Permission can not be enabled");
         }
@@ -1102,6 +1091,24 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
             }
             //otherwise the signer has been properly enabled (with an expected signerValidator).
         } 
+    }
+
+    function _checkEnabledPolicies(
+        AddressArrayMap4337 storage policies, 
+        uint256 numberOfPolicies,
+        uint256 offset, 
+        uint256 enabledPolicies,
+        address smartAccount, 
+        bytes calldata permissionData
+    ) internal view returns(uint256, uint256) {
+        for (uint256 i; i<numberOfPolicies; i++) {
+            (address userOpPolicy, bytes calldata policyData) = _parsePolicy(permissionData[offset:]);
+            offset += 24+policyData.length;
+            if(policies.contains(smartAccount, userOpPolicy)) {
+                enabledPolicies++;
+            }
+        }
+        return(offset, enabledPolicies);
     }
 
 

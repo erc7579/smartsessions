@@ -8,6 +8,7 @@ import { CallType } from "contracts/utils/lib/ModeLib.sol";
 interface IUserOperationBuilder {
 
     error UnsupportedCallType(CallType);
+    error InvalidPermission(bytes errorMessage);
 
     /**
      * @dev Returns the ERC-4337 EntryPoint that the account implementation

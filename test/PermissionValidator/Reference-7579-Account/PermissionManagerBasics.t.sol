@@ -386,8 +386,10 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
                 cleanSig
             )
         );
-        console2.logBool(permissionManager.isPermissionEnabled(partialContext, instance.account));
 
+        (bool res, ) = permissionManager.isPermissionEnabled(partialContext, instance.account);
+        console2.logBool(res);
+        
         // Check if the balance of the target has NOT increased
         assertEq(address(counterContract).balance, prevBalance+value, "Balance not increased");
 
