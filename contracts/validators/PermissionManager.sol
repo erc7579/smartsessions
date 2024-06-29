@@ -23,6 +23,10 @@ import { AddressArrayMap4337, Bytes32ArrayMap4337, ArrayMap4337Lib } from "contr
 
 import "forge-std/console2.sol";
 
+interface IPermissionEnabled {
+    function isPermissionEnabled(bytes calldata data, address smartAccount) external view returns (bool, bytes32);
+}
+
 /**
 TODO:
     - Renounce policies and signers
@@ -32,7 +36,7 @@ TODO:
     - In policies contracts, change signerId to id
  */
 
-contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermissionManager {
+contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermissionManager, IPermissionEnabled {
     /*//////////////////////////////////////////////////////////////////////////
                             CONSTANTS & STORAGE
     //////////////////////////////////////////////////////////////////////////*/
@@ -166,10 +170,11 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         /**  
          *  Check signature and policies
          */
-
-        if (ISignerValidator(signerValidator).checkSignature(SignerId.unwrap(signerId), msg.sender, userOpHash, cleanSig) == EIP1271_FAILED) {
-            console2.log("wrong signature");
-            return VALIDATION_FAILED;
+        if (signerValidator != NO_SIGNATURE_VALIDATION_REQUIRED) {
+            if (ISignerValidator(signerValidator).checkSignature(SignerId.unwrap(signerId), msg.sender, userOpHash, cleanSig) == EIP1271_FAILED) {
+                console2.log("wrong signature");
+                return VALIDATION_FAILED;
+            }
         }
         console2.log("Signature validation at ISignerValidator.checkSignature passed");
 
@@ -288,35 +293,12 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
             bytes calldata permissionEnableDataSignature,
             bytes calldata permissionData,
             bytes calldata cleanSig
-        ) = _decodeEnableModeUserOpSignature(userOp.signature);
+        ) = _decodeEnableModePackedData(userOp.signature[1:]);
         
         // 2. get chainId and permissionDataDigest from permissionEnableData with permissionIndex
         // check chainId 
         // make permissionDataDigest from permissionData and compare with permissionDataDigest obtained from permissionEnableData
-        {
-            (
-                uint64 permissionChainId,
-                bytes32 permissionDigest
-            ) = _parsePermissionFromPermissionEnableData(
-                    permissionEnableData,
-                    permissionIndex
-                );
-            
-            // check that this enable object has not been banned before being enabled
-            bytes32 permissionEnableObject = keccak256(abi.encodePacked(permissionChainId, permissionDigest));
-            if(isPermissionObjectRenounced(permissionEnableObject, msg.sender)) {
-                revert("Object has been renounced");
-            }
-
-            if (permissionChainId != block.chainid) {
-                revert("Permission Chain Id Mismatch");
-            }
-
-            bytes32 computedDigest = keccak256(permissionData);
-            if (permissionDigest != computedDigest) {
-                revert("PermissionDigest Mismatch");
-            }
-        }
+        _validatePermissionEnableData(permissionIndex, permissionEnableData, permissionData);
 
         /*
          3. check that it was properly signed
@@ -359,6 +341,55 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
     /*//////////////////////////////////////////////////////////////////////////
                             INTERNAL VALIDATION METHODS
     //////////////////////////////////////////////////////////////////////////*/
+
+    function _verifyPermission(address smartAccount, bytes calldata context) internal view returns (bytes calldata) {
+        (
+            uint8 permissionIndex,
+            bytes calldata permissionEnableData,
+            bytes calldata permissionEnableDataSignature,
+            bytes calldata permissionData,
+            /* cleanSig */
+        ) = _decodeEnableModePackedData(context);
+
+        _validatePermissionEnableData(permissionIndex, permissionEnableData, permissionData);
+
+        _validatePermissionEnableDataSignature(
+            smartAccount,
+            keccak256(permissionEnableData), //hash of the permissionEnableData
+            permissionEnableDataSignature
+        );
+
+        return permissionData;
+    }
+
+    function _validatePermissionEnableData(
+        uint8 permissionIndex, 
+        bytes calldata permissionEnableData, 
+        bytes calldata permissionData
+    ) internal view {
+            (
+                uint64 permissionChainId,
+                bytes32 permissionDigest
+            ) = _parsePermissionFromPermissionEnableData(
+                    permissionEnableData,
+                    permissionIndex
+                );
+            
+            // check that this enable object has not been banned before being enabled
+            bytes32 permissionEnableObject = keccak256(abi.encodePacked(permissionChainId, permissionDigest));
+            if(isPermissionObjectRenounced(permissionEnableObject, msg.sender)) {
+                revert("Object has been renounced");
+            }
+
+            if (permissionChainId != block.chainid) {
+                revert("Permission Chain Id Mismatch");
+            }
+
+            bytes32 computedDigest = keccak256(permissionData);
+            if (permissionDigest != computedDigest) {
+                revert("PermissionDigest Mismatch");
+            }
+        }
 
     function _validatePermissionEnableDataSignature(
         address smartAccount,
@@ -687,21 +718,24 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         return signature[0] == 0x01;
     }
 
-    function _decodeEnableModeUserOpSignature(bytes calldata signature) internal pure returns (
+    function _decodeEnableModePackedData(bytes calldata packedData) public pure returns (
         uint8 permissionIndex,
         bytes calldata permissionEnableData,
         bytes calldata permissionEnableDataSignature,
         bytes calldata permissionData,
         bytes calldata cleanSig
     ) {
-        permissionIndex = uint8(signature[1]);
+        permissionIndex = uint8(packedData[0]);
+        console2.log("packed d length ", packedData.length);
+
+        uint256 dataPointer;
 
         assembly {
-            let baseOffset := add(signature.offset, 0x02)
+            let baseOffset := add(packedData.offset, 0x01)
             let offset := baseOffset
             
             // get permissionEnableData
-            let dataPointer := add(baseOffset, calldataload(offset))
+            dataPointer := add(baseOffset, calldataload(offset))
             permissionEnableData.offset := add(0x20, dataPointer)
             permissionEnableData.length := calldataload(dataPointer)
 
@@ -718,11 +752,24 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
             permissionData.length := calldataload(dataPointer)
 
             // get cleanSig
-            offset := add(offset, 0x20)
+            // if packeData is from erc7715 context, it probably doesn't contain cleanSig
+            // but that's ok as in isPermissionEnabled() we do not care about the cleanSig
+
+         /*    offset := add(offset, 0x20)
             dataPointer := add(baseOffset, calldataload(offset))
             cleanSig.offset := add(0x20, dataPointer)
-            cleanSig.length := calldataload(dataPointer)
+            cleanSig.length := calldataload(dataPointer) */
+            
+            // it's where permissionData ends
+            dataPointer := add(add(calldataload(offset), 0x20), permissionData.length)
+            // account for appended 0's
+            //dataPointer := add(dataPointer, sub(0x20, mod(dataPointer, 0x20)))
+            // add 1 byte of permissionIndex
+            dataPointer := add(dataPointer, 0x01)
         }
+        //console2.log(dataPointer);
+        cleanSig = packedData[dataPointer:];
+        // console2.logBytes(cleanSig);
     }
 
     function _parsePermissionFromPermissionEnableData(
@@ -754,6 +801,7 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
 
         address signerValidator;
         uint256 addOffset;
+        bytes calldata signerValidatorConfigureData;
         
         // enable signer if required
         if(permissionDescriptor.isSignerEnableMode()) {
@@ -761,8 +809,14 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
             if(getSignerValidator(signerId, msg.sender) != address(0)) {
                 revert SignerIdAlreadyEnabled(SignerId.unwrap(signerId));
             } 
-            (addOffset, signerValidator) = _parseAndEnableSigner(signerId, permissionData[offset:]);
+            (addOffset, signerValidator, signerValidatorConfigureData) = _parseSigner(permissionData[offset:]);
             offset += addOffset;
+            _enableSigner(
+                signerId,
+                signerValidator,
+                msg.sender, //smartAccount
+                signerValidatorConfigureData        
+            );
         }
         console2.log("offset fter enabl signer ", offset);
 
@@ -778,23 +832,21 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         return(signerId, signerValidator);
     }
 
-    function _parseAndEnableSigner(SignerId signerId, bytes calldata permissionData) 
-        internal  
-        returns (uint256 addOffset, address signerValidator) 
-    {
-        signerValidator = address(uint160(bytes20(permissionData[0:20])));
+    function _parseSigner(bytes calldata data) 
+        internal view 
+        returns (uint256 addOffset, address signerValidator, bytes calldata signerValidatorConfigureData) 
+    {   
+        if(data.length < 24) {
+            revert("Wrong signerId enable data");
+        }
+        signerValidator = address(uint160(bytes20(data[0:20])));
         if (signerValidator == address(0)) {
             revert();
         }
-        uint32 dataLength = uint32(bytes4(permissionData[20:24]));
-        //console2.log(dataLength);
-        bytes calldata signerValidatorConfigureData = permissionData[24:24+dataLength];
-        _enableSigner(
-                signerId,
-                signerValidator,
-                msg.sender, //smartAccount
-                signerValidatorConfigureData        
-            );
+        uint32 dataLength = uint32(bytes4(data[20:24]));
+
+        signerValidatorConfigureData = data[24:24+dataLength];
+       
         addOffset = 24 + dataLength;
     }
 
@@ -961,8 +1013,12 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
 
     // signerId can be enabled counterfactually, when enable data has been signed
     // but not submitted to the chain yet
-    function isSignerIdEnabledOnchain(bytes32 _signerId, address smartAccount) public view returns (bool) {
+    function isSignerIdEnabledOnchain(bytes32 _signerId, address smartAccount) external view returns (bool) {
         SignerId signerId = SignerId.wrap(_signerId.mixinNonce(getNonce(smartAccount)));
+        return _isSignerIdEnabled(signerId, smartAccount);
+    }
+
+    function _isSignerIdEnabled(SignerId signerId, address smartAccount) internal view returns (bool) {
         return getSignerValidator(signerId, smartAccount) != address(0);
     }
 
@@ -970,6 +1026,111 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
     function changeSignerValidator(SignerId signerId, address newSignerValidator) external {
         _setSignerValidator(signerId, msg.sender, newSignerValidator);
     }
+
+    /*//////////////////////////////////////////////////////////////////////////
+                    UserOpBuilder helper
+    //////////////////////////////////////////////////////////////////////////*/
+
+    // Checks if the permission has been or hasn't been enabled
+    // Reverts if permission has not been enabled properly or altered an thus can not be enabled
+    function isPermissionEnabled(bytes calldata partialContext, address smartAccount) public view returns (bool, bytes32) {
+        bytes calldata permissionData = _verifyPermission(smartAccount, partialContext);
+        if (permissionData.length < 36) {
+            revert ("permission data too short");
+        }
+
+        SignerId signerId = SignerId.wrap(
+            bytes32(permissionData[0:32]).mixinNonce(getNonce(msg.sender))
+        );
+
+        PermissionDescriptor permissionDescriptor = PermissionDescriptor.wrap(bytes4(permissionData[32:36]));
+        uint256 offset = 36;
+
+        // If such a signerId was not enabled, then the whole permission was definitely not enabled
+        if(!_isSignerIdEnabled(signerId, smartAccount)) {
+            return (false, bytes32(permissionData[0:32]));
+        }
+
+        offset += _checkEnabledSignerId(smartAccount, signerId, permissionDescriptor, permissionData[offset:]);
+
+        // If it is not enable mode (we just want to add some policies)
+        // or it was enable mode and signerId was properly enabled, 
+        // we continue to checking policies
+        uint256 totalPolicies; 
+        uint256 enabledPolicies;
+
+        totalPolicies += permissionDescriptor.getUserOpPoliciesNumber();
+        (offset, enabledPolicies) = _checkEnabledPolicies(
+            userOpPolicies[signerId], permissionDescriptor.getUserOpPoliciesNumber(), offset, enabledPolicies, smartAccount, permissionData
+        );
+
+        totalPolicies += permissionDescriptor.getActionPoliciesNumber();
+        ActionId actionId = ActionId.wrap(bytes32(permissionData[offset:offset+32]));
+        offset += 32;
+        (offset, enabledPolicies) = _checkEnabledPolicies(
+            actionPolicies[signerId][actionId], permissionDescriptor.getActionPoliciesNumber(), offset, enabledPolicies, smartAccount, permissionData
+        );
+
+        totalPolicies += permissionDescriptor.get1271PoliciesNumber();
+        (offset, enabledPolicies) = _checkEnabledPolicies(
+            erc1271Policies[signerId], permissionDescriptor.get1271PoliciesNumber(), offset, enabledPolicies, smartAccount, permissionData
+        );
+
+        console2.log("Enabled policies ", enabledPolicies);
+        console2.log("Total policies ", totalPolicies);
+
+        //now have to return true or false based on checks
+        // if exactly all policies are enabled => return true (means permission has been properly enabled)
+        // if no policies are enabled => return false (means the permission has not been enabled, and can be enabled)
+        // if only part of the policies are enabled => revert (means the permission has not been 
+        // properly enabled (or enabled and altered) and CAN NOT be enabled as same policy can not 
+        // be enabled twice for same signerId)
+        if(enabledPolicies == 0) {
+            return (false, bytes32(permissionData[0:32]));
+        } else if(enabledPolicies == totalPolicies) {
+            return (true, bytes32(permissionData[0:32]));
+        } else {
+            revert("Permission can not be enabled");
+        }
+    }
+
+    function _checkEnabledSignerId(
+        address smartAccount, 
+        SignerId signerId,
+        PermissionDescriptor permissionDescriptor, 
+        bytes calldata data
+    ) internal view returns (uint256 addOffset) {
+        address signerValidator;
+        // enable signer if required
+        if(permissionDescriptor.isSignerEnableMode()) {
+            // it was originally signer enable mode
+            (addOffset, signerValidator, ) = _parseSigner(data);
+            if (signerValidator != getSignerValidator(signerId, smartAccount)) {
+                // signerId is enabled, but with the different signerValidator
+                revert("Signer Validator altered");
+            }
+            //otherwise the signer has been properly enabled (with an expected signerValidator).
+        } 
+    }
+
+    function _checkEnabledPolicies(
+        AddressArrayMap4337 storage policies, 
+        uint256 numberOfPolicies,
+        uint256 offset, 
+        uint256 enabledPolicies,
+        address smartAccount, 
+        bytes calldata permissionData
+    ) internal view returns(uint256, uint256) {
+        for (uint256 i; i<numberOfPolicies; i++) {
+            (address policy, bytes calldata policyData) = _parsePolicy(permissionData[offset:]);
+            offset += 24+policyData.length;
+            if(policies.contains(smartAccount, policy)) {
+                enabledPolicies++;
+            }
+        }
+        return(offset, enabledPolicies);
+    }
+
 
     /*//////////////////////////////////////////////////////////////////////////
                                      METADATA
