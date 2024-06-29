@@ -154,7 +154,6 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         // if this is enable mode, we know the signerValidator from it
         // otherwise we get the signerValidator from the storage
         if(_isEnableMode(userOp.signature)) {
-            console2.log("Enable Mode activated");
             (signerId, cleanSig, signerValidator) = _validateAndEnablePermissions(userOp);
         } else {
             signerId = SignerId.wrap(
@@ -726,7 +725,6 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         bytes calldata cleanSig
     ) {
         permissionIndex = uint8(packedData[0]);
-        console2.log("packed d length ", packedData.length);
 
         uint256 dataPointer;
 
@@ -750,26 +748,13 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
             dataPointer := add(baseOffset, calldataload(offset))
             permissionData.offset := add(0x20, dataPointer)
             permissionData.length := calldataload(dataPointer)
-
-            // get cleanSig
-            // if packeData is from erc7715 context, it probably doesn't contain cleanSig
-            // but that's ok as in isPermissionEnabled() we do not care about the cleanSig
-
-         /*    offset := add(offset, 0x20)
-            dataPointer := add(baseOffset, calldataload(offset))
-            cleanSig.offset := add(0x20, dataPointer)
-            cleanSig.length := calldataload(dataPointer) */
             
             // it's where permissionData ends
             dataPointer := add(add(calldataload(offset), 0x20), permissionData.length)
-            // account for appended 0's
-            //dataPointer := add(dataPointer, sub(0x20, mod(dataPointer, 0x20)))
             // add 1 byte of permissionIndex
             dataPointer := add(dataPointer, 0x01)
         }
-        //console2.log(dataPointer);
         cleanSig = packedData[dataPointer:];
-        // console2.logBytes(cleanSig);
     }
 
     function _parsePermissionFromPermissionEnableData(
@@ -795,7 +780,6 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         );
         
         PermissionDescriptor permissionDescriptor = PermissionDescriptor.wrap(bytes4(permissionData[32:36]));
-        console2.logBytes4(PermissionDescriptor.unwrap(permissionDescriptor));
 
         uint256 offset = 36;
 
@@ -818,7 +802,6 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
                 signerValidatorConfigureData        
             );
         }
-        console2.log("offset fter enabl signer ", offset);
 
         // enable userOp policies
         offset += _parseAndEnableUserOpPolicies(signerId, permissionDescriptor, permissionData[offset:]);
@@ -1075,9 +1058,6 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
         (offset, enabledPolicies) = _checkEnabledPolicies(
             erc1271Policies[signerId], permissionDescriptor.get1271PoliciesNumber(), offset, enabledPolicies, smartAccount, permissionData
         );
-
-        console2.log("Enabled policies ", enabledPolicies);
-        console2.log("Total policies ", totalPolicies);
 
         //now have to return true or false based on checks
         // if exactly all policies are enabled => return true (means permission has been properly enabled)
