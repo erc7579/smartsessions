@@ -20,14 +20,12 @@ import { MockValidator } from "contracts/test/mocks/MockValidator.sol";
 import { EIP1271_MAGIC_VALUE, IERC1271 } from "module-bases/interfaces/IERC1271.sol";
 import { UserOperationBuilder } from "contracts/utils/UserOpBuilder.sol";
 import { ModeLib } from "contracts/utils/lib/ModeLib.sol";
-import { LibZip } from "solady/utils/LibZip.sol";
 
 import "forge-std/console2.sol";
 
 contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
     using ModuleKitHelpers for *;
     using ModuleKitUserOp for *;
-    using LibZip for bytes;
 
     // account and modules
     AccountInstance internal instance;
@@ -445,52 +443,6 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
         userOpData2.execUserOps();
         assertEq(address(counterContract).balance, prevBalance+2*value, "Balance not increased");
     }
-
-    function testZip() public {
-
-        //make new signerId
-        bytes32 newSignerId = keccak256(abi.encodePacked("Signer Id for ", instance.account, simpleSignerValidator, block.timestamp+1000));
-
-        // build the context
-        (bytes memory permissionData,
-        bytes memory permissionEnableData,
-        bytes memory permissionEnableDataSignature) = _getTestPermissionEnableContext(
-            newSignerId,
-            address(simpleSignerValidator),
-            abi.encodePacked(sessionSigner2),
-            address(usageLimitPolicy),
-            address(simpleGasPolicy),
-            address(timeFramePolicy),
-            ownerPk
-        );
-
-        uint192 nonceKey = uint192(uint160(address(permissionManager))) << 32;
-
-        bytes memory context = abi.encode(
-                permissionEnableData,
-                permissionEnableDataSignature,
-                permissionData
-            );
-
-        context = abi.encodePacked(
-            nonceKey, 
-            ModeLib.encodeSimpleSingle(), //execution mode
-            uint8(1), // index of permission in sessionEnableData
-            _cutTrailingZeroes(context)
-        );
-
-        bytes memory contextFzComp = context.flzCompress();
-        bytes memory contextFzDecomp = contextFzComp.flzDecompress();
-
-        bytes memory contextCdComp = context.cdCompress();
-        bytes memory contextCdDecomp = context.cdDecompress();
-
-        console2.logBytes(context);
-        //console2.logBytes(contextFzDecomp);
-
-        //console2.logBytes(contextFzComp);
-    }
-
 
     // -=====
 
