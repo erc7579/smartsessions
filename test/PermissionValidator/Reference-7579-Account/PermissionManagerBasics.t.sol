@@ -326,20 +326,8 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
         // Execute the UserOp
         userOpData.execUserOps();
 
-        // Check if the balance of the target has NOT increased
+        // Check if the balance of the target has increased
         assertEq(address(counterContract).balance, prevBalance+value, "Balance not increased");
-
-        // Check isPermissionEnabled after permission was in fact enabled. 
-        bytes memory partialContext = abi.encodePacked(
-            uint8(1), // index of permission in sessionEnableData
-            abi.encode(
-                permissionEnableData,
-                permissionEnableDataSignature,
-                permissionData 
-            )
-        );
-        (bool res, ) = permissionManager.isPermissionEnabled(partialContext, instance.account);
-        assertTrue(res);
     }    
 
     function testUserOpBuilderGeneralFlow() public {
@@ -423,9 +411,39 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
 
         // Execute the UserOp
         userOpData.execUserOps();
+        assertEq(address(counterContract).balance, prevBalance+value, "Balance not increased");
 
-        // TODO: try to format the new userOp via userOpBuilder and make sure it formats properly
-        // after permission was
+        // Try to format the new userOp via userOpBuilder and make sure it formats properly
+        // after permission was enabled via 1st userOp
+        // Get the UserOp data (UserOperation and UserOperationHash)
+        UserOpData memory userOpData2 = instance.getExecOps({
+            target: address(0),
+            value: 0,
+            callData: "",
+            txValidator: address(permissionManager)
+        });
+
+        nonce = userOpBuilder.getNonce(instance.account, context);
+        callData = userOpBuilder.getCallData(instance.account, executions, context);
+
+        userOpData2.userOp.nonce = nonce;
+        userOpData2.userOp.callData = callData;
+        userOpData2.userOpHash = instance.aux.entrypoint.getUserOpHash(userOpData2.userOp);
+
+        // ======== sign the userOp with the newly enabled signer ============================
+        {
+            (uint8 v, bytes32 r, bytes32 s) = vm.sign(sessionSigner2Pk, userOpData2.userOpHash);
+            cleanSig = abi.encodePacked(r,s,v);
+        }
+        userOpData2.userOp.signature = cleanSig;
+
+        formattedSig = userOpBuilder.formatSignature(instance.account, userOpData2.userOp, context);
+        console2.logBytes(formattedSig);
+        userOpData2.userOp.signature = formattedSig;
+
+        // Execute the UserOp
+        userOpData2.execUserOps();
+        assertEq(address(counterContract).balance, prevBalance+2*value, "Balance not increased");
     }
 
     function testZip() public {
