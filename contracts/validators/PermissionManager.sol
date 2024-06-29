@@ -342,14 +342,14 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
                             INTERNAL VALIDATION METHODS
     //////////////////////////////////////////////////////////////////////////*/
 
-    function _validatePermission(address smartAccount, bytes calldata data) internal view returns (bytes calldata) {
+    function _verifyPermission(address smartAccount, bytes calldata context) internal view returns (bytes calldata) {
         (
             uint8 permissionIndex,
             bytes calldata permissionEnableData,
             bytes calldata permissionEnableDataSignature,
             bytes calldata permissionData,
             /* cleanSig */
-        ) = _decodeEnableModePackedData(data);
+        ) = _decodeEnableModePackedData(context);
 
         _validatePermissionEnableData(permissionIndex, permissionEnableData, permissionData);
 
@@ -763,7 +763,7 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
             // it's where permissionData ends
             dataPointer := add(add(calldataload(offset), 0x20), permissionData.length)
             // account for appended 0's
-            dataPointer := add(dataPointer, sub(0x20, mod(dataPointer, 0x20)))
+            //dataPointer := add(dataPointer, sub(0x20, mod(dataPointer, 0x20)))
             // add 1 byte of permissionIndex
             dataPointer := add(dataPointer, 0x01)
         }
@@ -1033,8 +1033,8 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
 
     // Checks if the permission has been or hasn't been enabled
     // Reverts if permission has not been enabled properly or altered an thus can not be enabled
-    function isPermissionEnabled(bytes calldata data, address smartAccount) public view returns (bool, bytes32) {
-        bytes calldata permissionData = _validatePermission(smartAccount, data);
+    function isPermissionEnabled(bytes calldata partialContext, address smartAccount) public view returns (bool, bytes32) {
+        bytes calldata permissionData = _verifyPermission(smartAccount, partialContext);
         if (permissionData.length < 36) {
             revert ("permission data too short");
         }

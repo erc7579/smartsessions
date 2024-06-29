@@ -20,12 +20,14 @@ import { MockValidator } from "contracts/test/mocks/MockValidator.sol";
 import { EIP1271_MAGIC_VALUE, IERC1271 } from "module-bases/interfaces/IERC1271.sol";
 import { UserOperationBuilder } from "contracts/utils/UserOpBuilder.sol";
 import { ModeLib } from "contracts/utils/lib/ModeLib.sol";
+import { LibZip } from "solady/utils/LibZip.sol";
 
 import "forge-std/console2.sol";
 
 contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
     using ModuleKitHelpers for *;
     using ModuleKitUserOp for *;
+    using LibZip for bytes;
 
     // account and modules
     AccountInstance internal instance;
@@ -105,7 +107,7 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
             (uint32(2) << 8) + // number of action policies
             uint32(1) // number of 1271 policies
         );
-        console2.logBytes4(permissionDataStructureDescriptor);
+        //console2.logBytes4(permissionDataStructureDescriptor);
 
         // initial data and signer Id config
         bytes memory permissionDataWithMode = abi.encodePacked(
@@ -301,17 +303,24 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
             ownerPk
         );
 
-        // Set the signature
-        bytes memory signature = abi.encodePacked(
-            bytes1(0x01), //Enable mode
-            uint8(1), // index of permission in sessionEnableData
+        // 1. clean zeroes before appending cleanSig => save on calldata for l2's
+        // and some gas on-chain when parsing cleanSig.
+        bytes memory signature = _cutTrailingZeroes(
             abi.encode(
                 permissionEnableData,
                 permissionEnableDataSignature,
                 permissionData
-            ),
+            )
+        );
+
+        // 2. we abi.encode.packed cleanSig to avoid appended zeroes
+        signature = abi.encodePacked(
+            bytes1(0x01), //Enable mode
+            uint8(1), // index of permission in sessionEnableData
+            signature,
             cleanSig
         );
+
         userOpData.userOp.signature = signature;
         
         // Execute the UserOp
@@ -417,8 +426,66 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
         // after permission was
     }
 
+    function testZip() public {
+
+        //make new signerId
+        bytes32 newSignerId = keccak256(abi.encodePacked("Signer Id for ", instance.account, simpleSignerValidator, block.timestamp+1000));
+
+        // build the context
+        (bytes memory permissionData,
+        bytes memory permissionEnableData,
+        bytes memory permissionEnableDataSignature) = _getTestPermissionEnableContext(
+            newSignerId,
+            address(simpleSignerValidator),
+            abi.encodePacked(sessionSigner2),
+            address(usageLimitPolicy),
+            address(simpleGasPolicy),
+            address(timeFramePolicy),
+            ownerPk
+        );
+
+        uint192 nonceKey = uint192(uint160(address(permissionManager))) << 32;
+
+        bytes memory context = abi.encode(
+                permissionEnableData,
+                permissionEnableDataSignature,
+                permissionData
+            );
+
+        context = abi.encodePacked(
+            nonceKey, 
+            ModeLib.encodeSimpleSingle(), //execution mode
+            uint8(1), // index of permission in sessionEnableData
+            _cutTrailingZeroes(context)
+        );
+
+        bytes memory contextFzComp = context.flzCompress();
+        bytes memory contextFzDecomp = contextFzComp.flzDecompress();
+
+        bytes memory contextCdComp = context.cdCompress();
+        bytes memory contextCdDecomp = context.cdDecompress();
+
+        console2.logBytes(context);
+        //console2.logBytes(contextFzDecomp);
+
+        //console2.logBytes(contextFzComp);
+    }
+
 
     // -=====
+
+    // cut zeroes from abi.encoded data 
+    function _cutTrailingZeroes(bytes memory data) internal view returns (bytes memory) {
+        assembly {
+            let ln := mload(data) //sub not abi.encoded prefix length
+            let dataPointer := add(data, 0x20)
+            let lo := mload(add(dataPointer, mul(0x20, 0x02)))
+            let ll := mload(add(dataPointer, lo))
+            let nz := sub(0x20, mod(ll, 0x20))
+            mstore(data, sub(ln, nz))
+        }
+        return data;
+    }
 
     function _getTestPermissionEnableContext(
         bytes32 newSignerId,
