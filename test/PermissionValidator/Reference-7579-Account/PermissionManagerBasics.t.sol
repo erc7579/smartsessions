@@ -385,10 +385,12 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
             nonceKey, 
             ModeLib.encodeSimpleSingle(), //execution mode
             uint8(1), // index of permission in sessionEnableData
-            abi.encode(
-                permissionEnableData,
-                permissionEnableDataSignature,
-                permissionData
+            _cutTrailingZeroes(
+                abi.encode(
+                    permissionEnableData,
+                    permissionEnableDataSignature,
+                    permissionData
+                )
             )
         );
 
