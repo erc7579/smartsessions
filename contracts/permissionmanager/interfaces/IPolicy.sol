@@ -3,7 +3,7 @@ pragma solidity ^0.8.23;
 
 import { PackedUserOperation } from "modulekit/external/ERC4337.sol";
 import { IModule as IERC7579Module, VALIDATION_SUCCESS, VALIDATION_FAILED } from "erc7579/interfaces/IERC7579Module.sol";
-import "../permissionmanager/DataTypes.sol";
+import "../DataTypes.sol";
 
 interface IUserOpPolicy is IERC7579Module {
     function checkUserOp(SignerId id, PackedUserOperation calldata userOp) external returns (uint256);
@@ -11,7 +11,7 @@ interface IUserOpPolicy is IERC7579Module {
 
 interface IActionPolicy is IERC7579Module {
     function checkAction(
-        bytes32 id,
+        ActionPolicyId id,
         address target,
         uint256 value,
         bytes calldata data,
@@ -24,7 +24,7 @@ interface IActionPolicy is IERC7579Module {
 interface I1271Policy is IERC7579Module {
     // request sender is probably protocol, so can introduce policies based on it.
     function check1271SignedAction(
-        bytes32 id,
+        SignedActionId id,
         address smartAccount,
         address requestSender,
         bytes32 hash,

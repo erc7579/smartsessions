@@ -4,21 +4,28 @@ type SignerId is bytes32;
 
 type ActionId is bytes32;
 
+type ActionPolicyId is bytes32;
+
+type SignedActionId is bytes32;
+
+function toActionPolicyId(SignerId signerId, ActionId actionId) pure returns (ActionPolicyId policyId) {
+    policyId = ActionPolicyId.wrap(keccak256(abi.encodePacked(SignerId.unwrap(signerId), ActionId.unwrap(actionId))));
+}
+
+function toSignedActionId(SignerId signerId, ActionId actionId) pure returns (SignedActionId policyId) {
+    policyId = SignedActionId.wrap(
+        keccak256(abi.encodePacked("ERC1271: ", SignerId.unwrap(signerId), ActionId.unwrap(actionId)))
+    );
+}
+
 type PermissionDescriptor is bytes4;
 
 uint256 constant _SIGNER_VALIDATORS_SLOT_SEED = 0x5a8d4c29;
 uint256 constant _RENOUNCED_PERMISSIONS_SLOT_SEED = 0xa8cc43e2;
 uint256 constant _NONCES_SLOT_SEED = 0xfcc720b6;
 
-enum Mode {
+enum PermissionManagerMode {
     USE,
-    ENABLE
-}
-
-struct SignerIDConfig {
-    mapping(ActionId => AddressArrayMap4337) actionPolicies;
-    AddressArrayMap4337 userOpPolicies;
-    AddressArrayMap4337 erc1271Policies;
-    Bytes32ArrayMap4337 enabledActionIds;
-    Bytes32ArrayMap4337 enabledSignerIds;
+    ENABLE,
+    UNSAFE_ENABLE
 }
