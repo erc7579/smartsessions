@@ -5,7 +5,6 @@ pragma solidity ^0.8.23;
 import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 interface ITrustedForwarder is IERC165 {
-
     // InterfaceId is 0x41f02a24
 
     function setTrustedForwarder(address forwarder, bytes32 id) external;
@@ -13,5 +12,4 @@ interface ITrustedForwarder is IERC165 {
     function clearTrustedForwarder(bytes32 id) external;
 
     function isTrustedForwarder(address forwarder, address account, bytes32 id) external view returns (bool);
-
 }

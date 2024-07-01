@@ -29,7 +29,7 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
     AccountInstance internal instance;
     PermissionManager internal permissionManager;
     MockValidator mockValidator;
-    
+
     bytes32 signerId;
 
     SimpleSigner internal simpleSignerValidator;
@@ -86,9 +86,9 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
             data: abi.encodePacked(owner)
         });
 
-
         //example signerId
-        signerId = keccak256(abi.encodePacked("Signer Id for ", instance.account, simpleSignerValidator, block.timestamp));
+        signerId =
+            keccak256(abi.encodePacked("Signer Id for ", instance.account, simpleSignerValidator, block.timestamp));
 
         instance.installModule({
             moduleTypeId: MODULE_TYPE_EXECUTOR,
@@ -98,10 +98,10 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
 
         // ======== Construct Permission Data =========
         bytes4 permissionDataStructureDescriptor = bytes4(
-            (uint32(1) << 24) + // setup signer mode = true
-            (uint32(2) << 16) + // number of userOp policies
-            (uint32(2) << 8) + // number of action policies
-            uint32(1) // number of 1271 policies
+            (uint32(1) << 24) // setup signer mode = true
+                + (uint32(2) << 16) // number of userOp policies
+                + (uint32(2) << 8) // number of action policies
+                + uint32(1) // number of 1271 policies
         );
         console2.logBytes4(permissionDataStructureDescriptor);
 
@@ -110,7 +110,7 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
             uint8(MODULE_TYPE_VALIDATOR), //1 byte
             signerId,
             permissionDataStructureDescriptor,
-            simpleSignerValidator,  //signer validator
+            simpleSignerValidator, //signer validator
             uint32(20), // signer validator config data length
             sessionSigner1 // signer validator config data
         );
@@ -123,10 +123,11 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
             uint256(10), // limit
             address(simpleGasPolicy), // simpleGasPolicy address
             uint32(32), // simpleGasPolicy config data length
-            uint256(2**256-1) // limit
+            uint256(2 ** 256 - 1) // limit
         );
 
-        bytes32 actionId = keccak256(abi.encodePacked(address(counterContract), counterContract.incr.selector));//action Id
+        bytes32 actionId = keccak256(abi.encodePacked(address(counterContract), counterContract.incr.selector)); //action
+            // Id
 
         // action policies
         permissionDataWithMode = abi.encodePacked(
@@ -137,7 +138,7 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
             uint256(5), // limit
             address(timeFramePolicy),
             uint32(32), // timeFramePolicy config data length
-            uint256(((block.timestamp + 1000) << 128) + (block.timestamp ))
+            uint256(((block.timestamp + 1000) << 128) + (block.timestamp))
         );
 
         // 1271 policies
@@ -145,7 +146,7 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
             permissionDataWithMode,
             address(timeFramePolicy),
             uint32(32), // timeFramePolicy config data length
-            uint256(((block.timestamp + 11111) << 128) + (block.timestamp + 500))
+            uint256(((block.timestamp + 11_111) << 128) + (block.timestamp + 500))
         );
 
         instance.installModule({
@@ -157,7 +158,6 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
         assertTrue(simpleSignerValidator.isInitialized(instance.account));
         assertTrue(usageLimitPolicy.isInitialized(instance.account));
         assertTrue(simpleGasPolicy.isInitialized(instance.account));
-        
     }
 
     function testSingleExec() public {
@@ -180,15 +180,17 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
         bytes memory signature = abi.encodePacked(
             bytes1(0x00), //not enable mode
             signerId,
-            r,s,v
+            r,
+            s,
+            v
         );
         userOpData.userOp.signature = signature;
-        
+
         // Execute the UserOp
         userOpData.execUserOps();
 
         // Check if the balance of the target has NOT increased
-        assertEq(address(counterContract).balance, prevBalance+value, "Balance not increased");
+        assertEq(address(counterContract).balance, prevBalance + value, "Balance not increased");
     }
 
     function testBatchExec() public {
@@ -208,10 +210,8 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
         }
 
         // Get the UserOp data (UserOperation and UserOperationHash)
-        UserOpData memory userOpData = instance.getExecOps({
-            executions: executions,
-            txValidator: address(permissionManager)
-        });
+        UserOpData memory userOpData =
+            instance.getExecOps({ executions: executions, txValidator: address(permissionManager) });
 
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(sessionSigner1Pk, userOpData.userOpHash);
 
@@ -219,15 +219,17 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
         bytes memory signature = abi.encodePacked(
             bytes1(0x00), //not enable mode
             signerId,
-            r,s,v
+            r,
+            s,
+            v
         );
         userOpData.userOp.signature = signature;
-        
+
         // Execute the UserOp
         userOpData.execUserOps();
 
         // Check if the balance of the target has NOT increased
-        assertEq(address(counterContract).balance, prevBalance+value*numberOfExecs, "Balance not increased");
+        assertEq(address(counterContract).balance, prevBalance + value * numberOfExecs, "Balance not increased");
     }
 
     function test1271SignaturePermission() public {
@@ -242,14 +244,16 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(sessionSigner1Pk, typedDataHash);
 
         // append the signature with 1271+712 data
-        // SKIP FOR NOW 
+        // SKIP FOR NOW
         // as 7579 reference implementation doesn't support it
 
         // prepend the signature with PermissionManager-specific data
-        bytes memory signature  = abi.encodePacked(
+        bytes memory signature = abi.encodePacked(
             bytes1(0x00), //not enable mode
             signerId,
-            r,s,v
+            r,
+            s,
+            v
         );
 
         // prepend the signature with PermissionManager address
@@ -265,7 +269,9 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
 
     function testEnableAndUsePermission() public {
         //make new signerId
-        bytes32 newSignerId = keccak256(abi.encodePacked("Signer Id for ", instance.account, simpleSignerValidator, block.timestamp+1000));
+        bytes32 newSignerId = keccak256(
+            abi.encodePacked("Signer Id for ", instance.account, simpleSignerValidator, block.timestamp + 1000)
+        );
 
         assertFalse(permissionManager.isSignerIdEnabledOnchain(newSignerId, instance.account));
 
@@ -284,15 +290,15 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
         bytes memory cleanSig;
         {
             (uint8 v, bytes32 r, bytes32 s) = vm.sign(sessionSigner2Pk, userOpData.userOpHash);
-            cleanSig = abi.encodePacked(r,s,v);
+            cleanSig = abi.encodePacked(r, s, v);
         }
-        
+
         // ======== Construct Permission Data =========
         bytes4 permissionDataStructureDescriptor = bytes4(
-            (uint32(1) << 24) + // setup signer mode = true
-            (uint32(2) << 16) + // number of userOp policies
-            (uint32(2) << 8) + // number of action policies
-            uint32(1) // number of 1271 policies
+            (uint32(1) << 24) // setup signer mode = true
+                + (uint32(2) << 16) // number of userOp policies
+                + (uint32(2) << 8) // number of action policies
+                + uint32(1) // number of 1271 policies
         );
         console2.logBytes4(permissionDataStructureDescriptor);
 
@@ -300,7 +306,7 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
         bytes memory permissionData = abi.encodePacked(
             newSignerId,
             permissionDataStructureDescriptor,
-            simpleSignerValidator,  //signer validator
+            simpleSignerValidator, //signer validator
             uint32(20), // signer validator config data length
             sessionSigner2 // signer validator config data
         );
@@ -313,10 +319,11 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
             uint256(10), // limit
             address(simpleGasPolicy), // simpleGasPolicy address
             uint32(32), // simpleGasPolicy config data length
-            uint256(2**256-1) // limit
+            uint256(2 ** 256 - 1) // limit
         );
 
-        bytes32 actionId = keccak256(abi.encodePacked(address(counterContract), counterContract.incr.selector));//action Id
+        bytes32 actionId = keccak256(abi.encodePacked(address(counterContract), counterContract.incr.selector)); //action
+            // Id
 
         // action policies
         permissionData = abi.encodePacked(
@@ -327,7 +334,7 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
             uint256(5), // limit
             address(timeFramePolicy),
             uint32(32), // timeFramePolicy config data length
-            uint256(((block.timestamp + 1000) << 128) + (block.timestamp ))
+            uint256(((block.timestamp + 1000) << 128) + (block.timestamp))
         );
 
         // 1271 policies
@@ -335,7 +342,7 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
             permissionData,
             address(timeFramePolicy),
             uint32(32), // timeFramePolicy config data length
-            uint256(((block.timestamp + 11111) << 128) + (block.timestamp + 500))
+            uint256(((block.timestamp + 11_111) << 128) + (block.timestamp + 500))
         );
 
         bytes32 permissionDigest = keccak256(permissionData);
@@ -351,13 +358,13 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
             permissionDigest
         );
 
-  //      bytes32 sessionEnableDataDigest = keccak256(sessionEnableData);
+        //      bytes32 sessionEnableDataDigest = keccak256(sessionEnableData);
 
         // ========= Sign the Session Enable Data Hash with owner's key ===========
         bytes memory permissionEnableDataSignature;
         {
             (uint8 v1, bytes32 r1, bytes32 s1) = vm.sign(ownerPk, keccak256(permissionEnableData));
-            permissionEnableDataSignature = abi.encodePacked(r1,s1,v1);
+            permissionEnableDataSignature = abi.encodePacked(r1, s1, v1);
         }
         permissionEnableDataSignature = abi.encodePacked(address(mockValidator), permissionEnableDataSignature);
 
@@ -365,23 +372,14 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
         bytes memory signature = abi.encodePacked(
             bytes1(0x01), //Enable mode
             uint8(1), // index of permission in sessionEnableData
-            abi.encode(
-                permissionEnableData,
-                permissionEnableDataSignature,
-                permissionData,
-                cleanSig
-            )
+            abi.encode(permissionEnableData, permissionEnableDataSignature, permissionData, cleanSig)
         );
         userOpData.userOp.signature = signature;
-        
+
         // Execute the UserOp
         userOpData.execUserOps();
 
         // Check if the balance of the target has NOT increased
-        assertEq(address(counterContract).balance, prevBalance+value, "Balance not increased");
-
-    }    
-
-
-
+        assertEq(address(counterContract).balance, prevBalance + value, "Balance not increased");
+    }
 }

@@ -5,7 +5,8 @@ import { ExecutionMode } from "contracts/utils/lib/ModeLib.sol";
 
 /// @title Nexus - ERC-7579 Account Configuration Interface
 /// @notice Interface for querying and verifying configurations of Smart Accounts compliant with ERC-7579.
-/// @dev Provides methods to check supported execution modes and module types for Smart Accounts, ensuring flexible and extensible configuration.
+/// @dev Provides methods to check supported execution modes and module types for Smart Accounts, ensuring flexible and
+/// extensible configuration.
 /// @author @livingrockrises | Biconomy | chirag@biconomy.io
 /// @author @aboudjem | Biconomy | adam.boudjemaa@biconomy.io
 /// @author @filmakarov | Biconomy | filipp.makarov@biconomy.io

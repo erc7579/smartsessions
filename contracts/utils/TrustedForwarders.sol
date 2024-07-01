@@ -5,24 +5,23 @@ import { ITrustedForwarder } from "contracts/utils/interfaces/ITrustedForwarder.
 
 // Credits: @rhinestone @zeroknots
 
-// !WARNING: One should be careful with the TrustedForwarder as calldata is 
+// !WARNING: One should be careful with the TrustedForwarder as calldata is
 // appended with 2 extra addresses, so should have this in mind when parsing calldata
 // in the submodule that is TrustedForwarder
 
 // ** TrustedForwarderWithId **
 //
 // This approach with Id allows setting various Trusted Forwarders for the same account
-// It can in theory be required when the same sub-module (that inherits this) is used with 
-// different multiplexers on one account. 
+// It can in theory be required when the same sub-module (that inherits this) is used with
+// different multiplexers on one account.
 // For example, same SignerValidator is used via PermissionsManager and some SignerMultiplexer
 // id is the config id of the sub-module
-// 
+//
 // However, it adds one SSTORE for every activation of a submodule.
-// To reduce SSTORE's, the id can be removed. In this case the submodule will only 
+// To reduce SSTORE's, the id can be removed. In this case the submodule will only
 // be usable with one trusted forwarder (multiplexer) per smart account. See TrusteForwarder below
 
 abstract contract TrustedForwarderWithId is ITrustedForwarder {
-    
     // id => account => trustedForwarder
     mapping(bytes32 id => mapping(address account => address)) public trustedForwarder;
 
@@ -79,7 +78,6 @@ abstract contract TrustedForwarderWithId is ITrustedForwarder {
     function supportsInterface(bytes4 interfaceId) external view returns (bool) {
         return interfaceId == type(ITrustedForwarder).interfaceId;
     }
-
 }
 
 // ** TrustedForwarder **
@@ -89,7 +87,6 @@ abstract contract TrustedForwarderWithId is ITrustedForwarder {
 // So ensure you are checking this in the caller contract to avoid excess SSTORE's
 
 abstract contract TrustedForwarder is ITrustedForwarder {
-
     // account => trustedForwarder
     mapping(address account => address) public trustedForwarder;
 
@@ -150,5 +147,4 @@ abstract contract TrustedForwarder is ITrustedForwarder {
     function supportsInterface(bytes4 interfaceId) external view returns (bool) {
         return interfaceId == type(ITrustedForwarder).interfaceId;
     }
-
 }

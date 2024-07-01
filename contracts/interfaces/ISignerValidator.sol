@@ -6,10 +6,13 @@ import { IModule as IERC7579Module } from "erc7579/interfaces/IERC7579Module.sol
 // Probably merge with Kernel's ISigner
 
 interface ISignerValidator is IERC7579Module {
-    
-    function checkSignature(bytes32 signerId, address sender, bytes32 hash, bytes calldata sig)
+    function checkSignature(
+        bytes32 signerId,
+        address sender,
+        bytes32 hash,
+        bytes calldata sig
+    )
         external
         view
         returns (bytes4);
-
 }

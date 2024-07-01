@@ -23,7 +23,7 @@ contract ArrayMap4337LibTest is Test {
         Addresses1ArrayMap1.push(address(1), address(0xa11ce));
         assertFalse(Addresses1ArrayMap2.contains(address(1), address(0xa11ce)));
         Addresses1ArrayMap2.push(address(1), address(0xb0b));
-        
+
         assertTrue(Addresses1ArrayMap1.contains(address(1), address(0xa11ce)));
         assertFalse(Addresses1ArrayMap2.contains(address(1), address(0xa11ce)));
         assertFalse(Addresses1ArrayMap1.contains(address(1), address(0xb0b)));
@@ -49,7 +49,7 @@ contract ArrayMap4337LibTest is Test {
         Addresses1ArrayMap1.push(address(1), address(0xa11ce));
         assertFalse(Addresses2ArrayMap1.contains(address(1), address(0xa11ce)));
         Addresses2ArrayMap1.push(address(1), address(0xb0b));
-        
+
         assertTrue(Addresses1ArrayMap1.contains(address(1), address(0xa11ce)));
         assertFalse(Addresses2ArrayMap1.contains(address(1), address(0xa11ce)));
         assertFalse(Addresses1ArrayMap1.contains(address(1), address(0xb0b)));
@@ -69,4 +69,3 @@ contract ArrayMap4337LibTest is Test {
         assertTrue(Addresses2ArrayMap1.contains(address(1), address(0xa11ce)));
     }
 }
-

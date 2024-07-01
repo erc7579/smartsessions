@@ -3,20 +3,24 @@
 pragma solidity ^0.8.23;
 
 import { ISignerValidator } from "contracts/interfaces/ISignerValidator.sol";
-import {ECDSA} from "solady/utils/ECDSA.sol";
+import { ECDSA } from "solady/utils/ECDSA.sol";
 
 // removing trusted forwarder dependency here as it is only required during onInstall/onUninstall
 // and not during usage (checkSignature)
 // import { TrustedForwarderWithId } from "contracts/utils/TrustedForwarders.sol";
 
-contract SimpleSigner is ISignerValidator/*, TrustedForwarderWithId*/ {
-
+contract SimpleSigner is ISignerValidator /*, TrustedForwarderWithId*/ {
     mapping(address => uint256) public usedIds;
     mapping(bytes32 signerId => mapping(address smartAccount => address)) public signer;
 
     // can use sender as argument here as the method is view
     // so even external calls with arbitrary sender can not break things
-    function checkSignature(bytes32 signerId, address sender, bytes32 hash, bytes calldata sig)
+    function checkSignature(
+        bytes32 signerId,
+        address sender,
+        bytes32 hash,
+        bytes calldata sig
+    )
         external
         view
         override
@@ -37,14 +41,14 @@ contract SimpleSigner is ISignerValidator/*, TrustedForwarderWithId*/ {
     }
 
     function _onInstallSigner(bytes32 signerId, bytes calldata _data) internal {
-        address smartAccount = msg.sender/*_getAccount(signerId)*/;
+        address smartAccount = msg.sender; /*_getAccount(signerId)*/
         require(signer[signerId][smartAccount] == address(0));
         usedIds[smartAccount]++;
         signer[signerId][smartAccount] = address(bytes20(_data[0:20]));
     }
 
     function _onUninstallSigner(bytes32 signerId, bytes calldata) internal {
-        address smartAccount = msg.sender /*_getAccount(signerId)*/;
+        address smartAccount = msg.sender; /*_getAccount(signerId)*/
         require(signer[signerId][smartAccount] != address(0));
         delete signer[signerId][smartAccount];
         usedIds[smartAccount]--;
@@ -69,6 +73,4 @@ contract SimpleSigner is ISignerValidator/*, TrustedForwarderWithId*/ {
     function isModuleType(uint256 id) external pure returns (bool) {
         return id == 111;
     }
-
 }
-

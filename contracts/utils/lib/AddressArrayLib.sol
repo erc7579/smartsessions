@@ -16,11 +16,10 @@ struct AddressArray {
 // gas optimization required!
 
 library AddressArrayLib {
-
     error IndexOutOfBounds(uint256 index, uint256 length);
     error ArrayFull();
     error NoSuchElement();
-    
+
     using AddressArrayLib for *;
 
     function next(AddressArray storage self) internal view returns (uint256) {
@@ -85,5 +84,4 @@ library AddressArrayLib {
         }
         revert NoSuchElement();
     }
-
 }

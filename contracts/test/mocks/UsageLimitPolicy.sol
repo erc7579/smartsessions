@@ -2,7 +2,9 @@
 
 pragma solidity ^0.8.23;
 
-import { IUserOpPolicy, IActionPolicy, PackedUserOperation, VALIDATION_SUCCESS } from "contracts/interfaces/IPolicies.sol";
+import {
+    IUserOpPolicy, IActionPolicy, PackedUserOperation, VALIDATION_SUCCESS
+} from "contracts/interfaces/IPolicies.sol";
 import { TrustedForwarder } from "contracts/utils/TrustedForwarders.sol";
 
 /*
@@ -24,21 +26,23 @@ struct UsageLimitConfig {
 }
 
 contract UsageLimitPolicy is IUserOpPolicy, IActionPolicy, TrustedForwarder {
-
     mapping(address => uint256) public usedIds;
     mapping(bytes32 id => mapping(address => Status)) public status;
     mapping(bytes32 signerId => mapping(address smartAccount => UsageLimitConfig)) public usageLimitConfigs;
 
-    function checkUserOp(bytes32 id, PackedUserOperation calldata userOp)
-        external
-        returns (uint256) 
-    {
-        return _checkUsageLimit(id, _getAccount());   
+    function checkUserOp(bytes32 id, PackedUserOperation calldata userOp) external returns (uint256) {
+        return _checkUsageLimit(id, _getAccount());
     }
 
-    function checkAction(bytes32 id, address, uint256, bytes calldata, PackedUserOperation calldata userOp)
+    function checkAction(
+        bytes32 id,
+        address,
+        uint256,
+        bytes calldata,
+        PackedUserOperation calldata userOp
+    )
         external
-        returns (uint256) 
+        returns (uint256)
     {
         return _checkUsageLimit(id, _getAccount());
     }
@@ -46,7 +50,7 @@ contract UsageLimitPolicy is IUserOpPolicy, IActionPolicy, TrustedForwarder {
     function _checkUsageLimit(bytes32 id, address smartAccount) internal returns (uint256) {
         require(status[id][smartAccount] == Status.Live);
         UsageLimitConfig storage config = usageLimitConfigs[id][smartAccount];
-        if(config.limit == 0) {
+        if (config.limit == 0) {
             revert("UsageLimitPolicy: policy not installed");
         }
         if (++config.used > config.limit) {
@@ -89,6 +93,4 @@ contract UsageLimitPolicy is IUserOpPolicy, IActionPolicy, TrustedForwarder {
     function isModuleType(uint256 id) external pure returns (bool) {
         return id == 222 || id == 223;
     }
-
 }
-

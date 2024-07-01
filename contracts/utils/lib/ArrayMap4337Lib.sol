@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-/// @notice 
-/// @author 
+/// @notice
+/// @author
 ///
 /// @dev Note:
 /// Key is always address, as per 4337, the last keccak should be on (address A || bytes32 x)
@@ -12,7 +12,7 @@ pragma solidity ^0.8.4;
 /*                          STRUCTS                           */
 /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
 
-/// @dev An 
+/// @dev An
 struct AddressArrayMap4337 {
     uint256 _spacer;
 }
@@ -22,7 +22,6 @@ struct Bytes32ArrayMap4337 {
 }
 
 library ArrayMap4337Lib {
-
     using ArrayMap4337Lib for AddressArrayMap4337;
     using ArrayMap4337Lib for Bytes32ArrayMap4337;
 
@@ -77,20 +76,20 @@ library ArrayMap4337Lib {
 
     function contains(AddressArrayMap4337 storage s, address key, address element) internal view returns (bool) {
         uint256 length = s.length(key);
-        for(uint256 i; i<length; i++) {
-            if(s.get(key, i) == element) {
+        for (uint256 i; i < length; i++) {
+            if (s.get(key, i) == element) {
                 return true;
-            } 
+            }
         }
         return false;
     }
 
     function contains(Bytes32ArrayMap4337 storage s, address key, bytes32 element) internal view returns (bool) {
         uint256 length = s.length(key);
-        for(uint256 i; i<length; i++) {
-            if(s.get(key, i) == element) {
+        for (uint256 i; i < length; i++) {
+            if (s.get(key, i) == element) {
                 return true;
-            } 
+            }
         }
         return false;
     }
@@ -98,9 +97,9 @@ library ArrayMap4337Lib {
     function push(AddressArrayMap4337 storage s, address key, address element) internal {
         assembly {
             mstore(0x00, key) // store a
-            mstore(0x20, s.slot)  //store x
+            mstore(0x20, s.slot) //store x
             let slot := keccak256(0x00, 0x40)
-            // load length (stored @ slot), add 1 to it => index. 
+            // load length (stored @ slot), add 1 to it => index.
             // mul index by 0x20 and add it to orig slot to get the next free slot
             let index := add(sload(slot), 1)
             sstore(add(slot, mul(0x20, index)), element)
@@ -111,9 +110,9 @@ library ArrayMap4337Lib {
     function push(Bytes32ArrayMap4337 storage s, address key, bytes32 element) internal {
         assembly {
             mstore(0x00, key) // store a
-            mstore(0x20, s.slot)  //store x
+            mstore(0x20, s.slot) //store x
             let slot := keccak256(0x00, 0x40)
-            // load length (stored @ slot), add 1 to it => index. 
+            // load length (stored @ slot), add 1 to it => index.
             // mul index by 0x20 and add it to orig slot to get the next free slot
             let index := add(sload(slot), 1)
             sstore(add(slot, mul(0x20, index)), element)
@@ -123,13 +122,13 @@ library ArrayMap4337Lib {
 
     function remove(AddressArrayMap4337 storage s, address key, address element) internal returns (uint256) {
         uint256 length = s.length(key);
-        for(uint256 i; i<length; i++) {
-            if(s.get(key, i) == element) {
-                // TODO: get last element and record it to i's position   
-                // TODO: pop last element   
+        for (uint256 i; i < length; i++) {
+            if (s.get(key, i) == element) {
+                // TODO: get last element and record it to i's position
+                // TODO: pop last element
                 // TODO: decrease length
                 return i;
-            } 
+            }
         }
         revert();
     }
@@ -138,10 +137,10 @@ library ArrayMap4337Lib {
     /*                      PRIVATE HELPERS                       */
     /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
 
-    // DO NOT NEED IT, as we never use s.slot directly, only via keccak(address a . s.slot) 
+    // DO NOT NEED IT, as we never use s.slot directly, only via keccak(address a . s.slot)
 
     /// @dev Returns the root slot.
-/*     function _rootSlot(AddressArrayMap4337 storage s) private pure returns (bytes32 r) {
+    /*     function _rootSlot(AddressArrayMap4337 storage s) private pure returns (bytes32 r) {
         /// @solidity memory-safe-assembly
         assembly {
             mstore(0x04, _ARRAY_SLOT_SEED)

@@ -6,7 +6,6 @@ import { IUserOpPolicy, PackedUserOperation, VALIDATION_SUCCESS } from "contract
 import { TrustedForwarder } from "contracts/utils/TrustedForwarders.sol";
 
 contract SimpleGasPolicy is IUserOpPolicy, TrustedForwarder {
-
     struct UsageLimitConfig {
         uint256 gasLimit;
         uint256 gasUsed;
@@ -15,15 +14,13 @@ contract SimpleGasPolicy is IUserOpPolicy, TrustedForwarder {
     mapping(address => uint256) public usedIds;
     mapping(bytes32 signerId => mapping(address smartAccount => UsageLimitConfig)) public usageLimitConfigs;
 
-    function checkUserOp(bytes32 id, PackedUserOperation calldata userOp)
-        external
-        returns (uint256) 
-    {
+    function checkUserOp(bytes32 id, PackedUserOperation calldata userOp) external returns (uint256) {
         UsageLimitConfig storage config = usageLimitConfigs[id][_getAccount()];
-        if(config.gasLimit == 0) {
+        if (config.gasLimit == 0) {
             revert("UsageLimitPolicy: policy not installed");
         }
-        uint256 totalUserOpGasLimit = uint128(bytes16(userOp.accountGasLimits)) + uint128(uint256(userOp.accountGasLimits)) + userOp.preVerificationGas;
+        uint256 totalUserOpGasLimit = uint128(bytes16(userOp.accountGasLimits))
+            + uint128(uint256(userOp.accountGasLimits)) + userOp.preVerificationGas;
         if (config.gasUsed + totalUserOpGasLimit > config.gasLimit) {
             revert("UsageLimitPolicy: usage limit exceeded");
         }
@@ -31,7 +28,7 @@ contract SimpleGasPolicy is IUserOpPolicy, TrustedForwarder {
         // Limit will be quite accurate as per AA-217
         // https://github.com/eth-infinitism/account-abstraction/pull/356
         config.gasUsed += totalUserOpGasLimit;
-        return VALIDATION_SUCCESS;    
+        return VALIDATION_SUCCESS;
     }
 
     function _onInstallPolicy(bytes32 id, bytes calldata _data) internal {
@@ -67,6 +64,4 @@ contract SimpleGasPolicy is IUserOpPolicy, TrustedForwarder {
     function isModuleType(uint256 id) external pure returns (bool) {
         return id == 222;
     }
-
 }
-
