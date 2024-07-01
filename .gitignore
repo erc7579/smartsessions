@@ -2,6 +2,8 @@
 cache/
 out/
 cache_forge/
+cache_forge/*
+cache_forge/solidity-files-cache.json
 
 # Ignores development broadcast logs
 !/broadcast
