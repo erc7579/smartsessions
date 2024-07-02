@@ -8,7 +8,7 @@ import "../DataTypes.sol";
 
 interface ISigner is IERC7579Module {
     function checkSignature(
-        SignerId signerId,
+        SessionId signerId,
         address sender,
         bytes32 hash,
         bytes calldata sig

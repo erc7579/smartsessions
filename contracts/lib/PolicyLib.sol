@@ -7,6 +7,7 @@ import {
 } from "contracts/lib/ArrayMap4337Lib.sol";
 
 import { Execution, ExecutionLib } from "erc7579/lib/ExecutionLib.sol";
+import "forge-std/console2.sol";
 
 import {
     ModeLib,
@@ -25,17 +26,18 @@ import { ERC7579ValidatorBase } from "modulekit/Modules.sol";
 import { ValidationDataLib } from "contracts/lib/ValidationDataLib.sol";
 import { IActionPolicy } from "../interfaces/IPolicy.sol";
 
-import "./TrustedForwardLib.sol";
+import { SENTINEL, SentinelList4337Lib } from "sentinellist/SentinelList4337.sol";
 
 library PolicyLib {
+    using SentinelList4337Lib for SentinelList4337Lib.SentinelList;
     using ExecutionLib for *;
     using PolicyLib for *;
     using AddressVecLib for *;
-    using TrustedForwardLib for address;
     using ValidationDataLib for ERC7579ValidatorBase.ValidationData;
 
     error PolicyAlreadyUsed(address policy);
     error UnsupportedCallType(CallType callType);
+    error NoPoliciesSet(SignerId signerId);
 
     /**
      * Generic function that works with all policy types.
@@ -61,8 +63,29 @@ library PolicyLib {
         // iterate over all policies and intersect the validation data
         for (uint256 i; i < length; i++) {
             address policy = $addresses.get(account, i);
-            uint256 validationDataFromPolicy =
-                uint256(bytes32(policy.fwdCall({ forAccount: account, callData: callOnIPolicy })));
+            uint256 validationDataFromPolicy = uint256(bytes32(policy.safeCall({ callData: callOnIPolicy })));
+            vd = vd.intersectValidationData(ERC7579ValidatorBase.ValidationData.wrap(validationDataFromPolicy));
+        }
+    }
+
+    function check(
+        Policy storage $self,
+        PackedUserOperation calldata userOp,
+        SignerId signer,
+        bytes memory callOnIPolicy,
+        uint256 minPoliciesToEnforce
+    )
+        internal
+        returns (ERC7579ValidatorBase.ValidationData vd)
+    {
+        address account = userOp.sender;
+        (address[] memory policies,) = $self.policyList[signer].getEntriesPaginated(account, SENTINEL, 32);
+        uint256 length = policies.length;
+        if (minPoliciesToEnforce > length) revert NoPoliciesSet(signer);
+
+        // iterate over all policies and intersect the validation data
+        for (uint256 i; i < length; i++) {
+            uint256 validationDataFromPolicy = uint256(bytes32(policies[i].safeCall({ callData: callOnIPolicy })));
             vd = vd.intersectValidationData(ERC7579ValidatorBase.ValidationData.wrap(validationDataFromPolicy));
         }
     }
@@ -90,18 +113,48 @@ library PolicyLib {
             callOnIPolicy: abi.encodeCall(
                 IActionPolicy.checkAction,
                 (
-                    toActionPolicyId(signerId, actionId), // actionId
+                    sessionId(signerId, actionId), // actionId
+                    userOp.sender,
                     target, // target
                     value, // value
-                    callData, // data
-                    userOp // userOp
+                    callData // data
                 )
             )
         });
     }
 
+    function checkSingle7579Exec(
+        mapping(ActionId => Policy) storage $policies,
+        PackedUserOperation calldata userOp,
+        SignerId signerId,
+        address target,
+        uint256 value,
+        bytes calldata callData
+    )
+        internal
+        returns (ERC7579ValidatorBase.ValidationData vd)
+    {
+        ActionId actionId = target.toActionId(callData);
+
+        vd = $policies[actionId].check({
+            userOp: userOp,
+            signer: signerId,
+            callOnIPolicy: abi.encodeCall(
+                IActionPolicy.checkAction,
+                (
+                    sessionId(signerId, actionId), // actionId
+                    userOp.sender,
+                    target, // target
+                    value, // value
+                    callData // data
+                )
+            ),
+            minPoliciesToEnforce: 0
+        });
+    }
+
     function checkBatch7579Exec(
-        mapping(ActionId => mapping(SignerId => AddressVec)) storage $policies,
+        mapping(ActionId => Policy) storage $policies,
         PackedUserOperation calldata userOp,
         SignerId signerId
     )
@@ -124,5 +177,11 @@ library PolicyLib {
                 })
             );
         }
+    }
+
+    function safeCall(address target, bytes memory callData) internal returns (bytes memory returnData) {
+        bool success;
+        (success, returnData) = target.call(callData);
+        if (!success) revert();
     }
 }

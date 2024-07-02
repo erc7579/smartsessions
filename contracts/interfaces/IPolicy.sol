@@ -5,28 +5,34 @@ import { PackedUserOperation } from "modulekit/external/ERC4337.sol";
 import { IModule as IERC7579Module, VALIDATION_SUCCESS, VALIDATION_FAILED } from "erc7579/interfaces/IERC7579Module.sol";
 import "../DataTypes.sol";
 
-interface IUserOpPolicy is IERC7579Module {
-    function checkUserOp(SignerId id, PackedUserOperation calldata userOp) external returns (uint256);
+interface IPolicyInit is IERC7579Module {
+    function initForAccount(address account, SessionId id, bytes calldata initData) external;
+    function isInitialized(address account, SessionId id) external returns (bool);
 }
 
-interface IActionPolicy is IERC7579Module {
+interface IUserOpPolicy is IPolicyInit {
+    // MUST implement mapping(id => msg.sender => userOp.sender => state);
+    function checkUserOp(SessionId id, PackedUserOperation calldata userOp) external returns (uint256);
+}
+
+interface IActionPolicy is IPolicyInit {
     function checkAction(
-        ActionPolicyId id,
+        SessionId id,
+        address sender,
         address target,
         uint256 value,
-        bytes calldata data,
-        PackedUserOperation calldata userOp
+        bytes calldata data
     )
         external
         returns (uint256);
 }
 
-interface I1271Policy is IERC7579Module {
+interface I1271Policy is IPolicyInit {
     // request sender is probably protocol, so can introduce policies based on it.
     function check1271SignedAction(
-        SignedActionId id,
-        address smartAccount,
+        SessionId id,
         address requestSender,
+        address account,
         bytes32 hash,
         bytes calldata signature
     )

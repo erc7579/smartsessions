@@ -23,7 +23,7 @@ import "./interfaces/ITrustedForwarder.sol";
 // To reduce SSTORE's, the id can be removed. In this case the submodule will only
 // be usable with one trusted forwarder (multiplexer) per smart account. See TrusteForwarder below
 
-abstract contract TrustedForwarderWithId {
+abstract contract TrustedForwarderWithId is ITrustedForwarder {
     // id => account => trustedForwarder
     mapping(bytes32 id => mapping(address account => address)) public trustedForwarder;
 
