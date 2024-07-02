@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity ^0.8.25;
 
-import { ITrustedForwarder } from "contracts/utils/interfaces/ITrustedForwarder.sol";
+import "./interfaces/ITrustedForwarder.sol";
+
+// import { ITrustedForwarder } from "contracts/utils/interfaces/ITrustedForwarder.sol";
 
 // Credits: @rhinestone @zeroknots
 
@@ -21,7 +23,7 @@ import { ITrustedForwarder } from "contracts/utils/interfaces/ITrustedForwarder.
 // To reduce SSTORE's, the id can be removed. In this case the submodule will only
 // be usable with one trusted forwarder (multiplexer) per smart account. See TrusteForwarder below
 
-abstract contract TrustedForwarderWithId is ITrustedForwarder {
+abstract contract TrustedForwarderWithId {
     // id => account => trustedForwarder
     mapping(bytes32 id => mapping(address account => address)) public trustedForwarder;
 

@@ -3,9 +3,10 @@ pragma solidity ^0.8.25;
 
 import { ERC7579ValidatorBase, ERC7579ExecutorBase } from "modulekit/Modules.sol";
 import { PackedUserOperation } from "modulekit/external/ERC4337.sol";
+
 import {
     ModeLib,
-    ExecutionMode,
+    ModeCode as ExecutionMode,
     ExecType,
     CallType,
     CALLTYPE_BATCH,
@@ -14,34 +15,32 @@ import {
     CALLTYPE_DELEGATECALL,
     EXECTYPE_DEFAULT,
     EXECTYPE_TRY
-} from "contracts/utils/lib/ModeLib.sol";
+} from "erc7579/lib/ModeLib.sol";
 import { ExecutionLib } from "erc7579/lib/ExecutionLib.sol";
-import { ValidationDataLib } from "contracts/utils/lib/ValidationDataLib.sol";
-import { NonceMixinLib } from "contracts/utils/lib/NonceMixinLib.sol";
+import { ValidationDataLib } from "contracts/lib/ValidationDataLib.sol";
 
-import {
-    IPermissionManager,
-    NO_SIGNATURE_VALIDATION_REQUIRED
-} from "contracts/interfaces/validators/IPermissionManager.sol";
 import { IERC7579Account, Execution } from "erc7579/interfaces/IERC7579Account.sol";
 import { IModule as IERC7579Module } from "erc7579/interfaces/IERC7579Module.sol";
 import { IAccountExecute } from "modulekit/external/ERC4337.sol";
-import { ISigner } from "contracts/permissionmanager/interfaces/ISigner.sol";
-import { IUserOpPolicy, IActionPolicy, I1271Policy } from "contracts/permissionmanager/interfaces/IPolicy.sol";
-import { IAccountConfig } from "contracts/utils/interfaces/IAccountConfig.sol";
+import { ISigner } from "contracts/interfaces/ISigner.sol";
+import { IUserOpPolicy, IActionPolicy, I1271Policy } from "contracts/interfaces/IPolicy.sol";
+import { IAccountConfig } from "contracts/interfaces/IAccountConfig.sol";
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 import {
     AddressArrayMap4337 as AddressVec,
-    Bytes32ArrayMap4337 as BytesVec,
+    Bytes32ArrayMap4337 as Bytes32Vec,
     ArrayMap4337Lib as AddressVecLib
-} from "contracts/utils/lib/ArrayMap4337Lib.sol";
+} from "contracts/lib/ArrayMap4337Lib.sol";
 
 import { PolicyLib } from "./lib/PolicyLib.sol";
+import { SignerLib } from "./lib/SignerLib.sol";
 import { SignatureDecodeLib } from "./lib/SignatureDecodeLib.sol";
+import { Execution, ExecutionLib } from "erc7579/lib/ExecutionLib.sol";
 
 import "forge-std/console2.sol";
 import "./DataTypes.sol";
+import { PermissionManagerBase } from "./PermissionManagerBase.sol";
 
 /**
  * TODO:
@@ -51,17 +50,14 @@ import "./DataTypes.sol";
  *     - Check Policies/Signers via Registry before enabling
  *     - In policies contracts, change signerId to id
  */
-contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermissionManager {
+contract PermissionManager is PermissionManagerBase, ERC7579ValidatorBase, ERC7579ExecutorBase {
     using AddressVecLib for *;
     using PolicyLib for *;
+    using SignerLib for *;
+    using ExecutionLib for *;
     using SignatureDecodeLib for *;
 
-    mapping(SignerId => AddressVec) internal $userOpPolicies;
-    mapping(ActionId => mapping(SignerId => AddressVec)) internal $actionPolicies;
-    mapping(SignerId => AddressVec) internal $erc1271Policies;
-    mapping(SignerId => BytesVec) internal $enabledSignerIds;
-    mapping(SignerId => BytesVec) internal $enabledActionIds;
-    mapping(SignerId => mapping(address smartAccount => ISigner)) internal $isigners;
+    error ExecuteUserOpIsNotSupported();
 
     function validateUserOp(
         PackedUserOperation calldata userOp,
@@ -78,29 +74,65 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
             // TODO: implement enable
         } else if (mode == PermissionManagerMode.UNSAFE_ENABLE) { }
 
-        // TODO: slice out from userOp.signature
-        (SignerId signerId, bytes calldata signature) = packedSig.decodeUse();
-        ISigner isigner = $isigners[signerId][account];
+        vd = _enforcePolicies(userOpHash, userOp, packedSig, account);
+    }
 
-        // check signature of ISigner first.
-        // policies only need to be processed if the signature is correct
-        if (
-            isigner.checkSignature({ signerId: signerId, sender: userOp.sender, hash: userOpHash, sig: signature })
-                != EIP1271_SUCCESS
-        ) revert();
+    function _enforcePolicies(
+        bytes32 userOpHash,
+        PackedUserOperation calldata userOp,
+        bytes calldata signature,
+        address account
+    )
+        internal
+        returns (ValidationData vd)
+    {
+        SignerId signerId;
+        (signerId, signature) = signature.decodeUse();
+
+        // this will revert if ISigner signature is invalid
+        $isigners.requireValidISigner({
+            userOpHash: userOpHash,
+            account: account,
+            signerId: signerId,
+            signature: signature
+        });
 
         // check userOp policies
         vd = $userOpPolicies.check({
             userOp: userOp,
             signer: signerId,
-            callData: abi.encodeCall(IUserOpPolicy.checkUserOp, (signerId, userOp))
+            callOnIPolicy: abi.encodeCall(IUserOpPolicy.checkUserOp, (signerId, userOp))
         });
 
         bytes4 selector = bytes4(userOp.callData[0:4]);
         // if the selector indicates that the userOp is an execution,
         // all action policies have to be checked
         if (selector == IERC7579Account.execute.selector) {
-            vd = $actionPolicies.checkExecution({ userOp: userOp, signerId: signerId });
+            ExecutionMode mode = ExecutionMode.wrap(bytes32(userOp.callData[4:36]));
+            CallType callType;
+            ExecType execType;
+
+            // solhint-disable-next-line no-inline-assembly
+            assembly {
+                callType := mode
+                execType := shl(8, mode)
+            }
+            if (ExecType.unwrap(execType) != ExecType.unwrap(EXECTYPE_DEFAULT)) revert();
+            // DEFAULT EXEC & BATCH CALL
+            if (callType == CALLTYPE_BATCH) {
+                vd = $actionPolicies.checkBatch7579Exec({ userOp: userOp, signerId: signerId });
+            } else if (callType == CALLTYPE_SINGLE) {
+                (address target, uint256 value, bytes calldata callData) = userOp.callData.decodeSingle();
+                vd = $actionPolicies.checkSingle7579Exec({
+                    userOp: userOp,
+                    signerId: signerId,
+                    target: target,
+                    value: value,
+                    callData: callData
+                });
+            } else {
+                revert();
+            }
         }
         // PermisisonManager does not support executeFromUserOp, should this function selector be used in the userOp,
         // revert
@@ -113,7 +145,7 @@ contract PermissionManager is ERC7579ValidatorBase, ERC7579ExecutorBase, IPermis
             vd = $actionPolicies[actionId].check({
                 userOp: userOp,
                 signer: signerId,
-                callData: abi.encodeCall(
+                callOnIPolicy: abi.encodeCall(
                     IActionPolicy.checkAction,
                     (
                         toActionPolicyId({ signerId: signerId, actionId: actionId }), // actionId

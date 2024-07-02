@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import { ExecutionMode } from "contracts/utils/lib/ModeLib.sol";
+import { ModeCode as ExecutionMode } from "erc7579/lib/ModeLib.sol";
 
 /// @title Nexus - ERC-7579 Account Configuration Interface
 /// @notice Interface for querying and verifying configurations of Smart Accounts compliant with ERC-7579.

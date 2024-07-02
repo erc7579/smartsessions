@@ -3,7 +3,7 @@ import {
     AddressArrayMap4337 as AddressVec,
     Bytes32ArrayMap4337 as BytesVec,
     ArrayMap4337Lib as AddressVecLib
-} from "contracts/utils/lib/ArrayMap4337Lib.sol";
+} from "./ArrayMap4337Lib.sol";
 
 library ConfigLib {
     function enable(

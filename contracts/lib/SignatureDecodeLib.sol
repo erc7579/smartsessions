@@ -26,5 +26,13 @@ library SignatureDecodeLib {
             bytes calldata permissionData,
             bytes calldata signature
         )
-    { }
+    {
+        // TODO: these are just placeholders
+
+        permissionIndex = uint8(packedSig[1]);
+        permissionEnableData = packedSig[2:34];
+        permissionEnableDataSignature = packedSig[34:66];
+        permissionData = packedSig[66:98];
+        signature = packedSig[98:];
+    }
 }
