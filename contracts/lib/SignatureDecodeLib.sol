@@ -46,6 +46,7 @@ library SignatureDecodeLib {
         packedSig = abi.encodePacked(PermissionManagerMode.UNSAFE_ENABLE, signerId, abi.encode(useSig, enableData));
     }
 
+    // TODO: would be nice to use a custom EIP712 envelope here
     function digest(SignerId signerId, EnableData memory data) internal view returns (bytes32) {
         return keccak256(
             abi.encode(signerId, block.chainid, data.userOpPolicies, data.erc1271Policies, data.actionPolicies)

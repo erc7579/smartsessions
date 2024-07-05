@@ -90,10 +90,6 @@ library PolicyLib {
         }
     }
 
-    function toActionId(address target, bytes calldata data) internal pure returns (ActionId actionId) {
-        actionId = ActionId.wrap(keccak256(abi.encodePacked(target, data.length >= 4 ? bytes4(data[0:4]) : bytes4(0))));
-    }
-
     function checkSingle7579Exec(
         mapping(ActionId => mapping(SignerId => AddressVec)) storage $policies,
         PackedUserOperation calldata userOp,
@@ -105,7 +101,7 @@ library PolicyLib {
         internal
         returns (ERC7579ValidatorBase.ValidationData vd)
     {
-        ActionId actionId = target.toActionId(callData);
+        ActionId actionId = toActionId(target, callData);
 
         vd = $policies[actionId].check({
             userOp: userOp,
@@ -134,7 +130,7 @@ library PolicyLib {
         internal
         returns (ERC7579ValidatorBase.ValidationData vd)
     {
-        ActionId actionId = target.toActionId(callData);
+        ActionId actionId = toActionId(target, callData);
 
         vd = $policies[actionId].check({
             userOp: userOp,
