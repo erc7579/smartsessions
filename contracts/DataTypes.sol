@@ -1,5 +1,6 @@
 import "./lib/ArrayMap4337Lib.sol";
 import { SentinelList4337Lib } from "sentinellist/SentinelList4337.sol";
+import "./interfaces/ISigner.sol";
 
 type SignerId is bytes32;
 
@@ -11,9 +12,12 @@ type SignedActionId is bytes32;
 
 type SessionId is bytes32;
 
-function toSignerId(address account, bytes32 simpleSignerValidator) view returns (SignerId signerId) {
-    signerId =
-        SignerId.wrap(keccak256(abi.encodePacked("Signer Id for ", account, simpleSignerValidator, block.timestamp)));
+function toSignerId(address account, ISigner isigner) view returns (SignerId signerId) {
+    signerId = SignerId.wrap(keccak256(abi.encodePacked("Signer Id for ", account, address(isigner), block.timestamp)));
+}
+
+function toActionId(address target, bytes calldata data) pure returns (ActionId actionId) {
+    actionId = ActionId.wrap(keccak256(abi.encodePacked(target, data.length >= 4 ? bytes4(data[0:4]) : bytes4(0))));
 }
 
 function toActionPolicyId(SignerId signerId, ActionId actionId) pure returns (ActionPolicyId policyId) {
@@ -38,17 +42,21 @@ function sessionId(SignerId signerId, ActionId actionId) view returns (SessionId
     _id = sessionId(toActionPolicyId(signerId, actionId));
 }
 
-struct EnableData {
-    bytes permissionEnableSig;
-    ActionId actionId;
+// InstallSessions[] sessions;
+
+struct InstallSessions {
+    SignerId signerId;
     PolicyData[] userOpPolicies;
     PolicyData[] erc1271Policies;
-    PolicyData[] actionPolicies;
+    ActionData[] actions;
 }
 
-struct PolicyConfig {
-    SignerId signerId;
-    PolicyData[] policies;
+struct EnableSessions {
+    // SignerID is be part of the packedSig, so doesnt have to be in here
+    PolicyData[] userOpPolicies;
+    PolicyData[] erc1271Policies;
+    ActionData[] actions;
+    bytes permissionEnableSig;
 }
 
 struct PolicyData {
@@ -56,12 +64,15 @@ struct PolicyData {
     bytes initData;
 }
 
-struct ActionPolicyConfig {
-    ActionId actionId;
-    PolicyConfig[] policyConfig;
+struct PolicyConfig {
+    SignerId signerId;
+    PolicyData[] policies;
 }
 
-type PermissionDescriptor is bytes4;
+struct ActionData {
+    ActionId actionId;
+    PolicyData[] actionPolicies;
+}
 
 enum PermissionManagerMode {
     USE,

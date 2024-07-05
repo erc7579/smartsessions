@@ -47,4 +47,8 @@ contract YesPolicy is IUserOpPolicy, IActionPolicy {
     {
         actionState[id][msg.sender][sender] += 1;
     }
+
+    function supportsInterface(bytes4 interfaceID) external view override returns (bool) {
+        return true;
+    }
 }

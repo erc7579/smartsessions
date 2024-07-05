@@ -14,6 +14,8 @@ library ConfigLib {
     using ConfigLib for *;
     using ArrayMap4337Lib for *;
 
+    error UnsupportedPolicy(address policy);
+
     function safePush(SentinelList4337Lib.SentinelList storage self, address account, address newEntry) internal {
         if (!self.alreadyInitialized(account)) {
             self.init({ account: account });
@@ -24,74 +26,85 @@ library ConfigLib {
         }
     }
 
-    function enable(Policy storage $policy, PolicyConfig[] memory policyConfig, address smartAccount) internal {
-        uint256 lengthConfigs = policyConfig.length;
-
-        for (uint256 i; i < lengthConfigs; i++) {
-            PolicyConfig memory config = policyConfig[i];
-            uint256 lengthPolicies = config.policies.length;
-
-            address policy = config.policies[i].policy;
-            // policy.initFwd({id: id, smartAccount: smartAccount});
-
-            for (uint256 y; y < lengthPolicies; y++) {
-                IPolicyInit(policy).initForAccount({
-                    account: msg.sender,
-                    id: sessionId(config.signerId),
-                    initData: config.policies[i].initData
-                });
-                $policy.policyList[config.signerId].safePush(smartAccount, policy);
-            }
-        }
-    }
-
+    // NOTE: ok
     function enable(
-        EnumerableActionPolicy storage $self,
-        ActionPolicyConfig[] memory actionPolicyConfig,
+        Policy storage $policy,
+        SignerId signerId,
+        PolicyData[] memory policyDatas,
         address smartAccount
     )
         internal
     {
-        uint256 length = actionPolicyConfig.length;
+        uint256 lengthConfigs = policyDatas.length;
+
+        // iterage over all policyData
+        for (uint256 i; i < lengthConfigs; i++) {
+            PolicyData memory policyData = policyDatas[i];
+
+            IPolicyInit policy = IPolicyInit(policyData.policy);
+            if (!policy.supportsInterface(type(IPolicyInit).interfaceId)) revert UnsupportedPolicy(address(policy));
+
+            // initialize sub policy for account
+            IPolicyInit(policy).initForAccount({
+                account: smartAccount,
+                id: sessionId(signerId),
+                initData: policyData.initData
+            });
+            $policy.policyList[signerId].safePush(smartAccount, address(policy));
+        }
+    }
+
+    // NOTE: ok
+    function enable(
+        EnumerableActionPolicy storage $self,
+        SignerId signerId,
+        ActionData[] memory actionPolicyDatas,
+        address smartAccount
+    )
+        internal
+    {
+        uint256 length = actionPolicyDatas.length;
 
         for (uint256 i; i < length; i++) {
             // record every enabled actionId
-            ActionPolicyConfig memory config = actionPolicyConfig[i];
-            $self.enabledActionIds.push(smartAccount, ActionId.unwrap(config.actionId));
-            $self.actionPolicies[config.actionId].enable(config.policyConfig, smartAccount);
+            ActionData memory actionPolicyData = actionPolicyDatas[i];
+            $self.enabledActionIds.push(smartAccount, ActionId.unwrap(actionPolicyData.actionId));
+            $self.actionPolicies[actionPolicyData.actionId].enable(
+                signerId, actionPolicyData.actionPolicies, smartAccount
+            );
         }
     }
 
-    function enable(
-        EnumerableActionPolicy storage $self,
-        PolicyData[] memory policies,
-        ActionId actionId,
-        SignerId signerId,
-        address smartAccount
-    )
-        internal
-    {
-        $self.enabledActionIds.push(smartAccount, ActionId.unwrap(actionId));
-        $self.actionPolicies[actionId].enable(policies, signerId, smartAccount);
-    }
+    // function enable(
+    //     EnumerableActionPolicy storage $self,
+    //     PolicyData[] memory policies,
+    //     ActionId actionId,
+    //     SignerId signerId,
+    //     address smartAccount
+    // )
+    //     internal
+    // {
+    //     $self.enabledActionIds.push(smartAccount, ActionId.unwrap(actionId));
+    //     $self.actionPolicies[actionId].enable(policies, signerId, smartAccount);
+    // }
 
-    function enable(
-        Policy storage $policy,
-        PolicyData[] memory policies,
-        SignerId signerId,
-        address smartAccount
-    )
-        internal
-    {
-        uint256 lengthPolicies = policies.length;
-
-        for (uint256 i; i < lengthPolicies; i++) {
-            $policy.policyList[signerId].safePush(smartAccount, policies[i].policy);
-            IPolicyInit(policies[i].policy).initForAccount({
-                account: msg.sender,
-                id: sessionId(signerId),
-                initData: policies[i].initData
-            });
-        }
-    }
+    // function enable(
+    //     Policy storage $policy,
+    //     PolicyData[] memory policies,
+    //     SignerId signerId,
+    //     address smartAccount
+    // )
+    //     internal
+    // {
+    //     uint256 lengthPolicies = policies.length;
+    //
+    //     for (uint256 i; i < lengthPolicies; i++) {
+    //         $policy.policyList[signerId].safePush(smartAccount, policies[i].policy);
+    //         IPolicyInit(policies[i].policy).initForAccount({
+    //             account: msg.sender,
+    //             id: sessionId(signerId),
+    //             initData: policies[i].initData
+    //         });
+    //     }
+    // }
 }

@@ -25,16 +25,16 @@ abstract contract PermissionManagerBase is ERC7579ValidatorBase {
     EnumerableActionPolicy internal $actionPolicies;
     mapping(SignerId => mapping(address smartAccount => ISigner)) internal $isigners;
 
-    function enableUserOpPolicies(PolicyConfig[] memory policyConfig) public {
-        $userOpPolicies.enable({ policyConfig: policyConfig, smartAccount: msg.sender });
+    function enableUserOpPolicies(SignerId signerId, PolicyData[] memory userOpPolicies) public {
+        $userOpPolicies.enable({ signerId: signerId, policyDatas: userOpPolicies, smartAccount: msg.sender });
     }
 
-    function enableERC1271Policies(PolicyConfig[] memory policyConfig) public {
-        $erc1271Policies.enable({ policyConfig: policyConfig, smartAccount: msg.sender });
+    function enableERC1271Policies(SignerId signerId, PolicyData[] memory erc1271Policies) public {
+        $erc1271Policies.enable({ signerId: signerId, policyDatas: erc1271Policies, smartAccount: msg.sender });
     }
 
-    function enableActionPolicies(ActionPolicyConfig[] memory policyConfig) public {
-        $actionPolicies.enable({ actionPolicyConfig: policyConfig, smartAccount: msg.sender });
+    function enableActionPolicies(SignerId signerId, ActionData[] memory actionPolicies) public {
+        $actionPolicies.enable({ signerId: signerId, actionPolicyDatas: actionPolicies, smartAccount: msg.sender });
     }
 
     function disableUserOpPolicies(PolicyConfig[] memory policyConfig) public {
@@ -45,7 +45,7 @@ abstract contract PermissionManagerBase is ERC7579ValidatorBase {
         // TODO: note find nice solution for sentinellist previous entry
     }
 
-    function disibleActionPolicies(ActionPolicyConfig[] memory policyConfig) public {
+    function disibleActionPolicies() public {
         // TODO: note find nice solution for sentinellist previous entry
     }
 
@@ -61,16 +61,15 @@ abstract contract PermissionManagerBase is ERC7579ValidatorBase {
     function onInstall(bytes calldata data) external override {
         if (data.length == 0) return;
 
-        // TODO: change to calldata
-        (
-            PolicyConfig[] memory userOpPolicies,
-            PolicyConfig[] memory erc1271Policy,
-            ActionPolicyConfig[] memory actionPolicies
-        ) = data.decodeInstall();
+        InstallSessions[] memory sessions = abi.decode(data, (InstallSessions[]));
 
-        enableUserOpPolicies(userOpPolicies);
-        enableERC1271Policies(erc1271Policy);
-        enableActionPolicies(actionPolicies);
+        uint256 length = sessions.length;
+        for (uint256 i; i < length; i++) {
+            SignerId signerId = sessions[i].signerId;
+            enableUserOpPolicies({ signerId: signerId, userOpPolicies: sessions[i].userOpPolicies });
+            enableERC1271Policies({ signerId: signerId, erc1271Policies: sessions[i].erc1271Policies });
+            enableActionPolicies({ signerId: signerId, actionPolicies: sessions[i].actions });
+        }
     }
 
     /**
@@ -85,4 +84,6 @@ abstract contract PermissionManagerBase is ERC7579ValidatorBase {
     function isModuleType(uint256 typeID) external pure override returns (bool) {
         return typeID == TYPE_VALIDATOR;
     }
+
+    function install(InstallSessions[] memory sessions) public { }
 }

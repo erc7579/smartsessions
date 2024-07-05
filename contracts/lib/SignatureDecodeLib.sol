@@ -24,12 +24,12 @@ library SignatureDecodeLib {
     function decodePackedSigEnable(bytes calldata packedSig)
         internal
         pure
-        returns (EnableData memory enableData, SignerId signerId, bytes calldata signature)
+        returns (EnableSessions memory enableData, SignerId signerId, bytes calldata signature)
     {
         bytes memory tmp;
         signerId = SignerId.wrap(bytes32(packedSig[0:32]));
         // todo make this calldata
-        (tmp, enableData) = abi.decode(packedSig[32:], (bytes, EnableData));
+        (tmp, enableData) = abi.decode(packedSig[32:], (bytes, EnableSessions));
         // making sure singerId is still in the signature. this will be used by _enforcePolicies
         signature = packedSig[:tmp.length + 32];
     }
@@ -37,7 +37,7 @@ library SignatureDecodeLib {
     function encodePackedSigEnable(
         SignerId signerId,
         bytes memory useSig,
-        EnableData memory enableData
+        EnableSessions memory enableData
     )
         internal
         pure
@@ -47,10 +47,8 @@ library SignatureDecodeLib {
     }
 
     // TODO: would be nice to use a custom EIP712 envelope here
-    function digest(SignerId signerId, EnableData memory data) internal view returns (bytes32) {
-        return keccak256(
-            abi.encode(signerId, block.chainid, data.userOpPolicies, data.erc1271Policies, data.actionPolicies)
-        );
+    function digest(SignerId signerId, EnableSessions memory data) internal view returns (bytes32) {
+        return keccak256(abi.encode(signerId, block.chainid, data.userOpPolicies, data.erc1271Policies, data.actions));
     }
 
     function decodeEnable(bytes calldata enableData)
@@ -81,16 +79,7 @@ library SignatureDecodeLib {
         enableData = abi.encodePacked(PermissionManagerMode.UNSAFE_ENABLE, enableData);
     }
 
-    function decodeInstall(bytes calldata enableData)
-        internal
-        pure
-        returns (
-            PolicyConfig[] memory userOpPolicies,
-            PolicyConfig[] memory erc1271Policy,
-            ActionPolicyConfig[] memory actionPolicies
-        )
-    {
-        (userOpPolicies, erc1271Policy, actionPolicies) =
-            abi.decode(enableData, (PolicyConfig[], PolicyConfig[], ActionPolicyConfig[]));
+    function decodeInstall(bytes calldata enableData) internal pure returns (InstallSessions[] memory sessions) {
+        sessions = abi.decode(enableData, (InstallSessions[]));
     }
 }

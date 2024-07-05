@@ -98,7 +98,7 @@ contract PermissionManager is PermissionManagerBase {
         internal
         returns (bytes calldata permissionUseSig)
     {
-        EnableData memory enableData;
+        EnableSessions memory enableData;
         SignerId signerId;
         (enableData, signerId, permissionUseSig) = packedSig.decodePackedSigEnable();
         bytes32 hash = signerId.digest(enableData); // TODO add signerId to hash
@@ -108,9 +108,9 @@ contract PermissionManager is PermissionManagerBase {
             revert InvalidEnableSignature(account, hash);
         }
 
-        $userOpPolicies.enable(enableData.userOpPolicies, signerId, account);
-        $erc1271Policies.enable(enableData.erc1271Policies, signerId, account);
-        $actionPolicies.enable(enableData.actionPolicies, enableData.actionId, signerId, account);
+        $userOpPolicies.enable({ signerId: signerId, policyDatas: enableData.userOpPolicies, smartAccount: account });
+        $erc1271Policies.enable({ signerId: signerId, policyDatas: enableData.erc1271Policies, smartAccount: account });
+        $actionPolicies.enable({ signerId: signerId, actionPolicyDatas: enableData.actions, smartAccount: account });
     }
 
     function _enforcePolicies(
@@ -193,7 +193,7 @@ contract PermissionManager is PermissionManagerBase {
         /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
         // all other executions are supported and are handled by the actionPolicies
         else {
-            ActionId actionId = userOp.sender.toActionId(userOp.callData);
+            ActionId actionId = toActionId(userOp.sender, userOp.callData);
             vd = $actionPolicies.actionPolicies[actionId].check({
                 userOp: userOp,
                 signer: signerId,
@@ -201,8 +201,8 @@ contract PermissionManager is PermissionManagerBase {
                     IActionPolicy.checkAction,
                     (
                         sessionId({ signerId: signerId, actionId: actionId }), // actionId
-                        userOp.sender, // target
                         userOp.sender, // TODO: check if this is correct
+                        userOp.sender, // target
                         0, // value
                         userOp.callData // data
                     )

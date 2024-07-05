@@ -57,7 +57,7 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
 
         PolicyConfig[] memory userOpPolicies;
         PolicyConfig[] memory erc1271Policy;
-        ActionPolicyConfig[] memory actionPolicies;
+        ActionData[] memory actionPolicies;
 
         bytes memory initData = abi.encode(userOpPolicies, erc1271Policy, actionPolicies);
         instance.installModule({
@@ -69,12 +69,9 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
         vm.startPrank(instance.account);
         permissionManager.setSigner(defaultSigner1, ISigner(address(yesSigner)));
 
-        PolicyConfig[] memory policyConfig = new PolicyConfig[](1);
-
         PolicyData[] memory policyData = new PolicyData[](1);
         policyData[0] = PolicyData({ policy: address(yesPolicy), initData: "" });
-        policyConfig[0] = PolicyConfig({ signerId: defaultSigner1, policies: policyData });
-        permissionManager.enableUserOpPolicies(policyConfig);
+        permissionManager.enableUserOpPolicies(defaultSigner1, policyData);
 
         vm.stopPrank();
     }
@@ -103,12 +100,14 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
         PolicyData[] memory policyData = new PolicyData[](1);
         policyData[0] = PolicyData({ policy: address(yesPolicy), initData: "" });
 
-        EnableData memory enableData = EnableData({
-            actionId: ActionId.wrap(bytes32(hex"01")),
-            permissionEnableSig: "",
+        ActionData[] memory actions = new ActionData[](1);
+        actions[0] = ActionData({ actionId: ActionId.wrap(bytes32(hex"01")), actionPolicies: policyData });
+
+        EnableSessions memory enableData = EnableSessions({
             userOpPolicies: policyData,
             erc1271Policies: new PolicyData[](0),
-            actionPolicies: new PolicyData[](0)
+            actions: actions,
+            permissionEnableSig: ""
         });
 
         bytes32 hash = defaultSigner1.digest(enableData);
