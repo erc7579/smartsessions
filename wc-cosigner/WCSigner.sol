@@ -6,6 +6,7 @@ pragma solidity ^0.8.23;
 import { ECDSA } from "solady/utils/ECDSA.sol";
 import "./passkey.sol";
 import "forge-std/console2.sol";
+import "contracts/interfaces/ISigner.sol";
 // import "./passkey.sol";
 
 // removing trusted forwarder dependency here as it is only required during onInstall/onUninstall
@@ -17,18 +18,18 @@ struct Config {
     WebAuthnValidatorData passkeySigner;
 }
 
-contract WCSigner   /*, TrustedForwarderWithId*/ {
+contract WCSigner is ISigner/*, TrustedForwarderWithId*/ {
     using PasskeyHelper for *;
 
     error InvalidPublicKey();
 
     mapping(address => uint256) public usedIds;
-    mapping(bytes32 signerId => mapping(address smartAccount => Config)) public signer;
+    mapping(SessionId sessionId =>mapping(address multiplexer => mapping(address smartAccount => Config))) public signer;
 
     // can use sender as argument here as the method is view
     // so even external calls with arbitrary sender can not break things
     function checkSignature(
-        bytes32 signerId,
+        SessionId signerId,
         address sender,
         bytes32 hash,
         bytes calldata sig
@@ -40,12 +41,13 @@ contract WCSigner   /*, TrustedForwarderWithId*/ {
         bytes32 ethHash = ECDSA.toEthSignedMessageHash(hash);
         (bytes memory sig1, bytes memory sig2) = abi.decode(sig, (bytes, bytes));
 
-        Config storage config = signer[signerId][sender];
+        Config storage config = signer[signerId][msg.sender][sender];
 
         // recover ecdsa to eoa signer;
         address recovered = ECDSA.recover(ethHash, sig1);
 
         bool eoaValid = recovered == config.eoaSigner;
+        console2.log("eoavalid", eoaValid);
 
         console2.log(config.passkeySigner.pubKeyX, config.passkeySigner.pubKeyY);
         bool passkeyValid = config.passkeySigner.verifyPasskey(ethHash, sig2);
@@ -58,25 +60,35 @@ contract WCSigner   /*, TrustedForwarderWithId*/ {
         return 0xffffffff;
     }
 
-    // function _onInstallPasskey(bytes32 signerId, WebAuthnValidatorData memory data) internal {
-    //     if (data.pubKeyX == 0 || data.pubKeyY == 0) {
-    //         revert InvalidPublicKey();
-    //     }
-    //     Config storage config = signer[signerId][msg.sender];
-    //
-    //     config.passkeySigner = data;
-    // }
 
     function isInitialized(address smartAccount) external view returns (bool) {
         return usedIds[smartAccount] > 0;
     }
 
+    function isInitialized(address smartAccount, SessionId id) external view returns (bool) {
+        return usedIds[smartAccount] > 0;
+    }
+
     function onInstall(bytes calldata data) external {
-        bytes32 signerId = bytes32(data[:32]);
-        (address eoa, WebAuthnValidatorData memory signer2) = abi.decode(data[32:], (address, WebAuthnValidatorData));
-        Config storage config = signer[signerId][msg.sender];
+        // bytes32 signerId = bytes32(data[:32]);
+        // (address eoa, WebAuthnValidatorData memory signer2) = abi.decode(data[32:], (address, WebAuthnValidatorData));
+        // Config storage config = signer[signerId][msg.sender];
+        // config.passkeySigner = signer2;
+        // config.eoaSigner = eoa;
+        //
+        // usedIds[msg.sender]++;
+    }
+
+
+    function initForAccount(address account, SessionId id, bytes calldata initData) external override {
+      console2.log("initForAccount");
+
+        (address eoa, WebAuthnValidatorData memory signer2) = abi.decode(initData, (address, WebAuthnValidatorData));
+        console2.log(eoa, signer2.pubKeyX, signer2.pubKeyY);
+        Config storage config = signer[id][msg.sender][account];
         config.passkeySigner = signer2;
         config.eoaSigner = eoa;
+        console2.log(signer[id][msg.sender][account].eoaSigner);
 
         usedIds[msg.sender]++;
     }
@@ -87,7 +99,20 @@ contract WCSigner   /*, TrustedForwarderWithId*/ {
         return id == 111;
     }
 
-    function supportsInterface(bytes4) external view returns (bool) {
-        return false;
+    function supportsInterface(bytes4 sig) external view returns (bool) {
+        return sig == type(ISigner).interfaceId;
     }
+    function deinitForAccount(address account, SessionId id) external override { }
+
+    function checkUserOpSignature(
+        bytes32 id,
+        PackedUserOperation calldata userOp,
+        bytes32 userOpHash
+    )
+        external
+        payable
+        returns (uint256) {
+
+          return 1;
+        }
 }

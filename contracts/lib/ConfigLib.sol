@@ -5,9 +5,8 @@ import {
     ArrayMap4337Lib as AddressVecLib
 } from "./ArrayMap4337Lib.sol";
 import "../interfaces/IPolicy.sol";
-import { SentinelList4337Lib } from "sentinellist/SentinelList4337.sol";
+import { SENTINEL, SentinelList4337Lib } from "sentinellist/SentinelList4337.sol";
 import { Bytes32ArrayMap4337, ArrayMap4337Lib } from "./ArrayMap4337Lib.sol";
-import "forge-std/console2.sol";
 
 library ConfigLib {
     using SentinelList4337Lib for SentinelList4337Lib.SentinelList;
@@ -16,15 +15,7 @@ library ConfigLib {
 
     error UnsupportedPolicy(address policy);
 
-    function safePush(SentinelList4337Lib.SentinelList storage self, address account, address newEntry) internal {
-        if (!self.alreadyInitialized(account)) {
-            self.init({ account: account });
-        }
-
-        if (!self.contains(account, newEntry)) {
-            self.push({ account: account, newEntry: newEntry });
-        }
-    }
+    event PolicyEnabled(SignerId signerId, address policy, address smartAccount);
 
     function enable(
         Policy storage $policy,
@@ -40,16 +31,18 @@ library ConfigLib {
         for (uint256 i; i < lengthConfigs; i++) {
             PolicyData memory policyData = policyDatas[i];
 
-            IPolicyInit policy = IPolicyInit(policyData.policy);
-            if (!policy.supportsInterface(type(IPolicyInit).interfaceId)) revert UnsupportedPolicy(address(policy));
+            ISubPermission policy = ISubPermission(policyData.policy);
+            if (!policy.supportsInterface(type(ISubPermission).interfaceId)) revert UnsupportedPolicy(address(policy));
 
             // initialize sub policy for account
-            IPolicyInit(policy).initForAccount({
+            ISubPermission(policy).initForAccount({
                 account: smartAccount,
                 id: sessionId(signerId),
                 initData: policyData.initData
             });
+
             $policy.policyList[signerId].safePush(smartAccount, address(policy));
+            emit PolicyEnabled(signerId, address(policy), smartAccount);
         }
     }
 
@@ -71,5 +64,17 @@ library ConfigLib {
                 signerId, actionPolicyData.actionPolicies, smartAccount
             );
         }
+    }
+
+    function disable(SentinelList4337Lib.SentinelList storage $self, SessionId _sessionId, address account) internal {
+        (address[] memory entries,) = $self.getEntriesPaginated(account, SENTINEL, 32);
+
+        uint256 length = entries.length;
+        for (uint256 i; i < length; i++) {
+            address entry = entries[i];
+            ISubPermission(entry).deinitForAccount(account, _sessionId);
+        }
+
+        $self.popAll(account);
     }
 }

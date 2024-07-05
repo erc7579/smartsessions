@@ -7,7 +7,8 @@
   },
   "dependencies": {
     "@rhinestone/modulekit": "^0.4.0",
-    "@rhinestone/sentinellist": "github:rhinestonewtf/sentinellist#feature/remediations"
+    "freshcryptolib": "github:rdubois-crypto/FreshCryptoLib",
+    "@rhinestone/sentinellist": "github:rhinestonewtf/sentinellist"
   },
   "files": [
     "contracts",

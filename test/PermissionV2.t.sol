@@ -41,7 +41,7 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
     SignerId defaultSigner1;
     SignerId defaultSigner2;
 
-    function setUp() public {
+    function setUp() public virtual {
         instance = makeAccountInstance("smartaccount");
 
         sessionSigner1 = makeAccount("sessionSigner1");
@@ -55,19 +55,16 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
         yesSigner = new YesSigner();
         yesPolicy = new YesPolicy();
 
-        PolicyConfig[] memory userOpPolicies;
-        PolicyConfig[] memory erc1271Policy;
-        ActionData[] memory actionPolicies;
+        InstallSessions[] memory installData = new InstallSessions[](0);
 
-        bytes memory initData = abi.encode(userOpPolicies, erc1271Policy, actionPolicies);
         instance.installModule({
             moduleTypeId: MODULE_TYPE_VALIDATOR,
             module: address(permissionManager),
-            data: initData
+            data: abi.encode(installData)
         });
 
         vm.startPrank(instance.account);
-        permissionManager.setSigner(defaultSigner1, ISigner(address(yesSigner)));
+        permissionManager.setSigner(defaultSigner1, ISigner(address(yesSigner)), "");
 
         PolicyData[] memory policyData = new PolicyData[](1);
         policyData[0] = PolicyData({ policy: address(yesPolicy), initData: "" });
@@ -104,17 +101,20 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
         actions[0] = ActionData({ actionId: ActionId.wrap(bytes32(hex"01")), actionPolicies: policyData });
 
         EnableSessions memory enableData = EnableSessions({
+            isigner: ISigner(address(yesSigner)),
+            isignerInitData: "",
             userOpPolicies: policyData,
             erc1271Policies: new PolicyData[](0),
             actions: actions,
             permissionEnableSig: ""
         });
 
-        bytes32 hash = defaultSigner1.digest(enableData);
+        bytes32 hash = defaultSigner2.digest(enableData);
         enableData.permissionEnableSig = abi.encodePacked(instance.defaultValidator, sign(hash, 1));
 
         userOpData.userOp.signature =
-            SignatureDecodeLib.encodePackedSigEnable(defaultSigner1, hex"41414141", enableData);
+            SignatureDecodeLib.encodePackedSigEnable(defaultSigner2, hex"41414141", enableData);
+        console2.log("enable withing sesison");
         userOpData.execUserOps();
     }
 

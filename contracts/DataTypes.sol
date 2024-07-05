@@ -53,10 +53,18 @@ struct InstallSessions {
 
 struct EnableSessions {
     // SignerID is be part of the packedSig, so doesnt have to be in here
+    ISigner isigner;
+    bytes isignerInitData;
     PolicyData[] userOpPolicies;
     PolicyData[] erc1271Policies;
     ActionData[] actions;
     bytes permissionEnableSig;
+}
+
+// TODO: add this to session structs
+struct SignerData {
+    ISigner isigner;
+    bytes isignerInitData;
 }
 
 struct PolicyData {
@@ -64,14 +72,15 @@ struct PolicyData {
     bytes initData;
 }
 
-struct PolicyConfig {
-    SignerId signerId;
-    PolicyData[] policies;
-}
-
 struct ActionData {
     ActionId actionId;
     PolicyData[] actionPolicies;
+}
+
+////////////////////////
+
+struct UninstallSessions {
+    SignerId signerId;
 }
 
 enum PermissionManagerMode {

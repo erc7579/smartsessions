@@ -108,6 +108,9 @@ contract PermissionManager is PermissionManagerBase {
             revert InvalidEnableSignature(account, hash);
         }
 
+        // enable ISigner for this sessionId
+        _enableISigner(signerId, account, enableData.isigner, enableData.isignerInitData);
+
         $userOpPolicies.enable({ signerId: signerId, policyDatas: enableData.userOpPolicies, smartAccount: account });
         $erc1271Policies.enable({ signerId: signerId, policyDatas: enableData.erc1271Policies, smartAccount: account });
         $actionPolicies.enable({ signerId: signerId, actionPolicyDatas: enableData.actions, smartAccount: account });

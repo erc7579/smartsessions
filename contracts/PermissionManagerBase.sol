@@ -20,10 +20,22 @@ abstract contract PermissionManagerBase is ERC7579ValidatorBase {
     using ConfigLib for Policy;
     using ConfigLib for EnumerableActionPolicy;
 
+    error InvalidISigner(ISigner isigner);
+
     Policy internal $userOpPolicies;
     Policy internal $erc1271Policies;
     EnumerableActionPolicy internal $actionPolicies;
     mapping(SignerId => mapping(address smartAccount => ISigner)) internal $isigners;
+
+    function _enableISigner(SignerId signerId, address account, ISigner isigner, bytes memory initData) internal {
+        if (!isigner.supportsInterface(type(ISigner).interfaceId)) {
+            revert InvalidISigner(isigner);
+        }
+
+        $isigners[signerId][msg.sender] = isigner;
+
+        isigner.initForAccount({ account: account, id: sessionId(signerId), initData: initData });
+    }
 
     function enableUserOpPolicies(SignerId signerId, PolicyData[] memory userOpPolicies) public {
         $userOpPolicies.enable({ signerId: signerId, policyDatas: userOpPolicies, smartAccount: msg.sender });
@@ -37,20 +49,21 @@ abstract contract PermissionManagerBase is ERC7579ValidatorBase {
         $actionPolicies.enable({ signerId: signerId, actionPolicyDatas: actionPolicies, smartAccount: msg.sender });
     }
 
-    function disableUserOpPolicies(PolicyConfig[] memory policyConfig) public {
-        // TODO: note find nice solution for sentinellist previous entry
+    function removeSession(SignerId signerId) public {
+        $userOpPolicies.policyList[signerId].disable(sessionId(signerId), msg.sender);
+        $erc1271Policies.policyList[signerId].disable(sessionId(signerId), msg.sender);
+
+        uint256 actionLength = $actionPolicies.enabledActionIds.length(msg.sender);
+        for (uint256 i; i < actionLength; i++) {
+            ActionId actionId = ActionId.wrap($actionPolicies.enabledActionIds.get(msg.sender, i));
+            $actionPolicies.actionPolicies[actionId].policyList[signerId].disable(
+                sessionId(signerId, actionId), msg.sender
+            );
+        }
     }
 
-    function disableERC1271Policies(PolicyConfig[] memory policyConfig) public {
-        // TODO: note find nice solution for sentinellist previous entry
-    }
-
-    function disibleActionPolicies() public {
-        // TODO: note find nice solution for sentinellist previous entry
-    }
-
-    function setSigner(SignerId signerId, ISigner signer) public {
-        $isigners[signerId][msg.sender] = signer;
+    function setSigner(SignerId signerId, ISigner signer, bytes memory initData) public {
+        _enableISigner(signerId, msg.sender, signer, initData);
     }
 
     /**

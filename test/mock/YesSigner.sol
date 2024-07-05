@@ -46,4 +46,14 @@ contract YesSigner is ISigner /*, TrustedForwarderWithId*/ {
     function isModuleType(uint256 id) external pure returns (bool) {
         return id == 111;
     }
+
+    function supportsInterface(bytes4 interfaceID) external view override returns (bool) {
+        return true;
+    }
+
+    function initForAccount(address account, SessionId id, bytes calldata initData) external override { }
+
+    function isInitialized(address account, SessionId id) external override returns (bool) { }
+
+    function deinitForAccount(address account, SessionId id) external override { }
 }

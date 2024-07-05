@@ -48,7 +48,17 @@ library SignatureDecodeLib {
 
     // TODO: would be nice to use a custom EIP712 envelope here
     function digest(SignerId signerId, EnableSessions memory data) internal view returns (bytes32) {
-        return keccak256(abi.encode(signerId, block.chainid, data.userOpPolicies, data.erc1271Policies, data.actions));
+        return keccak256(
+            abi.encode(
+                signerId,
+                block.chainid,
+                data.isigner,
+                data.isignerInitData,
+                data.userOpPolicies,
+                data.erc1271Policies,
+                data.actions
+            )
+        );
     }
 
     function decodeEnable(bytes calldata enableData)

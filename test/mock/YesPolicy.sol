@@ -53,4 +53,6 @@ contract YesPolicy is IUserOpPolicy, IActionPolicy {
     function supportsInterface(bytes4 interfaceID) external view override returns (bool) {
         return true;
     }
+
+    function deinitForAccount(address account, SessionId id) external override { }
 }
