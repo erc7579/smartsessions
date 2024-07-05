@@ -77,6 +77,7 @@ library ConfigLib {
         uint256 length = entries.length;
         for (uint256 i; i < length; i++) {
             address entry = entries[i];
+            // TODO: use try catch to prevent dos
             ISubPermission(entry).deinitForAccount(account, _sessionId);
         }
 
