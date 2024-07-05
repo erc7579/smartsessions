@@ -22,6 +22,8 @@ abstract contract PermissionManagerBase is ERC7579ValidatorBase {
 
     error InvalidISigner(ISigner isigner);
 
+    event SessionRemoved(SignerId signerId, address smartAccount);
+
     Policy internal $userOpPolicies;
     Policy internal $erc1271Policies;
     EnumerableActionPolicy internal $actionPolicies;
@@ -49,7 +51,17 @@ abstract contract PermissionManagerBase is ERC7579ValidatorBase {
         $actionPolicies.enable({ signerId: signerId, actionPolicyDatas: actionPolicies, smartAccount: msg.sender });
     }
 
-    function removeSession(SignerId signerId) public {
+    function enableSessions(InstallSessions[] memory sessions) public {
+        uint256 length = sessions.length;
+        for (uint256 i; i < length; i++) {
+            SignerId signerId = sessions[i].signerId;
+            enableUserOpPolicies({ signerId: signerId, userOpPolicies: sessions[i].userOpPolicies });
+            enableERC1271Policies({ signerId: signerId, erc1271Policies: sessions[i].erc1271Policies });
+            enableActionPolicies({ signerId: signerId, actionPolicies: sessions[i].actions });
+        }
+    }
+
+    function removeSession(SignerId signerId) external {
         $userOpPolicies.policyList[signerId].disable(sessionId(signerId), msg.sender);
         $erc1271Policies.policyList[signerId].disable(sessionId(signerId), msg.sender);
 
@@ -60,6 +72,8 @@ abstract contract PermissionManagerBase is ERC7579ValidatorBase {
                 sessionId(signerId, actionId), msg.sender
             );
         }
+
+        emit SessionRemoved(signerId, msg.sender);
     }
 
     function setSigner(SignerId signerId, ISigner signer, bytes memory initData) public {
@@ -75,14 +89,7 @@ abstract contract PermissionManagerBase is ERC7579ValidatorBase {
         if (data.length == 0) return;
 
         InstallSessions[] memory sessions = abi.decode(data, (InstallSessions[]));
-
-        uint256 length = sessions.length;
-        for (uint256 i; i < length; i++) {
-            SignerId signerId = sessions[i].signerId;
-            enableUserOpPolicies({ signerId: signerId, userOpPolicies: sessions[i].userOpPolicies });
-            enableERC1271Policies({ signerId: signerId, erc1271Policies: sessions[i].erc1271Policies });
-            enableActionPolicies({ signerId: signerId, actionPolicies: sessions[i].actions });
-        }
+        enableSessions(sessions);
     }
 
     /**
@@ -97,6 +104,4 @@ abstract contract PermissionManagerBase is ERC7579ValidatorBase {
     function isModuleType(uint256 typeID) external pure override returns (bool) {
         return typeID == TYPE_VALIDATOR;
     }
-
-    function install(InstallSessions[] memory sessions) public { }
 }

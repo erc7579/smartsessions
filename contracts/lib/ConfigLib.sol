@@ -25,9 +25,8 @@ library ConfigLib {
     )
         internal
     {
-        uint256 lengthConfigs = policyDatas.length;
-
         // iterage over all policyData
+        uint256 lengthConfigs = policyDatas.length;
         for (uint256 i; i < lengthConfigs; i++) {
             PolicyData memory policyData = policyDatas[i];
 
