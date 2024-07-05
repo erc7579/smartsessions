@@ -1,55 +1,36 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity ^0.8.25;
 
 import { PackedUserOperation } from "modulekit/external/ERC4337.sol";
 import { EIP1271_MAGIC_VALUE, IERC1271 } from "module-bases/interfaces/IERC1271.sol";
 
 import {
-    ModeLib,
     ModeCode as ExecutionMode,
     ExecType,
     CallType,
     CALLTYPE_BATCH,
     CALLTYPE_SINGLE,
-    CALLTYPE_STATIC,
-    CALLTYPE_DELEGATECALL,
-    EXECTYPE_DEFAULT,
-    EXECTYPE_TRY
+    EXECTYPE_DEFAULT
 } from "erc7579/lib/ModeLib.sol";
 import { ExecutionLib } from "erc7579/lib/ExecutionLib.sol";
-import { ValidationDataLib } from "contracts/lib/ValidationDataLib.sol";
 
-import { IERC7579Account, Execution } from "erc7579/interfaces/IERC7579Account.sol";
-import { IModule as IERC7579Module } from "erc7579/interfaces/IERC7579Module.sol";
+import { IERC7579Account } from "erc7579/interfaces/IERC7579Account.sol";
 import { IAccountExecute } from "modulekit/external/ERC4337.sol";
-import { ISigner } from "contracts/interfaces/ISigner.sol";
-import { IUserOpPolicy, IActionPolicy, I1271Policy } from "contracts/interfaces/IPolicy.sol";
-import { IAccountConfig } from "contracts/interfaces/IAccountConfig.sol";
-import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
-
-import {
-    AddressArrayMap4337 as AddressVec,
-    Bytes32ArrayMap4337 as Bytes32Vec,
-    ArrayMap4337Lib as AddressVecLib
-} from "contracts/lib/ArrayMap4337Lib.sol";
+import { IUserOpPolicy, IActionPolicy } from "contracts/interfaces/IPolicy.sol";
 
 import { PolicyLib } from "./lib/PolicyLib.sol";
 import { SignerLib } from "./lib/SignerLib.sol";
 import { ConfigLib } from "./lib/ConfigLib.sol";
 import { SignatureDecodeLib } from "./lib/SignatureDecodeLib.sol";
-import { Execution, ExecutionLib } from "erc7579/lib/ExecutionLib.sol";
+import { ExecutionLib } from "erc7579/lib/ExecutionLib.sol";
 
-import "forge-std/console2.sol";
 import "./DataTypes.sol";
 import { SmartSessionBase } from "./SmartSessionBase.sol";
 
 /**
  * TODO:
- *     - Renounce policies and signers
- *         - disable trustedForwarder config for given SA !!!
  *     - Permissions hook (soending limits?)
  *     - Check Policies/Signers via Registry before enabling
- *     - In policies contracts, change signerId to id
  */
 
 /**
@@ -58,7 +39,6 @@ import { SmartSessionBase } from "./SmartSessionBase.sol";
  * @author Filipp Makarov (biconomy) & zeroknots.eth (rhinestone)
  */
 contract SmartSession is SmartSessionBase {
-    using AddressVecLib for *;
     using SentinelList4337Lib for SentinelList4337Lib.SentinelList;
     using PolicyLib for *;
     using SignerLib for *;
@@ -67,7 +47,8 @@ contract SmartSession is SmartSessionBase {
     using SignatureDecodeLib for *;
 
     error InvalidEnableSignature(address account, bytes32 hash);
-    error ExecuteUserOpIsNotSupported();
+    error UnsupportedExecutionType();
+    error InvalidUserOpSender(address sender);
 
     function validateUserOp(
         PackedUserOperation calldata userOp,
@@ -78,7 +59,7 @@ contract SmartSession is SmartSessionBase {
         returns (ValidationData vd)
     {
         address account = userOp.sender;
-        if (account != msg.sender) revert();
+        if (account != msg.sender) revert InvalidUserOpSender(account);
         (SmartSessionMode mode, bytes calldata packedSig) = userOp.decodeMode();
 
         if (mode == SmartSessionMode.ENABLE) {
@@ -91,6 +72,11 @@ contract SmartSession is SmartSessionBase {
         vd = _enforcePolicies(userOpHash, userOp, packedSig, account);
     }
 
+    /**
+     * Implements the capability to enable session keys during a userOp validation.
+     * The configuration of policies and signer are hashed and signed by the user, this function uses ERC1271
+     * to validate the signature of the user
+     */
     function _enablePolicies(
         bytes calldata packedSig,
         address account
@@ -101,21 +87,27 @@ contract SmartSession is SmartSessionBase {
         EnableSessions memory enableData;
         SignerId signerId;
         (enableData, signerId, permissionUseSig) = packedSig.decodePackedSigEnable();
-        bytes32 hash = signerId.digest(enableData); // TODO add signerId to hash
-        // require signature on account
+        bytes32 hash = signerId.digest(enableData);
 
+        // require signature on account
+        // this is critical as it is the only way to ensure that the user is aware of the policies and signer
+        // TODO: this might need a nonce to prevent replay attacks
         if (IERC1271(account).isValidSignature(hash, enableData.permissionEnableSig) != EIP1271_MAGIC_VALUE) {
             revert InvalidEnableSignature(account, hash);
         }
 
-        // enable ISigner for this sessionId
+        // enable ISigner for this session
         _enableISigner(signerId, account, enableData.isigner, enableData.isignerInitData);
 
+        // enable all policies for this session
         $userOpPolicies.enable({ signerId: signerId, policyDatas: enableData.userOpPolicies, smartAccount: account });
         $erc1271Policies.enable({ signerId: signerId, policyDatas: enableData.erc1271Policies, smartAccount: account });
         $actionPolicies.enable({ signerId: signerId, actionPolicyDatas: enableData.actions, smartAccount: account });
     }
 
+    /**
+     * Implements the capability enforce policies and check ISigner signature for a session
+     */
     function _enforcePolicies(
         bytes32 userOpHash,
         PackedUserOperation calldata userOp,
@@ -131,6 +123,8 @@ contract SmartSession is SmartSessionBase {
         /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
         /*                 Check SessionKey ISigner                   */
         /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
+
+        // this call reverts if the ISigner is not set or signature is invalid
         $isigners.requireValidISigner({
             userOpHash: userOpHash,
             account: account,
@@ -141,6 +135,7 @@ contract SmartSession is SmartSessionBase {
         /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
         /*                    Check UserOp Policies                   */
         /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
+        // check userOp policies. This reverts if policies are violated
         vd = $userOpPolicies.check({
             userOp: userOp,
             signer: signerId,
@@ -166,7 +161,7 @@ contract SmartSession is SmartSessionBase {
                 execType := shl(8, mode)
             }
             if (ExecType.unwrap(execType) != ExecType.unwrap(EXECTYPE_DEFAULT)) {
-                revert();
+                revert UnsupportedExecutionType();
             }
             // DEFAULT EXEC & BATCH CALL
             else if (callType == CALLTYPE_BATCH) {
@@ -183,13 +178,13 @@ contract SmartSession is SmartSessionBase {
                     callData: callData
                 });
             } else {
-                revert();
+                revert UnsupportedExecutionType();
             }
         }
-        // PermisisonManager does not support executeFromUserOp,
+        // SmartSession does not support executeFromUserOp,
         // should this function selector be used in the userOp: revert
         else if (selector == IAccountExecute.executeUserOp.selector) {
-            revert ExecuteUserOpIsNotSupported();
+            revert UnsupportedExecutionType();
         }
         /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
         /*                        Handle Actions                      */
@@ -215,6 +210,7 @@ contract SmartSession is SmartSessionBase {
         }
     }
 
+    // TODO: implement ERC1271 checks
     function isValidSignatureWithSender(
         address sender,
         bytes32 hash,

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+pragma solidity ^0.8.25;
+
 import "./lib/ArrayMap4337Lib.sol";
 import { SentinelList4337Lib } from "sentinellist/SentinelList4337.sol";
 import "./interfaces/ISigner.sol";

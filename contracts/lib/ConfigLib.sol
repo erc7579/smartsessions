@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+pragma solidity ^0.8.25;
+
 import "../DataTypes.sol";
 import {
     AddressArrayMap4337 as AddressVec,
@@ -17,6 +20,9 @@ library ConfigLib {
 
     event PolicyEnabled(SignerId signerId, address policy, address smartAccount);
 
+    /**
+     * Generic function to enable policies for a signerId
+     */
     function enable(
         Policy storage $policy,
         SignerId signerId,

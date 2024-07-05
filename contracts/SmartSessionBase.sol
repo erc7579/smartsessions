@@ -1,14 +1,11 @@
-import "./DataTypes.sol";
-import {
-    AddressArrayMap4337 as AddressVec,
-    Bytes32ArrayMap4337 as Bytes32Vec,
-    ArrayMap4337Lib as AddressVecLib
-} from "contracts/lib/ArrayMap4337Lib.sol";
+// SPDX-License-Identifier: AGPL-3.0-only
+pragma solidity ^0.8.25;
 
-import "./interfaces/ISigner.sol";
+import "./DataTypes.sol";
+
+import { ISigner } from "./interfaces/ISigner.sol";
 import { SentinelList4337Lib } from "sentinellist/SentinelList4337.sol";
-import { Bytes32ArrayMap4337, ArrayMap4337Lib } from "./lib/ArrayMap4337Lib.sol";
-import { ERC7579ValidatorBase, ERC7579ExecutorBase } from "modulekit/Modules.sol";
+import { ERC7579ValidatorBase } from "modulekit/Modules.sol";
 import { ConfigLib } from "./lib/ConfigLib.sol";
 import { SignatureDecodeLib } from "./lib/SignatureDecodeLib.sol";
 
@@ -27,7 +24,7 @@ abstract contract SmartSessionBase is ERC7579ValidatorBase {
     Policy internal $userOpPolicies;
     Policy internal $erc1271Policies;
     EnumerableActionPolicy internal $actionPolicies;
-    mapping(SignerId => mapping(address smartAccount => ISigner)) internal $isigners;
+    mapping(SignerId signerId => mapping(address smartAccount => ISigner)) internal $isigners;
 
     function _enableISigner(SignerId signerId, address account, ISigner isigner, bytes memory initData) internal {
         if (!isigner.supportsInterface(type(ISigner).interfaceId)) {
@@ -76,7 +73,7 @@ abstract contract SmartSessionBase is ERC7579ValidatorBase {
         emit SessionRemoved(signerId, msg.sender);
     }
 
-    function setSigner(SignerId signerId, ISigner signer, bytes memory initData) public {
+    function setSigner(SignerId signerId, ISigner signer, bytes memory initData) external {
         _enableISigner(signerId, msg.sender, signer, initData);
     }
 

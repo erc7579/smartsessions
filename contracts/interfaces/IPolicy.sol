@@ -2,7 +2,7 @@
 pragma solidity ^0.8.23;
 
 import { PackedUserOperation } from "modulekit/external/ERC4337.sol";
-import { IModule as IERC7579Module, VALIDATION_SUCCESS, VALIDATION_FAILED } from "erc7579/interfaces/IERC7579Module.sol";
+import { IModule as IERC7579Module } from "erc7579/interfaces/IERC7579Module.sol";
 import "../DataTypes.sol";
 import "forge-std/interfaces/IERC165.sol";
 

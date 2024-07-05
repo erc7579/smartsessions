@@ -10,6 +10,28 @@
     "freshcryptolib": "github:rdubois-crypto/FreshCryptoLib",
     "@rhinestone/sentinellist": "github:rhinestonewtf/sentinellist"
   },
+  "devDependencies": {
+    "@changesets/cli": "^2.27.2",
+    "solhint": "^5.0.1"
+  },
+  "scripts": {
+    "build": "forge build",
+    "fmt": "forge fmt",
+    "fmt:check": "forge fmt --check",
+    "build:cosigner": "FOUNDRY_PROFILE=cosigner forge build",
+    "clean": "rm -rf artifacts broadcast cache docs out out-optimized out-svg",
+    "gas:report": "forge test --gas-report --mp \"./test/integration/**/*.sol\" --nmt \"test(Fuzz)?_RevertWhen_\\w{1,}?\"",
+    "gas:snapshot": "forge snapshot --mp \"./test/integration/**/*.sol\" --nmt \"test(Fuzz)?_RevertWhen_\\w{1,}?\"",
+    "gas:snapshot:optimized": "pnpm run build:optimized && FOUNDRY_PROFILE=test-optimized forge snapshot --mp \"./test/integration/**/*.sol\" --nmt \"test(Fork)?(Fuzz)?_RevertWhen_\\w{1,}?\"",
+    "lint:sol": "forge fmt --check && pnpm solhint \"{script,src,test,contracts}/**/*.sol\"",
+    "test": "forge test",
+    "test:lite": "FOUNDRY_PROFILE=lite forge test",
+    "test:optimized": "pnpm run build:optimized && FOUNDRY_PROFILE=test-optimized forge test",
+    "test:accounts": "forge test && ACCOUNT_TYPE=SAFE forge test && ACCOUNT_TYPE=KERNEL forge test",
+    "changeset": "changeset",
+    "changeset:release": "pnpm build && changeset publish",
+    "changeset:version": "changeset version && pnpm install --lockfile-only"
+  },
   "files": [
     "contracts",
     "test",

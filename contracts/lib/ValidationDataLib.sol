@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-// credits @zeroknots @rhinestone
+// @author zeroknots rhinestone
 
 import { ERC7579ValidatorBase } from "modulekit/Modules.sol";
 

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+pragma solidity ^0.8.25;
+
 import "../DataTypes.sol";
 import { PackedUserOperation } from "modulekit/external/ERC4337.sol";
 import {

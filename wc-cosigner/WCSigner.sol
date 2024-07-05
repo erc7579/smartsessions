@@ -18,13 +18,14 @@ struct Config {
     WebAuthnValidatorData passkeySigner;
 }
 
-contract WCSigner is ISigner/*, TrustedForwarderWithId*/ {
+contract WCSigner is ISigner /*, TrustedForwarderWithId*/ {
     using PasskeyHelper for *;
 
     error InvalidPublicKey();
 
     mapping(address => uint256) public usedIds;
-    mapping(SessionId sessionId =>mapping(address multiplexer => mapping(address smartAccount => Config))) public signer;
+    mapping(SessionId sessionId => mapping(address multiplexer => mapping(address smartAccount => Config))) public
+        signer;
 
     // can use sender as argument here as the method is view
     // so even external calls with arbitrary sender can not break things
@@ -53,13 +54,11 @@ contract WCSigner is ISigner/*, TrustedForwarderWithId*/ {
         bool passkeyValid = config.passkeySigner.verifyPasskey(ethHash, sig2);
         console2.log(eoaValid, passkeyValid);
 
-
         if (eoaValid && passkeyValid) {
             return 0x1626ba7e;
         }
         return 0xffffffff;
     }
-
 
     function isInitialized(address smartAccount) external view returns (bool) {
         return usedIds[smartAccount] > 0;
@@ -71,7 +70,8 @@ contract WCSigner is ISigner/*, TrustedForwarderWithId*/ {
 
     function onInstall(bytes calldata data) external {
         // bytes32 signerId = bytes32(data[:32]);
-        // (address eoa, WebAuthnValidatorData memory signer2) = abi.decode(data[32:], (address, WebAuthnValidatorData));
+        // (address eoa, WebAuthnValidatorData memory signer2) = abi.decode(data[32:], (address,
+        // WebAuthnValidatorData));
         // Config storage config = signer[signerId][msg.sender];
         // config.passkeySigner = signer2;
         // config.eoaSigner = eoa;
@@ -79,9 +79,8 @@ contract WCSigner is ISigner/*, TrustedForwarderWithId*/ {
         // usedIds[msg.sender]++;
     }
 
-
     function initForAccount(address account, SessionId id, bytes calldata initData) external override {
-      console2.log("initForAccount");
+        console2.log("initForAccount");
 
         (address eoa, WebAuthnValidatorData memory signer2) = abi.decode(initData, (address, WebAuthnValidatorData));
         console2.log(eoa, signer2.pubKeyX, signer2.pubKeyY);
@@ -102,6 +101,7 @@ contract WCSigner is ISigner/*, TrustedForwarderWithId*/ {
     function supportsInterface(bytes4 sig) external view returns (bool) {
         return sig == type(ISigner).interfaceId;
     }
+
     function deinitForAccount(address account, SessionId id) external override { }
 
     function checkUserOpSignature(
@@ -111,8 +111,8 @@ contract WCSigner is ISigner/*, TrustedForwarderWithId*/ {
     )
         external
         payable
-        returns (uint256) {
-
-          return 1;
-        }
+        returns (uint256)
+    {
+        return 1;
+    }
 }
