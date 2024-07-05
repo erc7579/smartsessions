@@ -18,6 +18,17 @@
   libs = ["node_modules", "lib"]
   gas_reports_ignore = ["LockTest"]
 
+
+[profile.cosigner]
+  bytecode_hash = "none"
+  cbor_metadata = false
+  optimize = true
+  runs = 1000
+  via-ir = true
+  out = "out"
+  src = "wc-cosigner"
+  test = "none"
+
 [profile.ci]
   fuzz = { runs = 10_000 }
   verbosity = 4
