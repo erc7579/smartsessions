@@ -13,7 +13,7 @@ interface IPolicyInit is IERC165, IERC7579Module {
 
 interface IUserOpPolicy is IPolicyInit {
     // MUST implement mapping(id => msg.sender => userOp.sender => state);
-    function checkUserOp(SessionId id, PackedUserOperation calldata userOp) external returns (uint256);
+    function checkUserOpPolicy(SessionId id, PackedUserOperation calldata userOp) external returns (uint256);
 }
 
 interface IActionPolicy is IPolicyInit {

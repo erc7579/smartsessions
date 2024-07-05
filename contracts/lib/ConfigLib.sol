@@ -26,7 +26,6 @@ library ConfigLib {
         }
     }
 
-    // NOTE: ok
     function enable(
         Policy storage $policy,
         SignerId signerId,
@@ -54,7 +53,6 @@ library ConfigLib {
         }
     }
 
-    // NOTE: ok
     function enable(
         EnumerableActionPolicy storage $self,
         SignerId signerId,
@@ -74,37 +72,4 @@ library ConfigLib {
             );
         }
     }
-
-    // function enable(
-    //     EnumerableActionPolicy storage $self,
-    //     PolicyData[] memory policies,
-    //     ActionId actionId,
-    //     SignerId signerId,
-    //     address smartAccount
-    // )
-    //     internal
-    // {
-    //     $self.enabledActionIds.push(smartAccount, ActionId.unwrap(actionId));
-    //     $self.actionPolicies[actionId].enable(policies, signerId, smartAccount);
-    // }
-
-    // function enable(
-    //     Policy storage $policy,
-    //     PolicyData[] memory policies,
-    //     SignerId signerId,
-    //     address smartAccount
-    // )
-    //     internal
-    // {
-    //     uint256 lengthPolicies = policies.length;
-    //
-    //     for (uint256 i; i < lengthPolicies; i++) {
-    //         $policy.policyList[signerId].safePush(smartAccount, policies[i].policy);
-    //         IPolicyInit(policies[i].policy).initForAccount({
-    //             account: msg.sender,
-    //             id: sessionId(signerId),
-    //             initData: policies[i].initData
-    //         });
-    //     }
-    // }
 }

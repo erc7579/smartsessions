@@ -30,8 +30,10 @@ contract YesPolicy is IUserOpPolicy, IActionPolicy {
         return userOpState[id][msg.sender][account] != 0;
     }
 
-    function checkUserOp(SessionId id, PackedUserOperation calldata userOp) external override returns (uint256) {
+    function checkUserOpPolicy(SessionId id, PackedUserOperation calldata userOp) external override returns (uint256) {
         userOpState[id][msg.sender][userOp.sender] += 1;
+
+        return 0;
     }
 
     function checkAction(

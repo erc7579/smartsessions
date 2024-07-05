@@ -141,7 +141,7 @@ contract PermissionManager is PermissionManagerBase {
         vd = $userOpPolicies.check({
             userOp: userOp,
             signer: signerId,
-            callOnIPolicy: abi.encodeCall(IUserOpPolicy.checkUserOp, (sessionId(signerId), userOp)),
+            callOnIPolicy: abi.encodeCall(IUserOpPolicy.checkUserOpPolicy, (sessionId(signerId), userOp)),
             minPoliciesToEnforce: 1
         });
 

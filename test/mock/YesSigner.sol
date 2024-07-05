@@ -2,29 +2,38 @@
 
 pragma solidity ^0.8.23;
 
-import { ISignerValidator } from "contracts/interfaces/ISignerValidator.sol";
+import { PackedUserOperation, SessionId, ISigner } from "contracts/interfaces/ISigner.sol";
 import { ECDSA } from "solady/utils/ECDSA.sol";
 
 // removing trusted forwarder dependency here as it is only required during onInstall/onUninstall
 // and not during usage (checkSignature)
 // import { TrustedForwarderWithId } from "contracts/utils/TrustedForwarders.sol";
 
-contract YesSigner is ISignerValidator /*, TrustedForwarderWithId*/ {
+contract YesSigner is ISigner /*, TrustedForwarderWithId*/ {
     // can use sender as argument here as the method is view
     // so even external calls with arbitrary sender can not break things
     function checkSignature(
-        bytes32 signerId,
+        SessionId signerId,
         address sender,
         bytes32 hash,
         bytes calldata sig
     )
         external
         view
-        override
         returns (bytes4)
     {
         return 0x1626ba7e;
     }
+
+    function checkUserOpSignature(
+        bytes32 id,
+        PackedUserOperation calldata userOp,
+        bytes32 userOpHash
+    )
+        external
+        payable
+        returns (uint256)
+    { }
 
     function isInitialized(address smartAccount) external view returns (bool) {
         return true;

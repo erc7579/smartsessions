@@ -3,6 +3,7 @@ pragma solidity ^0.8.23;
 
 import { IModule as IERC7579Module } from "erc7579/interfaces/IERC7579Module.sol";
 import "../DataTypes.sol";
+import { PackedUserOperation } from "modulekit/external/ERC4337.sol";
 
 // Probably merge with Kernel's ISigner
 
@@ -16,4 +17,13 @@ interface ISigner is IERC7579Module {
         external
         view
         returns (bytes4);
+
+    function checkUserOpSignature(
+        bytes32 id,
+        PackedUserOperation calldata userOp,
+        bytes32 userOpHash
+    )
+        external
+        payable
+        returns (uint256);
 }

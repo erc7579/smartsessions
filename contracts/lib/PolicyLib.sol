@@ -36,36 +36,12 @@ library PolicyLib {
     using ValidationDataLib for ERC7579ValidatorBase.ValidationData;
 
     error PolicyAlreadyUsed(address policy);
+    error PolicyViolation(SignerId signerId, address policy);
     error UnsupportedCallType(CallType callType);
     error NoPoliciesSet(SignerId signerId);
 
-    /**
-     * Generic function that works with all policy types.
-     * @param $policies the storage mapping of the policies that need to be checked
-     * @param userOp 4337 userOp
-     * @param signer signerId that will be forwareded to the policies
-     * @param callOnIPolicy the calldata of what should be invoked on the policy
-     */
-    function check(
-        mapping(SignerId => AddressVec) storage $policies,
-        PackedUserOperation calldata userOp,
-        SignerId signer,
-        bytes memory callOnIPolicy
-    )
-        internal
-        returns (ERC7579ValidatorBase.ValidationData vd)
-    {
-        address account = userOp.sender;
-        AddressVec storage $addresses = $policies[signer];
-
-        uint256 length = $addresses.length(account);
-
-        // iterate over all policies and intersect the validation data
-        for (uint256 i; i < length; i++) {
-            address policy = $addresses.get(account, i);
-            uint256 validationDataFromPolicy = uint256(bytes32(policy.safeCall({ callData: callOnIPolicy })));
-            vd = vd.intersectValidationData(ERC7579ValidatorBase.ValidationData.wrap(validationDataFromPolicy));
-        }
+    function isFailed(ERC7579ValidatorBase.ValidationData packedData) internal pure returns (bool sigFailed) {
+        sigFailed = (ERC7579ValidatorBase.ValidationData.unwrap(packedData) & 1) == 1;
     }
 
     function check(
@@ -86,37 +62,10 @@ library PolicyLib {
         // iterate over all policies and intersect the validation data
         for (uint256 i; i < length; i++) {
             uint256 validationDataFromPolicy = uint256(bytes32(policies[i].safeCall({ callData: callOnIPolicy })));
-            vd = vd.intersectValidationData(ERC7579ValidatorBase.ValidationData.wrap(validationDataFromPolicy));
+            vd = ERC7579ValidatorBase.ValidationData.wrap(validationDataFromPolicy);
+            if (vd.isFailed()) revert PolicyViolation(signer, policies[i]);
+            vd = vd.intersectValidationData(vd);
         }
-    }
-
-    function checkSingle7579Exec(
-        mapping(ActionId => mapping(SignerId => AddressVec)) storage $policies,
-        PackedUserOperation calldata userOp,
-        SignerId signerId,
-        address target,
-        uint256 value,
-        bytes calldata callData
-    )
-        internal
-        returns (ERC7579ValidatorBase.ValidationData vd)
-    {
-        ActionId actionId = toActionId(target, callData);
-
-        vd = $policies[actionId].check({
-            userOp: userOp,
-            signer: signerId,
-            callOnIPolicy: abi.encodeCall(
-                IActionPolicy.checkAction,
-                (
-                    sessionId(signerId, actionId), // actionId
-                    userOp.sender,
-                    target, // target
-                    value, // value
-                    callData // data
-                )
-            )
-        });
     }
 
     function checkSingle7579Exec(

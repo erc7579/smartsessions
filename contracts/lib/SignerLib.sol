@@ -7,6 +7,7 @@ library SignerLib {
     bytes4 internal constant EIP1271_SUCCESS = 0x1626ba7e;
 
     error SignerNotFound(SignerId signerId, address account);
+    error InvalidSessionKeySignature(SignerId signerId, ISigner isigner, address account, bytes32 userOpHash);
 
     function requireValidISigner(
         mapping(SignerId => mapping(address => ISigner)) storage $isigners,
@@ -26,6 +27,6 @@ library SignerLib {
         if (
             isigner.checkSignature({ signerId: sessionId(signerId), sender: account, hash: userOpHash, sig: signature })
                 != EIP1271_SUCCESS
-        ) revert();
+        ) revert InvalidSessionKeySignature(signerId, isigner, account, userOpHash);
     }
 }
