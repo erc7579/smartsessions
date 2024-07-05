@@ -6,14 +6,14 @@ library SignatureDecodeLib {
     function decodeMode(PackedUserOperation calldata userOp)
         internal
         pure
-        returns (PermissionManagerMode mode, bytes calldata packedSig)
+        returns (SmartSessionMode mode, bytes calldata packedSig)
     {
-        mode = PermissionManagerMode(uint8(bytes1(userOp.signature[:1])));
+        mode = SmartSessionMode(uint8(bytes1(userOp.signature[:1])));
         packedSig = userOp.signature[1:];
     }
 
     function encodeUse(SignerId signerId, bytes memory packedSig) internal pure returns (bytes memory userOpSig) {
-        userOpSig = abi.encodePacked(PermissionManagerMode.USE, signerId, packedSig);
+        userOpSig = abi.encodePacked(SmartSessionMode.USE, signerId, packedSig);
     }
 
     function decodeUse(bytes calldata packedSig) internal pure returns (SignerId signerId, bytes calldata signature) {
@@ -43,7 +43,7 @@ library SignatureDecodeLib {
         pure
         returns (bytes memory packedSig)
     {
-        packedSig = abi.encodePacked(PermissionManagerMode.UNSAFE_ENABLE, signerId, abi.encode(useSig, enableData));
+        packedSig = abi.encodePacked(SmartSessionMode.UNSAFE_ENABLE, signerId, abi.encode(useSig, enableData));
     }
 
     // TODO: would be nice to use a custom EIP712 envelope here
@@ -86,7 +86,7 @@ library SignatureDecodeLib {
         returns (bytes memory enableData)
     {
         enableData = abi.encode(userOpPolicies, erc1271Policy, actionId, actionPolicies);
-        enableData = abi.encodePacked(PermissionManagerMode.UNSAFE_ENABLE, enableData);
+        enableData = abi.encodePacked(SmartSessionMode.UNSAFE_ENABLE, enableData);
     }
 
     function decodeInstall(bytes calldata enableData) internal pure returns (InstallSessions[] memory sessions) {

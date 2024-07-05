@@ -83,7 +83,7 @@ struct UninstallSessions {
     SignerId signerId;
 }
 
-enum PermissionManagerMode {
+enum SmartSessionMode {
     USE,
     ENABLE,
     UNSAFE_ENABLE

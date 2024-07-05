@@ -41,7 +41,7 @@ import { Execution, ExecutionLib } from "erc7579/lib/ExecutionLib.sol";
 
 import "forge-std/console2.sol";
 import "./DataTypes.sol";
-import { PermissionManagerBase } from "./PermissionManagerBase.sol";
+import { SmartSessionBase } from "./SmartSessionBase.sol";
 
 /**
  * TODO:
@@ -54,10 +54,10 @@ import { PermissionManagerBase } from "./PermissionManagerBase.sol";
 
 /**
  *
- * @title PermissionManager
+ * @title SmartSession
  * @author Filipp Makarov (biconomy) & zeroknots.eth (rhinestone)
  */
-contract PermissionManager is PermissionManagerBase {
+contract SmartSession is SmartSessionBase {
     using AddressVecLib for *;
     using SentinelList4337Lib for SentinelList4337Lib.SentinelList;
     using PolicyLib for *;
@@ -79,12 +79,12 @@ contract PermissionManager is PermissionManagerBase {
     {
         address account = userOp.sender;
         if (account != msg.sender) revert();
-        (PermissionManagerMode mode, bytes calldata packedSig) = userOp.decodeMode();
+        (SmartSessionMode mode, bytes calldata packedSig) = userOp.decodeMode();
 
-        if (mode == PermissionManagerMode.ENABLE) {
+        if (mode == SmartSessionMode.ENABLE) {
             // TODO: implement enable with registry.
             // registry check will break 4337 so it would make sense to have this in a opt in mode
-        } else if (mode == PermissionManagerMode.UNSAFE_ENABLE) {
+        } else if (mode == SmartSessionMode.UNSAFE_ENABLE) {
             packedSig = _enablePolicies(packedSig, account);
         }
 

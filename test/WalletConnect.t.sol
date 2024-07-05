@@ -1,4 +1,4 @@
-import "./PermissionV2.t.sol";
+import "./SmartSessionBase.t.sol";
 import { FCL_ecdsa_utils } from "freshcryptolib/FCL_ecdsa_utils.sol";
 import { Base64 } from "solady/utils/Base64.sol";
 import { P256 } from "wc-cosigner/P256.sol";
@@ -7,7 +7,7 @@ import { ECDSA } from "solady/utils/ECDSA.sol";
 
 uint256 constant n = 0xFFFFFFFF00000000FFFFFFFFFFFFFFFFBCE6FAADA7179E84F3B9CAC2FC632551;
 
-contract WalletConnectCoSigner is PermissionManagerBaseTest {
+contract WalletConnectCoSigner is SmartSessionBaseTest {
     using ModuleKitHelpers for *;
     using ModuleKitUserOp for *;
 
@@ -52,10 +52,10 @@ contract WalletConnectCoSigner is PermissionManagerBaseTest {
         bytes memory params = abi.encode(eoa.addr, WebAuthnValidatorData({ pubKeyX: x, pubKeyY: y }));
 
         vm.startPrank(instance.account);
-        permissionManager.setSigner(walletconnect, ISigner(address(cosigner)), params);
+        smartSession.setSigner(walletconnect, ISigner(address(cosigner)), params);
         PolicyData[] memory policyData = new PolicyData[](1);
         policyData[0] = PolicyData({ policy: address(yesPolicy), initData: "" });
-        permissionManager.enableUserOpPolicies(walletconnect, policyData);
+        smartSession.enableUserOpPolicies(walletconnect, policyData);
     }
 
     function test_exec_CoSigner() public {
@@ -63,7 +63,7 @@ contract WalletConnectCoSigner is PermissionManagerBaseTest {
             target: address(target),
             value: 0,
             callData: abi.encodeCall(MockTarget.setValue, (1337)),
-            txValidator: address(permissionManager)
+            txValidator: address(smartSession)
         });
 
         console2.log("userOpHash");

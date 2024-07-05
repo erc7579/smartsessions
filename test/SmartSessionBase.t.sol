@@ -11,7 +11,7 @@ import {
     UserOpData
 } from "modulekit/ModuleKit.sol";
 import { MODULE_TYPE_VALIDATOR, MODULE_TYPE_EXECUTOR, Execution } from "modulekit/external/ERC7579.sol";
-import { PermissionManager } from "contracts/PermissionManagerV2.sol";
+import { SmartSession } from "contracts/SmartSession.sol";
 import { SignatureDecodeLib } from "contracts/lib/SignatureDecodeLib.sol";
 import { ISigner } from "contracts/interfaces/ISigner.sol";
 import "contracts/DataTypes.sol";
@@ -23,14 +23,14 @@ import { EIP1271_MAGIC_VALUE, IERC1271 } from "module-bases/interfaces/IERC1271.
 
 import "forge-std/console2.sol";
 
-contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
+contract SmartSessionBaseTest is RhinestoneModuleKit, Test {
     using ModuleKitHelpers for *;
     using ModuleKitUserOp for *;
     using SignatureDecodeLib for SignerId;
 
     // account and modules
     AccountInstance internal instance;
-    PermissionManager internal permissionManager;
+    SmartSession internal smartSession;
     YesPolicy internal yesPolicy;
     YesSigner internal yesSigner;
 
@@ -50,7 +50,7 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
         defaultSigner1 = SignerId.wrap(bytes32(hex"01"));
         defaultSigner2 = SignerId.wrap(bytes32(hex"02"));
 
-        permissionManager = new PermissionManager();
+        smartSession = new SmartSession();
         target = new MockTarget();
         yesSigner = new YesSigner();
         yesPolicy = new YesPolicy();
@@ -59,16 +59,16 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
 
         instance.installModule({
             moduleTypeId: MODULE_TYPE_VALIDATOR,
-            module: address(permissionManager),
+            module: address(smartSession),
             data: abi.encode(installData)
         });
 
         vm.startPrank(instance.account);
-        permissionManager.setSigner(defaultSigner1, ISigner(address(yesSigner)), "");
+        smartSession.setSigner(defaultSigner1, ISigner(address(yesSigner)), "");
 
         PolicyData[] memory policyData = new PolicyData[](1);
         policyData[0] = PolicyData({ policy: address(yesPolicy), initData: "" });
-        permissionManager.enableUserOpPolicies(defaultSigner1, policyData);
+        smartSession.enableUserOpPolicies(defaultSigner1, policyData);
 
         vm.stopPrank();
     }
@@ -78,7 +78,7 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
             target: address(target),
             value: 0,
             callData: abi.encodeCall(MockTarget.setValue, (1337)),
-            txValidator: address(permissionManager)
+            txValidator: address(smartSession)
         });
 
         userOpData.userOp.signature =
@@ -91,7 +91,7 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
             target: address(target),
             value: 0,
             callData: abi.encodeCall(MockTarget.setValue, (1337)),
-            txValidator: address(permissionManager)
+            txValidator: address(smartSession)
         });
 
         PolicyData[] memory policyData = new PolicyData[](1);

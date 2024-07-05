@@ -12,7 +12,7 @@ import { ERC7579ValidatorBase, ERC7579ExecutorBase } from "modulekit/Modules.sol
 import { ConfigLib } from "./lib/ConfigLib.sol";
 import { SignatureDecodeLib } from "./lib/SignatureDecodeLib.sol";
 
-abstract contract PermissionManagerBase is ERC7579ValidatorBase {
+abstract contract SmartSessionBase is ERC7579ValidatorBase {
     using ConfigLib for *;
     using SignatureDecodeLib for *;
     using SentinelList4337Lib for SentinelList4337Lib.SentinelList;

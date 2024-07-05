@@ -10,7 +10,7 @@ import {
     UserOpData
 } from "modulekit/ModuleKit.sol";
 import { MODULE_TYPE_VALIDATOR, MODULE_TYPE_EXECUTOR, Execution } from "modulekit/external/ERC7579.sol";
-import { PermissionManager } from "contracts/validators/PermissionManager.sol";
+import { SmartSession } from "contracts/validators/SmartSession.sol";
 import { SimpleSigner } from "contracts/test/mocks/SimpleSigner.sol";
 import { UsageLimitPolicy } from "contracts/test/mocks/UsageLimitPolicy.sol";
 import { SimpleGasPolicy } from "contracts/test/mocks/SimpleGasPolicy.sol";
@@ -23,13 +23,13 @@ import { ModeLib } from "contracts/utils/lib/ModeLib.sol";
 
 import "forge-std/console2.sol";
 
-contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
+contract SmartSessionBaseTest is RhinestoneModuleKit, Test {
     using ModuleKitHelpers for *;
     using ModuleKitUserOp for *;
 
     // account and modules
     AccountInstance internal instance;
-    PermissionManager internal permissionManager;
+    SmartSession internal SmartSession;
     MockValidator mockValidator;
 
     bytes32 signerId;
@@ -55,8 +55,8 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
         counterContract = new Counter();
 
         // Create the validators
-        permissionManager = new PermissionManager();
-        vm.label(address(permissionManager), "PermissionManager");
+        SmartSession = new SmartSession();
+        vm.label(address(SmartSession), "SmartSession");
         mockValidator = new MockValidator();
         vm.label(address(mockValidator), "MockValidator");
 
@@ -73,8 +73,8 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
         timeFramePolicy = new TimeFramePolicy();
         vm.label(address(timeFramePolicy), "TimeFramePolicy");
 
-        // Create the account and install PermissionManager as a validator and as an executor
-        instance = makeAccountInstance("PermissionManager");
+        // Create the account and install SmartSession as a validator and as an executor
+        instance = makeAccountInstance("SmartSession");
         vm.deal(address(instance.account), 10 ether);
 
         (owner, ownerPk) = makeAddrAndKey("owner");
@@ -94,7 +94,7 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
 
         instance.installModule({
             moduleTypeId: MODULE_TYPE_EXECUTOR,
-            module: address(permissionManager),
+            module: address(SmartSession),
             data: abi.encodePacked(bytes1(uint8(MODULE_TYPE_EXECUTOR)))
         });
 
@@ -153,7 +153,7 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
 
         instance.installModule({
             moduleTypeId: MODULE_TYPE_VALIDATOR,
-            module: address(permissionManager),
+            module: address(SmartSession),
             data: permissionDataWithMode
         });
 
@@ -173,7 +173,7 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
             target: address(counterContract),
             value: value,
             callData: abi.encodeWithSelector(counterContract.incr.selector),
-            txValidator: address(permissionManager)
+            txValidator: address(SmartSession)
         });
 
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(sessionSigner1Pk, userOpData.userOpHash);
@@ -213,7 +213,7 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
 
         // Get the UserOp data (UserOperation and UserOperationHash)
         UserOpData memory userOpData =
-            instance.getExecOps({ executions: executions, txValidator: address(permissionManager) });
+            instance.getExecOps({ executions: executions, txValidator: address(SmartSession) });
 
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(sessionSigner1Pk, userOpData.userOpHash);
 
@@ -249,7 +249,7 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
         // SKIP FOR NOW
         // as 7579 reference implementation doesn't support it
 
-        // prepend the signature with PermissionManager-specific data
+        // prepend the signature with SmartSession-specific data
         bytes memory signature = abi.encodePacked(
             bytes1(0x00), //not enable mode
             signerId,
@@ -258,8 +258,8 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
             v
         );
 
-        // prepend the signature with PermissionManager address
-        signature = abi.encodePacked(address(permissionManager), signature);
+        // prepend the signature with SmartSession address
+        signature = abi.encodePacked(address(SmartSession), signature);
 
         // should not pass immediately
         assertEq(bytes4(0xFFFFFFFF), IERC1271(instance.account).isValidSignature(plainHash, signature));
@@ -275,7 +275,7 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
             abi.encodePacked("Signer Id for ", instance.account, simpleSignerValidator, block.timestamp + 1000)
         );
 
-        assertFalse(permissionManager.isSignerIdEnabledOnchain(newSignerId, instance.account));
+        assertFalse(SmartSession.isSignerIdEnabledOnchain(newSignerId, instance.account));
 
         uint256 value = 1 ether;
         uint256 prevBalance = address(counterContract).balance;
@@ -285,7 +285,7 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
             target: address(counterContract),
             value: value,
             callData: abi.encodeWithSelector(counterContract.incr.selector),
-            txValidator: address(permissionManager)
+            txValidator: address(SmartSession)
         });
 
         // ======== sign the userOp with the newly enabled signer ============================
@@ -344,7 +344,7 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
         //make new signerId
         bytes32 newSignerId = keccak256(abi.encodePacked("Signer Id for ", instance.account, simpleSignerValidator, block.timestamp+1000));
 
-        assertFalse(permissionManager.isSignerIdEnabledOnchain(newSignerId, instance.account));
+        assertFalse(SmartSession.isSignerIdEnabledOnchain(newSignerId, instance.account));
 
         uint256 value = 1 ether;
         uint256 prevBalance = address(counterContract).balance;
@@ -354,7 +354,7 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
             target: address(0),
             value: 0,
             callData: "",
-            txValidator: address(permissionManager)
+            txValidator: address(SmartSession)
         });
    
         // build the context
@@ -370,7 +370,7 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
             ownerPk
         );
 
-        uint192 nonceKey = uint192(uint160(address(permissionManager))) << 32;
+        uint192 nonceKey = uint192(uint160(address(SmartSession))) << 32;
         //console2.logBytes24(bytes24(nonceKey));
 
         bytes memory context = abi.encodePacked(
@@ -424,7 +424,7 @@ contract PermissionManagerBaseTest is RhinestoneModuleKit, Test {
             target: address(0),
             value: 0,
             callData: "",
-            txValidator: address(permissionManager)
+            txValidator: address(SmartSession)
         });
 
         nonce = userOpBuilder.getNonce(instance.account, context);
