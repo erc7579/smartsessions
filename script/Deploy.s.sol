@@ -12,7 +12,20 @@ contract DeploySmartPermission is Script {
     function _deploySmartSession() public returns (address) {
         uint256 privKey = vm.envUint("PRIVATE_KEY");
         console2.log("Deployer Addr: ", vm.addr(privKey));
-        vm.broadcast(privKey);
+        vm.startBroadcast(privKey);
+
+
+        // Create the signer validator
+        bytes memory bytecode = abi.encodePacked(vm.getCode("./out/WCSigner.sol/WCSigner.json"));
+
+        address anotherAddress;
+        address cosigner;
+        assembly {
+            anotherAddress := create(0, add(bytecode, 0x20), mload(bytecode))
+        }
+        cosigner = anotherAddress;
+        console2.log("WalletConnect CoSigner Addr: ", cosigner);
+        vm.label(cosigner, "WalletConnect CoSigner");
 
         // Deploy SmartPermission
         SmartSession smartSession = new SmartSession();
