@@ -17,7 +17,7 @@ library SignerLib {
         bytes32 userOpHash,
         address account,
         SignerId signerId,
-        bytes calldata signature
+        bytes memory signature
     )
         internal
         view

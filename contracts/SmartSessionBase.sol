@@ -7,11 +7,11 @@ import { ISigner } from "./interfaces/ISigner.sol";
 import { SentinelList4337Lib } from "sentinellist/SentinelList4337.sol";
 import { ERC7579ValidatorBase } from "modulekit/Modules.sol";
 import { ConfigLib } from "./lib/ConfigLib.sol";
-import { SignatureDecodeLib } from "./lib/SignatureDecodeLib.sol";
+import { EncodeLib } from "./lib/EncodeLib.sol";
 
 abstract contract SmartSessionBase is ERC7579ValidatorBase {
     using ConfigLib for *;
-    using SignatureDecodeLib for *;
+    using EncodeLib for *;
     using SentinelList4337Lib for SentinelList4337Lib.SentinelList;
     using ArrayMap4337Lib for *;
     using ConfigLib for Policy;
