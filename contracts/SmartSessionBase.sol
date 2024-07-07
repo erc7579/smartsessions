@@ -25,6 +25,7 @@ abstract contract SmartSessionBase is ERC7579ValidatorBase {
     Policy internal $erc1271Policies;
     EnumerableActionPolicy internal $actionPolicies;
     mapping(SignerId signerId => mapping(address smartAccount => ISigner)) internal $isigners;
+    mapping(SignerId signerId => mapping(address smartAccount => uint256 nonce)) internal $signerNonce;
 
     function _enableISigner(SignerId signerId, address account, ISigner isigner, bytes memory initData) internal {
         if (!isigner.supportsInterface(type(ISigner).interfaceId)) {
@@ -100,5 +101,18 @@ abstract contract SmartSessionBase is ERC7579ValidatorBase {
 
     function isModuleType(uint256 typeID) external pure override returns (bool) {
         return typeID == TYPE_VALIDATOR;
+    }
+
+    function getDigest(
+        SignerId signerId,
+        address account,
+        EnableSessions memory data
+    )
+        external
+        view
+        returns (bytes32)
+    {
+        uint256 nonce = $signerNonce[signerId][account];
+        return signerId.digest(nonce, data);
     }
 }

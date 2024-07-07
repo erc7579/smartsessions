@@ -105,11 +105,11 @@ contract SmartSession is SmartSessionBase {
     {
         EnableSessions memory enableData;
         (enableData, permissionUseSig) = packedSig.decodeEnable();
-        bytes32 hash = signerId.digest(enableData);
+        uint256 nonce = ++$signerNonce[signerId][account];
+        bytes32 hash = signerId.digest(nonce, enableData);
 
         // require signature on account
         // this is critical as it is the only way to ensure that the user is aware of the policies and signer
-        // TODO: this might need a nonce to prevent replay attacks
         if (IERC1271(account).isValidSignature(hash, enableData.permissionEnableSig) != EIP1271_MAGIC_VALUE) {
             revert InvalidEnableSignature(account, hash);
         }
