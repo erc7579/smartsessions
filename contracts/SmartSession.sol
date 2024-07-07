@@ -21,11 +21,12 @@ import { IUserOpPolicy, IActionPolicy } from "contracts/interfaces/IPolicy.sol";
 import { PolicyLib } from "./lib/PolicyLib.sol";
 import { SignerLib } from "./lib/SignerLib.sol";
 import { ConfigLib } from "./lib/ConfigLib.sol";
-import { SignatureDecodeLib } from "./lib/SignatureDecodeLib.sol";
+import { EncodeLib } from "./lib/EncodeLib.sol";
 import { ExecutionLib } from "erc7579/lib/ExecutionLib.sol";
 
 import "./DataTypes.sol";
 import { SmartSessionBase } from "./SmartSessionBase.sol";
+import "forge-std/console2.sol";
 
 /**
  * TODO:
@@ -36,7 +37,7 @@ import { SmartSessionBase } from "./SmartSessionBase.sol";
 /**
  *
  * @title SmartSession
- * @author Filipp Makarov (biconomy) & zeroknots.eth (rhinestone)
+ * @author zeroknots.eth (rhinestone) & Filipp Makarov (biconomy)
  */
 contract SmartSession is SmartSessionBase {
     using SentinelList4337Lib for SentinelList4337Lib.SentinelList;
@@ -44,10 +45,11 @@ contract SmartSession is SmartSessionBase {
     using SignerLib for *;
     using ConfigLib for *;
     using ExecutionLib for *;
-    using SignatureDecodeLib for *;
+    using EncodeLib for *;
 
     error InvalidEnableSignature(address account, bytes32 hash);
     error UnsupportedExecutionType();
+    error UnsupportedSmartSessionMode(SmartSessionMode mode);
     error InvalidUserOpSender(address sender);
 
     function validateUserOp(
@@ -60,16 +62,32 @@ contract SmartSession is SmartSessionBase {
     {
         address account = userOp.sender;
         if (account != msg.sender) revert InvalidUserOpSender(account);
-        (SmartSessionMode mode, bytes calldata packedSig) = userOp.decodeMode();
+        (SmartSessionMode mode, SignerId signerId, bytes calldata packedSig) = userOp.signature.unpackMode();
 
-        if (mode == SmartSessionMode.ENABLE) {
+        if (mode == SmartSessionMode.USE) {
+            vd = _enforcePolicies({
+                signerId: signerId,
+                userOpHash: userOpHash,
+                userOp: userOp,
+                decompressedSignature: packedSig.decodeUse(),
+                account: account
+            });
+        } else if (mode == SmartSessionMode.ENABLE) {
             // TODO: implement enable with registry.
             // registry check will break 4337 so it would make sense to have this in a opt in mode
         } else if (mode == SmartSessionMode.UNSAFE_ENABLE) {
-            packedSig = _enablePolicies(packedSig, account);
+            bytes memory usePermissionSig =
+                _enablePolicies({ signerId: signerId, packedSig: packedSig, account: account });
+            vd = _enforcePolicies({
+                signerId: signerId,
+                userOpHash: userOpHash,
+                userOp: userOp,
+                decompressedSignature: usePermissionSig,
+                account: account
+            });
+        } else {
+            revert UnsupportedSmartSessionMode(mode);
         }
-
-        vd = _enforcePolicies(userOpHash, userOp, packedSig, account);
     }
 
     /**
@@ -78,20 +96,20 @@ contract SmartSession is SmartSessionBase {
      * to validate the signature of the user
      */
     function _enablePolicies(
+        SignerId signerId,
         bytes calldata packedSig,
         address account
     )
         internal
-        returns (bytes calldata permissionUseSig)
+        returns (bytes memory permissionUseSig)
     {
         EnableSessions memory enableData;
-        SignerId signerId;
-        (enableData, signerId, permissionUseSig) = packedSig.decodePackedSigEnable();
-        bytes32 hash = signerId.digest(enableData);
+        (enableData, permissionUseSig) = packedSig.decodeEnable();
+        uint256 nonce = ++$signerNonce[signerId][account];
+        bytes32 hash = signerId.digest(nonce, enableData);
 
         // require signature on account
         // this is critical as it is the only way to ensure that the user is aware of the policies and signer
-        // TODO: this might need a nonce to prevent replay attacks
         if (IERC1271(account).isValidSignature(hash, enableData.permissionEnableSig) != EIP1271_MAGIC_VALUE) {
             revert InvalidEnableSignature(account, hash);
         }
@@ -109,17 +127,15 @@ contract SmartSession is SmartSessionBase {
      * Implements the capability enforce policies and check ISigner signature for a session
      */
     function _enforcePolicies(
+        SignerId signerId,
         bytes32 userOpHash,
         PackedUserOperation calldata userOp,
-        bytes calldata signature,
+        bytes memory decompressedSignature,
         address account
     )
         internal
         returns (ValidationData vd)
     {
-        SignerId signerId;
-        (signerId, signature) = signature.decodeUse();
-
         /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
         /*                 Check SessionKey ISigner                   */
         /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
@@ -129,7 +145,7 @@ contract SmartSession is SmartSessionBase {
             userOpHash: userOpHash,
             account: account,
             signerId: signerId,
-            signature: signature
+            signature: decompressedSignature
         });
 
         /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/

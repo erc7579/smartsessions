@@ -12,10 +12,10 @@ import {
 } from "modulekit/ModuleKit.sol";
 import { MODULE_TYPE_VALIDATOR, MODULE_TYPE_EXECUTOR, Execution } from "modulekit/external/ERC7579.sol";
 import { SmartSession } from "contracts/SmartSession.sol";
-import { SignatureDecodeLib } from "contracts/lib/SignatureDecodeLib.sol";
+import { EncodeLib } from "contracts/lib/EncodeLib.sol";
 import { ISigner } from "contracts/interfaces/ISigner.sol";
 import "contracts/DataTypes.sol";
-import { SignatureDecodeLib } from "contracts/lib/SignatureDecodeLib.sol";
+import { EncodeLib } from "contracts/lib/EncodeLib.sol";
 import { YesSigner } from "./mock/YesSigner.sol";
 import { MockTarget } from "./mock/MockTarget.sol";
 import { YesPolicy } from "./mock/YesPolicy.sol";
@@ -26,7 +26,7 @@ import "forge-std/console2.sol";
 contract SmartSessionBaseTest is RhinestoneModuleKit, Test {
     using ModuleKitHelpers for *;
     using ModuleKitUserOp for *;
-    using SignatureDecodeLib for SignerId;
+    using EncodeLib for SignerId;
 
     // account and modules
     AccountInstance internal instance;
@@ -81,8 +81,7 @@ contract SmartSessionBaseTest is RhinestoneModuleKit, Test {
             txValidator: address(smartSession)
         });
 
-        userOpData.userOp.signature =
-            SignatureDecodeLib.encodeUse({ signerId: defaultSigner1, packedSig: hex"4141414141" });
+        userOpData.userOp.signature = EncodeLib.encodeUse({ signerId: defaultSigner1, packedSig: hex"4141414141" });
         userOpData.execUserOps();
     }
 
@@ -109,11 +108,10 @@ contract SmartSessionBaseTest is RhinestoneModuleKit, Test {
             permissionEnableSig: ""
         });
 
-        bytes32 hash = defaultSigner2.digest(enableData);
+        bytes32 hash = smartSession.getDigest(defaultSigner2, instance.account, enableData);
         enableData.permissionEnableSig = abi.encodePacked(instance.defaultValidator, sign(hash, 1));
 
-        userOpData.userOp.signature =
-            SignatureDecodeLib.encodePackedSigEnable(defaultSigner2, hex"41414141", enableData);
+        userOpData.userOp.signature = EncodeLib.encodeEnable(defaultSigner2, hex"4141414142", enableData);
         console2.log("enable withing sesison");
         userOpData.execUserOps();
     }

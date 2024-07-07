@@ -75,7 +75,7 @@ contract WalletConnectCoSigner is SmartSessionBaseTest {
         bytes memory passkeySig = _rootSignDigest(passkey.key, ethHash, true);
 
         userOpData.userOp.signature =
-            SignatureDecodeLib.encodeUse({ signerId: walletconnect, packedSig: abi.encode(eoaSig, passkeySig) });
+            EncodeLib.encodeUse({ signerId: walletconnect, packedSig: abi.encode(eoaSig, passkeySig) });
         userOpData.execUserOps();
     }
 

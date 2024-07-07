@@ -7,11 +7,11 @@ import { ISigner } from "./interfaces/ISigner.sol";
 import { SentinelList4337Lib } from "sentinellist/SentinelList4337.sol";
 import { ERC7579ValidatorBase } from "modulekit/Modules.sol";
 import { ConfigLib } from "./lib/ConfigLib.sol";
-import { SignatureDecodeLib } from "./lib/SignatureDecodeLib.sol";
+import { EncodeLib } from "./lib/EncodeLib.sol";
 
 abstract contract SmartSessionBase is ERC7579ValidatorBase {
     using ConfigLib for *;
-    using SignatureDecodeLib for *;
+    using EncodeLib for *;
     using SentinelList4337Lib for SentinelList4337Lib.SentinelList;
     using ArrayMap4337Lib for *;
     using ConfigLib for Policy;
@@ -25,6 +25,7 @@ abstract contract SmartSessionBase is ERC7579ValidatorBase {
     Policy internal $erc1271Policies;
     EnumerableActionPolicy internal $actionPolicies;
     mapping(SignerId signerId => mapping(address smartAccount => ISigner)) internal $isigners;
+    mapping(SignerId signerId => mapping(address smartAccount => uint256 nonce)) internal $signerNonce;
 
     function _enableISigner(SignerId signerId, address account, ISigner isigner, bytes memory initData) internal {
         if (!isigner.supportsInterface(type(ISigner).interfaceId)) {
@@ -100,5 +101,18 @@ abstract contract SmartSessionBase is ERC7579ValidatorBase {
 
     function isModuleType(uint256 typeID) external pure override returns (bool) {
         return typeID == TYPE_VALIDATOR;
+    }
+
+    function getDigest(
+        SignerId signerId,
+        address account,
+        EnableSessions memory data
+    )
+        external
+        view
+        returns (bytes32)
+    {
+        uint256 nonce = $signerNonce[signerId][account];
+        return signerId.digest(nonce, data);
     }
 }
