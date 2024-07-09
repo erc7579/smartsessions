@@ -9,9 +9,12 @@ type SignerId is bytes32;
 
 type ActionId is bytes32;
 
+type UserOpPolicyId is bytes32;
 type ActionPolicyId is bytes32;
+type Erc1271PolicyId is bytes32;
 
-type SignedActionId is bytes32;
+
+// type SignedActionId is bytes32;
 
 type SessionId is bytes32;
 
@@ -19,30 +22,48 @@ function toSignerId(address account, ISigner isigner) view returns (SignerId sig
     signerId = SignerId.wrap(keccak256(abi.encodePacked("Signer Id for ", account, address(isigner), block.timestamp)));
 }
 
+function toUserOpPolicyId(SignerId signerId) view returns (UserOpPolicyId userOpPolicyId) {
+    userOpPolicyId = UserOpPolicyId.wrap(SignerId.unwrap(signerId));
+}
+
 function toActionId(address target, bytes calldata data) pure returns (ActionId actionId) {
     actionId = ActionId.wrap(keccak256(abi.encodePacked(target, data.length >= 4 ? bytes4(data[0:4]) : bytes4(0))));
 }
 
 function toActionPolicyId(SignerId signerId, ActionId actionId) pure returns (ActionPolicyId policyId) {
-    policyId = ActionPolicyId.wrap(keccak256(abi.encodePacked(SignerId.unwrap(signerId), ActionId.unwrap(actionId))));
+    policyId = ActionPolicyId.wrap(keccak256(abi.encodePacked(signerId, actionId)));
 }
 
-function toSignedActionId(SignerId signerId, ActionId actionId) pure returns (SignedActionId policyId) {
-    policyId = SignedActionId.wrap(
-        keccak256(abi.encodePacked("ERC1271: ", SignerId.unwrap(signerId), ActionId.unwrap(actionId)))
+function toErc1271PolicyId(SignerId signerId) view returns (Erc1271PolicyId erc1271PolicyId) {
+    erc1271PolicyId = Erc1271PolicyId.wrap(
+        keccak256(abi.encodePacked("ERC1271: ", signerId))
     );
 }
 
+/* function toSignedActionId(SignerId signerId, ActionId actionId) pure returns (SignedActionId policyId) {
+    policyId = SignedActionId.wrap(
+        keccak256(abi.encodePacked("ERC1271: ", SignerId.unwrap(signerId), ActionId.unwrap(actionId)))
+    );
+} */
+
 function sessionId(SignerId signerId) view returns (SessionId _id) {
-    _id = SessionId.wrap(keccak256(abi.encodePacked(msg.sender, SignerId.unwrap(signerId))));
+    _id = SessionId.wrap(keccak256(abi.encodePacked(msg.sender, signerId)));
 }
 
-function sessionId(ActionPolicyId signerId) view returns (SessionId _id) {
-    _id = SessionId.wrap(keccak256(abi.encodePacked(msg.sender, ActionPolicyId.unwrap(signerId))));
+function sessionId(UserOpPolicyId userOpPolicyId) view returns (SessionId _id) {
+    _id = SessionId.wrap(keccak256(abi.encodePacked(msg.sender, userOpPolicyId)));
+}
+
+function sessionId(ActionPolicyId actionPolicyId) view returns (SessionId _id) {
+    _id = SessionId.wrap(keccak256(abi.encodePacked(msg.sender, actionPolicyId)));
 }
 
 function sessionId(SignerId signerId, ActionId actionId) view returns (SessionId _id) {
     _id = sessionId(toActionPolicyId(signerId, actionId));
+}
+
+function sessionId(Erc1271PolicyId erc1271PolicyId) view returns (SessionId _id) {
+    _id = SessionId.wrap(keccak256(abi.encodePacked(msg.sender, erc1271PolicyId)));
 }
 
 // InstallSessions[] sessions;

@@ -25,6 +25,8 @@ library SignerLib {
         ISigner isigner = $isigners[signerId][account];
         if (address(isigner) == address(0)) revert SignerNotFound(signerId, account);
 
+        // TODO: Account for NO_SIGNATURE_VERIFICATION_REQUIRED case
+
         // check signature of ISigner first.
         // policies only need to be processed if the signature is correct
         if (

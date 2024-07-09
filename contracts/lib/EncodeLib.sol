@@ -30,6 +30,8 @@ library EncodeLib {
         returns (bytes memory packed)
     {
         packed = abi.encodePacked(mode, signerId, data);
+        console2.log("data");
+        console2.logBytes(packed);
     }
 
     function unpackMode(bytes calldata packed)

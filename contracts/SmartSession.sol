@@ -30,7 +30,7 @@ import "forge-std/console2.sol";
 
 /**
  * TODO:
- *     - Permissions hook (soending limits?)
+ *     - Permissions hook (spending limits?)
  *     - Check Policies/Signers via Registry before enabling
  */
 
@@ -118,8 +118,8 @@ contract SmartSession is SmartSessionBase {
         _enableISigner(signerId, account, enableData.isigner, enableData.isignerInitData);
 
         // enable all policies for this session
-        $userOpPolicies.enable({ signerId: signerId, policyDatas: enableData.userOpPolicies, smartAccount: account });
-        $erc1271Policies.enable({ signerId: signerId, policyDatas: enableData.erc1271Policies, smartAccount: account });
+        $userOpPolicies.enable({ signerId: signerId, sessionId: sessionId(toUserOpPolicyId(signerId)), policyDatas: enableData.userOpPolicies, smartAccount: account });
+        $erc1271Policies.enable({ signerId: signerId, sessionId: sessionId(toErc1271PolicyId(signerId)), policyDatas: enableData.erc1271Policies, smartAccount: account });
         $actionPolicies.enable({ signerId: signerId, actionPolicyDatas: enableData.actions, smartAccount: account });
     }
 

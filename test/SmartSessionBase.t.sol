@@ -112,7 +112,7 @@ contract SmartSessionBaseTest is RhinestoneModuleKit, Test {
         enableData.permissionEnableSig = abi.encodePacked(instance.defaultValidator, sign(hash, 1));
 
         userOpData.userOp.signature = EncodeLib.encodeEnable(defaultSigner2, hex"4141414142", enableData);
-        console2.log("enable withing sesison");
+        console2.log("enable within session");
         userOpData.execUserOps();
     }
 

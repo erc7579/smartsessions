@@ -38,11 +38,11 @@ abstract contract SmartSessionBase is ERC7579ValidatorBase {
     }
 
     function enableUserOpPolicies(SignerId signerId, PolicyData[] memory userOpPolicies) public {
-        $userOpPolicies.enable({ signerId: signerId, policyDatas: userOpPolicies, smartAccount: msg.sender });
+        $userOpPolicies.enable({ signerId: signerId, sessionId: sessionId(toUserOpPolicyId(signerId)), policyDatas: userOpPolicies, smartAccount: msg.sender });
     }
 
     function enableERC1271Policies(SignerId signerId, PolicyData[] memory erc1271Policies) public {
-        $erc1271Policies.enable({ signerId: signerId, policyDatas: erc1271Policies, smartAccount: msg.sender });
+        $erc1271Policies.enable({ signerId: signerId, sessionId: sessionId(toErc1271PolicyId(signerId)), policyDatas: erc1271Policies, smartAccount: msg.sender });
     }
 
     function enableActionPolicies(SignerId signerId, ActionData[] memory actionPolicies) public {

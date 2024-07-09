@@ -26,6 +26,7 @@ library ConfigLib {
     function enable(
         Policy storage $policy,
         SignerId signerId,
+        SessionId sessionId,
         PolicyData[] memory policyDatas,
         address smartAccount
     )
@@ -42,7 +43,7 @@ library ConfigLib {
             // initialize sub policy for account
             ISubPermission(policy).initForAccount({
                 account: smartAccount,
-                id: sessionId(signerId),
+                id: sessionId,
                 initData: policyData.initData
             });
 
@@ -64,9 +65,11 @@ library ConfigLib {
         for (uint256 i; i < length; i++) {
             // record every enabled actionId
             ActionData memory actionPolicyData = actionPolicyDatas[i];
-            $self.enabledActionIds.push(smartAccount, ActionId.unwrap(actionPolicyData.actionId));
-            $self.actionPolicies[actionPolicyData.actionId].enable(
-                signerId, actionPolicyData.actionPolicies, smartAccount
+            ActionId actionId = actionPolicyData.actionId;
+            $self.enabledActionIds.push(smartAccount, ActionId.unwrap(actionId));
+            SessionId sessionId = sessionId(signerId, actionId);
+            $self.actionPolicies[actionId].enable(
+                signerId, sessionId, actionPolicyData.actionPolicies, smartAccount
             );
         }
     }
