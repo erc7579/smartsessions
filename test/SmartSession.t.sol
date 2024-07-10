@@ -155,7 +155,7 @@ contract SmartSessionTest is RhinestoneModuleKit, Test {
         });
 
         bytes32 hash = smartSession.getDigest(defaultSigner2, instance.account, enableData);
-        enableData.permissionEnableSig = abi.encodePacked(instance.defaultValidator, sign(hash, owner.key));
+        enableData.permissionEnableSig = abi.encodePacked(address(mockK1), sign(hash, owner.key));
 
         bytes memory rawSig = sign(userOpData.userOpHash, sessionSigner1.key);
         userOpData.userOp.signature = EncodeLib.encodeEnable(defaultSigner2, rawSig, enableData);

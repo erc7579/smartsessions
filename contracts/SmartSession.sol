@@ -110,7 +110,7 @@ contract SmartSession is SmartSessionBase {
     {
         EnableSessions memory enableData;
         (enableData, permissionUseSig) = packedSig.decodeEnable();
-        uint256 nonce = ++$signerNonce[signerId][account];
+        uint256 nonce = $signerNonce[signerId][account]++;
         bytes32 hash = signerId.digest(nonce, enableData);
 
         // require signature on account
@@ -243,4 +243,12 @@ contract SmartSession is SmartSessionBase {
         override
         returns (bytes4 sigValidationResult)
     { }
+
+    function isPermissionEnabled(
+        SignerId signerId,
+        address smartAccount,
+        bytes calldata permEnableData
+    ) external view returns (bool isEnabled) {
+
+    }
 }
