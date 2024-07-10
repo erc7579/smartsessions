@@ -69,7 +69,6 @@ contract SmartSessionBaseTest is RhinestoneModuleKit, Test {
         PolicyData[] memory policyData = new PolicyData[](1);
         policyData[0] = PolicyData({ policy: address(yesPolicy), initData: "" });
         smartSession.enableUserOpPolicies(defaultSigner1, policyData);
-
         vm.stopPrank();
     }
 

@@ -12,7 +12,7 @@ import {
     CALLTYPE_SINGLE,
     EXECTYPE_DEFAULT
 } from "erc7579/lib/ModeLib.sol";
-import { ExecutionLib } from "erc7579/lib/ExecutionLib.sol";
+import { ExecutionLib2 as ExecutionLib } from "./lib/ExecutionLib2.sol";
 
 import { IERC7579Account } from "erc7579/interfaces/IERC7579Account.sol";
 import { IAccountExecute } from "modulekit/external/ERC4337.sol";
@@ -22,7 +22,6 @@ import { PolicyLib } from "./lib/PolicyLib.sol";
 import { SignerLib } from "./lib/SignerLib.sol";
 import { ConfigLib } from "./lib/ConfigLib.sol";
 import { EncodeLib } from "./lib/EncodeLib.sol";
-import { ExecutionLib } from "erc7579/lib/ExecutionLib.sol";
 
 import "./DataTypes.sol";
 import { SmartSessionBase } from "./SmartSessionBase.sol";
@@ -33,6 +32,7 @@ import "forge-std/console2.sol";
  *     - The flow where permission doesn't enable the new signer, just adds policies for the existing one
  *     - MultiChain Permission Enable Data (chainId is in EncodeLib.digest now)
  *     - 'No Signature verification required' flow 
+ *     - No policies (sudo) flow. What do we do with minPoliciesToEnforce ?
  *     - ERC-1271 (security => do not allow validating sig requests from itself)
  *     - Renouncing permissions
  *     - Permissions hook (spending limits?)
@@ -190,7 +190,7 @@ contract SmartSession is SmartSessionBase {
             }
             // DEFAULT EXEC & SINGLE CALL
             else if (callType == CALLTYPE_SINGLE) {
-                (address target, uint256 value, bytes calldata callData) = userOp.callData.decodeSingle();
+                (address target, uint256 value, bytes calldata callData) = userOp.callData.decodeUserOpCallData().decodeSingle();
                 vd = $actionPolicies.actionPolicies.checkSingle7579Exec({
                     userOp: userOp,
                     signerId: signerId,
@@ -220,10 +220,10 @@ contract SmartSession is SmartSessionBase {
                     IActionPolicy.checkAction,
                     (
                         sessionId({ signerId: signerId, actionId: actionId }), // actionId
-                        userOp.sender, // TODO: check if this is correct
                         userOp.sender, // target
                         0, // value
-                        userOp.callData // data
+                        userOp.callData, // data
+                        userOp
                     )
                 ),
                 minPoliciesToEnforce: 0

@@ -9,7 +9,8 @@ import {
     ArrayMap4337Lib as AddressVecLib
 } from "contracts/lib/ArrayMap4337Lib.sol";
 
-import { Execution, ExecutionLib } from "erc7579/lib/ExecutionLib.sol";
+import { Execution, ExecutionLib2 as ExecutionLib } from "./ExecutionLib2.sol";
+
 import "forge-std/console2.sol";
 
 import {
@@ -56,7 +57,7 @@ library PolicyLib {
     )
         internal
         returns (ERC7579ValidatorBase.ValidationData vd)
-    {
+    {   
         address account = userOp.sender;
         (address[] memory policies,) = $self.policyList[signer].getEntriesPaginated(account, SENTINEL, 32);
         uint256 length = policies.length;
@@ -83,7 +84,6 @@ library PolicyLib {
         returns (ERC7579ValidatorBase.ValidationData vd)
     {
         ActionId actionId = toActionId(target, callData);
-
         vd = $policies[actionId].check({
             userOp: userOp,
             signer: signerId,
@@ -91,10 +91,10 @@ library PolicyLib {
                 IActionPolicy.checkAction,
                 (
                     sessionId(signerId, actionId), // actionId
-                    userOp.sender,
                     target, // target
                     value, // value
-                    callData // data
+                    callData, // data
+                    userOp
                 )
             ),
             minPoliciesToEnforce: 0
@@ -109,7 +109,7 @@ library PolicyLib {
         internal
         returns (ERC7579ValidatorBase.ValidationData vd)
     {
-        Execution[] calldata executions = userOp.callData.decodeBatch();
+        Execution[] calldata executions = userOp.callData.decodeUserOpCallData().decodeBatch();
         uint256 length = executions.length;
         for (uint256 i; i < length; i++) {
             Execution calldata execution = executions[i];

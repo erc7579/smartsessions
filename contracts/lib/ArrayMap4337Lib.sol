@@ -2,7 +2,7 @@
 pragma solidity ^0.8.4;
 
 /// @notice
-/// @author @author Filipp Makarov (biconomy)
+/// @author Filipp Makarov (biconomy)
 ///
 /// @dev Note:
 /// Key is always address, as per 4337, the last keccak should be on (address A || bytes32 x)

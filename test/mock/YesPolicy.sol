@@ -35,16 +35,16 @@ contract YesPolicy is IUserOpPolicy, IActionPolicy {
 
     function checkAction(
         SessionId id,
-        address sender,
         address target,
         uint256 value,
-        bytes calldata data
+        bytes calldata data,
+        PackedUserOperation calldata op
     )
         external
         override
         returns (uint256)
     {
-        actionState[id][msg.sender][sender] += 1;
+        actionState[id][msg.sender][op.sender] += 1;
     }
 
     function isInitialized(address multiplexer, address account, SessionId id) external view override returns (bool) {

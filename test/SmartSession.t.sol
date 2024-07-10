@@ -21,6 +21,7 @@ import { MockTarget } from "./mock/MockTarget.sol";
 import { YesPolicy } from "./mock/YesPolicy.sol";
 import { SimpleSigner } from "./mock/SimpleSigner.sol";
 import { SimpleGasPolicy } from "./mock/SimpleGasPolicy.sol";
+import { TimeFramePolicy } from "./mock/TimeFramePolicy.sol";
 import { EIP1271_MAGIC_VALUE, IERC1271 } from "module-bases/interfaces/IERC1271.sol";
 import { MockK1Validator } from "test/mock/MockK1Validator.sol";
 
@@ -39,6 +40,7 @@ contract SmartSessionTest is RhinestoneModuleKit, Test {
     YesSigner internal yesSigner;
     SimpleSigner internal simpleSigner;
     SimpleGasPolicy internal simpleGasPolicy;
+    TimeFramePolicy internal timeFramePolicy;
 
     MockTarget target;
     Account sessionSigner1;
@@ -65,6 +67,7 @@ contract SmartSessionTest is RhinestoneModuleKit, Test {
         yesPolicy = new YesPolicy();
         simpleSigner = new SimpleSigner();
         simpleGasPolicy = new SimpleGasPolicy();
+        timeFramePolicy = new TimeFramePolicy();
 
         instance.installModule({
             moduleTypeId: MODULE_TYPE_VALIDATOR,
@@ -81,7 +84,6 @@ contract SmartSessionTest is RhinestoneModuleKit, Test {
     }
 
     function test_use_Permissions() public {
-
         // Install the permissions manually 
         vm.startPrank(instance.account);
         smartSession.setSigner({
@@ -90,10 +92,22 @@ contract SmartSessionTest is RhinestoneModuleKit, Test {
             initData: abi.encodePacked(sessionSigner1.addr)
         });
 
+        //enable simple gas policy as userOpPolicy
         PolicyData[] memory policyData = new PolicyData[](1);
-        bytes memory simpleGasPolicyData = abi.encodePacked(uint256(2**256-1));
-        policyData[0] = PolicyData({ policy: address(simpleGasPolicy), initData: simpleGasPolicyData });
+        bytes memory policyInitData = abi.encodePacked(uint256(2**256-1));
+        policyData[0] = PolicyData({ policy: address(simpleGasPolicy), initData: policyInitData });
         smartSession.enableUserOpPolicies(defaultSigner1, policyData);
+
+        // enable timeframe policy  as userOpPolicy and actionPolicy
+        policyInitData = abi.encodePacked(uint128(block.timestamp + 1000), uint128(block.timestamp - 1));
+        policyData[0] = PolicyData({ policy: address(timeFramePolicy), initData: policyInitData });
+        smartSession.enableUserOpPolicies(defaultSigner1, policyData);
+        ActionId actionId = ActionId.wrap(keccak256(abi.encodePacked(address(target), MockTarget.setValue.selector)));
+
+        ActionData[] memory actions = new ActionData[](1);
+        actions[0] = ActionData({ actionId: actionId, actionPolicies: policyData });
+        smartSession.enableActionPolicies(defaultSigner1, actions);
+
         vm.stopPrank();
 
         UserOpData memory userOpData = instance.getExecOps({

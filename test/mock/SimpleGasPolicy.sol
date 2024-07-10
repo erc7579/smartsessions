@@ -20,12 +20,12 @@ contract SimpleGasPolicy is IUserOpPolicy {
     function checkUserOpPolicy(SessionId id, PackedUserOperation calldata userOp) external returns (uint256) {
         UsageLimitConfig storage config = usageLimitConfigs[id][msg.sender][userOp.sender];
         if (config.gasLimit == 0) {
-            revert("UsageLimitPolicy: policy not installed");
+            revert("GasLimitPolicy: policy not installed");
         }
         uint256 totalUserOpGasLimit = uint128(bytes16(userOp.accountGasLimits))
             + uint128(uint256(userOp.accountGasLimits)) + userOp.preVerificationGas;
         if (config.gasUsed + totalUserOpGasLimit > config.gasLimit) {
-            revert("UsageLimitPolicy: usage limit exceeded");
+            revert("GasLimitPolicy: gas limit exceeded");
         }
 
         // Limit will be quite accurate as per AA-217
