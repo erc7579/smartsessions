@@ -11,6 +11,10 @@ contract MockTarget {
         return _value;
     }
 
+    function getValue() public view returns(uint256) {
+        return value;
+    }
+
     function setHash(bytes32 _hash) public returns (bytes32) {
         hash = _hash;
         return _hash;

@@ -84,7 +84,8 @@ contract SmartSessionTest is RhinestoneModuleKit, Test {
     }
 
     function test_use_Permissions_SingleExecution() public {
-        // Install the permissions manually 
+        uint256 valueToSet = 1337;
+        assertFalse(target.getValue() == valueToSet);
         _preEnablePermissions();
 
         UserOpData memory userOpData = instance.getExecOps({
@@ -97,10 +98,11 @@ contract SmartSessionTest is RhinestoneModuleKit, Test {
         bytes memory packedSig = sign(userOpData.userOpHash, sessionSigner1.key);
         userOpData.userOp.signature = EncodeLib.encodeUse({ signerId: defaultSigner1, packedSig: packedSig });
         userOpData.execUserOps();
+        assertEq(target.getValue(), valueToSet);
     }
 
     function test_use_Permissions_BatchExecution() public {
-        // Install the permissions manually 
+        uint256 valueToSet = 1337; 
         _preEnablePermissions();
 
         uint256 numberOfExecs = 3;
@@ -109,7 +111,7 @@ contract SmartSessionTest is RhinestoneModuleKit, Test {
             executions[i] = Execution({
                 target: address(target),
                 value: 0,
-                callData: abi.encodeCall(MockTarget.setValue, (1337 + i))
+                callData: abi.encodeCall(MockTarget.setValue, (1337 + i+1))
             });
         }
         UserOpData memory userOpData = instance.getExecOps({
@@ -120,10 +122,11 @@ contract SmartSessionTest is RhinestoneModuleKit, Test {
         bytes memory packedSig = sign(userOpData.userOpHash, sessionSigner1.key);
         userOpData.userOp.signature = EncodeLib.encodeUse({ signerId: defaultSigner1, packedSig: packedSig });
         userOpData.execUserOps();
+        assertEq(target.getValue(), valueToSet+numberOfExecs);
     }
 
-    /*
     function test_enable_And_Use_Permissions_Unsafe_Enable() public {
+        uint256 valueToSet = 1337; 
         UserOpData memory userOpData = instance.getExecOps({
             target: address(target),
             value: 0,
@@ -131,29 +134,34 @@ contract SmartSessionTest is RhinestoneModuleKit, Test {
             txValidator: address(smartSession)
         });
 
-        PolicyData[] memory policyData = new PolicyData[](1);
-        policyData[0] = PolicyData({ policy: address(yesPolicy), initData: "" });
+        PolicyData[] memory userOpPolicyData = new PolicyData[](1);
+        bytes memory policyInitData = abi.encodePacked(uint256(2**256-1));
+        userOpPolicyData[0] = PolicyData({ policy: address(simpleGasPolicy), initData: policyInitData });
 
+        PolicyData[] memory actionPolicyData = new PolicyData[](1);
+        policyInitData = abi.encodePacked(uint128(block.timestamp + 1000), uint128(block.timestamp - 1));
+        actionPolicyData[0] = PolicyData({ policy: address(timeFramePolicy), initData: policyInitData });
+        ActionId actionId = ActionId.wrap(keccak256(abi.encodePacked(address(target), MockTarget.setValue.selector)));
         ActionData[] memory actions = new ActionData[](1);
-        actions[0] = ActionData({ actionId: ActionId.wrap(bytes32(hex"01")), actionPolicies: policyData });
+        actions[0] = ActionData({ actionId: actionId, actionPolicies: actionPolicyData });
 
         EnableSessions memory enableData = EnableSessions({
-            isigner: ISigner(address(yesSigner)),
-            isignerInitData: "",
-            userOpPolicies: policyData,
+            isigner: ISigner(address(simpleSigner)),
+            isignerInitData: abi.encodePacked(sessionSigner1.addr),
+            userOpPolicies: userOpPolicyData,
             erc1271Policies: new PolicyData[](0),
             actions: actions,
             permissionEnableSig: ""
         });
 
         bytes32 hash = smartSession.getDigest(defaultSigner2, instance.account, enableData);
-        enableData.permissionEnableSig = abi.encodePacked(instance.defaultValidator, sign(hash, 1));
+        enableData.permissionEnableSig = abi.encodePacked(instance.defaultValidator, sign(hash, owner.key));
 
-        userOpData.userOp.signature = EncodeLib.encodeEnable(defaultSigner2, hex"4141414142", enableData);
-        console2.log("enable within session");
+        bytes memory rawSig = sign(userOpData.userOpHash, sessionSigner1.key);
+        userOpData.userOp.signature = EncodeLib.encodeEnable(defaultSigner2, rawSig, enableData);
         userOpData.execUserOps();
+        assertEq(target.getValue(), valueToSet);
     }
-    */
 
     function sign(bytes32 hash, uint256 privKey) internal returns (bytes memory signature) {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(privKey, hash);
