@@ -41,10 +41,15 @@ library ConfigLib {
             if (!policy.supportsInterface(type(ISubPermission).interfaceId)) revert UnsupportedPolicy(address(policy));
 
             // initialize sub policy for account
+            /*
             ISubPermission(policy).initForAccount({
                 account: smartAccount,
                 id: sessionId,
                 initData: policyData.initData
+            });
+            */
+             ISubPermission(policy).onInstall({
+                data: abi.encodePacked(sessionId, smartAccount, policyData.initData)
             });
 
             $policy.policyList[signerId].safePush(smartAccount, address(policy));
@@ -81,7 +86,8 @@ library ConfigLib {
         for (uint256 i; i < length; i++) {
             address entry = entries[i];
             // TODO: use try catch to prevent dos
-            ISubPermission(entry).deinitForAccount(account, _sessionId);
+            // ISubPermission(entry).deinitForAccount(account, _sessionId);
+            ISubPermission(entry).onUninstall(abi.encodePacked(_sessionId, account));
         }
 
         $self.popAll(account);

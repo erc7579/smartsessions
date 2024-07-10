@@ -76,7 +76,7 @@ struct InstallSessions {
 }
 
 struct EnableSessions {
-    // SignerID is be part of the packedSig, so doesnt have to be in here
+    // SignerID is the part of the packedSig, so doesnt have to be in here
     ISigner isigner;
     bytes isignerInitData;
     PolicyData[] userOpPolicies;

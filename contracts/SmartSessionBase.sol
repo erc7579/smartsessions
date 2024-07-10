@@ -34,7 +34,8 @@ abstract contract SmartSessionBase is ERC7579ValidatorBase {
 
         $isigners[signerId][msg.sender] = isigner;
 
-        isigner.initForAccount({ account: account, id: sessionId(signerId), initData: initData });
+        //isigner.initForAccount({ account: account, id: sessionId(signerId), initData: initData });
+        isigner.onInstall(abi.encodePacked(sessionId(signerId), account, initData));
     }
 
     function enableUserOpPolicies(SignerId signerId, PolicyData[] memory userOpPolicies) public {
@@ -70,7 +71,6 @@ abstract contract SmartSessionBase is ERC7579ValidatorBase {
                 sessionId(signerId, actionId), msg.sender
             );
         }
-
         emit SessionRemoved(signerId, msg.sender);
     }
 

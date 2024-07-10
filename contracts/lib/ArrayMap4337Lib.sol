@@ -42,19 +42,19 @@ library ArrayMap4337Lib {
     /*                     GETTERS / SETTERS                      */
     /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
 
-    function length(AddressArrayMap4337 storage s, address key) internal view returns (uint256 length) {
+    function length(AddressArrayMap4337 storage s, address key) internal view returns (uint256 _length) {
         assembly {
             mstore(0x00, key)
             mstore(0x20, s.slot)
-            length := sload(keccak256(0x00, 0x40))
+            _length := sload(keccak256(0x00, 0x40))
         }
     }
 
-    function length(Bytes32ArrayMap4337 storage s, address key) internal view returns (uint256 length) {
+    function length(Bytes32ArrayMap4337 storage s, address key) internal view returns (uint256 _length) {
         assembly {
             mstore(0x00, key)
             mstore(0x20, s.slot)
-            length := sload(keccak256(0x00, 0x40))
+            _length := sload(keccak256(0x00, 0x40))
         }
     }
 

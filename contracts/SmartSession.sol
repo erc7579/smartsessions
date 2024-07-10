@@ -30,6 +30,11 @@ import "forge-std/console2.sol";
 
 /**
  * TODO:
+ *     - The flow where permission doesn't enable the new signer, just adds policies for the existing one
+ *     - MultiChain Permission Enable Data (chainId is in EncodeLib.digest now)
+ *     - 'No Signature verification required' flow 
+ *     - ERC-1271 (security => do not allow validating sig requests from itself)
+ *     - Renouncing permissions
  *     - Permissions hook (spending limits?)
  *     - Check Policies/Signers via Registry before enabling
  */

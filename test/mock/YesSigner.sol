@@ -35,10 +35,6 @@ contract YesSigner is ISigner /*, TrustedForwarderWithId*/ {
         returns (uint256)
     { }
 
-    function isInitialized(address smartAccount) external view returns (bool) {
-        return true;
-    }
-
     function onInstall(bytes calldata data) external { }
 
     function onUninstall(bytes calldata data) external { }
@@ -47,13 +43,21 @@ contract YesSigner is ISigner /*, TrustedForwarderWithId*/ {
         return id == 111;
     }
 
+    function isInitialized(address account, SessionId id) external view returns (bool) {
+        return true;
+    }
+    function isInitialized(address multiplexer, address account, SessionId id) external view returns (bool) {
+        return true;
+    }
+    function isInitialized(address account) external view returns (bool) {
+        return true;
+    }
+    function isInitialized(address multiplexer, address account) external view returns (bool) {
+        return true;
+    }
+
     function supportsInterface(bytes4 interfaceID) external view override returns (bool) {
         return true;
     }
 
-    function initForAccount(address account, SessionId id, bytes calldata initData) external override { }
-
-    function isInitialized(address account, SessionId id) external override returns (bool) { }
-
-    function deinitForAccount(address account, SessionId id) external override { }
 }
