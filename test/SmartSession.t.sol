@@ -83,37 +83,37 @@ contract SmartSessionTest is RhinestoneModuleKit, Test {
         });
     }
 
-    function test_use_Permissions() public {
+    function test_use_Permissions_SingleExecution() public {
         // Install the permissions manually 
-        vm.startPrank(instance.account);
-        smartSession.setSigner({
-            signerId: defaultSigner1, 
-            signer: ISigner(address(simpleSigner)), 
-            initData: abi.encodePacked(sessionSigner1.addr)
-        });
-
-        //enable simple gas policy as userOpPolicy
-        PolicyData[] memory policyData = new PolicyData[](1);
-        bytes memory policyInitData = abi.encodePacked(uint256(2**256-1));
-        policyData[0] = PolicyData({ policy: address(simpleGasPolicy), initData: policyInitData });
-        smartSession.enableUserOpPolicies(defaultSigner1, policyData);
-
-        // enable timeframe policy  as userOpPolicy and actionPolicy
-        policyInitData = abi.encodePacked(uint128(block.timestamp + 1000), uint128(block.timestamp - 1));
-        policyData[0] = PolicyData({ policy: address(timeFramePolicy), initData: policyInitData });
-        smartSession.enableUserOpPolicies(defaultSigner1, policyData);
-        ActionId actionId = ActionId.wrap(keccak256(abi.encodePacked(address(target), MockTarget.setValue.selector)));
-
-        ActionData[] memory actions = new ActionData[](1);
-        actions[0] = ActionData({ actionId: actionId, actionPolicies: policyData });
-        smartSession.enableActionPolicies(defaultSigner1, actions);
-
-        vm.stopPrank();
+        _preEnablePermissions();
 
         UserOpData memory userOpData = instance.getExecOps({
             target: address(target),
             value: 0,
             callData: abi.encodeCall(MockTarget.setValue, (1337)),
+            txValidator: address(smartSession)
+        });
+
+        bytes memory packedSig = sign(userOpData.userOpHash, sessionSigner1.key);
+        userOpData.userOp.signature = EncodeLib.encodeUse({ signerId: defaultSigner1, packedSig: packedSig });
+        userOpData.execUserOps();
+    }
+
+    function test_use_Permissions_BatchExecution() public {
+        // Install the permissions manually 
+        _preEnablePermissions();
+
+        uint256 numberOfExecs = 3;
+        Execution[] memory executions = new Execution[](numberOfExecs);
+        for (uint256 i = 0; i < numberOfExecs; i++) {
+            executions[i] = Execution({
+                target: address(target),
+                value: 0,
+                callData: abi.encodeCall(MockTarget.setValue, (1337 + i))
+            });
+        }
+        UserOpData memory userOpData = instance.getExecOps({
+            executions: executions,
             txValidator: address(smartSession)
         });
 
@@ -160,5 +160,31 @@ contract SmartSessionTest is RhinestoneModuleKit, Test {
 
         // Set the signature
         signature = abi.encodePacked(r, s, v);
+    }
+
+    function _preEnablePermissions() internal {
+        vm.startPrank(instance.account);
+        smartSession.setSigner({
+            signerId: defaultSigner1, 
+            signer: ISigner(address(simpleSigner)), 
+            initData: abi.encodePacked(sessionSigner1.addr)
+        });
+
+        //enable simple gas policy as userOpPolicy
+        PolicyData[] memory policyData = new PolicyData[](1);
+        bytes memory policyInitData = abi.encodePacked(uint256(2**256-1));
+        policyData[0] = PolicyData({ policy: address(simpleGasPolicy), initData: policyInitData });
+        smartSession.enableUserOpPolicies(defaultSigner1, policyData);
+
+        // enable timeframe policy  as userOpPolicy and actionPolicy
+        policyInitData = abi.encodePacked(uint128(block.timestamp + 1000), uint128(block.timestamp - 1));
+        policyData[0] = PolicyData({ policy: address(timeFramePolicy), initData: policyInitData });
+        smartSession.enableUserOpPolicies(defaultSigner1, policyData);
+        ActionId actionId = ActionId.wrap(keccak256(abi.encodePacked(address(target), MockTarget.setValue.selector)));
+
+        ActionData[] memory actions = new ActionData[](1);
+        actions[0] = ActionData({ actionId: actionId, actionPolicies: policyData });
+        smartSession.enableActionPolicies(defaultSigner1, actions);
+        vm.stopPrank();
     }
 }
