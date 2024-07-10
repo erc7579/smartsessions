@@ -24,6 +24,8 @@ import { SimpleGasPolicy } from "./mock/SimpleGasPolicy.sol";
 import { TimeFramePolicy } from "./mock/TimeFramePolicy.sol";
 import { EIP1271_MAGIC_VALUE, IERC1271 } from "module-bases/interfaces/IERC1271.sol";
 import { MockK1Validator } from "test/mock/MockK1Validator.sol";
+import { UserOperationBuilder } from "contracts/erc7679/UserOpBuilder.sol";
+import {ModeLib, ModeCode as ExecutionMode} from "erc7579/lib/ModeLib.sol";
 
 import "forge-std/console2.sol";
 
@@ -60,6 +62,7 @@ contract SmartSessionTest is RhinestoneModuleKit, Test {
 
         defaultSigner1 = SignerId.wrap(bytes32(hex"01"));
         defaultSigner2 = SignerId.wrap(bytes32(hex"02"));
+        defaultSigner2 = SignerId.wrap(bytes32(hex"02"));
 
         smartSession = new SmartSession();
         target = new MockTarget();
@@ -95,8 +98,8 @@ contract SmartSessionTest is RhinestoneModuleKit, Test {
             txValidator: address(smartSession)
         });
 
-        bytes memory packedSig = sign(userOpData.userOpHash, sessionSigner1.key);
-        userOpData.userOp.signature = EncodeLib.encodeUse({ signerId: defaultSigner1, packedSig: packedSig });
+        bytes memory sig = sign(userOpData.userOpHash, sessionSigner1.key);
+        userOpData.userOp.signature = EncodeLib.encodeUse({ signerId: defaultSigner1, sig: sig });
         userOpData.execUserOps();
         assertEq(target.getValue(), valueToSet);
     }
@@ -111,7 +114,7 @@ contract SmartSessionTest is RhinestoneModuleKit, Test {
             executions[i] = Execution({
                 target: address(target),
                 value: 0,
-                callData: abi.encodeCall(MockTarget.setValue, (1337 + i+1))
+                callData: abi.encodeCall(MockTarget.setValue, (valueToSet + i+1))
             });
         }
         UserOpData memory userOpData = instance.getExecOps({
@@ -119,8 +122,8 @@ contract SmartSessionTest is RhinestoneModuleKit, Test {
             txValidator: address(smartSession)
         });
 
-        bytes memory packedSig = sign(userOpData.userOpHash, sessionSigner1.key);
-        userOpData.userOp.signature = EncodeLib.encodeUse({ signerId: defaultSigner1, packedSig: packedSig });
+        bytes memory sig = sign(userOpData.userOpHash, sessionSigner1.key);
+        userOpData.userOp.signature = EncodeLib.encodeUse({ signerId: defaultSigner1, sig: sig });
         userOpData.execUserOps();
         assertEq(target.getValue(), valueToSet+numberOfExecs);
     }
@@ -130,32 +133,11 @@ contract SmartSessionTest is RhinestoneModuleKit, Test {
         UserOpData memory userOpData = instance.getExecOps({
             target: address(target),
             value: 0,
-            callData: abi.encodeCall(MockTarget.setValue, (1337)),
+            callData: abi.encodeCall(MockTarget.setValue, (valueToSet)),
             txValidator: address(smartSession)
         });
 
-        PolicyData[] memory userOpPolicyData = new PolicyData[](1);
-        bytes memory policyInitData = abi.encodePacked(uint256(2**256-1));
-        userOpPolicyData[0] = PolicyData({ policy: address(simpleGasPolicy), initData: policyInitData });
-
-        PolicyData[] memory actionPolicyData = new PolicyData[](1);
-        policyInitData = abi.encodePacked(uint128(block.timestamp + 1000), uint128(block.timestamp - 1));
-        actionPolicyData[0] = PolicyData({ policy: address(timeFramePolicy), initData: policyInitData });
-        ActionId actionId = ActionId.wrap(keccak256(abi.encodePacked(address(target), MockTarget.setValue.selector)));
-        ActionData[] memory actions = new ActionData[](1);
-        actions[0] = ActionData({ actionId: actionId, actionPolicies: actionPolicyData });
-
-        EnableSessions memory enableData = EnableSessions({
-            isigner: ISigner(address(simpleSigner)),
-            isignerInitData: abi.encodePacked(sessionSigner1.addr),
-            userOpPolicies: userOpPolicyData,
-            erc1271Policies: new PolicyData[](0),
-            actions: actions,
-            permissionEnableSig: ""
-        });
-
-        bytes32 hash = smartSession.getDigest(defaultSigner2, instance.account, enableData);
-        enableData.permissionEnableSig = abi.encodePacked(address(mockK1), sign(hash, owner.key));
+        EnableSessions memory enableData = _prepareMockEnableData();
 
         bytes memory rawSig = sign(userOpData.userOpHash, sessionSigner1.key);
         userOpData.userOp.signature = EncodeLib.encodeEnable(defaultSigner2, rawSig, enableData);
@@ -163,7 +145,57 @@ contract SmartSessionTest is RhinestoneModuleKit, Test {
         assertEq(target.getValue(), valueToSet);
     }
 
-    function sign(bytes32 hash, uint256 privKey) internal returns (bytes memory signature) {
+    function test_UserOpBuilderFlow() public {
+        uint256 valueToSet = 2517;
+        assertFalse(target.getValue() == valueToSet);
+
+        address ep = address(instance.aux.entrypoint);        
+        UserOperationBuilder userOpBuilder = new UserOperationBuilder(ep);
+
+        UserOpData memory userOpData = instance.getExecOps({
+            target: address(0),
+            value: 0,
+            callData: "",
+            txValidator: address(0)
+        });
+
+        uint192 nonceKey = uint192(uint160(address(smartSession))) << 32; 
+        EnableSessions memory enableData = _prepareMockEnableData();
+        bytes memory context = EncodeLib.encodeContext(
+            nonceKey, //192 bits, 24 bytes
+            ModeLib.encodeSimpleSingle(), //execution mode, 32 bytes
+            defaultSigner2,
+            enableData
+        );
+        
+        uint256 nonce = userOpBuilder.getNonce(instance.account, context);
+
+        Execution[] memory executions = new Execution[](1);
+        executions[0] = Execution(
+            address(target),
+            0,
+            abi.encodeCall(MockTarget.setValue, (valueToSet))
+        );
+        bytes memory callData = userOpBuilder.getCallData(instance.account, executions, context);
+
+        userOpData.userOp.nonce = nonce;
+        userOpData.userOp.callData = callData;
+        userOpData.userOpHash = instance.aux.entrypoint.getUserOpHash(userOpData.userOp);
+        
+        //sign userOp
+        userOpData.userOp.signature = sign(userOpData.userOpHash, sessionSigner1.key);
+        bytes memory formattedSig = userOpBuilder.formatSignature(instance.account, userOpData.userOp, context);
+        // console2.logBytes(formattedSig);
+        userOpData.userOp.signature = formattedSig;
+        userOpData.execUserOps();
+        assertEq(target.getValue(), valueToSet);
+    }
+
+
+
+    /// =================================================================
+
+    function sign(bytes32 hash, uint256 privKey) internal view returns (bytes memory signature) {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(privKey, hash);
 
         // Set the signature
@@ -194,5 +226,31 @@ contract SmartSessionTest is RhinestoneModuleKit, Test {
         actions[0] = ActionData({ actionId: actionId, actionPolicies: policyData });
         smartSession.enableActionPolicies(defaultSigner1, actions);
         vm.stopPrank();
+    }
+
+    function _prepareMockEnableData() internal view returns (EnableSessions memory enableData) {
+        PolicyData[] memory userOpPolicyData = new PolicyData[](1);
+        bytes memory policyInitData = abi.encodePacked(uint256(2**256-1));
+        userOpPolicyData[0] = PolicyData({ policy: address(simpleGasPolicy), initData: policyInitData });
+
+        PolicyData[] memory actionPolicyData = new PolicyData[](1);
+        policyInitData = abi.encodePacked(uint128(block.timestamp + 1000), uint128(block.timestamp - 1));
+        actionPolicyData[0] = PolicyData({ policy: address(timeFramePolicy), initData: policyInitData });
+        ActionId actionId = ActionId.wrap(keccak256(abi.encodePacked(address(target), MockTarget.setValue.selector)));
+        ActionData[] memory actions = new ActionData[](1);
+        actions[0] = ActionData({ actionId: actionId, actionPolicies: actionPolicyData });
+
+        enableData = EnableSessions({
+            isigner: ISigner(address(simpleSigner)),
+            isignerInitData: abi.encodePacked(sessionSigner1.addr),
+            userOpPolicies: userOpPolicyData,
+            erc1271Policies: new PolicyData[](0),
+            actions: actions,
+            permissionEnableSig: ""
+        });
+
+        // sign enableData hash
+        bytes32 hash = smartSession.getDigest(defaultSigner2, instance.account, enableData);
+        enableData.permissionEnableSig = abi.encodePacked(address(mockK1), sign(hash, owner.key));
     }
 }

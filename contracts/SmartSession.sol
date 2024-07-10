@@ -247,8 +247,8 @@ contract SmartSession is SmartSessionBase {
     function isPermissionEnabled(
         SignerId signerId,
         address smartAccount,
-        bytes calldata permEnableData
+        EnableSessions memory permEnableData
     ) external view returns (bool isEnabled) {
-
+        return false;
     }
 }

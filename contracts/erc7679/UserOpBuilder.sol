@@ -15,10 +15,11 @@ import {
 import { EncodeLib } from "../lib/EncodeLib.sol";
 import { ExecutionLib2 as ExecutionLib } from "../lib/ExecutionLib2.sol";
 import "../DataTypes.sol";
-
-//import { IPermissionEnabled } from "contracts/validators/PermissionManager.sol";
-
 import "forge-std/Console2.sol";
+
+interface IPermissionEnabled {
+    function isPermissionEnabled(SignerId signerId, address smartAccount, EnableSessions memory enableData) external view returns (bool);
+}
 
 contract UserOperationBuilder is IUserOperationBuilder {
     /**
@@ -26,7 +27,7 @@ contract UserOperationBuilder is IUserOperationBuilder {
      *    0-24 : nonce key
      *    24-56: execution mode
      *    56-88: signerId     
-     * 
+     *    88: abi.encode(EnableSessions)
      */
 
     using ExecutionLib for *;
@@ -120,21 +121,18 @@ contract UserOperationBuilder is IUserOperationBuilder {
         }
         
         address permissionValidator = address(bytes20(context[0:20]));
-        bytes calldata permEnableData = context[88:];
+        EnableSessions memory enableData = abi.decode(context[88:], (EnableSessions));
 
-        /*
-        try IPermissionEnabled(permissionValidator).isPermissionEnabled(signerId, smartAccount, permEnableData) returns (bool isEnabled) {
+        try IPermissionEnabled(permissionValidator).isPermissionEnabled(signerId, smartAccount, enableData) returns (bool isEnabled) {
             if(isEnabled) {
                 return EncodeLib.encodeUse(signerId, userOperation.signature);
             } else {
                 console2.log("userOpBuilder: permission not enabled");
-                return EncodeLib.encodeEnable(signerId, userOperation.signature, permEnableData);
+                return EncodeLib.encodeEnable(signerId, userOperation.signature, enableData);
             }
         } catch (bytes memory error) {
             revert InvalidPermission(error);
         }
-        */
-        return EncodeLib.encodeUse(signerId, userOperation.signature);
         
         // context is always created to enable permission, so it always contains the permission enable data
         // however we do not need it if the permission has already been enabled once 

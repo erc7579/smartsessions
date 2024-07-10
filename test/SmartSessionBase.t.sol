@@ -80,7 +80,7 @@ contract SmartSessionBaseTest is RhinestoneModuleKit, Test {
             txValidator: address(smartSession)
         });
 
-        userOpData.userOp.signature = EncodeLib.encodeUse({ signerId: defaultSigner1, packedSig: hex"4141414141" });
+        userOpData.userOp.signature = EncodeLib.encodeUse({ signerId: defaultSigner1, sig: hex"4141414141" });
         userOpData.execUserOps();
     }
 
