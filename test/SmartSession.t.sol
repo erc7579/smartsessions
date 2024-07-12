@@ -215,7 +215,7 @@ contract SmartSessionTest is RhinestoneModuleKit, Test {
 
     /// =================================================================
 
-    function sign(bytes32 hash, uint256 privKey) internal view returns (bytes memory signature) {
+    function sign(bytes32 hash, uint256 privKey) internal pure returns (bytes memory signature) {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(privKey, hash);
 
         // Set the signature

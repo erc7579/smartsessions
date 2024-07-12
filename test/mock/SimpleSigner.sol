@@ -94,7 +94,7 @@ contract SimpleSigner is ISigner {
         return signer[id][multiplexer][account] != address(0);
     }
 
-    function supportsInterface(bytes4 interfaceID) external view override returns (bool) {
+    function supportsInterface(bytes4 interfaceID) external pure override returns (bool) {
         return true;
     }
 }

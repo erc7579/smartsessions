@@ -15,10 +15,10 @@ contract SimpleGasPolicy is IUserOpPolicy {
     }
 
     mapping(address msgSender => mapping(address opSender => uint256)) public usedIds;
-    mapping(SessionId id => mapping(address msgSender => mapping(address userOpSender => UsageLimitConfig))) public usageLimitConfigs;
+    mapping(SessionId id => mapping(address msgSender => mapping(address userOpSender => UsageLimitConfig))) public gasLimitConfigs;
 
     function checkUserOpPolicy(SessionId id, PackedUserOperation calldata userOp) external returns (uint256) {
-        UsageLimitConfig storage config = usageLimitConfigs[id][msg.sender][userOp.sender];
+        UsageLimitConfig storage config = gasLimitConfigs[id][msg.sender][userOp.sender];
         if (config.gasLimit == 0) {
             revert("GasLimitPolicy: policy not installed");
         }
@@ -35,14 +35,14 @@ contract SimpleGasPolicy is IUserOpPolicy {
     }
 
     function _onInstallPolicy(SessionId id, address opSender, bytes calldata _data) internal {
-        require(usageLimitConfigs[id][msg.sender][opSender].gasLimit == 0);
+        require(gasLimitConfigs[id][msg.sender][opSender].gasLimit == 0);
         usedIds[msg.sender][opSender]++;
-        usageLimitConfigs[id][msg.sender][opSender].gasLimit = uint256(bytes32(_data[0:32]));
+        gasLimitConfigs[id][msg.sender][opSender].gasLimit = uint256(bytes32(_data[0:32]));
     }
 
     function _onUninstallPolicy(SessionId id, address opSender, bytes calldata) internal {
-        require(usageLimitConfigs[id][msg.sender][opSender].gasLimit != 0);
-        delete usageLimitConfigs[id][msg.sender][opSender];
+        require(gasLimitConfigs[id][msg.sender][opSender].gasLimit != 0);
+        delete gasLimitConfigs[id][msg.sender][opSender];
         usedIds[msg.sender][opSender]--;
     }
 
@@ -61,11 +61,11 @@ contract SimpleGasPolicy is IUserOpPolicy {
     }
 
     function isInitialized(address multiplexer, address account, SessionId id) external view override returns (bool) {
-        return usageLimitConfigs[id][multiplexer][account].gasLimit > 0;
+        return gasLimitConfigs[id][multiplexer][account].gasLimit > 0;
     }
 
     function isInitialized(address account, SessionId id) external view override returns (bool) {
-        return usageLimitConfigs[id][msg.sender][account].gasLimit > 0;
+        return gasLimitConfigs[id][msg.sender][account].gasLimit > 0;
     }
 
     function isInitialized(address multiplexer, address account) external view override returns (bool) {
@@ -76,7 +76,7 @@ contract SimpleGasPolicy is IUserOpPolicy {
         return usedIds[msg.sender][account] > 0;
     }
 
-    function supportsInterface(bytes4 interfaceID) external view override returns (bool) {
+    function supportsInterface(bytes4 interfaceID) external pure override returns (bool) {
         return true;
     }
 }

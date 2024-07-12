@@ -119,7 +119,7 @@ contract TimeFramePolicy is IUserOpPolicy, IActionPolicy {
         return status[id][multiplexer][account] == Status.Live;
     }
 
-    function supportsInterface(bytes4 interfaceID) external view override returns (bool) {
+    function supportsInterface(bytes4 interfaceID) external pure override returns (bool) {
         return true;
     }
 
