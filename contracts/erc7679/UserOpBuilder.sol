@@ -127,22 +127,11 @@ contract UserOperationBuilder is IUserOperationBuilder {
             if(isEnabled) {
                 return EncodeLib.encodeUse(signerId, userOperation.signature);
             } else {
-                console2.log("userOpBuilder: permission not enabled");
                 return EncodeLib.encodeEnable(signerId, userOperation.signature, enableData);
             }
         } catch (bytes memory error) {
             revert InvalidPermission(error);
         }
-        
-        // context is always created to enable permission, so it always contains the permission enable data
-        // however we do not need it if the permission has already been enabled once 
-        // as not all the permissions are one-time permissions.
-        // some dApps may leverage the permission several times, but they will have same context for all userOps.
-        
-        // so we need to check if the permission has been enabled or not
-
-        // a) if enabled, just add enableMode = 0 and signerId to the userOp.signature
-        // b) otherwise, append enableMode = 1 and take the full context[56:] and append it to signature
     }
 
     /* 

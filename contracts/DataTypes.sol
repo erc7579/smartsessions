@@ -47,16 +47,38 @@ function toErc1271PolicyId(SignerId signerId) view returns (Erc1271PolicyId erc1
     );
 } */
 
+function sessionId(SignerId signerId, address account) view returns (SessionId _id) {
+    _id = SessionId.wrap(keccak256(abi.encodePacked(account, signerId)));
+}
+
+function sessionId(UserOpPolicyId userOpPolicyId, address account) view returns (SessionId _id) {
+    _id = SessionId.wrap(keccak256(abi.encodePacked(account, userOpPolicyId)));
+}
+
+function sessionId(ActionPolicyId actionPolicyId, address account) view returns (SessionId _id) {
+    _id = SessionId.wrap(keccak256(abi.encodePacked(account, actionPolicyId)));
+}
+
+function sessionId(SignerId signerId, ActionId actionId, address account) view returns (SessionId _id) {
+    _id = sessionId(toActionPolicyId(signerId, actionId), account);
+}
+
+function sessionId(Erc1271PolicyId erc1271PolicyId, address account) view returns (SessionId _id) {
+    _id = SessionId.wrap(keccak256(abi.encodePacked(account, erc1271PolicyId)));
+}
+
+// =====
+
 function sessionId(SignerId signerId) view returns (SessionId _id) {
-    _id = SessionId.wrap(keccak256(abi.encodePacked(msg.sender, signerId)));
+    _id = sessionId(signerId, msg.sender);
 }
 
 function sessionId(UserOpPolicyId userOpPolicyId) view returns (SessionId _id) {
-    _id = SessionId.wrap(keccak256(abi.encodePacked(msg.sender, userOpPolicyId)));
+    _id = sessionId(userOpPolicyId, msg.sender);
 }
 
 function sessionId(ActionPolicyId actionPolicyId) view returns (SessionId _id) {
-    _id = SessionId.wrap(keccak256(abi.encodePacked(msg.sender, actionPolicyId)));
+    _id = sessionId(actionPolicyId, msg.sender);
 }
 
 function sessionId(SignerId signerId, ActionId actionId) view returns (SessionId _id) {
@@ -64,7 +86,7 @@ function sessionId(SignerId signerId, ActionId actionId) view returns (SessionId
 }
 
 function sessionId(Erc1271PolicyId erc1271PolicyId) view returns (SessionId _id) {
-    _id = SessionId.wrap(keccak256(abi.encodePacked(msg.sender, erc1271PolicyId)));
+    _id = sessionId(erc1271PolicyId, msg.sender);
 }
 
 // InstallSessions[] sessions;
@@ -120,5 +142,5 @@ struct Policy {
 
 struct EnumerableActionPolicy {
     mapping(ActionId => Policy) actionPolicies;
-    Bytes32ArrayMap4337 enabledActionIds;
+    mapping(SignerId => Bytes32ArrayMap4337) enabledActionIds;
 }

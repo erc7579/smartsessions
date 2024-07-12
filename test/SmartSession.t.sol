@@ -185,10 +185,30 @@ contract SmartSessionTest is RhinestoneModuleKit, Test {
         //sign userOp
         userOpData.userOp.signature = sign(userOpData.userOpHash, sessionSigner1.key);
         bytes memory formattedSig = userOpBuilder.formatSignature(instance.account, userOpData.userOp, context);
-        // console2.logBytes(formattedSig);
         userOpData.userOp.signature = formattedSig;
         userOpData.execUserOps();
         assertEq(target.getValue(), valueToSet);
+
+        // TRY AGAIN
+        uint256 nonce2 = userOpBuilder.getNonce(instance.account, context);
+
+        executions[0] = Execution(
+            address(target),
+            0,
+            abi.encodeCall(MockTarget.setValue, (valueToSet + 33))
+        );
+        callData = userOpBuilder.getCallData(instance.account, executions, context);
+
+        userOpData.userOp.nonce = nonce2;
+        userOpData.userOp.callData = callData;
+        userOpData.userOpHash = instance.aux.entrypoint.getUserOpHash(userOpData.userOp);
+        
+        //sign userOp
+        userOpData.userOp.signature = sign(userOpData.userOpHash, sessionSigner1.key);
+        formattedSig = userOpBuilder.formatSignature(instance.account, userOpData.userOp, context);
+        userOpData.userOp.signature = formattedSig;
+        userOpData.execUserOps();
+        assertEq(target.getValue(), valueToSet + 33);
     }
 
 

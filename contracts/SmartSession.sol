@@ -56,6 +56,7 @@ contract SmartSession is SmartSessionBase {
     error UnsupportedExecutionType();
     error UnsupportedSmartSessionMode(SmartSessionMode mode);
     error InvalidUserOpSender(address sender);
+    error PermissionPartlyEnabled();
 
     function validateUserOp(
         PackedUserOperation calldata userOp,
@@ -246,9 +247,25 @@ contract SmartSession is SmartSessionBase {
 
     function isPermissionEnabled(
         SignerId signerId,
-        address smartAccount,
-        EnableSessions memory permEnableData
+        address account,
+        EnableSessions memory enableData
     ) external view returns (bool isEnabled) {
-        return false;
+        //if ISigner is not set for signerId, the permission has not been enabled yet
+        if(!_isISignerSet(signerId, account)) {
+            return false;
+        }
+        bool uo = $userOpPolicies.areEnabled({ signerId: signerId, sessionId: sessionId(toUserOpPolicyId(signerId), account), smartAccount: account, policyDatas: enableData.userOpPolicies });
+        bool erc1271 = $erc1271Policies.areEnabled({ signerId: signerId, sessionId: sessionId(toErc1271PolicyId(signerId), account), smartAccount: account, policyDatas: enableData.erc1271Policies });
+        bool action = $actionPolicies.areEnabled({ signerId: signerId, smartAccount: account, actionPolicyDatas: enableData.actions });
+        uint256 res;
+        assembly {
+            res := add(add(uo, erc1271), action)
+        }
+        if (res == 0) return false;
+        else if (res == 3) return true;
+        else revert PermissionPartlyEnabled(); 
+        // partly enabled permission will prevent the full permission to be enabled
+        // and we can not consider it being fully enabled, as it missed some policies we'd want to enforce
+        // as per given 'enableData'
     }
 }

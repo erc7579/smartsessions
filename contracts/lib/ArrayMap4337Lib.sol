@@ -1,10 +1,6 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+pragma solidity ^0.8.25;
 
-/// @notice
-/// @author Filipp Makarov (biconomy)
-///
-/// @dev Note:
 /// Key is always address, as per 4337, the last keccak should be on (address A || bytes32 x)
 /// x is the slot of the 4337 compliant ( address => address[] ) or ( address => bytes32[] ) mapping
 

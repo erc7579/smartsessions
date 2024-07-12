@@ -61,12 +61,12 @@ abstract contract SmartSessionBase is ERC7579ValidatorBase {
     }
 
     function removeSession(SignerId signerId) external {
-        $userOpPolicies.policyList[signerId].disable(sessionId(signerId), msg.sender);
-        $erc1271Policies.policyList[signerId].disable(sessionId(signerId), msg.sender);
+        $userOpPolicies.policyList[signerId].disable(sessionId(toUserOpPolicyId(signerId)), msg.sender);
+        $erc1271Policies.policyList[signerId].disable(sessionId(toErc1271PolicyId(signerId)), msg.sender);
 
-        uint256 actionLength = $actionPolicies.enabledActionIds.length(msg.sender);
+        uint256 actionLength = $actionPolicies.enabledActionIds[signerId].length(msg.sender);
         for (uint256 i; i < actionLength; i++) {
-            ActionId actionId = ActionId.wrap($actionPolicies.enabledActionIds.get(msg.sender, i));
+            ActionId actionId = ActionId.wrap($actionPolicies.enabledActionIds[signerId].get(msg.sender, i));
             $actionPolicies.actionPolicies[actionId].policyList[signerId].disable(
                 sessionId(signerId, actionId), msg.sender
             );
@@ -114,5 +114,9 @@ abstract contract SmartSessionBase is ERC7579ValidatorBase {
     {
         uint256 nonce = $signerNonce[signerId][account];
         return signerId.digest(nonce, data);
+    }
+
+    function _isISignerSet(SignerId signerId, address account) internal view returns (bool) {
+        return address($isigners[signerId][account]) != address(0);
     }
 }

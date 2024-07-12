@@ -66,12 +66,13 @@ library ConfigLib {
         internal
     {
         uint256 length = actionPolicyDatas.length;
-
         for (uint256 i; i < length; i++) {
             // record every enabled actionId
             ActionData memory actionPolicyData = actionPolicyDatas[i];
             ActionId actionId = actionPolicyData.actionId;
-            $self.enabledActionIds.push(smartAccount, ActionId.unwrap(actionId));
+            // TODO: It is currently possible to push the same actionId several times
+            // won't be easy to clean. Introduce 'contains' check before pushing
+            $self.enabledActionIds[signerId].push(smartAccount, ActionId.unwrap(actionId));
             SessionId sessionId = sessionId(signerId, actionId);
             $self.actionPolicies[actionId].enable(
                 signerId, sessionId, actionPolicyData.actionPolicies, smartAccount

@@ -43,6 +43,8 @@ library PolicyLib {
     error PolicyViolation(SignerId signerId, address policy);
     error UnsupportedCallType(CallType callType);
     error NoPoliciesSet(SignerId signerId);
+    error PartlyEnabledPolicies();
+    error PartlyEnabledActions();
 
     function isFailed(ERC7579ValidatorBase.ValidationData packedData) internal pure returns (bool sigFailed) {
         sigFailed = (ERC7579ValidatorBase.ValidationData.unwrap(packedData) & 1) == 1;
@@ -131,5 +133,52 @@ library PolicyLib {
         bool success;
         (success, returnData) = target.call(callData);
         if (!success) revert();
+    }
+
+    function areEnabled(
+        Policy storage $policies,
+        SignerId signerId,
+        SessionId sessionId,
+        address smartAccount,
+        PolicyData[] memory policyDatas
+    ) internal view returns (bool) {
+        uint256 length = policyDatas.length;
+        if(length == 0) return true; // 0 policies are always enabled lol
+        uint256 enabledPolicies;
+        for (uint256 i; i < length; i++) {
+            PolicyData memory policyData = policyDatas[i];
+            ISubPermission policy = ISubPermission(policyData.policy);
+            if (
+                $policies.policyList[signerId].contains(smartAccount, address(policy)) 
+                &&
+                policy.isInitialized(smartAccount, sessionId)
+            ) enabledPolicies++;
+        }
+        if (enabledPolicies == 0) return false;
+        else if (enabledPolicies == length) return true;
+        else revert PartlyEnabledPolicies();
+    }
+
+    function areEnabled(
+        EnumerableActionPolicy storage $self,
+        SignerId signerId,
+        address smartAccount,
+        ActionData[] memory actionPolicyDatas
+    ) internal view returns (bool) {
+        uint256 length = actionPolicyDatas.length;
+        uint256 actionsProperlyEnabled;
+        for (uint256 i; i < length; i++) {
+            ActionData memory actionPolicyData = actionPolicyDatas[i];
+            ActionId actionId = actionPolicyData.actionId;
+            SessionId sessionId = sessionId(signerId, actionId, smartAccount);
+            if (
+                $self.enabledActionIds[signerId].contains(smartAccount, ActionId.unwrap(actionId))
+                &&
+                $self.actionPolicies[actionId].areEnabled(signerId, sessionId, smartAccount, actionPolicyData.actionPolicies) 
+            ) actionsProperlyEnabled++;
+        }
+        if (actionsProperlyEnabled == 0) return false;
+        else if (actionsProperlyEnabled == length) return true;
+        else revert PartlyEnabledActions();
     }
 }
