@@ -2,11 +2,9 @@
 pragma solidity ^0.8.25;
 
 import "../DataTypes.sol";
-import "forge-std/console2.sol";
 
 library SubLib {
     error DataTooShort(uint256 length);
-    error InvalidSessionKeySignature(SignerId signerId, ISigner isigner, address account, bytes32 userOpHash);
 
     function parseInstallData(bytes calldata data)
         internal
