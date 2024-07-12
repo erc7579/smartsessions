@@ -30,7 +30,7 @@ library SignerLib {
         // check signature of ISigner first.
         // policies only need to be processed if the signature is correct
         if (
-            isigner.checkSignature({ signerId: sessionId(signerId), sender: account, hash: userOpHash, sig: signature })
+            isigner.checkSignature({ signerId: toSessionId(signerId), sender: account, hash: userOpHash, sig: signature })
                 != EIP1271_SUCCESS
         ) revert InvalidSessionKeySignature(signerId, isigner, account, userOpHash);
     }

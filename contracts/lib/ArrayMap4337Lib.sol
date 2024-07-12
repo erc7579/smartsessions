@@ -71,8 +71,8 @@ library ArrayMap4337Lib {
     }
 
     function contains(AddressArrayMap4337 storage s, address key, address element) internal view returns (bool) {
-        uint256 length = s.length(key);
-        for (uint256 i; i < length; i++) {
+        uint256 _length = s.length(key);
+        for (uint256 i; i < _length; i++) {
             if (s.get(key, i) == element) {
                 return true;
             }
@@ -81,8 +81,8 @@ library ArrayMap4337Lib {
     }
 
     function contains(Bytes32ArrayMap4337 storage s, address key, bytes32 element) internal view returns (bool) {
-        uint256 length = s.length(key);
-        for (uint256 i; i < length; i++) {
+        uint256 _length = s.length(key);
+        for (uint256 i; i < _length; i++) {
             if (s.get(key, i) == element) {
                 return true;
             }
@@ -117,8 +117,8 @@ library ArrayMap4337Lib {
     }
 
     function remove(AddressArrayMap4337 storage s, address key, address element) internal returns (uint256) {
-        uint256 length = s.length(key);
-        for (uint256 i; i < length; i++) {
+        uint256 _length = s.length(key);
+        for (uint256 i; i < _length; i++) {
             if (s.get(key, i) == element) {
                 // TODO: get last element and record it to i's position
                 // TODO: pop last element

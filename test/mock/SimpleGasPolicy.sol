@@ -9,16 +9,16 @@ contract SimpleGasPolicy is IUserOpPolicy {
     
     using SubLib for bytes;
 
-    struct UsageLimitConfig {
+    struct GasLimitConfig {
         uint256 gasLimit;
         uint256 gasUsed;
     }
 
     mapping(address msgSender => mapping(address opSender => uint256)) public usedIds;
-    mapping(SessionId id => mapping(address msgSender => mapping(address userOpSender => UsageLimitConfig))) public gasLimitConfigs;
+    mapping(SessionId id => mapping(address msgSender => mapping(address userOpSender => GasLimitConfig))) public gasLimitConfigs;
 
     function checkUserOpPolicy(SessionId id, PackedUserOperation calldata userOp) external returns (uint256) {
-        UsageLimitConfig storage config = gasLimitConfigs[id][msg.sender][userOp.sender];
+        GasLimitConfig storage config = gasLimitConfigs[id][msg.sender][userOp.sender];
         if (config.gasLimit == 0) {
             revert("GasLimitPolicy: policy not installed");
         }

@@ -92,7 +92,7 @@ library PolicyLib {
             callOnIPolicy: abi.encodeCall(
                 IActionPolicy.checkAction,
                 (
-                    sessionId(signerId, actionId), // actionId
+                    toSessionId(signerId, actionId), // actionId
                     target, // target
                     value, // value
                     callData, // data
@@ -170,7 +170,7 @@ library PolicyLib {
         for (uint256 i; i < length; i++) {
             ActionData memory actionPolicyData = actionPolicyDatas[i];
             ActionId actionId = actionPolicyData.actionId;
-            SessionId sessionId = sessionId(signerId, actionId, smartAccount);
+            SessionId sessionId = toSessionId(signerId, actionId, smartAccount);
             if (
                 $self.enabledActionIds[signerId].contains(smartAccount, ActionId.unwrap(actionId))
                 &&

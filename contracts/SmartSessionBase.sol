@@ -34,16 +34,16 @@ abstract contract SmartSessionBase is ERC7579ValidatorBase {
 
         $isigners[signerId][msg.sender] = isigner;
 
-        //isigner.initForAccount({ account: account, id: sessionId(signerId), initData: initData });
-        isigner.onInstall(abi.encodePacked(sessionId(signerId), account, initData));
+        //isigner.initForAccount({ account: account, id: toSessionId(signerId), initData: initData });
+        isigner.onInstall(abi.encodePacked(toSessionId(signerId), account, initData));
     }
 
     function enableUserOpPolicies(SignerId signerId, PolicyData[] memory userOpPolicies) public {
-        $userOpPolicies.enable({ signerId: signerId, sessionId: sessionId(toUserOpPolicyId(signerId)), policyDatas: userOpPolicies, smartAccount: msg.sender });
+        $userOpPolicies.enable({ signerId: signerId, sessionId: toSessionId(toUserOpPolicyId(signerId)), policyDatas: userOpPolicies, smartAccount: msg.sender });
     }
 
     function enableERC1271Policies(SignerId signerId, PolicyData[] memory erc1271Policies) public {
-        $erc1271Policies.enable({ signerId: signerId, sessionId: sessionId(toErc1271PolicyId(signerId)), policyDatas: erc1271Policies, smartAccount: msg.sender });
+        $erc1271Policies.enable({ signerId: signerId, sessionId: toSessionId(toErc1271PolicyId(signerId)), policyDatas: erc1271Policies, smartAccount: msg.sender });
     }
 
     function enableActionPolicies(SignerId signerId, ActionData[] memory actionPolicies) public {
@@ -61,14 +61,14 @@ abstract contract SmartSessionBase is ERC7579ValidatorBase {
     }
 
     function removeSession(SignerId signerId) external {
-        $userOpPolicies.policyList[signerId].disable(sessionId(toUserOpPolicyId(signerId)), msg.sender);
-        $erc1271Policies.policyList[signerId].disable(sessionId(toErc1271PolicyId(signerId)), msg.sender);
+        $userOpPolicies.policyList[signerId].disable(toSessionId(toUserOpPolicyId(signerId)), msg.sender);
+        $erc1271Policies.policyList[signerId].disable(toSessionId(toErc1271PolicyId(signerId)), msg.sender);
 
         uint256 actionLength = $actionPolicies.enabledActionIds[signerId].length(msg.sender);
         for (uint256 i; i < actionLength; i++) {
             ActionId actionId = ActionId.wrap($actionPolicies.enabledActionIds[signerId].get(msg.sender, i));
             $actionPolicies.actionPolicies[actionId].policyList[signerId].disable(
-                sessionId(signerId, actionId), msg.sender
+                toSessionId(signerId, actionId), msg.sender
             );
         }
         emit SessionRemoved(signerId, msg.sender);

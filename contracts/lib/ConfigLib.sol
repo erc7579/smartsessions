@@ -73,7 +73,7 @@ library ConfigLib {
             // TODO: It is currently possible to push the same actionId several times
             // won't be easy to clean. Introduce 'contains' check before pushing
             $self.enabledActionIds[signerId].push(smartAccount, ActionId.unwrap(actionId));
-            SessionId sessionId = sessionId(signerId, actionId);
+            SessionId sessionId = toSessionId(signerId, actionId);
             $self.actionPolicies[actionId].enable(
                 signerId, sessionId, actionPolicyData.actionPolicies, smartAccount
             );

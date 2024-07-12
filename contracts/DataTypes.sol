@@ -47,46 +47,46 @@ function toErc1271PolicyId(SignerId signerId) view returns (Erc1271PolicyId erc1
     );
 } */
 
-function sessionId(SignerId signerId, address account) view returns (SessionId _id) {
+function toSessionId(SignerId signerId, address account) view returns (SessionId _id) {
     _id = SessionId.wrap(keccak256(abi.encodePacked(account, signerId)));
 }
 
-function sessionId(UserOpPolicyId userOpPolicyId, address account) view returns (SessionId _id) {
+function toSessionId(UserOpPolicyId userOpPolicyId, address account) view returns (SessionId _id) {
     _id = SessionId.wrap(keccak256(abi.encodePacked(account, userOpPolicyId)));
 }
 
-function sessionId(ActionPolicyId actionPolicyId, address account) view returns (SessionId _id) {
+function toSessionId(ActionPolicyId actionPolicyId, address account) view returns (SessionId _id) {
     _id = SessionId.wrap(keccak256(abi.encodePacked(account, actionPolicyId)));
 }
 
-function sessionId(SignerId signerId, ActionId actionId, address account) view returns (SessionId _id) {
-    _id = sessionId(toActionPolicyId(signerId, actionId), account);
+function toSessionId(SignerId signerId, ActionId actionId, address account) view returns (SessionId _id) {
+    _id = toSessionId(toActionPolicyId(signerId, actionId), account);
 }
 
-function sessionId(Erc1271PolicyId erc1271PolicyId, address account) view returns (SessionId _id) {
+function toSessionId(Erc1271PolicyId erc1271PolicyId, address account) view returns (SessionId _id) {
     _id = SessionId.wrap(keccak256(abi.encodePacked(account, erc1271PolicyId)));
 }
 
 // =====
 
-function sessionId(SignerId signerId) view returns (SessionId _id) {
-    _id = sessionId(signerId, msg.sender);
+function toSessionId(SignerId signerId) view returns (SessionId _id) {
+    _id = toSessionId(signerId, msg.sender);
 }
 
-function sessionId(UserOpPolicyId userOpPolicyId) view returns (SessionId _id) {
-    _id = sessionId(userOpPolicyId, msg.sender);
+function toSessionId(UserOpPolicyId userOpPolicyId) view returns (SessionId _id) {
+    _id = toSessionId(userOpPolicyId, msg.sender);
 }
 
-function sessionId(ActionPolicyId actionPolicyId) view returns (SessionId _id) {
-    _id = sessionId(actionPolicyId, msg.sender);
+function toSessionId(ActionPolicyId actionPolicyId) view returns (SessionId _id) {
+    _id = toSessionId(actionPolicyId, msg.sender);
 }
 
-function sessionId(SignerId signerId, ActionId actionId) view returns (SessionId _id) {
-    _id = sessionId(toActionPolicyId(signerId, actionId));
+function toSessionId(SignerId signerId, ActionId actionId) view returns (SessionId _id) {
+    _id = toSessionId(toActionPolicyId(signerId, actionId));
 }
 
-function sessionId(Erc1271PolicyId erc1271PolicyId) view returns (SessionId _id) {
-    _id = sessionId(erc1271PolicyId, msg.sender);
+function toSessionId(Erc1271PolicyId erc1271PolicyId) view returns (SessionId _id) {
+    _id = toSessionId(erc1271PolicyId, msg.sender);
 }
 
 // InstallSessions[] sessions;

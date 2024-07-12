@@ -211,8 +211,6 @@ contract SmartSessionTest is RhinestoneModuleKit, Test {
         assertEq(target.getValue(), valueToSet + 33);
     }
 
-
-
     /// =================================================================
 
     function sign(bytes32 hash, uint256 privKey) internal pure returns (bytes memory signature) {

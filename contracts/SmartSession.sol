@@ -124,8 +124,8 @@ contract SmartSession is SmartSessionBase {
         _enableISigner(signerId, account, enableData.isigner, enableData.isignerInitData);
 
         // enable all policies for this session
-        $userOpPolicies.enable({ signerId: signerId, sessionId: sessionId(toUserOpPolicyId(signerId)), policyDatas: enableData.userOpPolicies, smartAccount: account });
-        $erc1271Policies.enable({ signerId: signerId, sessionId: sessionId(toErc1271PolicyId(signerId)), policyDatas: enableData.erc1271Policies, smartAccount: account });
+        $userOpPolicies.enable({ signerId: signerId, sessionId: toSessionId(toUserOpPolicyId(signerId)), policyDatas: enableData.userOpPolicies, smartAccount: account });
+        $erc1271Policies.enable({ signerId: signerId, sessionId: toSessionId(toErc1271PolicyId(signerId)), policyDatas: enableData.erc1271Policies, smartAccount: account });
         $actionPolicies.enable({ signerId: signerId, actionPolicyDatas: enableData.actions, smartAccount: account });
     }
 
@@ -161,7 +161,7 @@ contract SmartSession is SmartSessionBase {
         vd = $userOpPolicies.check({
             userOp: userOp,
             signer: signerId,
-            callOnIPolicy: abi.encodeCall(IUserOpPolicy.checkUserOpPolicy, (sessionId(signerId), userOp)),
+            callOnIPolicy: abi.encodeCall(IUserOpPolicy.checkUserOpPolicy, (toSessionId(signerId), userOp)),
             minPoliciesToEnforce: 1
         });
 
@@ -220,7 +220,7 @@ contract SmartSession is SmartSessionBase {
                 callOnIPolicy: abi.encodeCall(
                     IActionPolicy.checkAction,
                     (
-                        sessionId({ signerId: signerId, actionId: actionId }), // actionId
+                        toSessionId({ signerId: signerId, actionId: actionId }), // actionId
                         userOp.sender, // target
                         0, // value
                         userOp.callData, // data
@@ -254,8 +254,8 @@ contract SmartSession is SmartSessionBase {
         if(!_isISignerSet(signerId, account)) {
             return false;
         }
-        bool uo = $userOpPolicies.areEnabled({ signerId: signerId, sessionId: sessionId(toUserOpPolicyId(signerId), account), smartAccount: account, policyDatas: enableData.userOpPolicies });
-        bool erc1271 = $erc1271Policies.areEnabled({ signerId: signerId, sessionId: sessionId(toErc1271PolicyId(signerId), account), smartAccount: account, policyDatas: enableData.erc1271Policies });
+        bool uo = $userOpPolicies.areEnabled({ signerId: signerId, sessionId: toSessionId(toUserOpPolicyId(signerId), account), smartAccount: account, policyDatas: enableData.userOpPolicies });
+        bool erc1271 = $erc1271Policies.areEnabled({ signerId: signerId, sessionId: toSessionId(toErc1271PolicyId(signerId), account), smartAccount: account, policyDatas: enableData.erc1271Policies });
         bool action = $actionPolicies.areEnabled({ signerId: signerId, smartAccount: account, actionPolicyDatas: enableData.actions });
         uint256 res;
         assembly {
