@@ -3,6 +3,7 @@ pragma solidity ^0.8.25;
 
 import "forge-std/Script.sol";
 import "contracts/SmartSession.sol";
+import "test/mock/YesPolicy.sol";
 
 contract DeploySmartPermission is Script {
     function run() public {
@@ -27,9 +28,14 @@ contract DeploySmartPermission is Script {
         console2.log("WalletConnect CoSigner Addr: ", cosigner);
         vm.label(cosigner, "WalletConnect CoSigner");
 
+
+
         // Deploy SmartPermission
         SmartSession smartSession = new SmartSession();
         console2.log("SmartPermission Addr: ", address(smartSession));
+
+        YesPolicy yesPolicy = new YesPolicy();
+        console2.log("YesPolicy Addr: ", address(yesPolicy));
         return address(smartSession);
     }
 }
