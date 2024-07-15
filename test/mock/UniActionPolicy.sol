@@ -5,12 +5,6 @@ pragma solidity ^0.8.23;
 import "contracts/interfaces/IPolicy.sol";
 import "contracts/lib/SubLib.sol";
 
-enum Status {
-    NA,
-    Live,
-    Deprecated
-}
-
 struct ActionConfig {
     uint256 valueLimit;
     ParamRules paramRules;
@@ -55,6 +49,12 @@ struct Relation {
 */
 
 contract UniActionPolicy is IActionPolicy {
+
+    enum Status {
+        NA,
+        Live,
+        Deprecated
+    }
 
     using SubLib for bytes;
     using UniActionLib for *;

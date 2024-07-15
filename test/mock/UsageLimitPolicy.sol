@@ -5,18 +5,19 @@ pragma solidity ^0.8.23;
 import "contracts/interfaces/IPolicy.sol";
 import "contracts/lib/SubLib.sol";
 
-enum Status {
-    NA,
-    Live,
-    Deprecated
-}
-
-struct UsageLimitConfig {
-    uint256 limit;
-    uint256 used;
-}
-
 contract UsageLimitPolicy is IUserOpPolicy, IActionPolicy {
+
+    enum Status {
+        NA,
+        Live,
+        Deprecated
+    }
+
+    struct UsageLimitConfig {
+        uint256 limit;
+        uint256 used;
+    }
+
     using SubLib for bytes; 
 
     mapping(address msgSender => mapping(address opSender => uint256)) public usedIds;

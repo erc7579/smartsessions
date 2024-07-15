@@ -7,18 +7,19 @@ import "contracts/lib/SubLib.sol";
 
 import "forge-std/console2.sol";
 
-struct TimeFrameConfig {
-    uint48 validUntil;
-    uint48 validAfter;
-}
-
-enum Status {
-    NA,
-    Live,
-    Deprecated
-}
-
 contract TimeFramePolicy is IUserOpPolicy, IActionPolicy {
+
+    struct TimeFrameConfig {
+        uint48 validUntil;
+        uint48 validAfter;
+    }
+
+    enum Status {
+        NA,
+        Live,
+        Deprecated
+    }
+
     using SubLib for bytes; 
 
     mapping(address msgSender => mapping( address opSender => uint256)) public usedIds;
