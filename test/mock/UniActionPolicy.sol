@@ -7,6 +7,7 @@ import "contracts/lib/SubLib.sol";
 
 struct ActionConfig {
     uint256 valueLimit;
+    // add valueUsed?
     ParamRules paramRules;
     // Relation[] paramRelations; // TODO:
 }

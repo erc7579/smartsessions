@@ -8,6 +8,7 @@ import "test/mock/UniActionPolicy.sol";
 import "test/mock/UsageLimitPolicy.sol";
 import "test/mock/TimeFramePolicy.sol";
 import "test/mock/SimpleGasPolicy.sol";
+import "test/mock/ValueLimitPolicy.sol";
 import "contracts/erc7679/UserOpBuilder.sol";
 
 contract DeploySmartSession is Script {
@@ -68,5 +69,9 @@ contract DeploySmartSession is Script {
         
         UsageLimitPolicy usageLimitPolicy = new UsageLimitPolicy();
         console.log("UsageLimitPolicy Address ", address(usageLimitPolicy));
+
+        ValueLimitPolicy valueLimitPolicy = new ValueLimitPolicy();
+        console.log("ValueLimitPolicy Address ", address(valueLimitPolicy));
+
     }
 }

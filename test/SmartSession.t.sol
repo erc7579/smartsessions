@@ -22,6 +22,7 @@ import { YesPolicy } from "./mock/YesPolicy.sol";
 import { SimpleSigner } from "./mock/SimpleSigner.sol";
 import { SimpleGasPolicy } from "./mock/SimpleGasPolicy.sol";
 import { TimeFramePolicy } from "./mock/TimeFramePolicy.sol";
+import { ValueLimitPolicy } from "./mock/ValueLimitPolicy.sol";
 import { EIP1271_MAGIC_VALUE, IERC1271 } from "module-bases/interfaces/IERC1271.sol";
 import { MockK1Validator } from "test/mock/MockK1Validator.sol";
 import { UserOperationBuilder } from "contracts/erc7679/UserOpBuilder.sol";
@@ -43,6 +44,7 @@ contract SmartSessionTest is RhinestoneModuleKit, Test {
     SimpleSigner internal simpleSigner;
     SimpleGasPolicy internal simpleGasPolicy;
     TimeFramePolicy internal timeFramePolicy;
+    ValueLimitPolicy internal valueLimitPolicy;
 
     MockTarget target;
     Account sessionSigner1;
@@ -71,6 +73,7 @@ contract SmartSessionTest is RhinestoneModuleKit, Test {
         simpleSigner = new SimpleSigner();
         simpleGasPolicy = new SimpleGasPolicy();
         timeFramePolicy = new TimeFramePolicy();
+        valueLimitPolicy = new ValueLimitPolicy();
 
         instance.installModule({
             moduleTypeId: MODULE_TYPE_VALIDATOR,
@@ -132,7 +135,7 @@ contract SmartSessionTest is RhinestoneModuleKit, Test {
         uint256 valueToSet = 1337; 
         UserOpData memory userOpData = instance.getExecOps({
             target: address(target),
-            value: 0,
+            value: 518*1e15,
             callData: abi.encodeCall(MockTarget.setValue, (valueToSet)),
             txValidator: address(smartSession)
         });
@@ -251,9 +254,11 @@ contract SmartSessionTest is RhinestoneModuleKit, Test {
         bytes memory policyInitData = abi.encodePacked(uint256(2**256-1));
         userOpPolicyData[0] = PolicyData({ policy: address(simpleGasPolicy), initData: policyInitData });
 
-        PolicyData[] memory actionPolicyData = new PolicyData[](1);
+        PolicyData[] memory actionPolicyData = new PolicyData[](2);
         policyInitData = abi.encodePacked(uint128(block.timestamp + 1000), uint128(block.timestamp - 1));
         actionPolicyData[0] = PolicyData({ policy: address(timeFramePolicy), initData: policyInitData });
+        policyInitData = abi.encodePacked(uint256(5*1e22));
+        actionPolicyData[1] = PolicyData({ policy: address(valueLimitPolicy), initData: policyInitData });
         ActionId actionId = ActionId.wrap(keccak256(abi.encodePacked(address(target), MockTarget.setValue.selector)));
         ActionData[] memory actions = new ActionData[](1);
         actions[0] = ActionData({ actionId: actionId, actionPolicies: actionPolicyData });
