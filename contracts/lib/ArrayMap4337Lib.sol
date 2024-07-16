@@ -1,10 +1,6 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+pragma solidity ^0.8.25;
 
-/// @notice
-/// @author @author Filipp Makarov (biconomy)
-///
-/// @dev Note:
 /// Key is always address, as per 4337, the last keccak should be on (address A || bytes32 x)
 /// x is the slot of the 4337 compliant ( address => address[] ) or ( address => bytes32[] ) mapping
 
@@ -42,19 +38,19 @@ library ArrayMap4337Lib {
     /*                     GETTERS / SETTERS                      */
     /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
 
-    function length(AddressArrayMap4337 storage s, address key) internal view returns (uint256 length) {
+    function length(AddressArrayMap4337 storage s, address key) internal view returns (uint256 _length) {
         assembly {
             mstore(0x00, key)
             mstore(0x20, s.slot)
-            length := sload(keccak256(0x00, 0x40))
+            _length := sload(keccak256(0x00, 0x40))
         }
     }
 
-    function length(Bytes32ArrayMap4337 storage s, address key) internal view returns (uint256 length) {
+    function length(Bytes32ArrayMap4337 storage s, address key) internal view returns (uint256 _length) {
         assembly {
             mstore(0x00, key)
             mstore(0x20, s.slot)
-            length := sload(keccak256(0x00, 0x40))
+            _length := sload(keccak256(0x00, 0x40))
         }
     }
 
@@ -75,8 +71,8 @@ library ArrayMap4337Lib {
     }
 
     function contains(AddressArrayMap4337 storage s, address key, address element) internal view returns (bool) {
-        uint256 length = s.length(key);
-        for (uint256 i; i < length; i++) {
+        uint256 _length = s.length(key);
+        for (uint256 i; i < _length; i++) {
             if (s.get(key, i) == element) {
                 return true;
             }
@@ -85,8 +81,8 @@ library ArrayMap4337Lib {
     }
 
     function contains(Bytes32ArrayMap4337 storage s, address key, bytes32 element) internal view returns (bool) {
-        uint256 length = s.length(key);
-        for (uint256 i; i < length; i++) {
+        uint256 _length = s.length(key);
+        for (uint256 i; i < _length; i++) {
             if (s.get(key, i) == element) {
                 return true;
             }
@@ -121,8 +117,8 @@ library ArrayMap4337Lib {
     }
 
     function remove(AddressArrayMap4337 storage s, address key, address element) internal returns (uint256) {
-        uint256 length = s.length(key);
-        for (uint256 i; i < length; i++) {
+        uint256 _length = s.length(key);
+        for (uint256 i; i < _length; i++) {
             if (s.get(key, i) == element) {
                 // TODO: get last element and record it to i's position
                 // TODO: pop last element

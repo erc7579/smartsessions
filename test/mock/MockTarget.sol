@@ -6,9 +6,13 @@ contract MockTarget {
 
     bytes32 public hash;
 
-    function setValue(uint256 _value) public returns (uint256) {
+    function setValue(uint256 _value) public payable returns (uint256) {
         value = _value;
         return _value;
+    }
+
+    function getValue() public view returns (uint256) {
+        return value;
     }
 
     function setHash(bytes32 _hash) public returns (bytes32) {

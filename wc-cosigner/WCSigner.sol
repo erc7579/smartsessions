@@ -7,6 +7,7 @@ import { ECDSA } from "solady/utils/ECDSA.sol";
 import "./passkey.sol";
 import "forge-std/console2.sol";
 import "contracts/interfaces/ISigner.sol";
+import { SubLib }  from "contracts/lib/SubLib.sol";
 // import "./passkey.sol";
 
 // removing trusted forwarder dependency here as it is only required during onInstall/onUninstall
@@ -20,10 +21,11 @@ struct Config {
 
 contract WCSigner is ISigner /*, TrustedForwarderWithId*/ {
     using PasskeyHelper for *;
+    using SubLib for bytes;
 
     error InvalidPublicKey();
 
-    mapping(address => uint256) public usedIds;
+    mapping(address msgSender => mapping(address opSender => uint256)) public usedIds;
     mapping(SessionId sessionId => mapping(address multiplexer => mapping(address smartAccount => Config))) public
         signer;
 
@@ -60,15 +62,25 @@ contract WCSigner is ISigner /*, TrustedForwarderWithId*/ {
         return 0xffffffff;
     }
 
-    function isInitialized(address smartAccount) external view returns (bool) {
-        return usedIds[smartAccount] > 0;
+    function isInitialized(address account) external view returns (bool) {
+        return usedIds[msg.sender][account] > 0;
     }
 
-    function isInitialized(address smartAccount, SessionId id) external view returns (bool) {
-        return usedIds[smartAccount] > 0;
+    function isInitialized(address account, SessionId id) external view returns (bool) {
+        return signer[id][msg.sender][account].eoaSigner != address(0);
+    }
+
+    function isInitialized(address multiplexer, address account) external view returns (bool) {
+        return usedIds[multiplexer][account] > 0;
+    }
+
+    function isInitialized(address multiplexer, address account, SessionId id) external view returns (bool) {
+        return signer[id][multiplexer][account].eoaSigner != address(0);
     }
 
     function onInstall(bytes calldata data) external {
+        (SessionId id, address opSender, bytes calldata _data) = data.parseInstallData();
+        _initForAccount(opSender, id, _data);
         // bytes32 signerId = bytes32(data[:32]);
         // (address eoa, WebAuthnValidatorData memory signer2) = abi.decode(data[32:], (address,
         // WebAuthnValidatorData));
@@ -79,7 +91,7 @@ contract WCSigner is ISigner /*, TrustedForwarderWithId*/ {
         // usedIds[msg.sender]++;
     }
 
-    function initForAccount(address account, SessionId id, bytes calldata initData) external override {
+    function _initForAccount(address account, SessionId id, bytes calldata initData) internal {
         console2.log("initForAccount");
 
         (address eoa, WebAuthnValidatorData memory signer2) = abi.decode(initData, (address, WebAuthnValidatorData));
@@ -89,7 +101,7 @@ contract WCSigner is ISigner /*, TrustedForwarderWithId*/ {
         config.eoaSigner = eoa;
         console2.log(signer[id][msg.sender][account].eoaSigner);
 
-        usedIds[msg.sender]++;
+        usedIds[msg.sender][account]++;
     }
 
     function onUninstall(bytes calldata data) external { }
@@ -102,7 +114,7 @@ contract WCSigner is ISigner /*, TrustedForwarderWithId*/ {
         return sig == type(ISigner).interfaceId;
     }
 
-    function deinitForAccount(address account, SessionId id) external override { }
+    function _deinitForAccount(address account, SessionId id) internal { }
 
     function checkUserOpSignature(
         bytes32 id,

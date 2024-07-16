@@ -10,11 +10,13 @@ import {
 import "../interfaces/IPolicy.sol";
 import { SENTINEL, SentinelList4337Lib } from "sentinellist/SentinelList4337.sol";
 import { Bytes32ArrayMap4337, ArrayMap4337Lib } from "./ArrayMap4337Lib.sol";
+import { IdLib } from "./IdLib.sol";
 
 library ConfigLib {
     using SentinelList4337Lib for SentinelList4337Lib.SentinelList;
     using ConfigLib for *;
     using ArrayMap4337Lib for *;
+    using IdLib for *;
 
     error UnsupportedPolicy(address policy);
 
@@ -26,6 +28,7 @@ library ConfigLib {
     function enable(
         Policy storage $policy,
         SignerId signerId,
+        SessionId sessionId,
         PolicyData[] memory policyDatas,
         address smartAccount
     )
@@ -40,11 +43,14 @@ library ConfigLib {
             if (!policy.supportsInterface(type(ISubPermission).interfaceId)) revert UnsupportedPolicy(address(policy));
 
             // initialize sub policy for account
+            /*
             ISubPermission(policy).initForAccount({
                 account: smartAccount,
-                id: sessionId(signerId),
+                id: sessionId,
                 initData: policyData.initData
             });
+            */
+            ISubPermission(policy).onInstall({ data: abi.encodePacked(sessionId, smartAccount, policyData.initData) });
 
             $policy.policyList[signerId].safePush(smartAccount, address(policy));
             emit PolicyEnabled(signerId, address(policy), smartAccount);
@@ -60,14 +66,15 @@ library ConfigLib {
         internal
     {
         uint256 length = actionPolicyDatas.length;
-
         for (uint256 i; i < length; i++) {
             // record every enabled actionId
             ActionData memory actionPolicyData = actionPolicyDatas[i];
-            $self.enabledActionIds.push(smartAccount, ActionId.unwrap(actionPolicyData.actionId));
-            $self.actionPolicies[actionPolicyData.actionId].enable(
-                signerId, actionPolicyData.actionPolicies, smartAccount
-            );
+            ActionId actionId = actionPolicyData.actionId;
+            // TODO: It is currently possible to push the same actionId several times
+            // won't be easy to clean. Introduce 'contains' check before pushing
+            $self.enabledActionIds[signerId].push(smartAccount, ActionId.unwrap(actionId));
+            SessionId sessionId = signerId.toSessionId(actionId);
+            $self.actionPolicies[actionId].enable(signerId, sessionId, actionPolicyData.actionPolicies, smartAccount);
         }
     }
 
@@ -78,7 +85,8 @@ library ConfigLib {
         for (uint256 i; i < length; i++) {
             address entry = entries[i];
             // TODO: use try catch to prevent dos
-            ISubPermission(entry).deinitForAccount(account, _sessionId);
+            // ISubPermission(entry).deinitForAccount(account, _sessionId);
+            ISubPermission(entry).onUninstall(abi.encodePacked(_sessionId, account));
         }
 
         $self.popAll(account);

@@ -9,7 +9,8 @@ import {
     ArrayMap4337Lib as AddressVecLib
 } from "contracts/lib/ArrayMap4337Lib.sol";
 
-import { Execution, ExecutionLib } from "erc7579/lib/ExecutionLib.sol";
+import { Execution, ExecutionLib2 as ExecutionLib } from "./ExecutionLib2.sol";
+
 import "forge-std/console2.sol";
 
 import {
@@ -28,12 +29,14 @@ import {
 import { ERC7579ValidatorBase } from "modulekit/Modules.sol";
 import { ValidationDataLib } from "contracts/lib/ValidationDataLib.sol";
 import { IActionPolicy } from "../interfaces/IPolicy.sol";
+import { IdLib } from "./IdLib.sol";
 
 import { SENTINEL, SentinelList4337Lib } from "sentinellist/SentinelList4337.sol";
 
 library PolicyLib {
     using SentinelList4337Lib for SentinelList4337Lib.SentinelList;
     using ExecutionLib for *;
+    using IdLib for *;
     using PolicyLib for *;
     using AddressVecLib for *;
     using ValidationDataLib for ERC7579ValidatorBase.ValidationData;
@@ -42,6 +45,8 @@ library PolicyLib {
     error PolicyViolation(SignerId signerId, address policy);
     error UnsupportedCallType(CallType callType);
     error NoPoliciesSet(SignerId signerId);
+    error PartlyEnabledPolicies();
+    error PartlyEnabledActions();
 
     function isFailed(ERC7579ValidatorBase.ValidationData packedData) internal pure returns (bool sigFailed) {
         sigFailed = (ERC7579ValidatorBase.ValidationData.unwrap(packedData) & 1) == 1;
@@ -82,19 +87,18 @@ library PolicyLib {
         internal
         returns (ERC7579ValidatorBase.ValidationData vd)
     {
-        ActionId actionId = toActionId(target, callData);
-
+        ActionId actionId = target.toActionId(callData);
         vd = $policies[actionId].check({
             userOp: userOp,
             signer: signerId,
             callOnIPolicy: abi.encodeCall(
                 IActionPolicy.checkAction,
                 (
-                    sessionId(signerId, actionId), // actionId
-                    userOp.sender,
+                    signerId.toSessionId(actionId),
                     target, // target
                     value, // value
-                    callData // data
+                    callData, // data
+                    userOp
                 )
             ),
             minPoliciesToEnforce: 0
@@ -109,7 +113,7 @@ library PolicyLib {
         internal
         returns (ERC7579ValidatorBase.ValidationData vd)
     {
-        Execution[] calldata executions = userOp.callData.decodeBatch();
+        Execution[] calldata executions = userOp.callData.decodeUserOpCallData().decodeBatch();
         uint256 length = executions.length;
         for (uint256 i; i < length; i++) {
             Execution calldata execution = executions[i];
@@ -131,5 +135,60 @@ library PolicyLib {
         bool success;
         (success, returnData) = target.call(callData);
         if (!success) revert();
+    }
+
+    function areEnabled(
+        Policy storage $policies,
+        SignerId signerId,
+        SessionId sessionId,
+        address smartAccount,
+        PolicyData[] memory policyDatas
+    )
+        internal
+        view
+        returns (bool)
+    {
+        uint256 length = policyDatas.length;
+        if (length == 0) return true; // 0 policies are always enabled lol
+        uint256 enabledPolicies;
+        for (uint256 i; i < length; i++) {
+            PolicyData memory policyData = policyDatas[i];
+            ISubPermission policy = ISubPermission(policyData.policy);
+            if (
+                $policies.policyList[signerId].contains(smartAccount, address(policy))
+                    && policy.isInitialized(smartAccount, sessionId)
+            ) enabledPolicies++;
+        }
+        if (enabledPolicies == 0) return false;
+        else if (enabledPolicies == length) return true;
+        else revert PartlyEnabledPolicies();
+    }
+
+    function areEnabled(
+        EnumerableActionPolicy storage $self,
+        SignerId signerId,
+        address smartAccount,
+        ActionData[] memory actionPolicyDatas
+    )
+        internal
+        view
+        returns (bool)
+    {
+        uint256 length = actionPolicyDatas.length;
+        uint256 actionsProperlyEnabled;
+        for (uint256 i; i < length; i++) {
+            ActionData memory actionPolicyData = actionPolicyDatas[i];
+            ActionId actionId = actionPolicyData.actionId;
+            SessionId sessionId = signerId.toSessionId(actionId, smartAccount);
+            if (
+                $self.enabledActionIds[signerId].contains(smartAccount, ActionId.unwrap(actionId))
+                    && $self.actionPolicies[actionId].areEnabled(
+                        signerId, sessionId, smartAccount, actionPolicyData.actionPolicies
+                    )
+            ) actionsProperlyEnabled++;
+        }
+        if (actionsProperlyEnabled == 0) return false;
+        else if (actionsProperlyEnabled == length) return true;
+        else revert PartlyEnabledActions();
     }
 }

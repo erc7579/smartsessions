@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.23;
+
 import "./SmartSessionBase.t.sol";
 import { FCL_ecdsa_utils } from "freshcryptolib/FCL_ecdsa_utils.sol";
 import { Base64 } from "solady/utils/Base64.sol";
@@ -75,7 +78,7 @@ contract WalletConnectCoSigner is SmartSessionBaseTest {
         bytes memory passkeySig = _rootSignDigest(passkey.key, ethHash, true);
 
         userOpData.userOp.signature =
-            EncodeLib.encodeUse({ signerId: walletconnect, packedSig: abi.encode(eoaSig, passkeySig) });
+            EncodeLib.encodeUse({ signerId: walletconnect, sig: abi.encode(eoaSig, passkeySig) });
         userOpData.execUserOps();
     }
 

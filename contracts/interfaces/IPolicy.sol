@@ -1,15 +1,18 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 pragma solidity ^0.8.23;
 
-import { PackedUserOperation } from "modulekit/external/ERC4337.sol";
-import { IModule as IERC7579Module } from "erc7579/interfaces/IERC7579Module.sol";
+import { PackedUserOperation, _packValidationData } from "modulekit/external/ERC4337.sol";
+import { IModule as IERC7579Module, VALIDATION_SUCCESS, VALIDATION_FAILED } from "erc7579/interfaces/IERC7579Module.sol";
 import "../DataTypes.sol";
 import "forge-std/interfaces/IERC165.sol";
 
 interface ISubPermission is IERC165, IERC7579Module {
-    function initForAccount(address account, SessionId id, bytes calldata initData) external;
-    function deinitForAccount(address account, SessionId id) external;
-    function isInitialized(address account, SessionId id) external returns (bool);
+    //function initForAccount(address account, SessionId id, bytes calldata initData) external;
+    //function deinitForAccount(address account, SessionId id) external;
+    function isInitialized(address account, SessionId id) external view returns (bool);
+    function isInitialized(address multiplexer, address account, SessionId id) external view returns (bool);
+    function isInitialized(address account) external view returns (bool);
+    function isInitialized(address multiplexer, address account) external view returns (bool);
 }
 
 interface IUserOpPolicy is ISubPermission {
@@ -20,10 +23,10 @@ interface IUserOpPolicy is ISubPermission {
 interface IActionPolicy is ISubPermission {
     function checkAction(
         SessionId id,
-        address sender,
         address target,
         uint256 value,
-        bytes calldata data
+        bytes calldata data,
+        PackedUserOperation calldata op
     )
         external
         returns (uint256);

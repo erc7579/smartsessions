@@ -13,7 +13,7 @@ import { SignatureCheckerLib } from "solady/utils/SignatureCheckerLib.sol";
 import { MessageHashUtils } from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import { EIP1271_MAGIC_VALUE, IERC1271 } from "module-bases/interfaces/IERC1271.sol";
 
-contract MockValidator is IValidator {
+contract MockK1Validator is IValidator {
     bytes4 constant ERC1271_INVALID = 0xffffffff;
     mapping(address => address) public smartAccountOwners;
 
