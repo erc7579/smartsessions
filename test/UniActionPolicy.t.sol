@@ -111,7 +111,6 @@ contract UniversalActionPolicyTest is RhinestoneModuleKit, Test {
         assertEq(postBal32, valToAdd32);
     }
 
-
     /// =================================================================
 
     function sign(bytes32 hash, uint256 privKey) internal pure returns (bytes memory signature) {
@@ -124,14 +123,14 @@ contract UniversalActionPolicyTest is RhinestoneModuleKit, Test {
     function _preEnablePermissions() internal {
         vm.startPrank(instance.account);
         smartSession.setSigner({
-            signerId: defaultSigner1, 
-            signer: ISigner(address(simpleSigner)), 
+            signerId: defaultSigner1,
+            signer: ISigner(address(simpleSigner)),
             initData: abi.encodePacked(sessionSigner1.addr)
         });
 
         //enable simple gas policy as userOpPolicy
         PolicyData[] memory policyData = new PolicyData[](1);
-        bytes memory policyInitData = abi.encodePacked(uint256(2**256-1));
+        bytes memory policyInitData = abi.encodePacked(uint256(2 ** 256 - 1));
         policyData[0] = PolicyData({ policy: address(simpleGasPolicy), initData: policyInitData });
         smartSession.enableUserOpPolicies(defaultSigner1, policyData);
 
@@ -139,10 +138,11 @@ contract UniversalActionPolicyTest is RhinestoneModuleKit, Test {
         policyInitData = abi.encodePacked(uint128(block.timestamp + 1000), uint128(block.timestamp - 1));
         policyData[0] = PolicyData({ policy: address(timeFramePolicy), initData: policyInitData });
         smartSession.enableUserOpPolicies(defaultSigner1, policyData);
-        
+
         // enable action policies
         PolicyData[] memory actionPolicyData = new PolicyData[](2);
-        ActionId actionId = ActionId.wrap(keccak256(abi.encodePacked(address(mockCallee), MockCallee.addBalance.selector)));
+        ActionId actionId =
+            ActionId.wrap(keccak256(abi.encodePacked(address(mockCallee), MockCallee.addBalance.selector)));
 
         // use timeframe for action as well with narrower limit
         policyInitData = abi.encodePacked(uint128(block.timestamp + 500), uint128(block.timestamp - 1));
@@ -154,28 +154,28 @@ contract UniversalActionPolicyTest is RhinestoneModuleKit, Test {
             offset: 0x00,
             isLimited: false,
             ref: bytes32(bytes20(instance.account)) >> 96,
-            usage: LimitUsage({limit: 0, used: 0})
+            usage: LimitUsage({ limit: 0, used: 0 })
         });
         ParamRule memory uint256Rule = ParamRule({
             condition: ParamCondition.LESS_THAN,
             offset: 0x20,
             isLimited: true,
             ref: bytes32(uint256(1e30)),
-            usage: LimitUsage({limit: 1e32, used: 0})
+            usage: LimitUsage({ limit: 1e32, used: 0 })
         });
         ParamRule memory bytes32Rule = ParamRule({
             condition: ParamCondition.GREATER_THAN,
             offset: 0x40,
             isLimited: false,
             ref: bytes32(uint256(0x01)),
-            usage: LimitUsage({limit: 0, used: 0})
+            usage: LimitUsage({ limit: 0, used: 0 })
         });
         ParamRule[16] memory rules;
         rules[0] = addrRule;
         rules[1] = uint256Rule;
         rules[2] = bytes32Rule;
-        ParamRules memory paramRules = ParamRules({length: 3, rules: rules});
-        ActionConfig memory config = ActionConfig({valueLimit: 1e21, paramRules: paramRules});
+        ParamRules memory paramRules = ParamRules({ length: 3, rules: rules });
+        ActionConfig memory config = ActionConfig({ valueLimit: 1e21, paramRules: paramRules });
         policyInitData = abi.encode(config);
 
         actionPolicyData[1] = PolicyData({ policy: address(uniPolicy), initData: policyInitData });
@@ -188,17 +188,16 @@ contract UniversalActionPolicyTest is RhinestoneModuleKit, Test {
 }
 
 contract MockCallee {
-    
     struct Balances {
         uint256 uintBalance;
         bytes32 bytes32Balance;
     }
 
-    mapping (address => Balances) public bals;
-    
+    mapping(address => Balances) public bals;
+
     function addBalance(address addrParam, uint256 uintParam, bytes32 bytesParam) external {
         bals[addrParam].uintBalance += uintParam;
-        
+
         bals[addrParam].bytes32Balance = bytes32(uint256(bals[addrParam].bytes32Balance) + uint256(bytesParam));
     }
 }

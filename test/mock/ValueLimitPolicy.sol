@@ -6,7 +6,6 @@ import "contracts/interfaces/IPolicy.sol";
 import "contracts/lib/SubLib.sol";
 
 contract ValueLimitPolicy is IActionPolicy {
-    
     using SubLib for bytes;
 
     struct ValueLimitConfig {
@@ -15,15 +14,19 @@ contract ValueLimitPolicy is IActionPolicy {
     }
 
     mapping(address msgSender => mapping(address opSender => uint256)) public usedIds;
-    mapping(SessionId id => mapping(address msgSender => mapping(address userOpSender => ValueLimitConfig))) public valueLimitConfigs;
+    mapping(SessionId id => mapping(address msgSender => mapping(address userOpSender => ValueLimitConfig))) public
+        valueLimitConfigs;
 
-    // TODO: Make per SignerId limits => this will allow to set value transfer limits not per action, but per session key (signer)
+    // TODO: Make per SignerId limits => this will allow to set value transfer limits not per action, but per session
+    // key (signer)
     // To make this, need to make one more mapping
-    // mapping(SignerId signerId => mapping(address msgSender => mapping(address userOpSender => ValueLimitConfig))) public valueLimitConfigs;
+    // mapping(SignerId signerId => mapping(address msgSender => mapping(address userOpSender => ValueLimitConfig)))
+    // public valueLimitConfigs;
     // and receive this limit in onInstall
     // and use EncodeLib.getSignerId() method to get signerId from op.signature
     // and check/increment value limits and usage per SignerId as well
-    // so there can be no checking limits per action (need to set let's say 0xfefefefefefe as valueLimit to avoid check and increment)
+    // so there can be no checking limits per action (need to set let's say 0xfefefefefefe as valueLimit to avoid check
+    // and increment)
     // but check per signerId
 
     function checkAction(

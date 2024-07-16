@@ -28,7 +28,7 @@ contract DeploySmartSession is Script {
         vm.stopBroadcast();
     }
 
-    function _deploySmartSession() public returns (address) {    
+    function _deploySmartSession() public returns (address) {
         SmartSession smartSession = new SmartSession();
         console2.log("SmartSession Addr: ", address(smartSession));
 
@@ -57,21 +57,20 @@ contract DeploySmartSession is Script {
         return anotherAddress;
     }
 
-    function _deploySubModules() public {        
+    function _deploySubModules() public {
         SimpleSigner ssigner = new SimpleSigner();
         console2.log("Simple Signer Address ", address(ssigner));
 
         UniActionPolicy uniActionPolicy = new UniActionPolicy();
         console2.log("UniActionPolicy Address ", address(uniActionPolicy));
-        
+
         TimeFramePolicy tfPolicy = new TimeFramePolicy();
         console2.log("TimeFramePolicy Address ", address(tfPolicy));
-        
+
         UsageLimitPolicy usageLimitPolicy = new UsageLimitPolicy();
         console.log("UsageLimitPolicy Address ", address(usageLimitPolicy));
 
         ValueLimitPolicy valueLimitPolicy = new ValueLimitPolicy();
         console.log("ValueLimitPolicy Address ", address(valueLimitPolicy));
-
     }
 }

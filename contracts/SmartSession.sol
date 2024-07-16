@@ -26,12 +26,12 @@ import { EncodeLib } from "./lib/EncodeLib.sol";
 import "./DataTypes.sol";
 import { SmartSessionBase } from "./SmartSessionBase.sol";
 import "forge-std/console2.sol";
-
+import { IdLib } from "./lib/IdLib.sol";
 /**
  * TODO:
  *     - The flow where permission doesn't enable the new signer, just adds policies for the existing one
  *     - MultiChain Permission Enable Data (chainId is in EncodeLib.digest now)
- *     - 'No Signature verification required' flow 
+ *     - 'No Signature verification required' flow
  *     - No policies (sudo) flow. What do we do with minPoliciesToEnforce ?
  *     - ERC-1271 (security => do not allow validating sig requests from itself)
  *     - Renouncing permissions
@@ -46,6 +46,7 @@ import "forge-std/console2.sol";
  */
 contract SmartSession is SmartSessionBase {
     using SentinelList4337Lib for SentinelList4337Lib.SentinelList;
+    using IdLib for *;
     using PolicyLib for *;
     using SignerLib for *;
     using ConfigLib for *;
@@ -124,8 +125,18 @@ contract SmartSession is SmartSessionBase {
         _enableISigner(signerId, account, enableData.isigner, enableData.isignerInitData);
 
         // enable all policies for this session
-        $userOpPolicies.enable({ signerId: signerId, sessionId: toSessionId(toUserOpPolicyId(signerId)), policyDatas: enableData.userOpPolicies, smartAccount: account });
-        $erc1271Policies.enable({ signerId: signerId, sessionId: toSessionId(toErc1271PolicyId(signerId)), policyDatas: enableData.erc1271Policies, smartAccount: account });
+        $userOpPolicies.enable({
+            signerId: signerId,
+            sessionId: signerId.toUserOpPolicyId().toSessionId(),
+            policyDatas: enableData.userOpPolicies,
+            smartAccount: account
+        });
+        $erc1271Policies.enable({
+            signerId: signerId,
+            sessionId: signerId.toErc1271PolicyId().toSessionId(),
+            policyDatas: enableData.erc1271Policies,
+            smartAccount: account
+        });
         $actionPolicies.enable({ signerId: signerId, actionPolicyDatas: enableData.actions, smartAccount: account });
     }
 
@@ -161,7 +172,7 @@ contract SmartSession is SmartSessionBase {
         vd = $userOpPolicies.check({
             userOp: userOp,
             signer: signerId,
-            callOnIPolicy: abi.encodeCall(IUserOpPolicy.checkUserOpPolicy, (toSessionId(signerId), userOp)),
+            callOnIPolicy: abi.encodeCall(IUserOpPolicy.checkUserOpPolicy, (signerId.toSessionId(), userOp)),
             minPoliciesToEnforce: 1
         });
 
@@ -191,7 +202,8 @@ contract SmartSession is SmartSessionBase {
             }
             // DEFAULT EXEC & SINGLE CALL
             else if (callType == CALLTYPE_SINGLE) {
-                (address target, uint256 value, bytes calldata callData) = userOp.callData.decodeUserOpCallData().decodeSingle();
+                (address target, uint256 value, bytes calldata callData) =
+                    userOp.callData.decodeUserOpCallData().decodeSingle();
                 vd = $actionPolicies.actionPolicies.checkSingle7579Exec({
                     userOp: userOp,
                     signerId: signerId,
@@ -213,15 +225,16 @@ contract SmartSession is SmartSessionBase {
         /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
         // all other executions are supported and are handled by the actionPolicies
         else {
-            ActionId actionId = toActionId(userOp.sender, userOp.callData);
+            ActionId actionId = account.toActionId(userOp.callData);
+
             vd = $actionPolicies.actionPolicies[actionId].check({
                 userOp: userOp,
                 signer: signerId,
                 callOnIPolicy: abi.encodeCall(
                     IActionPolicy.checkAction,
                     (
-                        toSessionId({ signerId: signerId, actionId: actionId }), // actionId
-                        userOp.sender, // target
+                        signerId.toSessionId(actionId),
+                        account, // target
                         0, // value
                         userOp.callData, // data
                         userOp
@@ -249,21 +262,39 @@ contract SmartSession is SmartSessionBase {
         SignerId signerId,
         address account,
         EnableSessions memory enableData
-    ) external view returns (bool isEnabled) {
+    )
+        external
+        view
+        returns (bool isEnabled)
+    {
         //if ISigner is not set for signerId, the permission has not been enabled yet
-        if(!_isISignerSet(signerId, account)) {
+        if (!_isISignerSet(signerId, account)) {
             return false;
         }
-        bool uo = $userOpPolicies.areEnabled({ signerId: signerId, sessionId: toSessionId(toUserOpPolicyId(signerId), account), smartAccount: account, policyDatas: enableData.userOpPolicies });
-        bool erc1271 = $erc1271Policies.areEnabled({ signerId: signerId, sessionId: toSessionId(toErc1271PolicyId(signerId), account), smartAccount: account, policyDatas: enableData.erc1271Policies });
-        bool action = $actionPolicies.areEnabled({ signerId: signerId, smartAccount: account, actionPolicyDatas: enableData.actions });
+        bool uo = $userOpPolicies.areEnabled({
+            signerId: signerId,
+            sessionId: signerId.toUserOpPolicyId().toSessionId(),
+            smartAccount: account,
+            policyDatas: enableData.userOpPolicies
+        });
+        bool erc1271 = $erc1271Policies.areEnabled({
+            signerId: signerId,
+            sessionId: signerId.toErc1271PolicyId().toSessionId(),
+            smartAccount: account,
+            policyDatas: enableData.erc1271Policies
+        });
+        bool action = $actionPolicies.areEnabled({
+            signerId: signerId,
+            smartAccount: account,
+            actionPolicyDatas: enableData.actions
+        });
         uint256 res;
         assembly {
             res := add(add(uo, erc1271), action)
         }
         if (res == 0) return false;
         else if (res == 3) return true;
-        else revert PermissionPartlyEnabled(); 
+        else revert PermissionPartlyEnabled();
         // partly enabled permission will prevent the full permission to be enabled
         // and we can not consider it being fully enabled, as it missed some policies we'd want to enforce
         // as per given 'enableData'

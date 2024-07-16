@@ -10,11 +10,13 @@ import {
 import "../interfaces/IPolicy.sol";
 import { SENTINEL, SentinelList4337Lib } from "sentinellist/SentinelList4337.sol";
 import { Bytes32ArrayMap4337, ArrayMap4337Lib } from "./ArrayMap4337Lib.sol";
+import { IdLib } from "./IdLib.sol";
 
 library ConfigLib {
     using SentinelList4337Lib for SentinelList4337Lib.SentinelList;
     using ConfigLib for *;
     using ArrayMap4337Lib for *;
+    using IdLib for *;
 
     error UnsupportedPolicy(address policy);
 
@@ -48,9 +50,7 @@ library ConfigLib {
                 initData: policyData.initData
             });
             */
-             ISubPermission(policy).onInstall({
-                data: abi.encodePacked(sessionId, smartAccount, policyData.initData)
-            });
+            ISubPermission(policy).onInstall({ data: abi.encodePacked(sessionId, smartAccount, policyData.initData) });
 
             $policy.policyList[signerId].safePush(smartAccount, address(policy));
             emit PolicyEnabled(signerId, address(policy), smartAccount);
@@ -73,10 +73,8 @@ library ConfigLib {
             // TODO: It is currently possible to push the same actionId several times
             // won't be easy to clean. Introduce 'contains' check before pushing
             $self.enabledActionIds[signerId].push(smartAccount, ActionId.unwrap(actionId));
-            SessionId sessionId = toSessionId(signerId, actionId);
-            $self.actionPolicies[actionId].enable(
-                signerId, sessionId, actionPolicyData.actionPolicies, smartAccount
-            );
+            SessionId sessionId = signerId.toSessionId(actionId);
+            $self.actionPolicies[actionId].enable(signerId, sessionId, actionPolicyData.actionPolicies, smartAccount);
         }
     }
 

@@ -11,7 +11,7 @@ contract MockTarget {
         return _value;
     }
 
-    function getValue() public view returns(uint256) {
+    function getValue() public view returns (uint256) {
         return value;
     }
 

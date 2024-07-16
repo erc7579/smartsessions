@@ -8,7 +8,6 @@ import "contracts/lib/SubLib.sol";
 import "forge-std/console2.sol";
 
 contract TimeFramePolicy is IUserOpPolicy, IActionPolicy {
-
     struct TimeFrameConfig {
         uint48 validUntil;
         uint48 validAfter;
@@ -20,13 +19,22 @@ contract TimeFramePolicy is IUserOpPolicy, IActionPolicy {
         Deprecated
     }
 
-    using SubLib for bytes; 
+    using SubLib for bytes;
 
-    mapping(address msgSender => mapping( address opSender => uint256)) public usedIds;
-    mapping(SessionId id => mapping (address msgSender => mapping (address opSender => Status))) public status;
-    mapping(SessionId id => mapping (address msgSender => mapping (address opSender => TimeFrameConfig))) public timeFrameConfigs;
+    mapping(address msgSender => mapping(address opSender => uint256)) public usedIds;
+    mapping(SessionId id => mapping(address msgSender => mapping(address opSender => Status))) public status;
+    mapping(SessionId id => mapping(address msgSender => mapping(address opSender => TimeFrameConfig))) public
+        timeFrameConfigs;
 
-    function checkUserOpPolicy(SessionId id, PackedUserOperation calldata op) external view override returns (uint256) {
+    function checkUserOpPolicy(
+        SessionId id,
+        PackedUserOperation calldata op
+    )
+        external
+        view
+        override
+        returns (uint256)
+    {
         return _checkTimeFrame(id, msg.sender, op.sender);
     }
 
@@ -123,5 +131,4 @@ contract TimeFramePolicy is IUserOpPolicy, IActionPolicy {
     function supportsInterface(bytes4 interfaceID) external pure override returns (bool) {
         return true;
     }
-
 }

@@ -6,7 +6,6 @@ import "contracts/interfaces/IPolicy.sol";
 import "contracts/lib/SubLib.sol";
 
 contract UsageLimitPolicy is IUserOpPolicy, IActionPolicy {
-
     enum Status {
         NA,
         Live,
@@ -18,11 +17,12 @@ contract UsageLimitPolicy is IUserOpPolicy, IActionPolicy {
         uint256 used;
     }
 
-    using SubLib for bytes; 
+    using SubLib for bytes;
 
     mapping(address msgSender => mapping(address opSender => uint256)) public usedIds;
     mapping(SessionId id => mapping(address msgSender => mapping(address userOpSender => Status))) public status;
-    mapping(SessionId id => mapping(address msgSender => mapping(address userOpSender => UsageLimitConfig))) public usageLimitConfigs;
+    mapping(SessionId id => mapping(address msgSender => mapping(address userOpSender => UsageLimitConfig))) public
+        usageLimitConfigs;
 
     function checkUserOpPolicy(SessionId id, PackedUserOperation calldata op) external returns (uint256) {
         return _checkUsageLimit(id, msg.sender, op.sender);
@@ -76,7 +76,6 @@ contract UsageLimitPolicy is IUserOpPolicy, IActionPolicy {
         _onUninstallPolicy(id, opSender, _data);
     }
 
-
     function isInitialized(address account) external view returns (bool) {
         return usedIds[msg.sender][account] > 0;
     }
@@ -100,5 +99,4 @@ contract UsageLimitPolicy is IUserOpPolicy, IActionPolicy {
     function supportsInterface(bytes4 interfaceID) external pure override returns (bool) {
         return true;
     }
-
 }

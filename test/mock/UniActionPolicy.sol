@@ -9,8 +9,8 @@ struct ActionConfig {
     uint256 valueLimit;
     // add valueUsed?
     ParamRules paramRules;
-    // Relation[] paramRelations; // TODO:
 }
+// Relation[] paramRelations; // TODO:
 
 struct ParamRules {
     uint256 length;
@@ -50,7 +50,6 @@ struct Relation {
 */
 
 contract UniActionPolicy is IActionPolicy {
-
     enum Status {
         NA,
         Live,
@@ -62,7 +61,8 @@ contract UniActionPolicy is IActionPolicy {
 
     mapping(address msgSender => mapping(address opSender => uint256)) public usedIds;
     mapping(SessionId id => mapping(address msgSender => mapping(address userOpSender => Status))) public status;
-    mapping(SessionId id => mapping(address msgSender => mapping(address userOpSender => ActionConfig))) public actionConfigs;
+    mapping(SessionId id => mapping(address msgSender => mapping(address userOpSender => ActionConfig))) public
+        actionConfigs;
 
     function checkAction(
         SessionId id,
@@ -79,14 +79,13 @@ contract UniActionPolicy is IActionPolicy {
         require(value <= config.valueLimit);
         ParamRule[16] memory rules = config.paramRules.rules;
         uint256 length = config.paramRules.length;
-        for (uint256 i = 0; i < length ; i++) {
+        for (uint256 i = 0; i < length; i++) {
             ParamRule memory rule = rules[i];
-            if(!rule.check(data)) return VALIDATION_FAILED;
+            if (!rule.check(data)) return VALIDATION_FAILED;
         }
 
         return VALIDATION_SUCCESS;
     }
-
 
     function _onInstallPolicy(SessionId id, address opSender, bytes calldata _data) internal {
         require(status[id][msg.sender][opSender] == Status.NA);
@@ -112,7 +111,6 @@ contract UniActionPolicy is IActionPolicy {
         _onUninstallPolicy(id, opSender, _data);
     }
 
-
     function isInitialized(address account) external view returns (bool) {
         return usedIds[msg.sender][account] > 0;
     }
@@ -136,13 +134,12 @@ contract UniActionPolicy is IActionPolicy {
     function supportsInterface(bytes4 interfaceID) external pure override returns (bool) {
         return true;
     }
-
 }
 
 library UniActionLib {
     function check(ParamRule memory rule, bytes calldata data) internal view returns (bool) {
         bytes32 param = bytes32(data[4 + rule.offset:4 + rule.offset + 32]);
-            
+
         // CHECK ParamCondition
         if (rule.condition == ParamCondition.EQUAL && param != rule.ref) {
             return false;
@@ -159,8 +156,8 @@ library UniActionLib {
         }
 
         // CHECK PARAM LIMIT
-        if(rule.isLimited) {
-            if(rule.usage.used + uint256(param) > rule.usage.limit) {
+        if (rule.isLimited) {
+            if (rule.usage.used + uint256(param) > rule.usage.limit) {
                 return false;
             }
             rule.usage.used += uint256(param);
@@ -171,7 +168,7 @@ library UniActionLib {
     function fill(ActionConfig storage $config, ActionConfig memory config) internal {
         $config.valueLimit = config.valueLimit;
         $config.paramRules.length = config.paramRules.length;
-        for(uint256 i; i<config.paramRules.length; i++) {
+        for (uint256 i; i < config.paramRules.length; i++) {
             $config.paramRules.rules[i] = config.paramRules.rules[i];
         }
     }

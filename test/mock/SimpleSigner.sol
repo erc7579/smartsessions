@@ -4,7 +4,7 @@ pragma solidity ^0.8.23;
 
 import { PackedUserOperation, SessionId, ISigner } from "contracts/interfaces/ISigner.sol";
 import { ECDSA } from "solady/utils/ECDSA.sol";
-import { SubLib }  from "contracts/lib/SubLib.sol";
+import { SubLib } from "contracts/lib/SubLib.sol";
 
 // removing trusted forwarder dependency here as it is only required during onInstall/onUninstall
 // and not during usage (checkSignature)
@@ -12,6 +12,7 @@ import { SubLib }  from "contracts/lib/SubLib.sol";
 
 contract SimpleSigner is ISigner {
     using SubLib for bytes;
+
     mapping(address msgSender => mapping(address opSender => uint256)) public usedIds;
     mapping(SessionId id => mapping(address msgSender => mapping(address userOpSender => address))) public signer;
 

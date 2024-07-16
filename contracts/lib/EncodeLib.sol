@@ -45,11 +45,7 @@ library EncodeLib {
         data = packed[33:];
     }
 
-    function getSignerId(bytes calldata packed)
-        internal
-        pure
-        returns (SignerId signerId)
-    {
+    function getSignerId(bytes calldata packed) internal pure returns (SignerId signerId) {
         signerId = SignerId.wrap(bytes32(packed[1:33]));
     }
 
@@ -106,18 +102,15 @@ library EncodeLib {
     }
 
     function encodeContext(
-        uint192 nonceKey, 
+        uint192 nonceKey,
         ExecutionMode mode,
         SignerId signerId,
         EnableSessions memory enableData
-    ) internal pure returns (bytes memory context) {
-        context = abi.encodePacked(
-            nonceKey,
-            mode,
-            signerId,
-            abi.encode(
-                enableData
-            )
-        );
+    )
+        internal
+        pure
+        returns (bytes memory context)
+    {
+        context = abi.encodePacked(nonceKey, mode, signerId, abi.encode(enableData));
     }
 }

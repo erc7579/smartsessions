@@ -46,12 +46,15 @@ contract YesSigner is ISigner /*, TrustedForwarderWithId*/ {
     function isInitialized(address account, SessionId id) external view returns (bool) {
         return true;
     }
+
     function isInitialized(address multiplexer, address account, SessionId id) external view returns (bool) {
         return true;
     }
+
     function isInitialized(address account) external view returns (bool) {
         return true;
     }
+
     function isInitialized(address multiplexer, address account) external view returns (bool) {
         return true;
     }
@@ -59,5 +62,4 @@ contract YesSigner is ISigner /*, TrustedForwarderWithId*/ {
     function supportsInterface(bytes4 interfaceID) external view override returns (bool) {
         return true;
     }
-
 }

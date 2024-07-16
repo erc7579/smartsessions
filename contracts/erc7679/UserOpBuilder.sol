@@ -5,20 +5,21 @@ import { IUserOperationBuilder, PackedUserOperation, Execution } from "./IUserOp
 import { IEntryPoint } from "modulekit/external/ERC4337.sol";
 import { Exec } from "account-abstraction/utils/Exec.sol";
 import { IERC7579Account } from "erc7579/interfaces/IERC7579Account.sol";
-import {
-    ModeCode as ExecutionMode,
-    ExecType,
-    CallType,
-    CALLTYPE_BATCH,
-    CALLTYPE_SINGLE
-} from "erc7579/lib/ModeLib.sol";
+import { ModeCode as ExecutionMode, ExecType, CallType, CALLTYPE_BATCH, CALLTYPE_SINGLE } from "erc7579/lib/ModeLib.sol";
 import { EncodeLib } from "../lib/EncodeLib.sol";
 import { ExecutionLib2 as ExecutionLib } from "../lib/ExecutionLib2.sol";
 import "../DataTypes.sol";
 import "forge-std/Console2.sol";
 
 interface IPermissionEnabled {
-    function isPermissionEnabled(SignerId signerId, address smartAccount, EnableSessions memory enableData) external view returns (bool);
+    function isPermissionEnabled(
+        SignerId signerId,
+        address smartAccount,
+        EnableSessions memory enableData
+    )
+        external
+        view
+        returns (bool);
 }
 
 contract UserOperationBuilder is IUserOperationBuilder {
@@ -26,13 +27,11 @@ contract UserOperationBuilder is IUserOperationBuilder {
      *    PermissionContext is a bytes array : ...
      *    0-24 : nonce key
      *    24-56: execution mode
-     *    56-88: signerId     
+     *    56-88: signerId
      *    88: abi.encode(EnableSessions)
      */
-
     using ExecutionLib for *;
     using EncodeLib for *;
-
 
     IEntryPoint public immutable ep;
 
@@ -46,14 +45,7 @@ contract UserOperationBuilder is IUserOperationBuilder {
 
     // we expect the context to contain the full key,
     // as there can be 2d nonces and only context builder (sdk) knows it
-    function getNonce(
-        address smartAccount,
-        bytes calldata context
-    )
-        external
-        view
-        returns (uint256 nonce)
-    {
+    function getNonce(address smartAccount, bytes calldata context) external view returns (uint256 nonce) {
         uint192 key = uint192(bytes24(context[0:24])); // TODO: move to lib?
         nonce = ep.getNonce(address(smartAccount), key);
     }
@@ -71,7 +63,7 @@ contract UserOperationBuilder is IUserOperationBuilder {
             revert("No executions provided");
         }
 
-        ExecutionMode mode = ExecutionMode.wrap(bytes32(context[24:56]));  // TODO: move to lib?
+        ExecutionMode mode = ExecutionMode.wrap(bytes32(context[24:56])); // TODO: move to lib?
         CallType callType;
         assembly {
             callType := mode
@@ -80,18 +72,10 @@ contract UserOperationBuilder is IUserOperationBuilder {
         if (callType == CALLTYPE_SINGLE) {
             callData = abi.encodeCall(
                 IERC7579Account.execute,
-                (
-                    mode,
-                    ExecutionLib.encodeSingle(
-                        executions[0].target, executions[0].value, executions[0].callData
-                    )
-                )
+                (mode, ExecutionLib.encodeSingle(executions[0].target, executions[0].value, executions[0].callData))
             );
         } else if (callType == CALLTYPE_BATCH) {
-            callData = abi.encodeCall(
-                IERC7579Account.execute,
-                (mode, ExecutionLib.encodeBatch(executions))
-            );
+            callData = abi.encodeCall(IERC7579Account.execute, (mode, ExecutionLib.encodeBatch(executions)));
         } else {
             revert UnsupportedCallType(callType);
         }
@@ -111,20 +95,22 @@ contract UserOperationBuilder is IUserOperationBuilder {
             revert("Context too short");
             // context should contain at least 24 bytes nonce_key, 32 bytes mode, and 32 bytes signerId
         }
-        
+
         SignerId signerId = SignerId.wrap(bytes32(context[56:88]));
 
         if (context.length == 88) {
-            // if by some (weird) reason the context contains only 32bytes signerId on top of 
-            // the nonce_key and mode => then it is a context for just using the permission    
+            // if by some (weird) reason the context contains only 32bytes signerId on top of
+            // the nonce_key and mode => then it is a context for just using the permission
             return EncodeLib.encodeUse(signerId, userOperation.signature);
         }
-        
+
         address permissionValidator = address(bytes20(context[0:20]));
         EnableSessions memory enableData = abi.decode(context[88:], (EnableSessions));
 
-        try IPermissionEnabled(permissionValidator).isPermissionEnabled(signerId, smartAccount, enableData) returns (bool isEnabled) {
-            if(isEnabled) {
+        try IPermissionEnabled(permissionValidator).isPermissionEnabled(signerId, smartAccount, enableData) returns (
+            bool isEnabled
+        ) {
+            if (isEnabled) {
                 return EncodeLib.encodeUse(signerId, userOperation.signature);
             } else {
                 return EncodeLib.encodeEnable(signerId, userOperation.signature, enableData);
@@ -142,4 +128,3 @@ contract UserOperationBuilder is IUserOperationBuilder {
     )
     */
 }
-

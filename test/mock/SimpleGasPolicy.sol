@@ -6,7 +6,6 @@ import "contracts/interfaces/IPolicy.sol";
 import "contracts/lib/SubLib.sol";
 
 contract SimpleGasPolicy is IUserOpPolicy {
-    
     using SubLib for bytes;
 
     struct GasLimitConfig {
@@ -15,7 +14,8 @@ contract SimpleGasPolicy is IUserOpPolicy {
     }
 
     mapping(address msgSender => mapping(address opSender => uint256)) public usedIds;
-    mapping(SessionId id => mapping(address msgSender => mapping(address userOpSender => GasLimitConfig))) public gasLimitConfigs;
+    mapping(SessionId id => mapping(address msgSender => mapping(address userOpSender => GasLimitConfig))) public
+        gasLimitConfigs;
 
     function checkUserOpPolicy(SessionId id, PackedUserOperation calldata userOp) external returns (uint256) {
         GasLimitConfig storage config = gasLimitConfigs[id][msg.sender][userOp.sender];

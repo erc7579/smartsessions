@@ -29,12 +29,14 @@ import {
 import { ERC7579ValidatorBase } from "modulekit/Modules.sol";
 import { ValidationDataLib } from "contracts/lib/ValidationDataLib.sol";
 import { IActionPolicy } from "../interfaces/IPolicy.sol";
+import { IdLib } from "./IdLib.sol";
 
 import { SENTINEL, SentinelList4337Lib } from "sentinellist/SentinelList4337.sol";
 
 library PolicyLib {
     using SentinelList4337Lib for SentinelList4337Lib.SentinelList;
     using ExecutionLib for *;
+    using IdLib for *;
     using PolicyLib for *;
     using AddressVecLib for *;
     using ValidationDataLib for ERC7579ValidatorBase.ValidationData;
@@ -59,7 +61,7 @@ library PolicyLib {
     )
         internal
         returns (ERC7579ValidatorBase.ValidationData vd)
-    {   
+    {
         address account = userOp.sender;
         (address[] memory policies,) = $self.policyList[signer].getEntriesPaginated(account, SENTINEL, 32);
         uint256 length = policies.length;
@@ -85,14 +87,14 @@ library PolicyLib {
         internal
         returns (ERC7579ValidatorBase.ValidationData vd)
     {
-        ActionId actionId = toActionId(target, callData);
+        ActionId actionId = target.toActionId(callData);
         vd = $policies[actionId].check({
             userOp: userOp,
             signer: signerId,
             callOnIPolicy: abi.encodeCall(
                 IActionPolicy.checkAction,
                 (
-                    toSessionId(signerId, actionId), // actionId
+                    signerId.toSessionId(actionId),
                     target, // target
                     value, // value
                     callData, // data
@@ -141,17 +143,20 @@ library PolicyLib {
         SessionId sessionId,
         address smartAccount,
         PolicyData[] memory policyDatas
-    ) internal view returns (bool) {
+    )
+        internal
+        view
+        returns (bool)
+    {
         uint256 length = policyDatas.length;
-        if(length == 0) return true; // 0 policies are always enabled lol
+        if (length == 0) return true; // 0 policies are always enabled lol
         uint256 enabledPolicies;
         for (uint256 i; i < length; i++) {
             PolicyData memory policyData = policyDatas[i];
             ISubPermission policy = ISubPermission(policyData.policy);
             if (
-                $policies.policyList[signerId].contains(smartAccount, address(policy)) 
-                &&
-                policy.isInitialized(smartAccount, sessionId)
+                $policies.policyList[signerId].contains(smartAccount, address(policy))
+                    && policy.isInitialized(smartAccount, sessionId)
             ) enabledPolicies++;
         }
         if (enabledPolicies == 0) return false;
@@ -164,17 +169,22 @@ library PolicyLib {
         SignerId signerId,
         address smartAccount,
         ActionData[] memory actionPolicyDatas
-    ) internal view returns (bool) {
+    )
+        internal
+        view
+        returns (bool)
+    {
         uint256 length = actionPolicyDatas.length;
         uint256 actionsProperlyEnabled;
         for (uint256 i; i < length; i++) {
             ActionData memory actionPolicyData = actionPolicyDatas[i];
             ActionId actionId = actionPolicyData.actionId;
-            SessionId sessionId = toSessionId(signerId, actionId, smartAccount);
+            SessionId sessionId = signerId.toSessionId(actionId, smartAccount);
             if (
                 $self.enabledActionIds[signerId].contains(smartAccount, ActionId.unwrap(actionId))
-                &&
-                $self.actionPolicies[actionId].areEnabled(signerId, sessionId, smartAccount, actionPolicyData.actionPolicies) 
+                    && $self.actionPolicies[actionId].areEnabled(
+                        signerId, sessionId, smartAccount, actionPolicyData.actionPolicies
+                    )
             ) actionsProperlyEnabled++;
         }
         if (actionsProperlyEnabled == 0) return false;
