@@ -81,7 +81,6 @@ library EncodeLib {
     }
 
     // TODO: would be nice to use a custom EIP712 envelope here
-    // TODO: add nonce for replay protection
     function digest(SignerId signerId, uint256 nonce, EnableSessions memory data) internal view returns (bytes32) {
         return keccak256(
             abi.encode(

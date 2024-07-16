@@ -3,6 +3,7 @@ pragma solidity ^0.8.25;
 
 import "forge-std/Script.sol";
 import "contracts/SmartSession.sol";
+
 import "test/mock/SimpleSigner.sol";
 import "test/mock/UniActionPolicy.sol";
 import "test/mock/UsageLimitPolicy.sol";
@@ -13,6 +14,8 @@ import "contracts/erc7679/UserOpBuilder.sol";
 
 contract DeploySmartSession is Script {
     uint256 privKey;
+import "test/mock/YesPolicy.sol";
+
 
     function run() public {
         privKey = vm.envUint("PRIVATE_KEY");
@@ -54,6 +57,7 @@ contract DeploySmartSession is Script {
         console2.log("WalletConnect CoSigner Addr: ", cosigner);
         vm.label(cosigner, "WalletConnect CoSigner");
 
+
         return anotherAddress;
     }
 
@@ -72,5 +76,16 @@ contract DeploySmartSession is Script {
 
         ValueLimitPolicy valueLimitPolicy = new ValueLimitPolicy();
         console.log("ValueLimitPolicy Address ", address(valueLimitPolicy));
+
+
+
+        // Deploy SmartPermission
+        SmartSession smartSession = new SmartSession();
+        console2.log("SmartPermission Addr: ", address(smartSession));
+
+        YesPolicy yesPolicy = new YesPolicy();
+        console2.log("YesPolicy Addr: ", address(yesPolicy));
+        return address(smartSession);
+
     }
 }
