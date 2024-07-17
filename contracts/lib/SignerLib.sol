@@ -4,8 +4,11 @@ pragma solidity ^0.8.25;
 import "../DataTypes.sol";
 import "../interfaces/ISigner.sol";
 import { ERC7579ValidatorBase } from "modulekit/Modules.sol";
-import "forge-std/console2.sol";
 import { IdLib } from "./IdLib.sol";
+
+import "forge-std/console2.sol";
+
+address constant NO_SIGNER_REQUIRED = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
 library SignerLib {
     using IdLib for *;
@@ -28,17 +31,14 @@ library SignerLib {
         ISigner isigner = $isigners[signerId][account];
         if (address(isigner) == address(0)) revert SignerNotFound(signerId, account);
 
-        // TODO: Account for NO_SIGNATURE_VERIFICATION_REQUIRED case
-
-        // check signature of ISigner first.
-        // policies only need to be processed if the signature is correct
-        if (
-            isigner.checkSignature({
-                signerId: signerId.toSessionId(),
-                sender: account,
-                hash: userOpHash,
-                sig: signature
-            }) != EIP1271_SUCCESS
-        ) revert InvalidSessionKeySignature(signerId, isigner, account, userOpHash);
+        if (address(isigner) != NO_SIGNER_REQUIRED)
+            if (
+                isigner.checkSignature({
+                    signerId: signerId.toSessionId(account),
+                    sender: account,
+                    hash: userOpHash,
+                    sig: signature
+                }) != EIP1271_SUCCESS
+            ) revert InvalidSessionKeySignature(signerId, isigner, account, userOpHash);
     }
 }
