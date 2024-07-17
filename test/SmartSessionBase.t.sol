@@ -69,7 +69,6 @@ contract SmartSessionBaseTest is RhinestoneModuleKit, Test {
         PolicyData[] memory policyData = new PolicyData[](1);
         policyData[0] = PolicyData({ policy: address(yesPolicy), initData: "" });
         smartSession.enableUserOpPolicies(defaultSigner1, policyData);
-
         vm.stopPrank();
     }
 
@@ -81,7 +80,7 @@ contract SmartSessionBaseTest is RhinestoneModuleKit, Test {
             txValidator: address(smartSession)
         });
 
-        userOpData.userOp.signature = EncodeLib.encodeUse({ signerId: defaultSigner1, packedSig: hex"4141414141" });
+        userOpData.userOp.signature = EncodeLib.encodeUse({ signerId: defaultSigner1, sig: hex"4141414141" });
         userOpData.execUserOps();
     }
 
@@ -112,11 +111,11 @@ contract SmartSessionBaseTest is RhinestoneModuleKit, Test {
         enableData.permissionEnableSig = abi.encodePacked(instance.defaultValidator, sign(hash, 1));
 
         userOpData.userOp.signature = EncodeLib.encodeEnable(defaultSigner2, hex"4141414142", enableData);
-        console2.log("enable withing sesison");
+        console2.log("enable within session");
         userOpData.execUserOps();
     }
 
-    function sign(bytes32 hash, uint256 privKey) internal returns (bytes memory signature) {
+    function sign(bytes32 hash, uint256 privKey) internal pure returns (bytes memory signature) {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(privKey, hash);
 
         // Set the signature

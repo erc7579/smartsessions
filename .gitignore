@@ -9,7 +9,7 @@ cache_forge/solidity-files-cache.json
 !/broadcast
 /broadcast/*/31337/
 /broadcast/**/dry-run/
-/broadcast
+broadcast/
 
 # Docs
 docs/

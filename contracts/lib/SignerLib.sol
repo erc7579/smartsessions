@@ -5,8 +5,11 @@ import "../DataTypes.sol";
 import "../interfaces/ISigner.sol";
 import { ERC7579ValidatorBase } from "modulekit/Modules.sol";
 import "forge-std/console2.sol";
+import { IdLib } from "./IdLib.sol";
 
 library SignerLib {
+    using IdLib for *;
+
     bytes4 internal constant EIP1271_SUCCESS = 0x1626ba7e;
 
     error SignerNotFound(SignerId signerId, address account);
@@ -25,11 +28,17 @@ library SignerLib {
         ISigner isigner = $isigners[signerId][account];
         if (address(isigner) == address(0)) revert SignerNotFound(signerId, account);
 
+        // TODO: Account for NO_SIGNATURE_VERIFICATION_REQUIRED case
+
         // check signature of ISigner first.
         // policies only need to be processed if the signature is correct
         if (
-            isigner.checkSignature({ signerId: sessionId(signerId), sender: account, hash: userOpHash, sig: signature })
-                != EIP1271_SUCCESS
+            isigner.checkSignature({
+                signerId: signerId.toSessionId(),
+                sender: account,
+                hash: userOpHash,
+                sig: signature
+            }) != EIP1271_SUCCESS
         ) revert InvalidSessionKeySignature(signerId, isigner, account, userOpHash);
     }
 }

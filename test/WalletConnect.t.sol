@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.23;
+
 import "./SmartSessionBase.t.sol";
 import { FCL_ecdsa_utils } from "freshcryptolib/FCL_ecdsa_utils.sol";
 import { Base64 } from "solady/utils/Base64.sol";
@@ -75,7 +78,55 @@ contract WalletConnectCoSigner is SmartSessionBaseTest {
         bytes memory passkeySig = _rootSignDigest(passkey.key, ethHash, true);
 
         userOpData.userOp.signature =
-            EncodeLib.encodeUse({ signerId: walletconnect, packedSig: abi.encode(eoaSig, passkeySig) });
+            EncodeLib.encodeUse({ signerId: walletconnect, sig: abi.encode(eoaSig, passkeySig) });
+        userOpData.execUserOps();
+    }
+
+    function test_enable_exec_CoSigner() public {
+        (uint256 x, uint256 y) = generatePublicKey(passkey.key);
+
+        WebAuthnValidatorData memory data = WebAuthnValidatorData({ pubKeyX: x, pubKeyY: y });
+
+        console2.log(eoa.addr, data.pubKeyX, data.pubKeyY);
+
+        bytes memory params = abi.encode(eoa.addr, WebAuthnValidatorData({ pubKeyX: x, pubKeyY: y }));
+
+        PolicyData[] memory policyData = new PolicyData[](1);
+        policyData[0] = PolicyData({ policy: address(yesPolicy), initData: "" });
+
+        ActionData[] memory actions = new ActionData[](1);
+        actions[0] = ActionData({ actionId: ActionId.wrap(bytes32(hex"4242424201")), actionPolicies: policyData });
+
+        EnableSessions memory enableData = EnableSessions({
+            isigner: ISigner(address(cosigner)),
+            isignerInitData: params,
+            userOpPolicies: policyData,
+            erc1271Policies: new PolicyData[](0),
+            actions: actions,
+            permissionEnableSig: ""
+        });
+
+        bytes32 hash = smartSession.getDigest(defaultSigner2, instance.account, enableData);
+        // ERC1271
+        enableData.permissionEnableSig = abi.encodePacked(instance.defaultValidator, sign(hash, 1));
+
+        UserOpData memory userOpData = instance.getExecOps({
+            target: address(target),
+            value: 0,
+            callData: abi.encodeCall(MockTarget.setValue, (1337)),
+            txValidator: address(smartSession)
+        });
+
+        console2.log("userOpHash");
+        console2.logBytes32(userOpData.userOpHash);
+        bytes32 ethHash = ECDSA.toEthSignedMessageHash(userOpData.userOpHash);
+
+        // Set the signature
+        bytes memory eoaSig = sign(ethHash, eoa.key);
+        bytes memory passkeySig = _rootSignDigest(passkey.key, ethHash, true);
+
+        userOpData.userOp.signature = EncodeLib.encodeEnable(defaultSigner2, abi.encode(eoaSig, passkeySig), enableData);
+
         userOpData.execUserOps();
     }
 
