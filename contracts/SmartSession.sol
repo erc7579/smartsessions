@@ -31,6 +31,8 @@ import "forge-std/console2.sol";
 /**
  * TODO:
  *     ✅ The flow where permission doesn't enable the new signer, just adds policies for the existing one
+ *     - ISigner => Stateless Sig Validator (discussed with zeroknots
+ *               https://biconomyworkspace.slack.com/archives/D063X01CUEA/p1720520086702069)
  *     - MultiChain Permission Enable Data (chainId is in EncodeLib.digest now)
  *     - 'No Signature verification required' flow
  *     - No policies (sudo) flow. What do we do with minPoliciesToEnforce ?
