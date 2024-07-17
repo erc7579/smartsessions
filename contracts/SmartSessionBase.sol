@@ -33,10 +33,7 @@ abstract contract SmartSessionBase is ERC7579ValidatorBase {
         if (!isigner.supportsInterface(type(ISigner).interfaceId)) {
             revert InvalidISigner(isigner);
         }
-
         $isigners[signerId][msg.sender] = isigner;
-
-        //isigner.initForAccount({ account: account, id: toSessionId(signerId), initData: initData });
         isigner.onInstall(abi.encodePacked(signerId.toSessionId(), account, initData));
     }
 

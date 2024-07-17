@@ -30,7 +30,7 @@ import { IdLib } from "./lib/IdLib.sol";
 import "forge-std/console2.sol";
 /**
  * TODO:
- *     - The flow where permission doesn't enable the new signer, just adds policies for the existing one
+ *     ✅ The flow where permission doesn't enable the new signer, just adds policies for the existing one
  *     - MultiChain Permission Enable Data (chainId is in EncodeLib.digest now)
  *     - 'No Signature verification required' flow
  *     - No policies (sudo) flow. What do we do with minPoliciesToEnforce ?
@@ -121,9 +121,13 @@ contract SmartSession is SmartSessionBase {
         if (IERC1271(account).isValidSignature(hash, enableData.permissionEnableSig) != EIP1271_MAGIC_VALUE) {
             revert InvalidEnableSignature(account, hash);
         }
-
+        
         // enable ISigner for this session
-        _enableISigner(signerId, account, enableData.isigner, enableData.isignerInitData);
+        // if it has already been enabled and the enableData.isigner is address(0), that means
+        // this enableData is to add policies, not to enable a new signer => skip this step
+        if (!_isISignerSet(signerId, account) && address(enableData.isigner) != address(0)) {   
+            _enableISigner(signerId, account, enableData.isigner, enableData.isignerInitData);
+        }
 
         // enable all policies for this session
         $userOpPolicies.enable({
