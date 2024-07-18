@@ -11,6 +11,7 @@ import "test/mock/TimeFramePolicy.sol";
 import "test/mock/SimpleGasPolicy.sol";
 import "test/mock/ValueLimitPolicy.sol";
 import "contracts/erc7679/UserOpBuilder.sol";
+import "test/mock/YesPolicy.sol";
 
 contract DeploySmartSession is Script {
     uint256 privKey;
@@ -55,11 +56,10 @@ contract DeploySmartSession is Script {
         console2.log("WalletConnect CoSigner Addr: ", cosigner);
         vm.label(cosigner, "WalletConnect CoSigner");
 
-
         return anotherAddress;
     }
 
-    function _deploySubModules() public {
+    function _deploySubModules() public returns (address) {
         SimpleSigner ssigner = new SimpleSigner();
         console2.log("Simple Signer Address ", address(ssigner));
 
