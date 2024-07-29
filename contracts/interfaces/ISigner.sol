@@ -24,4 +24,12 @@ interface ISigner is ISubPermission {
         external
         payable
         returns (uint256);
+
+    function validateSignatureWithData(
+        bytes32 hash,
+        bytes calldata sig,
+        bytes calldata data
+    )
+        external
+        returns (bool validSig);
 }

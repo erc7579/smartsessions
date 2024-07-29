@@ -259,7 +259,7 @@ contract SmartSessionTest is RhinestoneModuleKit, Test {
         });
 
         // sign enableData hash
-        bytes32 hash = smartSession.getDigest(defaultSigner2, instance.account, enableData);
+        bytes32 hash = smartSession.getDigest(enableData.isigner, instance.account, enableData);
         enableData.permissionEnableSig = abi.encodePacked(address(mockK1), sign(hash, owner.key));
     }
 }

@@ -47,13 +47,13 @@ contract SmartSessionBaseTest is RhinestoneModuleKit, Test {
         sessionSigner1 = makeAccount("sessionSigner1");
         sessionSigner2 = makeAccount("sessionSigner2");
 
-        defaultSigner1 = SignerId.wrap(bytes32(hex"01"));
-        defaultSigner2 = SignerId.wrap(bytes32(hex"02"));
-
         smartSession = new SmartSession();
         target = new MockTarget();
         yesSigner = new YesSigner();
         yesPolicy = new YesPolicy();
+
+        defaultSigner1 = smartSession.getSignerId(yesSigner, "defaultSigner1");
+        defaultSigner2 = smartSession.getSignerId(yesSigner, "defaultSigner2");
 
         InstallSessions[] memory installData = new InstallSessions[](0);
 
@@ -100,14 +100,14 @@ contract SmartSessionBaseTest is RhinestoneModuleKit, Test {
 
         EnableSessions memory enableData = EnableSessions({
             isigner: ISigner(address(yesSigner)),
-            isignerInitData: "",
+            isignerInitData: "defaultSigner2",
             userOpPolicies: policyData,
             erc1271Policies: new PolicyData[](0),
             actions: actions,
             permissionEnableSig: ""
         });
 
-        bytes32 hash = smartSession.getDigest(defaultSigner2, instance.account, enableData);
+        bytes32 hash = smartSession.getDigest(enableData.isigner, instance.account, enableData);
         enableData.permissionEnableSig = abi.encodePacked(instance.defaultValidator, sign(hash, 1));
 
         userOpData.userOp.signature = EncodeLib.encodeEnable(defaultSigner2, hex"4141414142", enableData);

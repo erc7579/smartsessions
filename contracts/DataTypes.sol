@@ -5,8 +5,20 @@ import "./lib/ArrayMap4337Lib.sol";
 import { SentinelList4337Lib } from "sentinellist/SentinelList4337.sol";
 import "./interfaces/ISigner.sol";
 import "forge-std/console2.sol";
+import { FlatBytesLib } from "@rhinestone/flatbytes/src/BytesLib.sol";
 
 type SignerId is bytes32;
+
+using { signerIdEq as == } for SignerId global;
+using { signerIdNeq as != } for SignerId global;
+
+function signerIdEq(SignerId uid1, SignerId uid2) pure returns (bool) {
+    return SignerId.unwrap(uid1) == SignerId.unwrap(uid2);
+}
+
+function signerIdNeq(SignerId uid1, SignerId uid2) pure returns (bool) {
+    return SignerId.unwrap(uid1) != SignerId.unwrap(uid2);
+}
 
 type ActionId is bytes32;
 
@@ -21,6 +33,11 @@ type Erc1271PolicyId is bytes32;
 type SessionId is bytes32;
 
 // =====
+
+struct SignerConf {
+    ISigner isigner;
+    FlatBytesLib.Bytes config;
+}
 
 // InstallSessions[] sessions;
 

@@ -94,7 +94,7 @@ contract WCSigner is ISigner /*, TrustedForwarderWithId*/ {
     function _initForAccount(address account, SessionId id, bytes calldata initData) internal {
         console2.log("initForAccount");
 
-        (address eoa, WebAuthnValidatorData memory signer2) = abi.decode(initData, (address, WebAuthnValidatorData));
+(address eoa, WebAuthnValidatorData memory signer2) = abi.decode(initData, (address, WebAuthnValidatorData));
         console2.log(eoa, signer2.pubKeyX, signer2.pubKeyY);
         Config storage config = signer[id][msg.sender][account];
         config.passkeySigner = signer2;
@@ -126,5 +126,30 @@ contract WCSigner is ISigner /*, TrustedForwarderWithId*/ {
         returns (uint256)
     {
         return 1;
+    }
+    function validateSignatureWithData(
+        bytes32 hash,
+        bytes calldata sig,
+        bytes calldata data
+    )
+        external
+        override
+        returns (bool validSig)
+    {
+
+        (address eoa, WebAuthnValidatorData memory passkey) = abi.decode(data, (address, WebAuthnValidatorData));
+
+        bytes32 ethHash = ECDSA.toEthSignedMessageHash(hash);
+        (bytes memory sig1, bytes memory sig2) = abi.decode(sig, (bytes, bytes));
+
+        // recover ecdsa to eoa signer;
+        address recovered = ECDSA.recover(ethHash, sig1);
+        bool eoaValid = recovered == eoa;
+        bool passkeyValid = passkey.verifyPasskey(ethHash, sig2);
+
+        if (eoaValid && passkeyValid) {
+            return true;
+        }
+        
     }
 }
