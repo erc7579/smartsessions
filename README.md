@@ -1,28 +1,4 @@
-## Biconomy Modules for Modular Smart Accounts
+## Smart Session: Permissioned session keys for ERC7579
 
-**Collection of Modules to be installed for Modular Smart Accounts.**
+This repo is in active development. DO NOT use this in prod
 
-Repo consists of:
-
--   **Validators**: 
--   **Executors**: 
--   **Hooks**: 
--   **Fallback Handlers**: 
--   **Policies**:
--   **SignatureValidators** 
-
-## Usage
-
-### Install
-
-```shell
-$ pnpm i
-```
-
-### Test
-
-```shell
-$ forge test
-```
-
-## Modules included

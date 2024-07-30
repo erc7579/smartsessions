@@ -62,4 +62,16 @@ contract YesSigner is ISigner /*, TrustedForwarderWithId*/ {
     function supportsInterface(bytes4 interfaceID) external view override returns (bool) {
         return true;
     }
+
+    function validateSignatureWithData(
+        bytes32 hash,
+        bytes calldata sig,
+        bytes calldata data
+    )
+        external
+        override
+        returns (bool validSig)
+    {
+        return true;
+    }
 }

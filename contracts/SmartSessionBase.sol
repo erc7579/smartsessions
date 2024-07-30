@@ -4,6 +4,7 @@ pragma solidity ^0.8.25;
 import "./DataTypes.sol";
 
 import { ISigner } from "./interfaces/ISigner.sol";
+import "@rhinestone/flatbytes/src/BytesLib.sol";
 import { SentinelList4337Lib } from "sentinellist/SentinelList4337.sol";
 import { ERC7579ValidatorBase } from "modulekit/Modules.sol";
 import { ConfigLib } from "./lib/ConfigLib.sol";
@@ -11,6 +12,7 @@ import { EncodeLib } from "./lib/EncodeLib.sol";
 import { IdLib } from "./lib/IdLib.sol";
 
 abstract contract SmartSessionBase is ERC7579ValidatorBase {
+    using FlatBytesLib for *;
     using ConfigLib for *;
     using EncodeLib for *;
     using IdLib for *;
@@ -26,15 +28,17 @@ abstract contract SmartSessionBase is ERC7579ValidatorBase {
     Policy internal $userOpPolicies;
     Policy internal $erc1271Policies;
     EnumerableActionPolicy internal $actionPolicies;
-    mapping(SignerId signerId => mapping(address smartAccount => ISigner)) internal $isigners;
-    mapping(SignerId signerId => mapping(address smartAccount => uint256 nonce)) internal $signerNonce;
+    mapping(ISigner signer => mapping(address smartAccount => uint256 nonce)) internal $signerNonce;
 
-    function _enableISigner(SignerId signerId, address account, ISigner isigner, bytes memory initData) internal {
+    mapping(SignerId signerId => mapping(address smartAccount => SignerConf)) internal $isigners;
+
+    function _enableISigner(SignerId signerId, address account, ISigner isigner, bytes memory signerConfig) internal {
         if (!isigner.supportsInterface(type(ISigner).interfaceId)) {
             revert InvalidISigner(isigner);
         }
-        $isigners[signerId][msg.sender] = isigner;
-        isigner.onInstall(abi.encodePacked(signerId.toSessionId(), account, initData));
+        SignerConf storage $conf = $isigners[signerId][account];
+        $conf.isigner = isigner;
+        $conf.config.store(signerConfig);
     }
 
     function enableUserOpPolicies(SignerId signerId, PolicyData[] memory userOpPolicies) public {
@@ -112,20 +116,16 @@ abstract contract SmartSessionBase is ERC7579ValidatorBase {
         return typeID == TYPE_VALIDATOR;
     }
 
-    function getDigest(
-        SignerId signerId,
-        address account,
-        EnableSessions memory data
-    )
-        external
-        view
-        returns (bytes32)
-    {
-        uint256 nonce = $signerNonce[signerId][account];
-        return signerId.digest(nonce, data);
+    function getDigest(ISigner isigner, address account, EnableSessions memory data) external view returns (bytes32) {
+        uint256 nonce = $signerNonce[isigner][account];
+        return isigner.digest(nonce, data);
+    }
+
+    function getSignerId(ISigner isigner, bytes memory isignerInitData) public pure returns (SignerId signerId) {
+        signerId = SignerId.wrap(keccak256(abi.encode(isigner, isignerInitData)));
     }
 
     function _isISignerSet(SignerId signerId, address account) internal view returns (bool) {
-        return address($isigners[signerId][account]) != address(0);
+        return address($isigners[signerId][account].isigner) != address(0);
     }
 }

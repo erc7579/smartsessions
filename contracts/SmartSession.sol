@@ -58,6 +58,7 @@ contract SmartSession is SmartSessionBase {
     using EncodeLib for *;
 
     error InvalidEnableSignature(address account, bytes32 hash);
+    error InvalidSignerId();
     error UnsupportedExecutionType();
     error UnsupportedSmartSessionMode(SmartSessionMode mode);
     error InvalidUserOpSender(address sender);
@@ -116,19 +117,26 @@ contract SmartSession is SmartSessionBase {
     {
         EnableSessions memory enableData;
         (enableData, permissionUseSig) = packedSig.decodeEnable();
-        uint256 nonce = $signerNonce[signerId][account]++;
-        bytes32 hash = signerId.digest(nonce, enableData);
+
+        uint256 nonce = $signerNonce[enableData.isigner][account]++;
+        bytes32 hash = enableData.isigner.digest(nonce, enableData);
+        if (signerId != getSignerId(enableData.isigner, enableData.isignerInitData)) {
+            revert InvalidSignerId();
+        }
 
         // require signature on account
         // this is critical as it is the only way to ensure that the user is aware of the policies and signer
         if (IERC1271(account).isValidSignature(hash, enableData.permissionEnableSig) != EIP1271_MAGIC_VALUE) {
             revert InvalidEnableSignature(account, hash);
         }
-        
+
         // enable ISigner for this session
         // if it has already been enabled and the enableData.isigner is address(0), that means
         // this enableData is to add policies, not to enable a new signer => skip this step
-        if (!_isISignerSet(signerId, account) && address(enableData.isigner) != address(0)) {   
+        // !!! the flow above is now broken as signerId depends on isigner address, so if address(0)
+        // is passed, it won't generate same signerId, so we can't user address(0) as isigner
+        // to skip enabling new isigner
+        if (!_isISignerSet(signerId, account) && address(enableData.isigner) != address(0)) {
             _enableISigner(signerId, account, enableData.isigner, enableData.isignerInitData);
         }
 

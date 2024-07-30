@@ -53,6 +53,8 @@ contract WalletConnectCoSigner is SmartSessionBaseTest {
         console2.log(eoa.addr, data.pubKeyX, data.pubKeyY);
 
         bytes memory params = abi.encode(eoa.addr, WebAuthnValidatorData({ pubKeyX: x, pubKeyY: y }));
+        console2.logBytes32(SignerId.unwrap(walletconnect));
+        //walletconnect = smartSession.getSignerId(ISigner(address(cosigner)), params);
 
         vm.startPrank(instance.account);
         smartSession.setSigner(walletconnect, ISigner(address(cosigner)), params);
@@ -106,7 +108,7 @@ contract WalletConnectCoSigner is SmartSessionBaseTest {
             permissionEnableSig: ""
         });
 
-        bytes32 hash = smartSession.getDigest(defaultSigner2, instance.account, enableData);
+        bytes32 hash = smartSession.getDigest(enableData.isigner, instance.account, enableData);
         // ERC1271
         enableData.permissionEnableSig = abi.encodePacked(instance.defaultValidator, sign(hash, 1));
 
@@ -125,7 +127,11 @@ contract WalletConnectCoSigner is SmartSessionBaseTest {
         bytes memory eoaSig = sign(ethHash, eoa.key);
         bytes memory passkeySig = _rootSignDigest(passkey.key, ethHash, true);
 
-        userOpData.userOp.signature = EncodeLib.encodeEnable(defaultSigner2, abi.encode(eoaSig, passkeySig), enableData);
+        userOpData.userOp.signature = EncodeLib.encodeEnable(
+            smartSession.getSignerId(enableData.isigner, enableData.isignerInitData),
+            abi.encode(eoaSig, passkeySig),
+            enableData
+        );
 
         userOpData.execUserOps();
     }

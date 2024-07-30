@@ -98,4 +98,16 @@ contract SimpleSigner is ISigner {
     function supportsInterface(bytes4 interfaceID) external pure override returns (bool) {
         return true;
     }
+
+    function validateSignatureWithData(
+        bytes32 hash,
+        bytes calldata sig,
+        bytes calldata data
+    )
+        external
+        override
+        returns (bool validSig)
+    {
+        return true;
+    }
 }

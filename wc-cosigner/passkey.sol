@@ -15,7 +15,7 @@ library PasskeyHelper {
      */
 
     function verifyPasskey(
-        WebAuthnValidatorData storage webAuthnData,
+        WebAuthnValidatorData memory webAuthnData,
         bytes32 hash,
         bytes memory signature
     )
