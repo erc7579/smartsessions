@@ -41,15 +41,7 @@ library ConfigLib {
 
             ISubPermission policy = ISubPermission(policyData.policy);
             if (!policy.supportsInterface(type(ISubPermission).interfaceId)) revert UnsupportedPolicy(address(policy));
-
-            // initialize sub policy for account
-            /*
-            ISubPermission(policy).initForAccount({
-                account: smartAccount,
-                id: sessionId,
-                initData: policyData.initData
-            });
-            */
+            
             ISubPermission(policy).onInstall({ data: abi.encodePacked(sessionId, smartAccount, policyData.initData) });
 
             $policy.policyList[signerId].safePush(smartAccount, address(policy));
