@@ -83,12 +83,9 @@ contract SmartSession is SmartSessionBase {
                 decompressedSignature: packedSig.decodeUse(),
                 account: account
             });
-        } else if (mode == SmartSessionMode.ENABLE) {
-            // TODO: implement enable with registry.
-            // registry check will break 4337 so it would make sense to have this in a opt in mode
-        } else if (mode == SmartSessionMode.UNSAFE_ENABLE) {
+        } else if (mode == SmartSessionMode.ENABLE || mode == SmartSessionMode.UNSAFE_ENABLE) {
             bytes memory usePermissionSig =
-                _enablePolicies({ signerId: signerId, packedSig: packedSig, account: account });
+                _enablePolicies({ signerId: signerId, packedSig: packedSig, account: account, mode: mode });
             vd = _enforcePolicies({
                 signerId: signerId,
                 userOpHash: userOpHash,
@@ -109,7 +106,8 @@ contract SmartSession is SmartSessionBase {
     function _enablePolicies(
         SignerId signerId,
         bytes calldata packedSig,
-        address account
+        address account,
+        SmartSessionMode mode
     )
         internal
         returns (bytes memory permissionUseSig)
@@ -118,7 +116,7 @@ contract SmartSession is SmartSessionBase {
         (enableData, permissionUseSig) = packedSig.decodeEnable();
 
         uint256 nonce = $signerNonce[enableData.isigner][account]++;
-        bytes32 hash = enableData.isigner.digest(nonce, enableData);
+        bytes32 hash = enableData.isigner.digest(nonce, enableData, mode);
         if (signerId != getSignerId(enableData.isigner, enableData.isignerInitData)) {
             revert InvalidSignerId();
         }
@@ -136,20 +134,30 @@ contract SmartSession is SmartSessionBase {
             _enableISigner(signerId, account, enableData.isigner, enableData.isignerInitData);
         }
 
+        console2.log(mode == SmartSessionMode.UNSAFE_ENABLE ? "Unsafe Enable" : "Enable");
+        bool useRegistry = mode != SmartSessionMode.UNSAFE_ENABLE;
+
         // enable all policies for this session
         $userOpPolicies.enable({
             signerId: signerId,
             sessionId: signerId.toUserOpPolicyId().toSessionId(),
             policyDatas: enableData.userOpPolicies,
-            smartAccount: account
+            smartAccount: account,
+            useRegistry: useRegistry
         });
         $erc1271Policies.enable({
             signerId: signerId,
             sessionId: signerId.toErc1271PolicyId().toSessionId(),
             policyDatas: enableData.erc1271Policies,
-            smartAccount: account
+            smartAccount: account,
+            useRegistry: useRegistry
         });
-        $actionPolicies.enable({ signerId: signerId, actionPolicyDatas: enableData.actions, smartAccount: account });
+        $actionPolicies.enable({
+            signerId: signerId,
+            actionPolicyDatas: enableData.actions,
+            smartAccount: account,
+            useRegistry: useRegistry
+        });
     }
 
     /**

@@ -8,6 +8,7 @@ import {
     ArrayMap4337Lib as AddressVecLib
 } from "./ArrayMap4337Lib.sol";
 import "../interfaces/IPolicy.sol";
+import "../interfaces/IRegistry.sol";
 import { SENTINEL, SentinelList4337Lib } from "sentinellist/SentinelList4337.sol";
 import { Bytes32ArrayMap4337, ArrayMap4337Lib } from "./ArrayMap4337Lib.sol";
 import { IdLib } from "./IdLib.sol";
@@ -22,6 +23,9 @@ library ConfigLib {
 
     event PolicyEnabled(SignerId signerId, address policy, address smartAccount);
 
+    IRegistry internal constant registry = IRegistry(0x0000000000E23E0033C3e93D9D4eBc2FF2AB2AEF);
+    ModuleType internal constant POLICY_MODULE_TYPE = ModuleType.wrap(7);
+
     /**
      * Generic function to enable policies for a signerId
      */
@@ -30,7 +34,8 @@ library ConfigLib {
         SignerId signerId,
         SessionId sessionId,
         PolicyData[] memory policyDatas,
-        address smartAccount
+        address smartAccount,
+        bool useRegistry
     )
         internal
     {
@@ -41,6 +46,7 @@ library ConfigLib {
 
             ISubPermission policy = ISubPermission(policyData.policy);
             if (!policy.supportsInterface(type(ISubPermission).interfaceId)) revert UnsupportedPolicy(address(policy));
+            if (useRegistry) registry.checkForAccount(smartAccount, address(policy), POLICY_MODULE_TYPE);
 
             // initialize sub policy for account
             /*
@@ -61,7 +67,8 @@ library ConfigLib {
         EnumerableActionPolicy storage $self,
         SignerId signerId,
         ActionData[] memory actionPolicyDatas,
-        address smartAccount
+        address smartAccount,
+        bool useRegistry
     )
         internal
     {
@@ -74,7 +81,9 @@ library ConfigLib {
             // won't be easy to clean. Introduce 'contains' check before pushing
             $self.enabledActionIds[signerId].push(smartAccount, ActionId.unwrap(actionId));
             SessionId sessionId = signerId.toSessionId(actionId);
-            $self.actionPolicies[actionId].enable(signerId, sessionId, actionPolicyData.actionPolicies, smartAccount);
+            $self.actionPolicies[actionId].enable(
+                signerId, sessionId, actionPolicyData.actionPolicies, smartAccount, useRegistry
+            );
         }
     }
 

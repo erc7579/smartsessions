@@ -106,7 +106,8 @@ contract WalletConnectCoSigner is SmartSessionBaseTest {
             permissionEnableSig: ""
         });
 
-        bytes32 hash = smartSession.getDigest(enableData.isigner, instance.account, enableData);
+        bytes32 hash =
+            smartSession.getDigest(enableData.isigner, instance.account, enableData, SmartSessionMode.UNSAFE_ENABLE);
         // ERC1271
         enableData.permissionEnableSig = abi.encodePacked(instance.defaultValidator, sign(hash, 1));
 
