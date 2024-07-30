@@ -62,10 +62,6 @@ contract SmartSessionTest is RhinestoneModuleKit, Test {
         sessionSigner1 = makeAccount("sessionSigner1");
         sessionSigner2 = makeAccount("sessionSigner2");
 
-        defaultSigner1 = SignerId.wrap(bytes32(hex"01"));
-        defaultSigner2 = SignerId.wrap(bytes32(hex"02"));
-        defaultSigner2 = SignerId.wrap(bytes32(hex"02"));
-
         smartSession = new SmartSession();
         target = new MockTarget();
         yesSigner = new YesSigner();
@@ -74,6 +70,9 @@ contract SmartSessionTest is RhinestoneModuleKit, Test {
         simpleGasPolicy = new SimpleGasPolicy();
         timeFramePolicy = new TimeFramePolicy();
         valueLimitPolicy = new ValueLimitPolicy();
+
+        defaultSigner1 = smartSession.getSignerId(simpleSigner, abi.encodePacked(sessionSigner1.addr));
+        defaultSigner2 = smartSession.getSignerId(simpleSigner, abi.encodePacked(sessionSigner2.addr));
 
         instance.installModule({
             moduleTypeId: MODULE_TYPE_VALIDATOR,
@@ -176,13 +175,13 @@ contract SmartSessionTest is RhinestoneModuleKit, Test {
         userOpData.userOpHash = instance.aux.entrypoint.getUserOpHash(userOpData.userOp);
 
         //sign userOp
-        userOpData.userOp.signature = sign(userOpData.userOpHash, sessionSigner1.key);
+        userOpData.userOp.signature = sign(userOpData.userOpHash, sessionSigner2.key);
         bytes memory formattedSig = userOpBuilder.formatSignature(instance.account, userOpData.userOp, context);
         userOpData.userOp.signature = formattedSig;
         userOpData.execUserOps();
         assertEq(target.getValue(), valueToSet);
 
-        // TRY AGAIN
+        // TRY AGAIN WITH THE PERMISSION ALREADY ENABLED
         uint256 nonce2 = userOpBuilder.getNonce(instance.account, context);
 
         executions[0] = Execution(address(target), 0, abi.encodeCall(MockTarget.setValue, (valueToSet + 33)));
@@ -193,7 +192,7 @@ contract SmartSessionTest is RhinestoneModuleKit, Test {
         userOpData.userOpHash = instance.aux.entrypoint.getUserOpHash(userOpData.userOp);
 
         //sign userOp
-        userOpData.userOp.signature = sign(userOpData.userOpHash, sessionSigner1.key);
+        userOpData.userOp.signature = sign(userOpData.userOpHash, sessionSigner2.key);
         formattedSig = userOpBuilder.formatSignature(instance.account, userOpData.userOp, context);
         userOpData.userOp.signature = formattedSig;
         userOpData.execUserOps();
@@ -251,7 +250,7 @@ contract SmartSessionTest is RhinestoneModuleKit, Test {
 
         enableData = EnableSessions({
             isigner: ISigner(address(simpleSigner)),
-            isignerInitData: abi.encodePacked(sessionSigner1.addr),
+            isignerInitData: abi.encodePacked(sessionSigner2.addr),
             userOpPolicies: userOpPolicyData,
             erc1271Policies: new PolicyData[](0),
             actions: actions,

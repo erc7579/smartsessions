@@ -19,7 +19,7 @@ struct Config {
     WebAuthnValidatorData passkeySigner;
 }
 
-contract WCSigner is ISigner /*, TrustedForwarderWithId*/ {
+contract WCSigner is ISigner {
     using PasskeyHelper for *;
     using SubLib for bytes;
 

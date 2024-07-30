@@ -132,6 +132,9 @@ contract SmartSession is SmartSessionBase {
         // enable ISigner for this session
         // if it has already been enabled and the enableData.isigner is address(0), that means
         // this enableData is to add policies, not to enable a new signer => skip this step
+        // !!! the flow above is now broken as signerId depends on isigner address, so if address(0)
+        // is passed, it won't generate same signerId, so we can't user address(0) as isigner
+        // to skip enabling new isigner
         if (!_isISignerSet(signerId, account) && address(enableData.isigner) != address(0)) {
             _enableISigner(signerId, account, enableData.isigner, enableData.isignerInitData);
         }
