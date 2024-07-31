@@ -10,7 +10,7 @@ import { ECDSA } from "solady/utils/ECDSA.sol";
 
 uint256 constant n = 0xFFFFFFFF00000000FFFFFFFFFFFFFFFFBCE6FAADA7179E84F3B9CAC2FC632551;
 
-contract WalletConnectCoSigner is SmartSessionBaseTest {
+contract MultiKeySignerTest is SmartSessionBaseTest {
     using ModuleKitHelpers for *;
     using ModuleKitUserOp for *;
 
@@ -37,7 +37,7 @@ contract WalletConnectCoSigner is SmartSessionBaseTest {
         eoa = makeAccount("eoaSigner");
 
         // Create the signer validator
-        bytes memory bytecode = abi.encodePacked(vm.getCode("./out/WCSigner.sol/WCSigner.json"));
+        bytes memory bytecode = abi.encodePacked(vm.getCode("./out/MultiKeySigner.sol/MultiKeySigner.json"));
 
         address anotherAddress;
         assembly {
