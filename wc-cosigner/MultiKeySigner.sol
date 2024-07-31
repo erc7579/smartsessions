@@ -25,24 +25,27 @@ enum SignerType {
 
 struct Signer {
     SignerType signerType;
-    bytes32[2] data;
+    bytes data;
 }
 
 library SignerEncode {
     function decodeEOA(Signer memory signer) internal pure returns (address eoa) {
-        eoa = address(bytes20(signer.data[0]));
+        eoa = address(bytes20(signer.data));
     }
 
     function decodePasskey(Signer memory signer) internal pure returns (WebAuthnValidatorData memory passkey) {
-        passkey.pubKeyX = uint256(signer.data[0]);
-        passkey.pubKeyY = uint256(signer.data[1]);
+        passkey = abi.decode(signer.data, (WebAuthnValidatorData));
+    }
+
+    function decodeSigners(bytes memory data) internal pure returns (Signer[] memory signers) {
+        signers = abi.decode(data, (Signer[]));
     }
 }
 
 contract MultiKeySigner {
     using PasskeyHelper for *;
     using SubLib for bytes;
-    using SignerEncode for Signer;
+    using SignerEncode for *;
 
     error InvalidPublicKey();
 
@@ -101,7 +104,7 @@ contract MultiKeySigner {
         returns (bool validSig)
     {
         bytes32 ethHash = ECDSA.toEthSignedMessageHash(hash);
-        Signer[] memory signers = abi.decode(data, (Signer[]));
+        Signer[] memory signers = data.decodeSigners();
         bytes[] memory sigs = abi.decode(sig, (bytes[]));
 
         uint256 length = signers.length;

@@ -7,6 +7,8 @@ import { Base64 } from "solady/utils/Base64.sol";
 import { P256 } from "wc-cosigner/P256.sol";
 import { WebAuthnValidatorData } from "wc-cosigner/passkey.sol";
 import { ECDSA } from "solady/utils/ECDSA.sol";
+import { Signer, SignerType, SignerEncode } from "wc-cosigner/MultiKeySigner.sol";
+import { Solarray } from "solarray/Solarray.sol";
 
 uint256 constant n = 0xFFFFFFFF00000000FFFFFFFFFFFFFFFFBCE6FAADA7179E84F3B9CAC2FC632551;
 
@@ -52,7 +54,10 @@ contract MultiKeySignerTest is SmartSessionBaseTest {
 
         console2.log(eoa.addr, data.pubKeyX, data.pubKeyY);
 
-        bytes memory params = abi.encode(eoa.addr, WebAuthnValidatorData({ pubKeyX: x, pubKeyY: y }));
+        Signer[] memory signers = new Signer[](1);
+        signers[0] = Signer({ signerType: SignerType.PASSKEY, data: abi.encode(data) });
+        bytes memory params = abi.encode(signers);
+        console2.logBytes(params);
         console2.logBytes32(SignerId.unwrap(walletconnect));
         //walletconnect = smartSession.getSignerId(ISigner(address(cosigner)), params);
 
