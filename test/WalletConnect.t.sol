@@ -60,7 +60,7 @@ contract MultiKeySignerTest is SmartSessionBaseTest {
         Signer[] memory signers = new Signer[](2);
         signers[0] = Signer({ signerType: SignerType.EOA, data: abi.encodePacked(eoa.addr) });
         signers[1] = Signer({ signerType: SignerType.PASSKEY, data: abi.encode(data) });
-        bytes memory params = signers.encodeSigners();
+        bytes memory params = signers._encodeSigners();
 
         walletconnectSignerId = smartSession.getSignerId(ISigner(address(cosigner)), params);
 
@@ -98,7 +98,7 @@ contract MultiKeySignerTest is SmartSessionBaseTest {
         Signer[] memory signers = new Signer[](2);
         signers[0] = Signer({ signerType: SignerType.EOA, data: abi.encodePacked(eoa.addr) });
         signers[1] = Signer({ signerType: SignerType.PASSKEY, data: abi.encode(data) });
-        bytes memory params = signers.encodeSigners();
+        bytes memory params = signers._encodeSigners();
 
         PolicyData[] memory policyData = new PolicyData[](1);
         policyData[0] = PolicyData({ policy: address(yesPolicy), initData: "" });

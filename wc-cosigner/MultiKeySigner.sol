@@ -32,7 +32,7 @@ library SignerEncode {
         passkey = abi.decode(signer.data, (WebAuthnValidatorData));
     }
 
-    function encodeSigners(Signer[] memory signers) internal pure returns (bytes memory encoded) {
+    function _encodeSigners(Signer[] memory signers) internal pure returns (bytes memory encoded) {
         uint256 length = signers.length;
         encoded = abi.encodePacked(uint8(length));
         for (uint256 i = 0; i < length; i++) {
@@ -145,5 +145,9 @@ contract MultiKeySigner {
             }
         }
         return true;
+    }
+
+    function encodeSigners(Signer[] memory signers) external pure returns (bytes memory encoded) {
+        return signers._encodeSigners();
     }
 }
