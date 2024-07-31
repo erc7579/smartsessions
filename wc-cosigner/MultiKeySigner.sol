@@ -2,16 +2,11 @@
 
 pragma solidity ^0.8.23;
 
-// import { ISignerValidator } from "contracts/interfaces/ISignerValidator.sol";
 import { ECDSA } from "solady/utils/ECDSA.sol";
 import "./passkey.sol";
 import "contracts/interfaces/ISigner.sol";
 import { SubLib } from "contracts/lib/SubLib.sol";
 import "forge-std/console2.sol";
-
-// removing trusted forwarder dependency here as it is only required during onInstall/onUninstall
-// and not during usage (checkSignature)
-// import { TrustedForwarderWithId } from "contracts/utils/TrustedForwarders.sol";
 
 struct Config {
     address eoaSigner;

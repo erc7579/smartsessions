@@ -23,9 +23,10 @@ contract MultiKeySignerTest is SmartSessionBaseTest {
     uint256 responseTypeLocation = 1;
     uint256 counter = 144_444;
 
-    SignerId walletconnect;
+    SignerId walletconnectSignerId;
 
     Account passkey;
+    Account passkey2;
     Account eoa;
 
     function setUp() public override {
@@ -37,6 +38,7 @@ contract MultiKeySignerTest is SmartSessionBaseTest {
         );
 
         passkey = makeAccount("passkeySigner");
+        passkey2 = makeAccount("passkeySigner2");
         eoa = makeAccount("eoaSigner");
 
         // Create the signer validator
@@ -53,21 +55,20 @@ contract MultiKeySignerTest is SmartSessionBaseTest {
 
         WebAuthnValidatorData memory data = WebAuthnValidatorData({ pubKeyX: x, pubKeyY: y });
 
-        console2.log(eoa.addr, data.pubKeyX, data.pubKeyY);
+        //console2.log(eoa.addr, data.pubKeyX, data.pubKeyY);
 
         Signer[] memory signers = new Signer[](2);
         signers[0] = Signer({ signerType: SignerType.EOA, data: abi.encodePacked(eoa.addr) });
         signers[1] = Signer({ signerType: SignerType.PASSKEY, data: abi.encode(data) });
         bytes memory params = signers.encodeSigners();
-        console2.logBytes(params);
-        console2.logBytes32(SignerId.unwrap(walletconnect));
-        //walletconnect = smartSession.getSignerId(ISigner(address(cosigner)), params);
+
+        walletconnectSignerId = smartSession.getSignerId(ISigner(address(cosigner)), params);
 
         vm.startPrank(instance.account);
-        smartSession.setSigner(walletconnect, ISigner(address(cosigner)), params);
+        smartSession.setSigner(walletconnectSignerId, ISigner(address(cosigner)), params);
         PolicyData[] memory policyData = new PolicyData[](1);
         policyData[0] = PolicyData({ policy: address(yesPolicy), initData: "" });
-        smartSession.enableUserOpPolicies(walletconnect, policyData);
+        smartSession.enableUserOpPolicies(walletconnectSignerId, policyData);
     }
 
     function test_exec_CoSigner() public {
@@ -78,27 +79,20 @@ contract MultiKeySignerTest is SmartSessionBaseTest {
             txValidator: address(smartSession)
         });
 
-        console2.log("userOpHash");
-        console2.logBytes32(userOpData.userOpHash);
         bytes32 ethHash = ECDSA.toEthSignedMessageHash(userOpData.userOpHash);
-        console2.log("ethHash");
-        console2.logBytes32(ethHash);
 
         // Set the signature
         bytes memory eoaSig = sign(ethHash, eoa.key);
         bytes memory passkeySig = _rootSignDigest(passkey.key, ethHash, true);
         bytes[] memory sigs = Solarray.bytess(eoaSig, passkeySig);
-/*      bytes[] memory sigs = new bytes[](2);
-        sigs[0] = eoaSig;
-        sigs[1] = passkeySig; */
 
         userOpData.userOp.signature =
-            EncodeLib.encodeUse({ signerId: walletconnect, sig: abi.encode(sigs) });
+            EncodeLib.encodeUse({ signerId: walletconnectSignerId, sig: abi.encode(sigs) });
         userOpData.execUserOps();
     }
 
     function test_enable_exec_CoSigner() public {
-        (uint256 x, uint256 y) = generatePublicKey(passkey.key);
+        (uint256 x, uint256 y) = generatePublicKey(passkey2.key);
 
         WebAuthnValidatorData memory data = WebAuthnValidatorData({ pubKeyX: x, pubKeyY: y });
         Signer[] memory signers = new Signer[](2);
@@ -132,13 +126,11 @@ contract MultiKeySignerTest is SmartSessionBaseTest {
             txValidator: address(smartSession)
         });
 
-        console2.log("userOpHash");
-        console2.logBytes32(userOpData.userOpHash);
         bytes32 ethHash = ECDSA.toEthSignedMessageHash(userOpData.userOpHash);
 
         // Set the signature
         bytes memory eoaSig = sign(ethHash, eoa.key);
-        bytes memory passkeySig = _rootSignDigest(passkey.key, ethHash, true);
+        bytes memory passkeySig = _rootSignDigest(passkey2.key, ethHash, true);
         bytes[] memory sigs = Solarray.bytess(eoaSig, passkeySig);
 
         userOpData.userOp.signature = EncodeLib.encodeEnable(
