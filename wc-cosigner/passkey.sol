@@ -33,7 +33,8 @@ library PasskeyHelper {
             bool usePrecompiled
         ) = abi.decode(signature, (bytes, string, uint256, uint256, uint256, bool));
 
-        // get the public key from storage
+        // handle stack too deep
+        WebAuthnValidatorData memory ww = webAuthnData;
 
         // verify the signature using the signature and the public key
         isValid = WebAuthn.verifySignature(
@@ -45,8 +46,8 @@ library PasskeyHelper {
             responseTypeLocation,
             r,
             s,
-            webAuthnData.pubKeyX,
-            webAuthnData.pubKeyY,
+            ww.pubKeyX,
+            ww.pubKeyY,
             usePrecompiled
         );
     }

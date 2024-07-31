@@ -5,6 +5,8 @@ pragma solidity ^0.8.0;
 import "./Base64URL.sol";
 import "./P256.sol";
 
+import "forge-std/console2.sol";
+
 /**
  * Helper library for external contracts to verify WebAuthn signatures.
  *
@@ -145,14 +147,15 @@ library WebAuthn {
             deferredResult = false;
         }
 
-        // Check that challenge is in the clientDataJSON
-        string memory challengeB64url = Base64URL.encode(challenge);
-        string memory challengeProperty = string.concat('"challenge":"', challengeB64url, '"');
+        {
+            // Check that challenge is in the clientDataJSON
+            string memory challengeB64url = Base64URL.encode(challenge);
+            string memory challengeProperty = string.concat('"challenge":"', challengeB64url, '"');
 
-        if (!contains(challengeProperty, clientDataJSON, challengeLocation)) {
-            deferredResult = false;
+            if (!contains(challengeProperty, clientDataJSON, challengeLocation)) {
+                deferredResult = false;
+            }
         }
-
         // Check that the public key signed sha256(authenticatorData || sha256(clientDataJSON))
         bytes32 clientDataJSONHash = sha256(bytes(clientDataJSON));
         bytes32 messageHash = sha256(abi.encodePacked(authenticatorData, clientDataJSONHash));

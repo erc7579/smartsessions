@@ -7,7 +7,7 @@ import { ECDSA } from "solady/utils/ECDSA.sol";
 import "./passkey.sol";
 import "contracts/interfaces/ISigner.sol";
 import { SubLib } from "contracts/lib/SubLib.sol";
-// import "./passkey.sol";
+import "forge-std/console2.sol";
 
 // removing trusted forwarder dependency here as it is only required during onInstall/onUninstall
 // and not during usage (checkSignature)
@@ -106,6 +106,7 @@ contract MultiKeySigner {
         bytes32 ethHash = ECDSA.toEthSignedMessageHash(hash);
         Signer[] memory signers = data.decodeSigners();
         bytes[] memory sigs = abi.decode(sig, (bytes[]));
+        console2.log("validating multikey 00");
 
         uint256 length = signers.length;
         if (sigs.length != length) revert InvalidSignatureLength();
@@ -116,14 +117,18 @@ contract MultiKeySigner {
                 address recovered = ECDSA.recover(ethHash, sigs[i]);
                 if (recovered != eoa) return false;
             } else if (signers[i].signerType == SignerType.PASSKEY) {
+                console2.log("validating multikey 01");
                 WebAuthnValidatorData memory passkey = signers[i].decodePasskey();
-
+                console2.log("validating multikey 02");
                 bool passkeyValid = passkey.verifyPasskey(ethHash, sigs[i]);
+                console2.log("validating multikey 03");
+                console2.logBytes32(ethHash);
+                console2.log(passkey.pubKeyX, passkey.pubKeyY);
                 if (!passkeyValid) return false;
             } else {
                 revert InvalidSignatureType();
             }
         }
-
+        return true;
     }
 }

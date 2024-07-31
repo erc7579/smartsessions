@@ -79,13 +79,18 @@ contract MultiKeySignerTest is SmartSessionBaseTest {
         console2.log("userOpHash");
         console2.logBytes32(userOpData.userOpHash);
         bytes32 ethHash = ECDSA.toEthSignedMessageHash(userOpData.userOpHash);
+        console2.log("ethHash");
+        console2.logBytes32(ethHash);
 
         // Set the signature
         bytes memory eoaSig = sign(ethHash, eoa.key);
         bytes memory passkeySig = _rootSignDigest(passkey.key, ethHash, true);
+        //bytes[] memory sigs = Solarray.bytess(eoaSig, passkeySig);
+        bytes[] memory sigs = new bytes[](1);
+        sigs[0] = passkeySig;
 
         userOpData.userOp.signature =
-            EncodeLib.encodeUse({ signerId: walletconnect, sig: abi.encode(eoaSig, passkeySig) });
+            EncodeLib.encodeUse({ signerId: walletconnect, sig: abi.encode(sigs) });
         userOpData.execUserOps();
     }
 
