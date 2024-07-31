@@ -10,6 +10,7 @@ import { ERC7579ValidatorBase } from "modulekit/Modules.sol";
 import { ConfigLib } from "./lib/ConfigLib.sol";
 import { EncodeLib } from "./lib/EncodeLib.sol";
 import { IdLib } from "./lib/IdLib.sol";
+import { NO_SIGNER_REQUIRED } from "./lib/SignerLib.sol";
 
 abstract contract SmartSessionBase is ERC7579ValidatorBase {
     using FlatBytesLib for *;
@@ -33,7 +34,7 @@ abstract contract SmartSessionBase is ERC7579ValidatorBase {
     mapping(SignerId signerId => mapping(address smartAccount => SignerConf)) internal $isigners;
 
     function _enableISigner(SignerId signerId, address account, ISigner isigner, bytes memory signerConfig) internal {
-        if (!isigner.supportsInterface(type(ISigner).interfaceId)) {
+        if (!isigner.supportsInterface(type(ISigner).interfaceId) && address(isigner) != NO_SIGNER_REQUIRED){
             revert InvalidISigner(isigner);
         }
         // TODO: add registry check

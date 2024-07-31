@@ -23,7 +23,7 @@ contract ValueLimitPolicy is IActionPolicy {
     // mapping(SignerId signerId => mapping(address msgSender => mapping(address userOpSender => ValueLimitConfig)))
     // public valueLimitConfigs;
     // and receive this limit in onInstall
-    // and use EncodeLib.getSignerId() method to get signerId from op.signature
+    // and use EncodeLib.getSignerIdFromSignature() method to get signerId from op.signature
     // and check/increment value limits and usage per SignerId as well
     // so there can be no checking limits per action (need to set let's say 0xfefefefefefe as valueLimit to avoid check
     // and increment)

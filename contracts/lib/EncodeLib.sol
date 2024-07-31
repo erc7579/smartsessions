@@ -45,7 +45,7 @@ library EncodeLib {
         data = packed[33:];
     }
 
-    function getSignerId(bytes calldata packed) internal pure returns (SignerId signerId) {
+    function getSignerIdFromSignature(bytes calldata packed) internal pure returns (SignerId signerId) {
         signerId = SignerId.wrap(bytes32(packed[1:33]));
     }
 

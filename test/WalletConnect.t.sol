@@ -53,6 +53,8 @@ contract WalletConnectCoSigner is SmartSessionBaseTest {
         console2.log(eoa.addr, data.pubKeyX, data.pubKeyY);
 
         bytes memory params = abi.encode(eoa.addr, WebAuthnValidatorData({ pubKeyX: x, pubKeyY: y }));
+        console2.logBytes32(SignerId.unwrap(walletconnect));
+        //walletconnect = smartSession.getSignerId(ISigner(address(cosigner)), params);
 
         vm.startPrank(instance.account);
         smartSession.setSigner(walletconnect, ISigner(address(cosigner)), params);

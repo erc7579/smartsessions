@@ -19,7 +19,7 @@ import { IAccountExecute } from "modulekit/external/ERC4337.sol";
 import { IUserOpPolicy, IActionPolicy } from "contracts/interfaces/IPolicy.sol";
 
 import { PolicyLib } from "./lib/PolicyLib.sol";
-import { SignerLib } from "./lib/SignerLib.sol";
+import { SignerLib, NO_SIGNER_REQUIRED } from "./lib/SignerLib.sol";
 import { ConfigLib } from "./lib/ConfigLib.sol";
 import { EncodeLib } from "./lib/EncodeLib.sol";
 
@@ -28,13 +28,14 @@ import { SmartSessionBase } from "./SmartSessionBase.sol";
 import { IdLib } from "./lib/IdLib.sol";
 
 import "forge-std/console2.sol";
+
 /**
  * TODO:
  *     ✅ The flow where permission doesn't enable the new signer, just adds policies for the existing one
  *     - ISigner => Stateless Sig Validator (discussed with zeroknots
  *               https://biconomyworkspace.slack.com/archives/D063X01CUEA/p1720520086702069)
  *     - MultiChain Permission Enable Data (chainId is in EncodeLib.digest now)
- *     - 'No Signature verification required' flow
+ *     ✅ 'No Signature verification required' flow
  *     - No policies (sudo) flow. What do we do with minPoliciesToEnforce ?
  *     - ERC-1271 (security => do not allow validating sig requests from itself)
  *     - Renouncing permissions
@@ -130,6 +131,9 @@ contract SmartSession is SmartSessionBase {
         // enable ISigner for this session
         // if it has already been enabled and the enableData.isigner is address(0), that means
         // this enableData is to add policies, not to enable a new signer => skip this step
+        // !!! the flow above is now broken as signerId depends on isigner address, so if address(0)
+        // is passed, it won't generate same signerId, so we can't user address(0) as isigner
+        // to skip enabling new isigner
         if (!_isISignerSet(signerId, account) && address(enableData.isigner) != address(0)) {
             _enableISigner(signerId, account, enableData.isigner, enableData.isignerInitData);
         }
