@@ -71,8 +71,8 @@ contract SmartSessionTest is RhinestoneModuleKit, Test {
         timeFramePolicy = new TimeFramePolicy();
         valueLimitPolicy = new ValueLimitPolicy();
 
-        defaultSigner1 = smartSession.getSignerId(simpleSigner, abi.encodePacked(sessionSigner1.addr));
-        defaultSigner2 = smartSession.getSignerId(simpleSigner, abi.encodePacked(sessionSigner2.addr));
+        defaultSigner1 = smartSession.getSignerId(ISigner(address(simpleSigner)), abi.encodePacked(sessionSigner1.addr));
+        defaultSigner2 = smartSession.getSignerId(ISigner(address(simpleSigner)), abi.encodePacked(sessionSigner2.addr));
 
         instance.installModule({
             moduleTypeId: MODULE_TYPE_VALIDATOR,
@@ -139,7 +139,7 @@ contract SmartSessionTest is RhinestoneModuleKit, Test {
 
         EnableSessions memory enableData = _prepareMockEnableData();
 
-        bytes memory rawSig = sign(userOpData.userOpHash, sessionSigner1.key);
+        bytes memory rawSig = sign(userOpData.userOpHash, sessionSigner2.key);
         userOpData.userOp.signature = EncodeLib.encodeEnable(defaultSigner2, rawSig, enableData);
         userOpData.execUserOps();
         assertEq(target.getValue(), valueToSet);
