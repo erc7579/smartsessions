@@ -11,16 +11,6 @@ library EncodeLib {
     using LibZip for bytes;
     using EncodeLib for *;
 
-    // jjjjjj
-    //     internal
-    //     pure
-    //     returns (SmartSessionMode mode, SignerId signerId, bytes calldata packedSig)
-    // {
-    //     mode = SmartSessionMode(uint8(bytes1(userOp.signature[:1])));
-    //     signerId = SignerId.wrap(bytes32(userOp))
-    //     packedSig = userOp.signature[1:];
-    // }
-
     function packMode(
         bytes memory data,
         SmartSessionMode mode,
@@ -80,21 +70,20 @@ library EncodeLib {
         (enableData, signature) = abi.decode(packedSig.flzDecompress(), (EnableSessions, bytes));
     }
 
-    // TODO: would be nice to use a custom EIP712 envelope here
-    function digest(ISigner signer, uint256 nonce, EnableSessions memory data) internal view returns (bytes32) {
-        return keccak256(
-            abi.encode(
-                signer,
-                nonce,
-                block.chainid,
-                data.isigner,
-                data.isignerInitData,
-                data.userOpPolicies,
-                data.erc1271Policies,
-                data.actions
-            )
-        );
-    }
+    // // TODO: would be nice to use a custom EIP712 envelope here
+    // function digest(ISigner signer, uint256 nonce, EnableSessions memory data) internal view returns (bytes32) {
+    //     return keccak256(
+    //         abi.encode(
+    //             signer,
+    //             nonce,
+    //             block.chainid,
+    //             data.isignerInitData,
+    //             data.userOpPolicies,
+    //             data.erc1271Policies,
+    //             data.actions
+    //         )
+    //     );
+    // }
 
     function decodeInstall(bytes calldata enableData) internal pure returns (InstallSessions[] memory sessions) {
         sessions = abi.decode(enableData, (InstallSessions[]));
