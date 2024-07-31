@@ -15,6 +15,7 @@ uint256 constant n = 0xFFFFFFFF00000000FFFFFFFFFFFFFFFFBCE6FAADA7179E84F3B9CAC2F
 contract MultiKeySignerTest is SmartSessionBaseTest {
     using ModuleKitHelpers for *;
     using ModuleKitUserOp for *;
+    using SignerEncode for *;
 
     address cosigner;
 
@@ -54,9 +55,10 @@ contract MultiKeySignerTest is SmartSessionBaseTest {
 
         console2.log(eoa.addr, data.pubKeyX, data.pubKeyY);
 
-        Signer[] memory signers = new Signer[](1);
-        signers[0] = Signer({ signerType: SignerType.PASSKEY, data: abi.encode(data) });
-        bytes memory params = abi.encode(signers);
+        Signer[] memory signers = new Signer[](2);
+        signers[0] = Signer({ signerType: SignerType.EOA, data: abi.encodePacked(eoa.addr) });
+        signers[1] = Signer({ signerType: SignerType.PASSKEY, data: abi.encode(data) });
+        bytes memory params = signers.encodeSigners();
         console2.logBytes(params);
         console2.logBytes32(SignerId.unwrap(walletconnect));
         //walletconnect = smartSession.getSignerId(ISigner(address(cosigner)), params);
@@ -85,9 +87,10 @@ contract MultiKeySignerTest is SmartSessionBaseTest {
         // Set the signature
         bytes memory eoaSig = sign(ethHash, eoa.key);
         bytes memory passkeySig = _rootSignDigest(passkey.key, ethHash, true);
-        //bytes[] memory sigs = Solarray.bytess(eoaSig, passkeySig);
-        bytes[] memory sigs = new bytes[](1);
-        sigs[0] = passkeySig;
+        bytes[] memory sigs = Solarray.bytess(eoaSig, passkeySig);
+/*      bytes[] memory sigs = new bytes[](2);
+        sigs[0] = eoaSig;
+        sigs[1] = passkeySig; */
 
         userOpData.userOp.signature =
             EncodeLib.encodeUse({ signerId: walletconnect, sig: abi.encode(sigs) });
@@ -98,10 +101,10 @@ contract MultiKeySignerTest is SmartSessionBaseTest {
         (uint256 x, uint256 y) = generatePublicKey(passkey.key);
 
         WebAuthnValidatorData memory data = WebAuthnValidatorData({ pubKeyX: x, pubKeyY: y });
-
-        console2.log(eoa.addr, data.pubKeyX, data.pubKeyY);
-
-        bytes memory params = abi.encode(eoa.addr, WebAuthnValidatorData({ pubKeyX: x, pubKeyY: y }));
+        Signer[] memory signers = new Signer[](2);
+        signers[0] = Signer({ signerType: SignerType.EOA, data: abi.encodePacked(eoa.addr) });
+        signers[1] = Signer({ signerType: SignerType.PASSKEY, data: abi.encode(data) });
+        bytes memory params = signers.encodeSigners();
 
         PolicyData[] memory policyData = new PolicyData[](1);
         policyData[0] = PolicyData({ policy: address(yesPolicy), initData: "" });
@@ -136,10 +139,11 @@ contract MultiKeySignerTest is SmartSessionBaseTest {
         // Set the signature
         bytes memory eoaSig = sign(ethHash, eoa.key);
         bytes memory passkeySig = _rootSignDigest(passkey.key, ethHash, true);
+        bytes[] memory sigs = Solarray.bytess(eoaSig, passkeySig);
 
         userOpData.userOp.signature = EncodeLib.encodeEnable(
             smartSession.getSignerId(enableData.isigner, enableData.isignerInitData),
-            abi.encode(eoaSig, passkeySig),
+            abi.encode(sigs),
             enableData
         );
 

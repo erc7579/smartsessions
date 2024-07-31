@@ -37,8 +37,34 @@ library SignerEncode {
         passkey = abi.decode(signer.data, (WebAuthnValidatorData));
     }
 
-    function decodeSigners(bytes memory data) internal pure returns (Signer[] memory signers) {
-        signers = abi.decode(data, (Signer[]));
+    function encodeSigners(Signer[] memory signers) internal pure returns (bytes memory encoded) {
+        uint256 length = signers.length;
+        encoded = abi.encodePacked(uint8(length));
+        for (uint256 i = 0; i < length; i++) {
+            encoded = abi.encodePacked(encoded, uint8(signers[i].signerType));
+            encoded = abi.encodePacked(encoded, signers[i].data);
+        }
+    }
+
+    function decodeSigners(bytes calldata data) internal pure returns (Signer[] memory signers) {
+        uint256 length = uint256(uint8(bytes1(data[0])));
+        signers = new Signer[](length);
+        uint256 offset = 1;
+        for (uint256 i = 0; i < length; i++) {
+            uint8 signerType = uint8(bytes1(data[offset]));
+            offset++;
+            uint256 dataLength;
+            if(signerType == uint8(SignerType.EOA)) {
+                dataLength = 20;
+            } else if(signerType == uint8(SignerType.PASSKEY)) {
+                dataLength = 64;
+            } else {
+                revert();
+            }
+            bytes memory signerData = data[offset:offset + dataLength];
+            offset += dataLength;
+            signers[i] = Signer(SignerType(signerType), signerData);
+        }
     }
 }
 
@@ -106,7 +132,6 @@ contract MultiKeySigner {
         bytes32 ethHash = ECDSA.toEthSignedMessageHash(hash);
         Signer[] memory signers = data.decodeSigners();
         bytes[] memory sigs = abi.decode(sig, (bytes[]));
-        console2.log("validating multikey 00");
 
         uint256 length = signers.length;
         if (sigs.length != length) revert InvalidSignatureLength();
@@ -117,13 +142,8 @@ contract MultiKeySigner {
                 address recovered = ECDSA.recover(ethHash, sigs[i]);
                 if (recovered != eoa) return false;
             } else if (signers[i].signerType == SignerType.PASSKEY) {
-                console2.log("validating multikey 01");
                 WebAuthnValidatorData memory passkey = signers[i].decodePasskey();
-                console2.log("validating multikey 02");
                 bool passkeyValid = passkey.verifyPasskey(ethHash, sigs[i]);
-                console2.log("validating multikey 03");
-                console2.logBytes32(ethHash);
-                console2.log(passkey.pubKeyX, passkey.pubKeyY);
                 if (!passkeyValid) return false;
             } else {
                 revert InvalidSignatureType();
