@@ -26,7 +26,9 @@ contract YesPolicy is IUserOpPolicy, IActionPolicy {
         userOpState[id][msg.sender][opSender] = 0;
     }
 
-    function isModuleType(uint256 id) external pure returns (bool) { }
+    function isModuleType(uint256 id) external pure returns (bool) { 
+        return id == 7;
+    }
 
     function checkUserOpPolicy(SessionId id, PackedUserOperation calldata userOp) external override returns (uint256) {
         userOpState[id][msg.sender][userOp.sender] += 1;

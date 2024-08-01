@@ -14,14 +14,18 @@ import { MODULE_TYPE_VALIDATOR, MODULE_TYPE_EXECUTOR, Execution } from "moduleki
 import { SmartSession } from "contracts/SmartSession.sol";
 import { EncodeLib } from "contracts/lib/EncodeLib.sol";
 import { ISigner } from "contracts/interfaces/ISigner.sol";
+import { IRegistry} from "contracts/interfaces/IRegistry.sol";
 import "contracts/DataTypes.sol";
 import { EncodeLib } from "contracts/lib/EncodeLib.sol";
 import { YesSigner } from "./mock/YesSigner.sol";
+import { MockRegistry } from "./mock/MockRegistry.sol";
 import { MockTarget } from "./mock/MockTarget.sol";
 import { YesPolicy } from "./mock/YesPolicy.sol";
 import { EIP1271_MAGIC_VALUE, IERC1271 } from "module-bases/interfaces/IERC1271.sol";
 
 import "forge-std/console2.sol";
+
+IRegistry constant registry = IRegistry(0x0000000000E23E0033C3e93D9D4eBc2FF2AB2AEF);
 
 contract SmartSessionBaseTest is RhinestoneModuleKit, Test {
     using ModuleKitHelpers for *;
@@ -46,6 +50,9 @@ contract SmartSessionBaseTest is RhinestoneModuleKit, Test {
 
         sessionSigner1 = makeAccount("sessionSigner1");
         sessionSigner2 = makeAccount("sessionSigner2");
+
+        IRegistry _registry = IRegistry(address(new MockRegistry()));
+        vm.etch(address(registry), address(_registry).code);
 
         smartSession = new SmartSession();
         target = new MockTarget();
@@ -107,7 +114,8 @@ contract SmartSessionBaseTest is RhinestoneModuleKit, Test {
             permissionEnableSig: ""
         });
 
-        bytes32 hash = smartSession.getDigest(enableData.isigner, instance.account, enableData);
+        bytes32 hash =
+            smartSession.getDigest(enableData.isigner, instance.account, enableData, SmartSessionMode.UNSAFE_ENABLE);
         enableData.permissionEnableSig = abi.encodePacked(instance.defaultValidator, sign(hash, 1));
 
         userOpData.userOp.signature = EncodeLib.encodeEnable(defaultSigner2, hex"4141414142", enableData);

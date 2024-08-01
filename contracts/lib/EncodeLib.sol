@@ -81,12 +81,22 @@ library EncodeLib {
     }
 
     // TODO: would be nice to use a custom EIP712 envelope here
-    function digest(ISigner signer, uint256 nonce, EnableSessions memory data) internal view returns (bytes32) {
+    function digest(
+        ISigner signer,
+        uint256 nonce,
+        EnableSessions memory data,
+        SmartSessionMode mode
+    )
+        internal
+        view
+        returns (bytes32)
+    {
         return keccak256(
             abi.encode(
                 signer,
                 nonce,
                 block.chainid,
+                mode,
                 data.isigner,
                 data.isignerInitData,
                 data.userOpPolicies,

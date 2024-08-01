@@ -73,7 +73,7 @@ contract ValueLimitPolicy is IActionPolicy {
     }
 
     function isModuleType(uint256 id) external pure returns (bool) {
-        return id == 222; //userOpPolicy
+        return id == 7;
     }
 
     function isInitialized(address multiplexer, address account, SessionId id) external view override returns (bool) {

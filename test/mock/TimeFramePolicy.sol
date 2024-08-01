@@ -109,7 +109,7 @@ contract TimeFramePolicy is IUserOpPolicy, IActionPolicy {
     }
 
     function isModuleType(uint256 id) external pure returns (bool) {
-        return id == 222 || id == 223 || id == 224;
+        return id == 7;
     }
 
     function isInitialized(address smartAccount) external view returns (bool) {

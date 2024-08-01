@@ -24,9 +24,13 @@ import { EIP1271_MAGIC_VALUE, IERC1271 } from "module-bases/interfaces/IERC1271.
 import { MockK1Validator } from "test/mock/MockK1Validator.sol";
 import { UserOperationBuilder } from "contracts/erc7679/UserOpBuilder.sol";
 import { ModeLib, ModeCode as ExecutionMode } from "erc7579/lib/ModeLib.sol";
+import { IRegistry} from "contracts/interfaces/IRegistry.sol";
+import { MockRegistry } from "./mock/MockRegistry.sol";
 import "./mock/UniActionPolicy.sol";
 
 import "forge-std/console2.sol";
+
+IRegistry constant registry = IRegistry(0x0000000000E23E0033C3e93D9D4eBc2FF2AB2AEF);
 
 contract UniversalActionPolicyTest is RhinestoneModuleKit, Test {
     using ModuleKitHelpers for *;
@@ -54,6 +58,9 @@ contract UniversalActionPolicyTest is RhinestoneModuleKit, Test {
     function setUp() public virtual {
         instance = makeAccountInstance("smartaccount");
         mockK1 = new MockK1Validator();
+
+        IRegistry _registry = IRegistry(address(new MockRegistry()));
+        vm.etch(address(registry), address(_registry).code);
 
         owner = makeAccount("owner");
         sessionSigner1 = makeAccount("sessionSigner1");

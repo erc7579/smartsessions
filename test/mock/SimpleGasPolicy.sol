@@ -57,7 +57,7 @@ contract SimpleGasPolicy is IUserOpPolicy {
     }
 
     function isModuleType(uint256 id) external pure returns (bool) {
-        return id == 222; //userOpPolicy
+        return id == 7; //userOpPolicy
     }
 
     function isInitialized(address multiplexer, address account, SessionId id) external view override returns (bool) {
