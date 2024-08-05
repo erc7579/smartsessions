@@ -9,9 +9,11 @@ import { ModeCode as ExecutionMode } from "erc7579/lib/ModeLib.sol";
 
 // Define the type hash for PolicyData
 bytes32 constant POLICY_DATA_TYPEHASH = keccak256("PolicyData(address policy,bytes initData)");
+bytes32 constant ACTION_POLICY_DATA_TYPEHASH = keccak256("ActionPolicy(bytes32 actionId,address policy,bytes initData)");
 
 // Define the type hash for SignerData
-bytes32 constant SIGNER_DATA_TYPEHASH = keccak256("SignerData(address isigner,bytes isignerInitData)");
+bytes32 constant SIGNER_DATA_TYPEHASH =
+    keccak256("SignerData(address isigner,PolicyData[] actionPolicies), PolicyData(address policy,bytes initData)");
 
 // Define the type hash for EnableSessions
 bytes32 constant ENABLE_SESSIONS_TYPEHASH = keccak256(
@@ -19,14 +21,7 @@ bytes32 constant ENABLE_SESSIONS_TYPEHASH = keccak256(
 );
 
 library HashLib {
-    function hashEnableSession(
-        EnableSessions memory enableSession,
-        uint256 nonce
-    )
-        internal
-        pure
-        returns (bytes32 _hash)
-    {
+    function digest(EnableSessions memory enableSession, uint256 nonce) internal pure returns (bytes32 _hash) {
         _hash = keccak256(
             abi.encode(
                 ENABLE_SESSIONS_TYPEHASH,
@@ -61,15 +56,9 @@ library HashLib {
         return keccak256(abi.encodePacked(hashes));
     }
 
-    // Note: You'll need to implement this function based on your ActionData struct
     function hashActionData(ActionData memory actionData) internal pure returns (bytes32) {
-        // Implement this based on your ActionData struct
-        // For example:
-        // return keccak256(abi.encode(
-        //     ACTION_DATA_TYPEHASH,
-        //     actionData.field1,
-        //     actionData.field2,
-        //     ...
-        // ));
+        return keccak256(
+            abi.encode(ACTION_POLICY_DATA_TYPEHASH, actionData.actionId, hashPolicyDataArray(actionData.actionPolicies))
+        );
     }
 }

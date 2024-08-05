@@ -10,12 +10,14 @@ import { ERC7579ValidatorBase } from "modulekit/Modules.sol";
 import { ConfigLib } from "./lib/ConfigLib.sol";
 import { EncodeLib } from "./lib/EncodeLib.sol";
 import { IdLib } from "./lib/IdLib.sol";
+import { HashLib } from "./lib/HashLib.sol";
 
 abstract contract SmartSessionBase is ERC7579ValidatorBase {
     using FlatBytesLib for *;
     using ConfigLib for *;
     using EncodeLib for *;
     using IdLib for *;
+    using HashLib for *;
     using SentinelList4337Lib for SentinelList4337Lib.SentinelList;
     using ArrayMap4337Lib for *;
     using ConfigLib for Policy;
@@ -118,7 +120,7 @@ abstract contract SmartSessionBase is ERC7579ValidatorBase {
 
     function getDigest(ISigner isigner, address account, EnableSessions memory data) external view returns (bytes32) {
         uint256 nonce = $signerNonce[isigner][account];
-        return isigner.digest(nonce, data);
+        return data.digest(nonce);
     }
 
     function getSignerId(ISigner isigner, bytes memory isignerInitData) public pure returns (SignerId signerId) {
