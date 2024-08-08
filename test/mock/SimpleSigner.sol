@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.23;
 
-import { PackedUserOperation, SessionId, ISigner } from "contracts/interfaces/ISigner.sol";
+import { SessionId, ISigner } from "contracts/interfaces/ISigner.sol";
 import { ECDSA } from "solady/utils/ECDSA.sol";
 import { SubLib } from "contracts/lib/SubLib.sol";
 
@@ -15,43 +15,6 @@ contract SimpleSigner is ISigner {
 
     mapping(address msgSender => mapping(address opSender => uint256)) public usedIds;
     mapping(SessionId id => mapping(address msgSender => mapping(address userOpSender => address))) public signer;
-
-    // can use sender as argument here as the method is view
-    // so even external calls with arbitrary sender can not break things
-    function checkSignature(
-        SessionId id,
-        address sender,
-        bytes32 hash,
-        bytes calldata sig
-    )
-        external
-        view
-        override
-        returns (bytes4)
-    {
-        address owner = signer[id][msg.sender][sender];
-        address recovered;
-        recovered = ECDSA.recover(hash, sig);
-        if (owner == recovered) {
-            return 0x1626ba7e;
-        }
-        bytes32 ethHash = ECDSA.toEthSignedMessageHash(hash);
-        recovered = ECDSA.recover(ethHash, sig);
-        if (owner == recovered) {
-            return 0x1626ba7e;
-        }
-        return 0xffffffff;
-    }
-
-    function checkUserOpSignature(
-        bytes32 id,
-        PackedUserOperation calldata userOp,
-        bytes32 userOpHash
-    )
-        external
-        payable
-        returns (uint256)
-    { }
 
     function _onInstallSigner(SessionId id, address opSender, bytes calldata _data) internal {
         require(signer[id][msg.sender][opSender] == address(0));

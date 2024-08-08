@@ -7,8 +7,6 @@ import "../DataTypes.sol";
 import "forge-std/interfaces/IERC165.sol";
 
 interface ISubPermission is IERC165, IERC7579Module {
-    //function initForAccount(address account, SessionId id, bytes calldata initData) external;
-    //function deinitForAccount(address account, SessionId id) external;
     function isInitialized(address account, SessionId id) external view returns (bool);
     function isInitialized(address multiplexer, address account, SessionId id) external view returns (bool);
     function isInitialized(address account) external view returns (bool);

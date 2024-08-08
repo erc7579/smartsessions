@@ -4,7 +4,6 @@ pragma solidity ^0.8.25;
 import "./lib/ArrayMap4337Lib.sol";
 import { SentinelList4337Lib } from "sentinellist/SentinelList4337.sol";
 import "./interfaces/ISigner.sol";
-import "forge-std/console2.sol";
 import { FlatBytesLib } from "@rhinestone/flatbytes/src/BytesLib.sol";
 
 type SignerId is bytes32;
