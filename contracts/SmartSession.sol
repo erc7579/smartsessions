@@ -19,7 +19,7 @@ import { IAccountExecute } from "modulekit/external/ERC4337.sol";
 import { IUserOpPolicy, IActionPolicy } from "contracts/interfaces/IPolicy.sol";
 
 import { PolicyLib } from "./lib/PolicyLib.sol";
-import { SignerLib, NO_SIGNER_REQUIRED } from "./lib/SignerLib.sol";
+import { SignerLib } from "./lib/SignerLib.sol";
 import { ConfigLib } from "./lib/ConfigLib.sol";
 import { EncodeLib } from "./lib/EncodeLib.sol";
 
