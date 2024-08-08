@@ -3,8 +3,6 @@ pragma solidity ^0.8.25;
 
 import "../DataTypes.sol";
 import "../interfaces/ISigner.sol";
-import { ERC7579ValidatorBase } from "modulekit/Modules.sol";
-import "forge-std/console2.sol";
 import { IdLib } from "./IdLib.sol";
 
 library SignerLib {

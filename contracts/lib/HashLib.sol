@@ -2,10 +2,6 @@
 pragma solidity ^0.8.25;
 
 import "../DataTypes.sol";
-import { PackedUserOperation } from "modulekit/external/ERC4337.sol";
-import "forge-std/console2.sol";
-import { LibZip } from "solady/utils/LibZip.sol";
-import { ModeCode as ExecutionMode } from "erc7579/lib/ModeLib.sol";
 
 // Define the type hash for PolicyData
 bytes32 constant POLICY_DATA_TYPEHASH = keccak256("PolicyData(address policy,bytes initData)");
@@ -41,8 +37,9 @@ library HashLib {
     }
 
     function hashPolicyDataArray(PolicyData[] memory policyDataArray) internal pure returns (bytes32) {
-        bytes32[] memory hashes = new bytes32[](policyDataArray.length);
-        for (uint256 i = 0; i < policyDataArray.length; i++) {
+        uint256 length = policyDataArray.length;
+        bytes32[] memory hashes = new bytes32[](length);
+        for (uint256 i; i < length; i++) {
             hashes[i] = hashPolicyData(policyDataArray[i]);
         }
         return keccak256(abi.encodePacked(hashes));

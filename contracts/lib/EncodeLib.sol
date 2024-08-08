@@ -21,8 +21,6 @@ library EncodeLib {
         returns (bytes memory packed)
     {
         packed = abi.encodePacked(mode, signerId, data);
-        //console2.log("data");
-        //console2.logBytes(packed);
     }
 
     function unpackMode(bytes calldata packed)
@@ -69,21 +67,6 @@ library EncodeLib {
     {
         (enableData, signature) = abi.decode(packedSig.flzDecompress(), (EnableSessions, bytes));
     }
-
-    // // TODO: would be nice to use a custom EIP712 envelope here
-    // function digest(ISigner signer, uint256 nonce, EnableSessions memory data) internal view returns (bytes32) {
-    //     return keccak256(
-    //         abi.encode(
-    //             signer,
-    //             nonce,
-    //             block.chainid,
-    //             data.isignerInitData,
-    //             data.userOpPolicies,
-    //             data.erc1271Policies,
-    //             data.actions
-    //         )
-    //     );
-    // }
 
     function decodeInstall(bytes calldata enableData) internal pure returns (InstallSessions[] memory sessions) {
         sessions = abi.decode(enableData, (InstallSessions[]));
