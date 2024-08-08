@@ -197,7 +197,7 @@ contract SmartSession is SmartSessionBase {
             userOp: userOp,
             signer: signerId,
             callOnIPolicy: abi.encodeCall(IUserOpPolicy.checkUserOpPolicy, (signerId.toSessionId(), userOp)),
-            minPoliciesToEnforce: 1
+            minPoliciesToEnforce: 0
         });
 
         bytes4 selector = bytes4(userOp.callData[0:4]);
@@ -290,7 +290,7 @@ contract SmartSession is SmartSessionBase {
         external
         view
         returns (bool isEnabled)
-    {
+    {   
         //if ISigner is not set for signerId, the permission has not been enabled yet
         if (!_isISignerSet(signerId, account)) {
             return false;
