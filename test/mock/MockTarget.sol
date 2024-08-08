@@ -11,6 +11,10 @@ contract MockTarget {
         return _value;
     }
 
+    function increaseValue() public payable returns (uint256) {
+        return ++value;
+    }
+
     function getValue() public view returns (uint256) {
         return value;
     }
