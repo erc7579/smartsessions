@@ -3,6 +3,7 @@ pragma solidity ^0.8.4;
 
 import "./DataTypes.sol";
 import { ERC7579ValidatorBase } from "modulekit/Modules.sol";
+import { PackedUserOperation } from "modulekit/external/ERC4337.sol";
 
 interface ISmartSession {
     error AlreadyInitialized(address smartAccount);

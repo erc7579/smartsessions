@@ -26,6 +26,7 @@ import { EncodeLib } from "./lib/EncodeLib.sol";
 import "./DataTypes.sol";
 import { SmartSessionBase } from "./SmartSessionBase.sol";
 import { IdLib } from "./lib/IdLib.sol";
+import { HashLib } from "./lib/HashLib.sol";
 
 import "forge-std/console2.sol";
 /**
@@ -50,6 +51,7 @@ import "forge-std/console2.sol";
 contract SmartSession is SmartSessionBase {
     using SentinelList4337Lib for SentinelList4337Lib.SentinelList;
     using IdLib for *;
+    using HashLib for *;
     using PolicyLib for *;
     using SignerLib for *;
     using ConfigLib for *;
@@ -118,7 +120,7 @@ contract SmartSession is SmartSessionBase {
         (enableData, permissionUseSig) = packedSig.decodeEnable();
 
         uint256 nonce = $signerNonce[enableData.isigner][account]++;
-        bytes32 hash = enableData.isigner.digest(nonce, enableData);
+        bytes32 hash = enableData.digest(nonce);
         if (signerId != getSignerId(enableData.isigner, enableData.isignerInitData)) {
             revert InvalidSignerId();
         }
