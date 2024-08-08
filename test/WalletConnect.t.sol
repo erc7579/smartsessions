@@ -203,20 +203,18 @@ contract MultiKeySignerTest is SmartSessionBaseTest {
         userOpData.execUserOps();
         assertEq(target.getValue(), valueBefore+1);
     }
-
     
-    function test_decode() public {
+    function test_decodeSigners() public {
         bytes memory data = hex'0200887137dc5f7a1a418125b6b6ec9cd0b6a70d121f019bced0ecf8250c093a82dbf7b6490d122d5bf78ff6421369f6dc839961063837447acdff37242eea1b01f68b91ecab344c95a8ea76449422aaca8592843ba2a9';
-        console2.logBytes(data);
         Signer[] memory signers = this.decodeWrapper(data);
-        console2.log("type of 1st signer is ", uint8(signers[0].signerType));
+        assertEq(0, uint8(signers[0].signerType), "Type of 1st signer should be 0");
     }
+
+    // ==================
 
     function decodeWrapper(bytes calldata data) public view returns (Signer[] memory signers) {
         return data.decodeSigners();
     }
-
-    // ==================
 
     function _prepareMockEnableData(uint128 expiry) internal view returns (EnableSessions memory enableData) {
 
@@ -234,7 +232,6 @@ contract MultiKeySignerTest is SmartSessionBaseTest {
         signers[0] = Signer({ signerType: SignerType.EOA, data: abi.encodePacked(eoa.addr) });
         signers[1] = Signer({ signerType: SignerType.PASSKEY, data: abi.encode(data) });
         bytes memory params = signers._encodeSigners();
-        console2.logBytes(params);
 
         enableData = EnableSessions({
             isigner: ISigner(address(cosigner)),
@@ -247,16 +244,6 @@ contract MultiKeySignerTest is SmartSessionBaseTest {
 
         bytes32 hash =
             smartSession.getDigest(enableData.isigner, instance.account, enableData, SmartSessionMode.UNSAFE_ENABLE);
-        console2.logBytes32(hash);
-        console2.log("(session) EOA address: ", eoa.addr);
-        //console2.log("(session) EOA address: ", vm.addr(eoa.privateKey));
-        console2.log("(session) EOA public key: ", eoa.publicKeyX, " ", eoa.publicKeyY);
-        console2.logBytes32(bytes32(eoa.publicKeyX));
-        console2.logBytes32(bytes32(eoa.publicKeyY));
-        console2.log("Passkey x ", x, " y ", y);
-        console2.logBytes32(bytes32(x));
-        console2.logBytes32(bytes32(y));
-
         // ERC1271
         enableData.permissionEnableSig = abi.encodePacked(mockValidatorE, sign(hash, 1));
     }

@@ -42,11 +42,7 @@ library SignerEncode {
     }
 
     function decodeSigners(bytes calldata data) internal pure returns (Signer[] memory signers) {
-        console2.log("Decoding signers 00");
         uint256 length = uint256(uint8(bytes1(data[0])));
-        console2.logBytes(data);
-        console2.logBytes1(bytes1(data[0]));
-        console2.log("Decoding signers length ", length);
         signers = new Signer[](length);
         uint256 offset = 1;
         for (uint256 i = 0; i < length; i++) {
