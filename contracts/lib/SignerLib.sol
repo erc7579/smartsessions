@@ -8,8 +8,6 @@ import { IdLib } from "./IdLib.sol";
 
 import "forge-std/console2.sol";
 
-address constant NO_SIGNER_REQUIRED = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-
 library SignerLib {
     using IdLib for *;
     using FlatBytesLib for *;
@@ -31,15 +29,12 @@ library SignerLib {
         ISigner isigner = $isigners[signerId][account].isigner;
         if (address(isigner) == address(0)) revert SignerNotFound(signerId, account);
 
-        if (address(isigner) != NO_SIGNER_REQUIRED)
-            // check signature of ISigner first.
-            // policies only need to be processed if the signature is correct
-            if (
-                isigner.validateSignatureWithData({
-                    hash: userOpHash,
-                    sig: signature,
-                    data: $isigners[signerId][account].config.load()
-                }) == false
-            ) revert InvalidSessionKeySignature(signerId, isigner, account, userOpHash);
+        if (
+            isigner.validateSignatureWithData({
+                hash: userOpHash,
+                sig: signature,
+                data: $isigners[signerId][account].config.load()
+            }) == false
+        ) revert InvalidSessionKeySignature(signerId, isigner, account, userOpHash);
     }
 }
