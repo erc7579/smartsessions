@@ -106,9 +106,9 @@ library EncodeLib {
         );
     }
 
-    function decodeInstall(bytes calldata enableData) internal pure returns (InstallSessions[] memory sessions) {
-        sessions = abi.decode(enableData, (InstallSessions[]));
-    }
+    // function decodeInstall(bytes calldata enableData) internal pure returns (InstallSessions[] memory sessions) {
+    //     sessions = abi.decode(enableData, (InstallSessions[]));
+    // }
 
     function encodeContext(
         uint192 nonceKey,

@@ -87,7 +87,7 @@ contract SmartSessionTest is RhinestoneModuleKit, Test {
             data: abi.encodePacked(owner.addr)
         });
 
-        InstallSessions[] memory installData = new InstallSessions[](0);
+        EnableSessions[] memory installData = new EnableSessions[](0);
         instance.installModule({
             moduleTypeId: MODULE_TYPE_VALIDATOR,
             module: address(smartSession),

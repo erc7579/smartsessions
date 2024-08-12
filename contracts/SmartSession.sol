@@ -285,7 +285,9 @@ contract SmartSession is SmartSessionBase {
     function isPermissionEnabled(
         SignerId signerId,
         address account,
-        EnableSessions memory enableData
+        PolicyData[] memory userOpPolicies,
+        PolicyData[] memory erc1271Policies,
+        ActionData[] memory actions
     )
         external
         view
@@ -299,19 +301,16 @@ contract SmartSession is SmartSessionBase {
             signerId: signerId,
             sessionId: signerId.toUserOpPolicyId().toSessionId(account),
             smartAccount: account,
-            policyDatas: enableData.userOpPolicies
+            policyDatas: userOpPolicies
         });
         bool erc1271 = $erc1271Policies.areEnabled({
             signerId: signerId,
             sessionId: signerId.toErc1271PolicyId().toSessionId(account),
             smartAccount: account,
-            policyDatas: enableData.erc1271Policies
+            policyDatas: erc1271Policies
         });
-        bool action = $actionPolicies.areEnabled({
-            signerId: signerId,
-            smartAccount: account,
-            actionPolicyDatas: enableData.actions
-        });
+        bool action =
+            $actionPolicies.areEnabled({ signerId: signerId, smartAccount: account, actionPolicyDatas: actions });
         uint256 res;
         assembly {
             res := add(add(uo, erc1271), action)

@@ -26,6 +26,8 @@ abstract contract SmartSessionBase is ERC7579ValidatorBase {
 
     event SessionRemoved(SignerId signerId, address smartAccount);
 
+    error InvalidData();
+
     Policy internal $userOpPolicies;
     Policy internal $erc1271Policies;
     EnumerableActionPolicy internal $actionPolicies;
@@ -72,10 +74,11 @@ abstract contract SmartSessionBase is ERC7579ValidatorBase {
         });
     }
 
-    function enableSessions(InstallSessions[] memory sessions) public {
+    function enableSessions(EnableSessions[] memory sessions) public {
         uint256 length = sessions.length;
         for (uint256 i; i < length; i++) {
-            SignerId signerId = sessions[i].signerId;
+            if (sessions[i].permissionEnableSig.length != 0) revert InvalidData();
+            SignerId signerId = getSignerId(sessions[i].isigner, sessions[i].isignerInitData);
             enableUserOpPolicies({ signerId: signerId, userOpPolicies: sessions[i].userOpPolicies });
             enableERC1271Policies({ signerId: signerId, erc1271Policies: sessions[i].erc1271Policies });
             enableActionPolicies({ signerId: signerId, actionPolicies: sessions[i].actions });
@@ -108,7 +111,7 @@ abstract contract SmartSessionBase is ERC7579ValidatorBase {
     function onInstall(bytes calldata data) external override {
         if (data.length == 0) return;
 
-        InstallSessions[] memory sessions = abi.decode(data, (InstallSessions[]));
+        EnableSessions[] memory sessions = abi.decode(data, (EnableSessions[]));
         enableSessions(sessions);
     }
 

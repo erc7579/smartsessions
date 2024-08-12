@@ -24,7 +24,7 @@ interface ISmartSession {
     /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
     function enableActionPolicies(SignerId signerId, ActionData[] memory actionPolicies) external;
     function enableERC1271Policies(SignerId signerId, PolicyData[] memory erc1271Policies) external;
-    function enableSessions(InstallSessions[] memory sessions) external;
+    function enableSessions(EnableSessions[] memory sessions) external;
     function enableUserOpPolicies(SignerId signerId, PolicyData[] memory userOpPolicies) external;
     function removeSession(SignerId signerId) external;
     function setSigner(SignerId signerId, address signer, bytes memory initData) external;

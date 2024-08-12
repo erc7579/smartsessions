@@ -62,7 +62,7 @@ contract SmartSessionBaseTest is RhinestoneModuleKit, Test {
         defaultSigner1 = smartSession.getSignerId(yesSigner, "defaultSigner1");
         defaultSigner2 = smartSession.getSignerId(yesSigner, "defaultSigner2");
 
-        InstallSessions[] memory installData = new InstallSessions[](0);
+        EnableSessions[] memory installData = new EnableSessions[](0);
 
         instance.installModule({
             moduleTypeId: MODULE_TYPE_VALIDATOR,

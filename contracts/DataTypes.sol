@@ -39,14 +39,6 @@ struct SignerConf {
     FlatBytesLib.Bytes config;
 }
 
-// InstallSessions[] sessions;
-
-struct InstallSessions {
-    SignerId signerId;
-    PolicyData[] userOpPolicies;
-    PolicyData[] erc1271Policies;
-    ActionData[] actions;
-}
 
 struct EnableSessions {
     // SignerID is the part of the packedSig, so doesnt have to be in here
