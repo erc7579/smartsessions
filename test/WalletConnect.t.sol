@@ -86,8 +86,7 @@ contract MultiKeySignerTest is SmartSessionBaseTest {
         bytes memory passkeySig = _rootSignDigest(passkey.key, ethHash, true);
         bytes[] memory sigs = Solarray.bytess(eoaSig, passkeySig);
 
-        userOpData.userOp.signature =
-            EncodeLib.encodeUse({ signerId: walletconnectSignerId, sig: abi.encode(sigs) });
+        userOpData.userOp.signature = EncodeLib.encodeUse({ signerId: walletconnectSignerId, sig: abi.encode(sigs) });
         userOpData.execUserOps();
     }
 
@@ -135,9 +134,7 @@ contract MultiKeySignerTest is SmartSessionBaseTest {
         bytes[] memory sigs = Solarray.bytess(eoaSig, passkeySig);
 
         userOpData.userOp.signature = EncodeLib.encodeEnable(
-            smartSession.getSignerId(enableData.isigner, enableData.isignerInitData),
-            abi.encode(sigs),
-            enableData
+            smartSession.getSignerId(enableData.isigner, enableData.isignerInitData), abi.encode(sigs), enableData
         );
 
         userOpData.execUserOps();

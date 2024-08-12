@@ -31,7 +31,7 @@ library SignerLib {
         ISigner isigner = $isigners[signerId][account].isigner;
         if (address(isigner) == address(0)) revert SignerNotFound(signerId, account);
 
-        if (address(isigner) != NO_SIGNER_REQUIRED)
+        if (address(isigner) != NO_SIGNER_REQUIRED) {
             // check signature of ISigner first.
             // policies only need to be processed if the signature is correct
             if (
@@ -41,5 +41,6 @@ library SignerLib {
                     data: $isigners[signerId][account].config.load()
                 }) == false
             ) revert InvalidSessionKeySignature(signerId, isigner, account, userOpHash);
+        }
     }
 }

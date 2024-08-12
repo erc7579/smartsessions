@@ -10,7 +10,6 @@ import { ECDSA } from "solady/utils/ECDSA.sol";
 // import { TrustedForwarderWithId } from "contracts/utils/TrustedForwarders.sol";
 
 contract SimpleSigner {
-
     function supportsInterface(bytes4 interfaceID) external pure returns (bool) {
         return true;
     }
@@ -22,7 +21,7 @@ contract SimpleSigner {
     )
         external
         returns (bool validSig)
-    {   
+    {
         address owner = address(bytes20(data[0:20]));
         address recovered;
         recovered = ECDSA.recover(hash, sig);

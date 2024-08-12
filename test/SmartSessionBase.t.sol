@@ -14,7 +14,7 @@ import { MODULE_TYPE_VALIDATOR, MODULE_TYPE_EXECUTOR, Execution } from "moduleki
 import { SmartSession } from "contracts/SmartSession.sol";
 import { EncodeLib } from "contracts/lib/EncodeLib.sol";
 import { ISigner } from "contracts/interfaces/ISigner.sol";
-import { IRegistry} from "contracts/interfaces/IRegistry.sol";
+import { IRegistry } from "contracts/interfaces/IRegistry.sol";
 import "contracts/DataTypes.sol";
 import { EncodeLib } from "contracts/lib/EncodeLib.sol";
 import { YesSigner } from "./mock/YesSigner.sol";

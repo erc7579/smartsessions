@@ -24,7 +24,7 @@ import { EIP1271_MAGIC_VALUE, IERC1271 } from "module-bases/interfaces/IERC1271.
 import { MockK1Validator } from "test/mock/MockK1Validator.sol";
 import { UserOperationBuilder } from "contracts/erc7679/UserOpBuilder.sol";
 import { ModeLib, ModeCode as ExecutionMode } from "erc7579/lib/ModeLib.sol";
-import { IRegistry} from "contracts/interfaces/IRegistry.sol";
+import { IRegistry } from "contracts/interfaces/IRegistry.sol";
 import { MockRegistry } from "./mock/MockRegistry.sol";
 import "./mock/UniActionPolicy.sol";
 

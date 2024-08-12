@@ -26,7 +26,7 @@ contract YesPolicy is IUserOpPolicy, IActionPolicy {
         userOpState[id][msg.sender][opSender] = 0;
     }
 
-    function isModuleType(uint256 id) external pure returns (bool) { 
+    function isModuleType(uint256 id) external pure returns (bool) {
         return id == 7;
     }
 
