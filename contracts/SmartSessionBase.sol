@@ -2,6 +2,7 @@
 pragma solidity ^0.8.25;
 
 import "./DataTypes.sol";
+import "./utils/EnumerableSet4337.sol";
 
 import { ISigner } from "./interfaces/ISigner.sol";
 import "@rhinestone/flatbytes/src/BytesLib.sol";
@@ -13,6 +14,7 @@ import { IdLib } from "./lib/IdLib.sol";
 import { NO_SIGNER_REQUIRED } from "./lib/SignerLib.sol";
 
 abstract contract SmartSessionBase is ERC7579ValidatorBase {
+    using EnumerableSet for EnumerableSet.Bytes32Set;
     using FlatBytesLib for *;
     using ConfigLib for *;
     using EncodeLib for *;
@@ -23,6 +25,7 @@ abstract contract SmartSessionBase is ERC7579ValidatorBase {
     using ConfigLib for EnumerableActionPolicy;
 
     error InvalidISigner(ISigner isigner);
+    error InvalidSession(SignerId signerId);
 
     event SessionRemoved(SignerId signerId, address smartAccount);
 
@@ -31,8 +34,8 @@ abstract contract SmartSessionBase is ERC7579ValidatorBase {
     Policy internal $userOpPolicies;
     Policy internal $erc1271Policies;
     EnumerableActionPolicy internal $actionPolicies;
+    EnumerableSet.Bytes32Set internal $enabledSessions;
     mapping(ISigner signer => mapping(address smartAccount => uint256 nonce)) internal $signerNonce;
-
     mapping(SignerId signerId => mapping(address smartAccount => SignerConf)) internal $isigners;
 
     function _enableISigner(SignerId signerId, address account, ISigner isigner, bytes memory signerConfig) internal {
@@ -43,9 +46,11 @@ abstract contract SmartSessionBase is ERC7579ValidatorBase {
         SignerConf storage $conf = $isigners[signerId][account];
         $conf.isigner = isigner;
         $conf.config.store(signerConfig);
+        $enabledSessions.add(account, SignerId.unwrap(signerId));
     }
 
     function enableUserOpPolicies(SignerId signerId, PolicyData[] memory userOpPolicies) public {
+        if ($enabledSessions.contains(msg.sender, SignerId.unwrap(signerId)) == false) revert InvalidSession(signerId);
         $userOpPolicies.enable({
             signerId: signerId,
             sessionId: signerId.toUserOpPolicyId().toSessionId(),
@@ -56,6 +61,7 @@ abstract contract SmartSessionBase is ERC7579ValidatorBase {
     }
 
     function enableERC1271Policies(SignerId signerId, PolicyData[] memory erc1271Policies) public {
+        if ($enabledSessions.contains(msg.sender, SignerId.unwrap(signerId)) == false) revert InvalidSession(signerId);
         $erc1271Policies.enable({
             signerId: signerId,
             sessionId: signerId.toErc1271PolicyId().toSessionId(),
@@ -66,6 +72,7 @@ abstract contract SmartSessionBase is ERC7579ValidatorBase {
     }
 
     function enableActionPolicies(SignerId signerId, ActionData[] memory actionPolicies) public {
+        if ($enabledSessions.contains(msg.sender, SignerId.unwrap(signerId)) == false) revert InvalidSession(signerId);
         $actionPolicies.enable({
             signerId: signerId,
             actionPolicyDatas: actionPolicies,
@@ -74,14 +81,42 @@ abstract contract SmartSessionBase is ERC7579ValidatorBase {
         });
     }
 
-    function enableSessions(EnableSessions[] memory sessions) public {
+    function enableSessions(EnableSessions[] calldata sessions) public {
         uint256 length = sessions.length;
         for (uint256 i; i < length; i++) {
-            if (sessions[i].permissionEnableSig.length != 0) revert InvalidData();
-            SignerId signerId = getSignerId(sessions[i].isigner, sessions[i].isignerInitData);
-            enableUserOpPolicies({ signerId: signerId, userOpPolicies: sessions[i].userOpPolicies });
-            enableERC1271Policies({ signerId: signerId, erc1271Policies: sessions[i].erc1271Policies });
-            enableActionPolicies({ signerId: signerId, actionPolicies: sessions[i].actions });
+            EnableSessions calldata session = sessions[i];
+            if (session.permissionEnableSig.length != 0) revert InvalidData();
+            SignerId signerId = getSignerId(session.isigner, session.isignerInitData);
+            $enabledSessions.add({ account: msg.sender, value: SignerId.unwrap(signerId) });
+            _enableISigner({
+                signerId: signerId,
+                account: msg.sender,
+                isigner: session.isigner,
+                signerConfig: session.isignerInitData
+            });
+
+            $userOpPolicies.enable({
+                signerId: signerId,
+                sessionId: signerId.toUserOpPolicyId().toSessionId(),
+                policyDatas: session.userOpPolicies,
+                smartAccount: msg.sender,
+                useRegistry: true
+            });
+
+            $erc1271Policies.enable({
+                signerId: signerId,
+                sessionId: signerId.toErc1271PolicyId().toSessionId(),
+                policyDatas: session.erc1271Policies,
+                smartAccount: msg.sender,
+                useRegistry: true
+            });
+
+            $actionPolicies.enable({
+                signerId: signerId,
+                actionPolicyDatas: session.actions,
+                smartAccount: msg.sender,
+                useRegistry: true
+            });
         }
     }
 
@@ -96,11 +131,9 @@ abstract contract SmartSessionBase is ERC7579ValidatorBase {
                 signerId.toSessionId(actionId), msg.sender
             );
         }
-        emit SessionRemoved(signerId, msg.sender);
-    }
 
-    function setSigner(SignerId signerId, ISigner signer, bytes memory initData) external {
-        _enableISigner(signerId, msg.sender, signer, initData);
+        $enabledSessions.remove({ account: msg.sender, value: SignerId.unwrap(signerId) });
+        emit SessionRemoved(signerId, msg.sender);
     }
 
     /**
@@ -111,7 +144,13 @@ abstract contract SmartSessionBase is ERC7579ValidatorBase {
     function onInstall(bytes calldata data) external override {
         if (data.length == 0) return;
 
-        EnableSessions[] memory sessions = abi.decode(data, (EnableSessions[]));
+        EnableSessions[] calldata sessions;
+        assembly ("memory-safe") {
+            let dataPointer := add(data.offset, calldataload(data.offset))
+
+            sessions.offset := add(dataPointer, 32)
+            sessions.length := calldataload(dataPointer)
+        }
         enableSessions(sessions);
     }
 

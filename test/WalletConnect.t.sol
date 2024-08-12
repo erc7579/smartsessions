@@ -65,7 +65,7 @@ contract MultiKeySignerTest is SmartSessionBaseTest {
         walletconnectSignerId = smartSession.getSignerId(ISigner(address(cosigner)), params);
 
         vm.startPrank(instance.account);
-        smartSession.setSigner(walletconnectSignerId, ISigner(address(cosigner)), params);
+        // smartSession.setSigner(walletconnectSignerId, ISigner(address(cosigner)), params);
         PolicyData[] memory policyData = new PolicyData[](1);
         policyData[0] = PolicyData({ policy: address(yesPolicy), initData: "" });
         smartSession.enableUserOpPolicies(walletconnectSignerId, policyData);

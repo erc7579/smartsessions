@@ -39,7 +39,6 @@ struct SignerConf {
     FlatBytesLib.Bytes config;
 }
 
-
 struct EnableSessions {
     // SignerID is the part of the packedSig, so doesnt have to be in here
     ISigner isigner;

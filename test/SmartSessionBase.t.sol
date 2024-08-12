@@ -71,11 +71,19 @@ contract SmartSessionBaseTest is RhinestoneModuleKit, Test {
         });
 
         vm.startPrank(instance.account);
-        smartSession.setSigner(defaultSigner1, ISigner(address(yesSigner)), "");
-
         PolicyData[] memory policyData = new PolicyData[](1);
         policyData[0] = PolicyData({ policy: address(yesPolicy), initData: "" });
-        smartSession.enableUserOpPolicies(defaultSigner1, policyData);
+        EnableSessions[] memory sessions = new EnableSessions[](1);
+        sessions[0] = EnableSessions({
+            isigner: ISigner(address(yesSigner)),
+            isignerInitData: "",
+            userOpPolicies: policyData,
+            erc1271Policies: new PolicyData[](0),
+            actions: new ActionData[](0),
+            permissionEnableSig: ""
+        });
+
+        smartSession.enableSessions(sessions);
         vm.stopPrank();
     }
 

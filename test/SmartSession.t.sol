@@ -216,28 +216,36 @@ contract SmartSessionTest is RhinestoneModuleKit, Test {
     }
 
     function _preEnablePermissions() internal {
-        vm.startPrank(instance.account);
-        smartSession.setSigner({
-            signerId: defaultSigner1,
-            signer: ISigner(address(simpleSigner)),
-            initData: abi.encodePacked(sessionSigner1.addr)
+        //enable simple gas policy as userOpPolicy
+        PolicyData[] memory userOpPolicies = new PolicyData[](1);
+        userOpPolicies[0] =
+            PolicyData({ policy: address(simpleGasPolicy), initData: abi.encodePacked(uint256(2 ** 256 - 1)) });
+
+        PolicyData[] memory erc1271Policies = new PolicyData[](1);
+        erc1271Policies[0] = PolicyData({
+            policy: address(timeFramePolicy),
+            initData: abi.encodePacked(uint128(block.timestamp + 1000), uint128(block.timestamp - 1))
         });
 
-        //enable simple gas policy as userOpPolicy
-        PolicyData[] memory policyData = new PolicyData[](1);
-        bytes memory policyInitData = abi.encodePacked(uint256(2 ** 256 - 1));
-        policyData[0] = PolicyData({ policy: address(simpleGasPolicy), initData: policyInitData });
-        smartSession.enableUserOpPolicies(defaultSigner1, policyData);
-
-        // enable timeframe policy  as userOpPolicy and actionPolicy
-        policyInitData = abi.encodePacked(uint128(block.timestamp + 1000), uint128(block.timestamp - 1));
-        policyData[0] = PolicyData({ policy: address(timeFramePolicy), initData: policyInitData });
-        smartSession.enableUserOpPolicies(defaultSigner1, policyData);
         ActionId actionId = ActionId.wrap(keccak256(abi.encodePacked(address(target), MockTarget.setValue.selector)));
 
         ActionData[] memory actions = new ActionData[](1);
-        actions[0] = ActionData({ actionId: actionId, actionPolicies: policyData });
-        smartSession.enableActionPolicies(defaultSigner1, actions);
+        actions[0] = ActionData({ actionId: actionId, actionPolicies: userOpPolicies });
+
+        EnableSessions[] memory sessions = new EnableSessions[](1);
+        sessions[0] = EnableSessions({
+            isigner: ISigner(address(simpleSigner)),
+            isignerInitData: abi.encodePacked(sessionSigner1.addr),
+            userOpPolicies: userOpPolicies,
+            erc1271Policies: erc1271Policies,
+            actions: actions,
+            permissionEnableSig: ""
+        });
+
+        vm.startPrank(instance.account);
+
+        smartSession.enableSessions(sessions);
+
         vm.stopPrank();
     }
 
