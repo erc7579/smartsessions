@@ -2,7 +2,10 @@
 
 pragma solidity ^0.8.20;
 
+import "./AssociatedArrayLib.sol";
+
 library EnumerableSet {
+    using AssociatedArrayLib for AssociatedArrayLib.Bytes32Array;
     // To implement this library for multiple types with as little code
     // repetition as possible, we write it in terms of a generic Set type with
     // bytes32 values.
@@ -14,7 +17,7 @@ library EnumerableSet {
 
     struct Set {
         // Storage of set values
-        mapping(address account => bytes32[]) _values;
+        AssociatedArrayLib.Bytes32Array _values;
         // Position is the index of the value in the `values` array plus 1.
         // Position 0 is used to mean a value is not in the set.
         mapping(bytes32 value => mapping(address account => uint256)) _positions;
@@ -28,10 +31,10 @@ library EnumerableSet {
      */
     function _add(Set storage set, address account, bytes32 value) private returns (bool) {
         if (!_contains(set, account, value)) {
-            set._values[account].push(value);
+            set._values.push(account, value);
             // The value is stored at length-1, but we add 1 to all indexes
             // and use 0 as a sentinel value
-            set._positions[value][account] = set._values[account].length;
+            set._positions[value][account] = set._values.length(account);
             return true;
         } else {
             return false;
@@ -55,19 +58,19 @@ library EnumerableSet {
             // This modifies the order of the array, as noted in {at}.
 
             uint256 valueIndex = position - 1;
-            uint256 lastIndex = set._values[account].length - 1;
+            uint256 lastIndex = set._values.length(account) - 1;
 
             if (valueIndex != lastIndex) {
-                bytes32 lastValue = set._values[account][lastIndex];
+                bytes32 lastValue = set._values.get(account, lastIndex);
 
                 // Move the lastValue to the index where the value to delete is
-                set._values[account][valueIndex] = lastValue;
+                set._values.set(account, valueIndex, lastValue);
                 // Update the tracked position of the lastValue (that was just moved)
                 set._positions[lastValue][account] = position;
             }
 
             // Delete the slot where the moved value was stored
-            set._values[account].pop();
+            set._values.pop(account);
 
             // Delete the tracked position for the deleted slot
             delete set._positions[value][account];
@@ -89,7 +92,7 @@ library EnumerableSet {
      * @dev Returns the number of values on the set. O(1).
      */
     function _length(Set storage set, address account) private view returns (uint256) {
-        return set._values[account].length;
+        return set._values.length(account);
     }
 
     /**
@@ -103,7 +106,7 @@ library EnumerableSet {
      * - `index` must be strictly less than {length}.
      */
     function _at(Set storage set, address account, uint256 index) private view returns (bytes32) {
-        return set._values[account][index];
+        return set._values.get(account, index);
     }
 
     /**
@@ -115,7 +118,7 @@ library EnumerableSet {
      * uncallable if the set grows to a point where copying to memory consumes too much gas to fit in a block.
      */
     function _values(Set storage set, address account) private view returns (bytes32[] memory) {
-        return set._values[account];
+        return set._values.getAll(account);
     }
 
     // Bytes32Set

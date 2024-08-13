@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity ^0.8.25;
 
-import "./lib/ArrayMap4337Lib.sol";
+import "./utils/AssociatedArrayLib.sol";
 import { SentinelList4337Lib } from "sentinellist/SentinelList4337.sol";
 import "./interfaces/ISigner.sol";
 import "forge-std/console2.sol";
@@ -83,5 +83,5 @@ struct Policy {
 
 struct EnumerableActionPolicy {
     mapping(ActionId => Policy) actionPolicies;
-    mapping(SignerId => Bytes32ArrayMap4337) enabledActionIds;
+    mapping(SignerId => AssociatedArrayLib.Bytes32Array) enabledActionIds;
 }

@@ -3,11 +3,13 @@ pragma solidity ^0.8.25;
 
 import "../DataTypes.sol";
 import { PackedUserOperation } from "modulekit/external/ERC4337.sol";
-import {
-    AddressArrayMap4337 as AddressVec,
-    Bytes32ArrayMap4337 as BytesVec,
-    ArrayMap4337Lib as AddressVecLib
-} from "contracts/lib/ArrayMap4337Lib.sol";
+// import {
+//     AddressArrayMap4337 as AddressVec,
+//     Bytes32ArrayMap4337 as BytesVec,
+//     ArrayMap4337Lib as AddressVecLib
+// } from "contracts/lib/ArrayMap4337Lib.sol";
+
+import { AssociatedArrayLib } from "../utils/AssociatedArrayLib.sol";
 
 import { Execution, ExecutionLib2 as ExecutionLib } from "./ExecutionLib2.sol";
 
@@ -38,7 +40,7 @@ library PolicyLib {
     using ExecutionLib for *;
     using IdLib for *;
     using PolicyLib for *;
-    using AddressVecLib for *;
+    using AssociatedArrayLib for *;
     using ValidationDataLib for ERC7579ValidatorBase.ValidationData;
 
     error PolicyAlreadyUsed(address policy);

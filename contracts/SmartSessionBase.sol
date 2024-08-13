@@ -20,7 +20,7 @@ abstract contract SmartSessionBase is ERC7579ValidatorBase {
     using EncodeLib for *;
     using IdLib for *;
     using SentinelList4337Lib for SentinelList4337Lib.SentinelList;
-    using ArrayMap4337Lib for *;
+    using AssociatedArrayLib for *;
     using ConfigLib for Policy;
     using ConfigLib for EnumerableActionPolicy;
 
