@@ -230,7 +230,7 @@ contract SmartSessionTest is RhinestoneModuleKit, Test {
         ActionId actionId = ActionId.wrap(keccak256(abi.encodePacked(address(target), MockTarget.setValue.selector)));
 
         ActionData[] memory actions = new ActionData[](1);
-        actions[0] = ActionData({ actionId: actionId, actionPolicies: userOpPolicies });
+        actions[0] = ActionData({ actionId: actionId, actionPolicies: erc1271Policies });
 
         EnableSessions[] memory sessions = new EnableSessions[](1);
         sessions[0] = EnableSessions({

@@ -100,7 +100,7 @@ contract UniversalActionPolicyTest is RhinestoneModuleKit, Test {
         assertEq(prevBal32, 0);
 
         // Enable Uni Action Policy Permission
-        _preEnablePermissions();
+        SignerId[] memory signerIds =_preEnablePermissions();
 
         UserOpData memory userOpData = instance.getExecOps({
             target: address(mockCallee),
@@ -110,7 +110,7 @@ contract UniversalActionPolicyTest is RhinestoneModuleKit, Test {
         });
 
         bytes memory sig = sign(userOpData.userOpHash, sessionSigner1.key);
-        userOpData.userOp.signature = EncodeLib.encodeUse({ signerId: defaultSigner1, sig: sig });
+        userOpData.userOp.signature = EncodeLib.encodeUse({ signerId: signerIds[0], sig: sig });
         userOpData.execUserOps();
 
         (uint256 postBal, bytes32 postBal32) = mockCallee.bals(instance.account);
@@ -127,7 +127,7 @@ contract UniversalActionPolicyTest is RhinestoneModuleKit, Test {
         signature = abi.encodePacked(r, s, v);
     }
 
-    function _preEnablePermissions() internal {
+    function _preEnablePermissions() internal returns (SignerId[] memory signerIds) {
         //enable simple gas policy as userOpPolicy
         PolicyData[] memory userOpPolicies = new PolicyData[](1);
         userOpPolicies[0] =
@@ -173,7 +173,7 @@ contract UniversalActionPolicyTest is RhinestoneModuleKit, Test {
         policyInitData = abi.encode(config);
 
         PolicyData[] memory actionPolicyData = new PolicyData[](1);
-        actionPolicyData[1] = PolicyData({ policy: address(uniPolicy), initData: policyInitData });
+        actionPolicyData[0] = PolicyData({ policy: address(uniPolicy), initData: policyInitData });
 
         ActionData[] memory actions = new ActionData[](1);
         actions[0] = ActionData({ actionId: actionId, actionPolicies: actionPolicyData });
@@ -190,7 +190,7 @@ contract UniversalActionPolicyTest is RhinestoneModuleKit, Test {
 
         vm.startPrank(instance.account);
 
-        smartSession.enableSessions(sessions);
+        signerIds = smartSession.enableSessions(sessions);
 
         vm.stopPrank();
     }

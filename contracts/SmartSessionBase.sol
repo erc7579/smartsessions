@@ -27,6 +27,7 @@ abstract contract SmartSessionBase is ERC7579ValidatorBase {
     error InvalidISigner(ISigner isigner);
     error InvalidSession(SignerId signerId);
 
+    event SessionCreated(SignerId signerId, address account);
     event SessionRemoved(SignerId signerId, address smartAccount);
 
     error InvalidData();
@@ -81,8 +82,9 @@ abstract contract SmartSessionBase is ERC7579ValidatorBase {
         });
     }
 
-    function enableSessions(EnableSessions[] calldata sessions) public {
+    function enableSessions(EnableSessions[] calldata sessions) public returns (SignerId[] memory signerIds) {
         uint256 length = sessions.length;
+        signerIds = new SignerId[](length);
         for (uint256 i; i < length; i++) {
             EnableSessions calldata session = sessions[i];
             if (session.permissionEnableSig.length != 0) revert InvalidData();
@@ -117,6 +119,8 @@ abstract contract SmartSessionBase is ERC7579ValidatorBase {
                 smartAccount: msg.sender,
                 useRegistry: true
             });
+            signerIds[i] = signerId;
+            emit SessionCreated(signerId, msg.sender);
         }
     }
 
