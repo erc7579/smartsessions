@@ -100,7 +100,7 @@ contract UniversalActionPolicyTest is RhinestoneModuleKit, Test {
         assertEq(prevBal32, 0);
 
         // Enable Uni Action Policy Permission
-        SignerId[] memory signerIds =_preEnablePermissions();
+        SignerId[] memory signerIds = _preEnablePermissions();
 
         UserOpData memory userOpData = instance.getExecOps({
             target: address(mockCallee),

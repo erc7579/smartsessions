@@ -124,7 +124,7 @@ abstract contract SmartSessionBase is ERC7579ValidatorBase {
         }
     }
 
-    function removeSession(SignerId signerId) external {
+    function removeSession(SignerId signerId) public {
         $userOpPolicies.policyList[signerId].disable(signerId.toUserOpPolicyId().toSessionId(), msg.sender);
         $erc1271Policies.policyList[signerId].disable(signerId.toErc1271PolicyId().toSessionId(), msg.sender);
 
@@ -160,12 +160,20 @@ abstract contract SmartSessionBase is ERC7579ValidatorBase {
 
     /**
      * De-initialize the module with the given data
-     *
-     * @param data The data to de-initialize the module with
      */
-    function onUninstall(bytes calldata data) external override { }
+    function onUninstall(bytes calldata /*data*/ ) external override {
+        uint256 sessionIdsCnt = $enabledSessions.length({ account: msg.sender });
 
-    function isInitialized(address smartAccount) external view returns (bool) { }
+        for (uint256 i; i < sessionIdsCnt; i++) {
+            SignerId sessionId = SignerId.wrap($enabledSessions.at({ account: msg.sender, index: i }));
+            removeSession(sessionId);
+        }
+    }
+
+    function isInitialized(address smartAccount) external view returns (bool) {
+        uint256 sessionIdsCnt = $enabledSessions.length({ account: smartAccount });
+        return sessionIdsCnt > 0;
+    }
 
     function isModuleType(uint256 typeID) external pure override returns (bool) {
         return typeID == TYPE_VALIDATOR;
