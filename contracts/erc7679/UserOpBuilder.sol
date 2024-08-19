@@ -15,7 +15,9 @@ interface IPermissionEnabled {
     function isPermissionEnabled(
         SignerId signerId,
         address smartAccount,
-        EnableSessions memory enableData
+        PolicyData[] memory userOpPolicies,
+        PolicyData[] memory erc1271Policies,
+        ActionData[] memory actions
     )
         external
         view
@@ -107,9 +109,13 @@ contract UserOperationBuilder is IUserOperationBuilder {
         address permissionValidator = address(bytes20(context[0:20]));
         EnableSessions memory enableData = abi.decode(context[88:], (EnableSessions));
 
-        try IPermissionEnabled(permissionValidator).isPermissionEnabled(signerId, smartAccount, enableData) returns (
-            bool isEnabled
-        ) {
+        try IPermissionEnabled(permissionValidator).isPermissionEnabled(
+            signerId, 
+            smartAccount, 
+            enableData.userOpPolicies,
+            enableData.erc1271Policies,
+            enableData.actions
+        ) returns (bool isEnabled) {
             if (isEnabled) {
                 return EncodeLib.encodeUse(signerId, userOperation.signature);
             } else {
