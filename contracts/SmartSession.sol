@@ -19,7 +19,7 @@ import { IAccountExecute } from "modulekit/external/ERC4337.sol";
 import { IUserOpPolicy, IActionPolicy } from "contracts/interfaces/IPolicy.sol";
 
 import { PolicyLib } from "./lib/PolicyLib.sol";
-import { SignerLib, NO_SIGNER_REQUIRED } from "./lib/SignerLib.sol";
+import { SignerLib } from "./lib/SignerLib.sol";
 import { ConfigLib } from "./lib/ConfigLib.sol";
 import { EncodeLib } from "./lib/EncodeLib.sol";
 
@@ -197,7 +197,7 @@ contract SmartSession is SmartSessionBase {
             userOp: userOp,
             signer: signerId,
             callOnIPolicy: abi.encodeCall(IUserOpPolicy.checkUserOpPolicy, (signerId.toSessionId(), userOp)),
-            minPoliciesToEnforce: 1
+            minPoliciesToEnforce: 0
         });
 
         bytes4 selector = bytes4(userOp.callData[0:4]);
@@ -292,7 +292,7 @@ contract SmartSession is SmartSessionBase {
         external
         view
         returns (bool isEnabled)
-    {
+    {   
         //if ISigner is not set for signerId, the permission has not been enabled yet
         if (!_isISignerSet(signerId, account)) {
             return false;
