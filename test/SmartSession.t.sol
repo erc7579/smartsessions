@@ -29,50 +29,32 @@ import { EIP1271_MAGIC_VALUE, IERC1271 } from "module-bases/interfaces/IERC1271.
 import { MockK1Validator } from "test/mock/MockK1Validator.sol";
 import { UserOperationBuilder } from "contracts/erc7679/UserOpBuilder.sol";
 import { ModeLib, ModeCode as ExecutionMode } from "erc7579/lib/ModeLib.sol";
+import { SmartSessionTestBase } from "./SmartSessionBase.t.sol";
 
 import "forge-std/console2.sol";
 
 IRegistry constant registry = IRegistry(0x000000000069E2a187AEFFb852bF3cCdC95151B2);
 
-contract SmartSessionTest is RhinestoneModuleKit, Test {
+contract SmartSessionTest is SmartSessionTestBase {
     using ModuleKitHelpers for *;
     using ModuleKitUserOp for *;
     using EncodeLib for SignerId;
 
-    // account and modules
-    AccountInstance internal instance;
-    MockK1Validator internal mockK1;
-    SmartSession internal smartSession;
-    YesPolicy internal yesPolicy;
-    YesSigner internal yesSigner;
+    MockK1Validator internal mockK1;    
     SimpleSigner internal simpleSigner;
     SimpleGasPolicy internal simpleGasPolicy;
     TimeFramePolicy internal timeFramePolicy;
     ValueLimitPolicy internal valueLimitPolicy;
 
-    MockTarget target;
-    Account sessionSigner1;
-    Account sessionSigner2;
     Account owner;
 
-    SignerId defaultSigner1;
-    SignerId defaultSigner2;
+    function setUp() public virtual override {
 
-    function setUp() public virtual {
-        instance = makeAccountInstance("smartaccount");
+        super.setUp();
+        
         mockK1 = new MockK1Validator();
-
-        IRegistry _registry = IRegistry(address(new MockRegistry()));
-        vm.etch(address(registry), address(_registry).code);
-
         owner = makeAccount("owner");
-        sessionSigner1 = makeAccount("sessionSigner1");
-        sessionSigner2 = makeAccount("sessionSigner2");
 
-        smartSession = new SmartSession();
-        target = new MockTarget();
-        yesSigner = new YesSigner();
-        yesPolicy = new YesPolicy();
         simpleSigner = new SimpleSigner();
         simpleGasPolicy = new SimpleGasPolicy();
         timeFramePolicy = new TimeFramePolicy();
@@ -87,12 +69,6 @@ contract SmartSessionTest is RhinestoneModuleKit, Test {
             data: abi.encodePacked(owner.addr)
         });
 
-        EnableSessions[] memory installData = new EnableSessions[](0);
-        instance.installModule({
-            moduleTypeId: MODULE_TYPE_VALIDATOR,
-            module: address(smartSession),
-            data: abi.encode(installData)
-        });
     }
 
     function test_use_Permissions_SingleExecution() public {
@@ -208,13 +184,6 @@ contract SmartSessionTest is RhinestoneModuleKit, Test {
 
     /// =================================================================
 
-    function sign(bytes32 hash, uint256 privKey) internal pure returns (bytes memory signature) {
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(privKey, hash);
-
-        // Set the signature
-        signature = abi.encodePacked(r, s, v);
-    }
-
     function _preEnablePermissions() internal {
         //enable simple gas policy as userOpPolicy
         PolicyData[] memory userOpPolicies = new PolicyData[](1);
@@ -272,21 +241,7 @@ contract SmartSessionTest is RhinestoneModuleKit, Test {
             actions: actions
         });
 
-        enableData = EnableSessions({
-            sessionIndex: 1,
-            hashesAndChainIds: "",
-            sessionToEnable: session,
-            permissionEnableSig: ""
-        });
-
-        bytes32 sessionDigest = smartSession.getDigest(session.isigner, instance.account, session, SmartSessionMode.UNSAFE_ENABLE);
-        enableData.hashesAndChainIds = abi.encodePacked(
-            uint64(181818), //random chainId
-            sessionDigest,
-            uint64(block.chainid),
-            sessionDigest
-        );
-
+        enableData = makeMultiChainEnableData(session, instance);
         bytes32 hash = keccak256(enableData.hashesAndChainIds);
 
         enableData.permissionEnableSig = abi.encodePacked(address(mockK1), sign(hash, owner.key));

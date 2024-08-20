@@ -25,10 +25,39 @@ import { EIP1271_MAGIC_VALUE, IERC1271 } from "module-bases/interfaces/IERC1271.
 
 import "forge-std/console2.sol";
 
-IRegistry constant registry = IRegistry(0x000000000069E2a187AEFFb852bF3cCdC95151B2);
-SmartSession constant smartSession = SmartSession(0x006F777185cf3F0B152E8CEE93587395Aee15129);
+contract SmartSessionTestHelpers is Test {
 
-contract SmartSessionBaseTest is RhinestoneModuleKit, Test {
+    IRegistry constant registry = IRegistry(0x000000000069E2a187AEFFb852bF3cCdC95151B2);
+    SmartSession constant smartSession = SmartSession(0x006F777185cf3F0B152E8CEE93587395Aee15129);
+
+    function sign(bytes32 hash, uint256 privKey) internal pure returns (bytes memory signature) {
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(privKey, hash);
+
+        // Set the signature
+        signature = abi.encodePacked(r, s, v);
+    }
+
+    function makeMultiChainEnableData(Session memory session, AccountInstance memory instance) internal view returns (EnableSessions memory enableData) {
+    
+        enableData = EnableSessions({
+            sessionIndex: 1,
+            hashesAndChainIds: "",
+            sessionToEnable: session,
+            permissionEnableSig: ""
+        });
+
+        bytes32 sessionDigest = smartSession.getDigest(session.isigner, instance.account, session, SmartSessionMode.UNSAFE_ENABLE);
+
+        enableData.hashesAndChainIds = abi.encodePacked(
+            uint64(181818), //random chainId
+            sessionDigest,
+            uint64(block.chainid),
+            sessionDigest
+        );
+    }
+}
+
+contract SmartSessionTestBase is SmartSessionTestHelpers, RhinestoneModuleKit {
     using ModuleKitHelpers for *;
     using ModuleKitUserOp for *;
     using EncodeLib for SignerId;
@@ -62,9 +91,6 @@ contract SmartSessionBaseTest is RhinestoneModuleKit, Test {
         yesSigner = new YesSigner();
         yesPolicy = new YesPolicy();
 
-        // defaultSigner1 = smartSession.getSignerId(yesSigner, "defaultSigner1");
-        // defaultSigner2 = smartSession.getSignerId(yesSigner, "defaultSigner2");
-
         Session[] memory installData = new Session[](0);
 
         instance.installModule({
@@ -72,6 +98,18 @@ contract SmartSessionBaseTest is RhinestoneModuleKit, Test {
             module: address(smartSession),
             data: abi.encode(installData)
         });
+    }
+}
+
+contract SmartSessionBasicTest is SmartSessionTestBase {
+
+    using ModuleKitHelpers for *;
+    using ModuleKitUserOp for *;
+    using EncodeLib for SignerId;
+
+    function setUp() public virtual override {
+        
+        super.setUp();
 
         vm.startPrank(instance.account);
         PolicyData[] memory policyData = new PolicyData[](1);
@@ -126,34 +164,14 @@ contract SmartSessionBaseTest is RhinestoneModuleKit, Test {
             actions: actions
         });
 
-        EnableSessions memory enableData = EnableSessions({
-            sessionIndex: 1,
-            hashesAndChainIds: "",
-            sessionToEnable: session,
-            permissionEnableSig: ""
-        });
-
-        bytes32 sessionDigest = smartSession.getDigest(session.isigner, instance.account, session, SmartSessionMode.UNSAFE_ENABLE);
-        enableData.hashesAndChainIds = abi.encodePacked(
-            uint64(181818), //random chainId
-            sessionDigest,
-            uint64(block.chainid),
-            sessionDigest
-        );
+        EnableSessions memory enableData = makeMultiChainEnableData(session, instance);
 
         bytes32 hash = keccak256(enableData.hashesAndChainIds);
         enableData.permissionEnableSig = abi.encodePacked(instance.defaultValidator, sign(hash, 1));
         
         SignerId signerId = smartSession.getSignerId(session.isigner, session.isignerInitData);
         userOpData.userOp.signature = EncodeLib.encodeEnable(signerId, hex"4141414142", enableData);
-        console2.log("enable within session");
         userOpData.execUserOps();
     }
-
-    function sign(bytes32 hash, uint256 privKey) internal pure returns (bytes memory signature) {
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(privKey, hash);
-
-        // Set the signature
-        signature = abi.encodePacked(r, s, v);
-    }
 }
+

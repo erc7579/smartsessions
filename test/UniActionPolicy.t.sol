@@ -26,52 +26,41 @@ import { UserOperationBuilder } from "contracts/erc7679/UserOpBuilder.sol";
 import { ModeLib, ModeCode as ExecutionMode } from "erc7579/lib/ModeLib.sol";
 import { IRegistry } from "contracts/interfaces/IRegistry.sol";
 import { MockRegistry } from "./mock/MockRegistry.sol";
+import { SmartSessionTestBase } from "./SmartSessionBase.t.sol";
 import "./mock/UniActionPolicy.sol";
 
 import "forge-std/console2.sol";
 
 IRegistry constant registry = IRegistry(0x000000000069E2a187AEFFb852bF3cCdC95151B2);
 
-contract UniversalActionPolicyTest is RhinestoneModuleKit, Test {
+contract UniversalActionPolicyTest is SmartSessionTestBase {
     using ModuleKitHelpers for *;
     using ModuleKitUserOp for *;
     using EncodeLib for SignerId;
 
     // account and modules
-    AccountInstance internal instance;
+    
     MockK1Validator internal mockK1;
-    SmartSession internal smartSession;
+    
     SimpleSigner internal simpleSigner;
     SimpleGasPolicy internal simpleGasPolicy;
     TimeFramePolicy internal timeFramePolicy;
     UniActionPolicy internal uniPolicy;
     MockCallee internal mockCallee;
 
-    MockTarget target;
-    Account sessionSigner1;
-    Account sessionSigner2;
     Account owner;
 
-    SignerId defaultSigner1;
-    SignerId defaultSigner2;
+    function setUp() public virtual override {
 
-    function setUp() public virtual {
-        instance = makeAccountInstance("smartaccount");
+        super.setUp();
+        
         mockK1 = new MockK1Validator();
 
-        IRegistry _registry = IRegistry(address(new MockRegistry()));
-        vm.etch(address(registry), address(_registry).code);
-
         owner = makeAccount("owner");
-        sessionSigner1 = makeAccount("sessionSigner1");
-        sessionSigner2 = makeAccount("sessionSigner2");
 
         defaultSigner1 = SignerId.wrap(bytes32(hex"01"));
         defaultSigner2 = SignerId.wrap(bytes32(hex"02"));
-        defaultSigner2 = SignerId.wrap(bytes32(hex"02"));
 
-        smartSession = new SmartSession();
-        target = new MockTarget();
         simpleSigner = new SimpleSigner();
         simpleGasPolicy = new SimpleGasPolicy();
         timeFramePolicy = new TimeFramePolicy();
@@ -82,13 +71,6 @@ contract UniversalActionPolicyTest is RhinestoneModuleKit, Test {
             moduleTypeId: MODULE_TYPE_VALIDATOR,
             module: address(mockK1),
             data: abi.encodePacked(owner.addr)
-        });
-
-        Session[] memory installData = new Session[](0);
-        instance.installModule({
-            moduleTypeId: MODULE_TYPE_VALIDATOR,
-            module: address(smartSession),
-            data: abi.encode(installData)
         });
     }
 
@@ -119,13 +101,6 @@ contract UniversalActionPolicyTest is RhinestoneModuleKit, Test {
     }
 
     /// =================================================================
-
-    function sign(bytes32 hash, uint256 privKey) internal pure returns (bytes memory signature) {
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(privKey, hash);
-
-        // Set the signature
-        signature = abi.encodePacked(r, s, v);
-    }
 
     function _preEnablePermissions() internal returns (SignerId[] memory signerIds) {
         //enable simple gas policy as userOpPolicy

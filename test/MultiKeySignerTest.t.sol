@@ -20,7 +20,7 @@ uint256 constant n = 0xFFFFFFFF00000000FFFFFFFFFFFFFFFFBCE6FAADA7179E84F3B9CAC2F
 IERC7579Validator constant mockValidatorE = IERC7579Validator(0x9C08e1CE188C29bAaeBc64A08cF2Ec44207749B6);
 TimeFramePolicy constant timeFramePolicy = TimeFramePolicy(0x2A0F4538e1D5341638BBba1578681d4D1622338e);
 
-contract MultiKeySignerTest is SmartSessionBaseTest {
+contract MultiKeySignerTest is SmartSessionBasicTest {
     using ModuleKitHelpers for *;
     using ModuleKitUserOp for *;
     using SignerEncode for *;
