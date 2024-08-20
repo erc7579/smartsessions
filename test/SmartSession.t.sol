@@ -32,7 +32,7 @@ import { ModeLib, ModeCode as ExecutionMode } from "erc7579/lib/ModeLib.sol";
 
 import "forge-std/console2.sol";
 
-IRegistry constant registry = IRegistry(0x0000000000E23E0033C3e93D9D4eBc2FF2AB2AEF);
+IRegistry constant registry = IRegistry(0x000000000069E2a187AEFFb852bF3cCdC95151B2);
 
 contract SmartSessionTest is RhinestoneModuleKit, Test {
     using ModuleKitHelpers for *;
@@ -235,6 +235,7 @@ contract SmartSessionTest is RhinestoneModuleKit, Test {
         EnableSessions[] memory sessions = new EnableSessions[](1);
         sessions[0] = EnableSessions({
             isigner: ISigner(address(simpleSigner)),
+            salt: bytes32(0),
             isignerInitData: abi.encodePacked(sessionSigner1.addr),
             userOpPolicies: userOpPolicies,
             erc1271Policies: erc1271Policies,
@@ -265,6 +266,7 @@ contract SmartSessionTest is RhinestoneModuleKit, Test {
 
         enableData = EnableSessions({
             isigner: ISigner(address(simpleSigner)),
+            salt: bytes32(0),
             isignerInitData: abi.encodePacked(sessionSigner2.addr),
             userOpPolicies: userOpPolicyData,
             erc1271Policies: new PolicyData[](0),

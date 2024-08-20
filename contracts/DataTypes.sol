@@ -36,12 +36,13 @@ type SessionId is bytes32;
 
 struct SignerConf {
     ISigner isigner;
+    uint48 validUntil;
     FlatBytesLib.Bytes config;
 }
 
 struct EnableSessions {
-    // SignerID is the part of the packedSig, so doesnt have to be in here
     ISigner isigner;
+    bytes32 salt;
     bytes isignerInitData;
     PolicyData[] userOpPolicies;
     PolicyData[] erc1271Policies;

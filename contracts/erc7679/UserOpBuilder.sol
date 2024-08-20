@@ -7,7 +7,7 @@ import { Exec } from "account-abstraction/utils/Exec.sol";
 import { IERC7579Account } from "erc7579/interfaces/IERC7579Account.sol";
 import { ModeCode as ExecutionMode, ExecType, CallType, CALLTYPE_BATCH, CALLTYPE_SINGLE } from "erc7579/lib/ModeLib.sol";
 import { EncodeLib } from "../lib/EncodeLib.sol";
-import { ExecutionLib2 as ExecutionLib } from "../lib/ExecutionLib2.sol";
+import { ExecutionLib as ExecutionLib } from "../lib/ExecutionLib.sol";
 import "../DataTypes.sol";
 import "forge-std/Console2.sol";
 
@@ -110,11 +110,7 @@ contract UserOperationBuilder is IUserOperationBuilder {
         EnableSessions memory enableData = abi.decode(context[88:], (EnableSessions));
 
         try IPermissionEnabled(permissionValidator).isPermissionEnabled(
-            signerId, 
-            smartAccount, 
-            enableData.userOpPolicies,
-            enableData.erc1271Policies,
-            enableData.actions
+            signerId, smartAccount, enableData.userOpPolicies, enableData.erc1271Policies, enableData.actions
         ) returns (bool isEnabled) {
             if (isEnabled) {
                 return EncodeLib.encodeUse(signerId, userOperation.signature);
