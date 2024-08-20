@@ -40,8 +40,8 @@ struct SignerConf {
 }
 
 struct EnableSessions {
-    // SignerID is the part of the packedSig, so doesnt have to be in here
     ISigner isigner;
+    bytes32 salt;
     bytes isignerInitData;
     PolicyData[] userOpPolicies;
     PolicyData[] erc1271Policies;

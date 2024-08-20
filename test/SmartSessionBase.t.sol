@@ -76,6 +76,7 @@ contract SmartSessionBaseTest is RhinestoneModuleKit, Test {
         EnableSessions[] memory sessions = new EnableSessions[](1);
         sessions[0] = EnableSessions({
             isigner: ISigner(address(yesSigner)),
+            salt:bytes32(0),
             isignerInitData: "defaultSigner1",
             userOpPolicies: policyData,
             erc1271Policies: new PolicyData[](0),
@@ -116,6 +117,7 @@ contract SmartSessionBaseTest is RhinestoneModuleKit, Test {
 
         EnableSessions memory enableData = EnableSessions({
             isigner: ISigner(address(yesSigner)),
+            salt:bytes32(0),
             isignerInitData: "defaultSigner2",
             userOpPolicies: policyData,
             erc1271Policies: new PolicyData[](0),
