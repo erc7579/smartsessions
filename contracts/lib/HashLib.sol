@@ -13,7 +13,7 @@ bytes32 constant SIGNER_DATA_TYPEHASH =
 
 // Define the type hash for EnableSessions
 bytes32 constant ENABLE_SESSIONS_TYPEHASH = keccak256(
-    "EnableSessions(SignerData signer,PolicyData[] userOpPolicies,PolicyData[] erc1271Policies,ActionData[] actions,bytes permissionEnableSig)SignerData(address isigner,bytes isignerInitData)PolicyData(address policy,bytes initData)"
+    "EnableSessions(address isigner,bytes isignerInitData,PolicyData[] userOpPolicies,PolicyData[] erc1271Policies,ActionData[] actions,bytes permissionEnableSig,uint256 nonce)PolicyData(address policy,bytes initData)ActionData(bytes32 actionId,PolicyData[] actionPolicies)"
 );
 
 library HashLib {
