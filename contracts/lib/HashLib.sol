@@ -46,7 +46,8 @@ library HashLib {
     }
 
     function hashActionDataArray(ActionData[] memory actionDataArray) internal pure returns (bytes32) {
-        bytes32[] memory hashes = new bytes32[](actionDataArray.length);
+        uint256 length = actionDataArray.length;
+        bytes32[] memory hashes = new bytes32[](length);
         for (uint256 i; i < length; i++) {
             hashes[i] = hashActionData(actionDataArray[i]);
         }
