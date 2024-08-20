@@ -33,9 +33,8 @@ import "forge-std/console2.sol";
 
 /**
  * TODO:
- *     - Multichain
 *      - 7739
- *     - ADD salt to signerId generation + rename SignerId to SessionId  + VERIFY::  The flow where permission doesn't enable the new signer, just adds policies for the existing one
+*      - rename SignerId ?
  *     - Permissions hook (spending limits?)
  */
 
