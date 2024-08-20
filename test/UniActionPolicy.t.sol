@@ -84,7 +84,7 @@ contract UniversalActionPolicyTest is RhinestoneModuleKit, Test {
             data: abi.encodePacked(owner.addr)
         });
 
-        EnableSessions[] memory installData = new EnableSessions[](0);
+        Session[] memory installData = new Session[](0);
         instance.installModule({
             moduleTypeId: MODULE_TYPE_VALIDATOR,
             module: address(smartSession),
@@ -178,15 +178,14 @@ contract UniversalActionPolicyTest is RhinestoneModuleKit, Test {
         ActionData[] memory actions = new ActionData[](1);
         actions[0] = ActionData({ actionId: actionId, actionPolicies: actionPolicyData });
 
-        EnableSessions[] memory sessions = new EnableSessions[](1);
-        sessions[0] = EnableSessions({
+        Session[] memory sessions = new Session[](1);
+        sessions[0] = Session({
             isigner: ISigner(address(simpleSigner)),
             salt: bytes32(0),
             isignerInitData: abi.encodePacked(sessionSigner1.addr),
             userOpPolicies: userOpPolicies,
             erc1271Policies: erc1271Policies,
-            actions: actions,
-            permissionEnableSig: ""
+            actions: actions
         });
 
         vm.startPrank(instance.account);
@@ -196,37 +195,6 @@ contract UniversalActionPolicyTest is RhinestoneModuleKit, Test {
         vm.stopPrank();
     }
 
-    // function _preEnablePermissions() internal {
-    //     vm.startPrank(instance.account);
-    //     smartSession.setSigner({
-    //         signerId: defaultSigner1,
-    //         signer: ISigner(address(simpleSigner)),
-    //         initData: abi.encodePacked(sessionSigner1.addr)
-    //     });
-    //
-    //     //enable simple gas policy as userOpPolicy
-    //     PolicyData[] memory policyData = new PolicyData[](1);
-    //     bytes memory policyInitData = abi.encodePacked(uint256(2 ** 256 - 1));
-    //     policyData[0] = PolicyData({ policy: address(simpleGasPolicy), initData: policyInitData });
-    //     smartSession.enableUserOpPolicies(defaultSigner1, policyData);
-    //
-    //     // enable timeframe policy as userOpPolicy
-    //     policyInitData = abi.encodePacked(uint128(block.timestamp + 1000), uint128(block.timestamp - 1));
-    //     policyData[0] = PolicyData({ policy: address(timeFramePolicy), initData: policyInitData });
-    //     smartSession.enableUserOpPolicies(defaultSigner1, policyData);
-    //
-    //     // enable action policies
-    //     PolicyData[] memory actionPolicyData = new PolicyData[](2);
-    //     ActionId actionId =
-    //         ActionId.wrap(keccak256(abi.encodePacked(address(mockCallee), MockCallee.addBalance.selector)));
-    //
-    //     // use timeframe for action as well with narrower limit
-    //     policyInitData = abi.encodePacked(uint128(block.timestamp + 500), uint128(block.timestamp - 1));
-    //     actionPolicyData[0] = PolicyData({ policy: address(timeFramePolicy), initData: policyInitData });
-    //
-    //     smartSession.enableActionPolicies(defaultSigner1, actions);
-    //     vm.stopPrank();
-    // }
 }
 
 contract MockCallee {
