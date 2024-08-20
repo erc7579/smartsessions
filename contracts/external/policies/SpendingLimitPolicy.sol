@@ -7,12 +7,12 @@ import { IActionPolicy } from "contracts/interfaces/IPolicy.sol";
 
 import { IERC20 } from "forge-std/interfaces/IERC20.sol";
 
-address constant NATIVE_TOKEN = address(0xeEeeeeEeEeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE);
+address constant NATIVE_TOKEN = address(0);
 
 uint256 constant VALIDATION_SUCCESS = 0;
 uint256 constant VALIDATION_FAILED = 1;
 
-contract TokenPolicy is IActionPolicy {
+contract SpendingLimitPolicy is IActionPolicy {
     event TokenSpent(SessionId id, address token, address account, uint256 amount);
 
     error InvalidTokenAddress(address token);
