@@ -77,6 +77,7 @@ contract MultiKeySignerTest is SmartSessionBaseTest {
         EnableSessions[] memory sessions = new EnableSessions[](1);
         sessions[0] = EnableSessions({
             isigner: ISigner(address(cosigner)),
+            salt:bytes32(0),
             isignerInitData: params,
             userOpPolicies: policyData,
             erc1271Policies: new PolicyData[](0),
@@ -124,6 +125,7 @@ contract MultiKeySignerTest is SmartSessionBaseTest {
 
         EnableSessions memory enableData = EnableSessions({
             isigner: ISigner(address(cosigner)),
+            salt:bytes32(0),
             isignerInitData: params,
             userOpPolicies: policyData,
             erc1271Policies: new PolicyData[](0),

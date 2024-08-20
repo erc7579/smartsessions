@@ -181,6 +181,7 @@ contract UniversalActionPolicyTest is RhinestoneModuleKit, Test {
         EnableSessions[] memory sessions = new EnableSessions[](1);
         sessions[0] = EnableSessions({
             isigner: ISigner(address(simpleSigner)),
+            salt:bytes32(0),
             isignerInitData: abi.encodePacked(sessionSigner1.addr),
             userOpPolicies: userOpPolicies,
             erc1271Policies: erc1271Policies,
