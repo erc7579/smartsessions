@@ -3,28 +3,10 @@ pragma solidity ^0.8.25;
 
 import "../DataTypes.sol";
 import { PackedUserOperation } from "modulekit/external/ERC4337.sol";
-import {
-    AddressArrayMap4337 as AddressVec,
-    Bytes32ArrayMap4337 as BytesVec,
-    ArrayMap4337Lib as AddressVecLib
-} from "contracts/lib/ArrayMap4337Lib.sol";
+import { AssociatedArrayLib } from "../utils/AssociatedArrayLib.sol";
 
-import { Execution, ExecutionLib2 as ExecutionLib } from "./ExecutionLib2.sol";
-
-import "forge-std/console2.sol";
-
-import {
-    ModeLib,
-    ModeCode as ExecutionMode,
-    ExecType,
-    CallType,
-    CALLTYPE_BATCH,
-    CALLTYPE_SINGLE,
-    CALLTYPE_STATIC,
-    CALLTYPE_DELEGATECALL,
-    EXECTYPE_DEFAULT,
-    EXECTYPE_TRY
-} from "erc7579/lib/ModeLib.sol";
+import { Execution, ExecutionLib as ExecutionLib } from "./ExecutionLib.sol";
+import { CallType, CALLTYPE_DELEGATECALL, EXECTYPE_DEFAULT, EXECTYPE_TRY } from "erc7579/lib/ModeLib.sol";
 
 import { ERC7579ValidatorBase } from "modulekit/Modules.sol";
 import { ValidationDataLib } from "contracts/lib/ValidationDataLib.sol";
@@ -38,7 +20,7 @@ library PolicyLib {
     using ExecutionLib for *;
     using IdLib for *;
     using PolicyLib for *;
-    using AddressVecLib for *;
+    using AssociatedArrayLib for *;
     using ValidationDataLib for ERC7579ValidatorBase.ValidationData;
 
     error PolicyAlreadyUsed(address policy);

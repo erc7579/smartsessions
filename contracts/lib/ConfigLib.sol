@@ -2,28 +2,23 @@
 pragma solidity ^0.8.25;
 
 import "../DataTypes.sol";
-import {
-    AddressArrayMap4337 as AddressVec,
-    Bytes32ArrayMap4337 as BytesVec,
-    ArrayMap4337Lib as AddressVecLib
-} from "./ArrayMap4337Lib.sol";
+import { AssociatedArrayLib } from "../utils/AssociatedArrayLib.sol";
 import "../interfaces/IPolicy.sol";
 import "../interfaces/IRegistry.sol";
 import { SENTINEL, SentinelList4337Lib } from "sentinellist/SentinelList4337.sol";
-import { Bytes32ArrayMap4337, ArrayMap4337Lib } from "./ArrayMap4337Lib.sol";
 import { IdLib } from "./IdLib.sol";
 
 library ConfigLib {
     using SentinelList4337Lib for SentinelList4337Lib.SentinelList;
     using ConfigLib for *;
-    using ArrayMap4337Lib for *;
+    using AssociatedArrayLib for *;
     using IdLib for *;
 
     error UnsupportedPolicy(address policy);
 
     event PolicyEnabled(SignerId signerId, address policy, address smartAccount);
 
-    IRegistry internal constant registry = IRegistry(0x0000000000E23E0033C3e93D9D4eBc2FF2AB2AEF);
+    IRegistry internal constant registry = IRegistry(0x000000000069E2a187AEFFb852bF3cCdC95151B2);
     ModuleType internal constant POLICY_MODULE_TYPE = ModuleType.wrap(7);
 
     /**

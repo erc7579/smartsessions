@@ -30,7 +30,7 @@ import "./mock/UniActionPolicy.sol";
 
 import "forge-std/console2.sol";
 
-IRegistry constant registry = IRegistry(0x0000000000E23E0033C3e93D9D4eBc2FF2AB2AEF);
+IRegistry constant registry = IRegistry(0x000000000069E2a187AEFFb852bF3cCdC95151B2);
 
 contract UniversalActionPolicyTest is RhinestoneModuleKit, Test {
     using ModuleKitHelpers for *;
@@ -84,7 +84,7 @@ contract UniversalActionPolicyTest is RhinestoneModuleKit, Test {
             data: abi.encodePacked(owner.addr)
         });
 
-        InstallSessions[] memory installData = new InstallSessions[](0);
+        EnableSessions[] memory installData = new EnableSessions[](0);
         instance.installModule({
             moduleTypeId: MODULE_TYPE_VALIDATOR,
             module: address(smartSession),
@@ -100,7 +100,7 @@ contract UniversalActionPolicyTest is RhinestoneModuleKit, Test {
         assertEq(prevBal32, 0);
 
         // Enable Uni Action Policy Permission
-        _preEnablePermissions();
+        SignerId[] memory signerIds = _preEnablePermissions();
 
         UserOpData memory userOpData = instance.getExecOps({
             target: address(mockCallee),
@@ -110,7 +110,7 @@ contract UniversalActionPolicyTest is RhinestoneModuleKit, Test {
         });
 
         bytes memory sig = sign(userOpData.userOpHash, sessionSigner1.key);
-        userOpData.userOp.signature = EncodeLib.encodeUse({ signerId: defaultSigner1, sig: sig });
+        userOpData.userOp.signature = EncodeLib.encodeUse({ signerId: signerIds[0], sig: sig });
         userOpData.execUserOps();
 
         (uint256 postBal, bytes32 postBal32) = mockCallee.bals(instance.account);
@@ -127,34 +127,21 @@ contract UniversalActionPolicyTest is RhinestoneModuleKit, Test {
         signature = abi.encodePacked(r, s, v);
     }
 
-    function _preEnablePermissions() internal {
-        vm.startPrank(instance.account);
-        smartSession.setSigner({
-            signerId: defaultSigner1,
-            signer: ISigner(address(simpleSigner)),
-            initData: abi.encodePacked(sessionSigner1.addr)
+    function _preEnablePermissions() internal returns (SignerId[] memory signerIds) {
+        //enable simple gas policy as userOpPolicy
+        PolicyData[] memory userOpPolicies = new PolicyData[](1);
+        userOpPolicies[0] =
+            PolicyData({ policy: address(simpleGasPolicy), initData: abi.encodePacked(uint256(2 ** 256 - 1)) });
+
+        PolicyData[] memory erc1271Policies = new PolicyData[](1);
+        erc1271Policies[0] = PolicyData({
+            policy: address(timeFramePolicy),
+            initData: abi.encodePacked(uint128(block.timestamp + 1000), uint128(block.timestamp - 1))
         });
 
-        //enable simple gas policy as userOpPolicy
-        PolicyData[] memory policyData = new PolicyData[](1);
-        bytes memory policyInitData = abi.encodePacked(uint256(2 ** 256 - 1));
-        policyData[0] = PolicyData({ policy: address(simpleGasPolicy), initData: policyInitData });
-        smartSession.enableUserOpPolicies(defaultSigner1, policyData);
+        ActionId actionId = ActionId.wrap(keccak256(abi.encodePacked(address(target), MockTarget.setValue.selector)));
 
-        // enable timeframe policy as userOpPolicy
-        policyInitData = abi.encodePacked(uint128(block.timestamp + 1000), uint128(block.timestamp - 1));
-        policyData[0] = PolicyData({ policy: address(timeFramePolicy), initData: policyInitData });
-        smartSession.enableUserOpPolicies(defaultSigner1, policyData);
-
-        // enable action policies
-        PolicyData[] memory actionPolicyData = new PolicyData[](2);
-        ActionId actionId =
-            ActionId.wrap(keccak256(abi.encodePacked(address(mockCallee), MockCallee.addBalance.selector)));
-
-        // use timeframe for action as well with narrower limit
-        policyInitData = abi.encodePacked(uint128(block.timestamp + 500), uint128(block.timestamp - 1));
-        actionPolicyData[0] = PolicyData({ policy: address(timeFramePolicy), initData: policyInitData });
-
+        bytes memory policyInitData;
         //use UniAction Policy
         ParamRule memory addrRule = ParamRule({
             condition: ParamCondition.EQUAL,
@@ -185,13 +172,61 @@ contract UniversalActionPolicyTest is RhinestoneModuleKit, Test {
         ActionConfig memory config = ActionConfig({ valueLimit: 1e21, paramRules: paramRules });
         policyInitData = abi.encode(config);
 
-        actionPolicyData[1] = PolicyData({ policy: address(uniPolicy), initData: policyInitData });
+        PolicyData[] memory actionPolicyData = new PolicyData[](1);
+        actionPolicyData[0] = PolicyData({ policy: address(uniPolicy), initData: policyInitData });
 
         ActionData[] memory actions = new ActionData[](1);
         actions[0] = ActionData({ actionId: actionId, actionPolicies: actionPolicyData });
-        smartSession.enableActionPolicies(defaultSigner1, actions);
+
+        EnableSessions[] memory sessions = new EnableSessions[](1);
+        sessions[0] = EnableSessions({
+            isigner: ISigner(address(simpleSigner)),
+            salt: bytes32(0),
+            isignerInitData: abi.encodePacked(sessionSigner1.addr),
+            userOpPolicies: userOpPolicies,
+            erc1271Policies: erc1271Policies,
+            actions: actions,
+            permissionEnableSig: ""
+        });
+
+        vm.startPrank(instance.account);
+
+        signerIds = smartSession.enableSessions(sessions);
+
         vm.stopPrank();
     }
+
+    // function _preEnablePermissions() internal {
+    //     vm.startPrank(instance.account);
+    //     smartSession.setSigner({
+    //         signerId: defaultSigner1,
+    //         signer: ISigner(address(simpleSigner)),
+    //         initData: abi.encodePacked(sessionSigner1.addr)
+    //     });
+    //
+    //     //enable simple gas policy as userOpPolicy
+    //     PolicyData[] memory policyData = new PolicyData[](1);
+    //     bytes memory policyInitData = abi.encodePacked(uint256(2 ** 256 - 1));
+    //     policyData[0] = PolicyData({ policy: address(simpleGasPolicy), initData: policyInitData });
+    //     smartSession.enableUserOpPolicies(defaultSigner1, policyData);
+    //
+    //     // enable timeframe policy as userOpPolicy
+    //     policyInitData = abi.encodePacked(uint128(block.timestamp + 1000), uint128(block.timestamp - 1));
+    //     policyData[0] = PolicyData({ policy: address(timeFramePolicy), initData: policyInitData });
+    //     smartSession.enableUserOpPolicies(defaultSigner1, policyData);
+    //
+    //     // enable action policies
+    //     PolicyData[] memory actionPolicyData = new PolicyData[](2);
+    //     ActionId actionId =
+    //         ActionId.wrap(keccak256(abi.encodePacked(address(mockCallee), MockCallee.addBalance.selector)));
+    //
+    //     // use timeframe for action as well with narrower limit
+    //     policyInitData = abi.encodePacked(uint128(block.timestamp + 500), uint128(block.timestamp - 1));
+    //     actionPolicyData[0] = PolicyData({ policy: address(timeFramePolicy), initData: policyInitData });
+    //
+    //     smartSession.enableActionPolicies(defaultSigner1, actions);
+    //     vm.stopPrank();
+    // }
 }
 
 contract MockCallee {

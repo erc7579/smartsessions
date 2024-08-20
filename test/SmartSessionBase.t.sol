@@ -25,7 +25,7 @@ import { EIP1271_MAGIC_VALUE, IERC1271 } from "module-bases/interfaces/IERC1271.
 
 import "forge-std/console2.sol";
 
-IRegistry constant registry = IRegistry(0x0000000000E23E0033C3e93D9D4eBc2FF2AB2AEF);
+IRegistry constant registry = IRegistry(0x000000000069E2a187AEFFb852bF3cCdC95151B2);
 SmartSession constant smartSession = SmartSession(0x006F777185cf3F0B152E8CEE93587395Aee15129);
 
 contract SmartSessionBaseTest is RhinestoneModuleKit, Test {
@@ -62,10 +62,10 @@ contract SmartSessionBaseTest is RhinestoneModuleKit, Test {
         yesSigner = new YesSigner();
         yesPolicy = new YesPolicy();
 
-        defaultSigner1 = smartSession.getSignerId(yesSigner, "defaultSigner1");
-        defaultSigner2 = smartSession.getSignerId(yesSigner, "defaultSigner2");
+        // defaultSigner1 = smartSession.getSignerId(yesSigner, "defaultSigner1");
+        // defaultSigner2 = smartSession.getSignerId(yesSigner, "defaultSigner2");
 
-        InstallSessions[] memory installData = new InstallSessions[](0);
+        EnableSessions[] memory installData = new EnableSessions[](0);
 
         instance.installModule({
             moduleTypeId: MODULE_TYPE_VALIDATOR,
@@ -74,11 +74,21 @@ contract SmartSessionBaseTest is RhinestoneModuleKit, Test {
         });
 
         vm.startPrank(instance.account);
-        smartSession.setSigner(defaultSigner1, ISigner(address(yesSigner)), "");
-
         PolicyData[] memory policyData = new PolicyData[](1);
         policyData[0] = PolicyData({ policy: address(yesPolicy), initData: "" });
-        smartSession.enableUserOpPolicies(defaultSigner1, policyData);
+        EnableSessions[] memory sessions = new EnableSessions[](1);
+        sessions[0] = EnableSessions({
+            isigner: ISigner(address(yesSigner)),
+            salt: bytes32(0),
+            isignerInitData: "defaultSigner1",
+            userOpPolicies: policyData,
+            erc1271Policies: new PolicyData[](0),
+            actions: new ActionData[](0),
+            permissionEnableSig: ""
+        });
+
+        SignerId[] memory signerIds = smartSession.enableSessions(sessions);
+        defaultSigner1 = signerIds[0];
         vm.stopPrank();
     }
 
@@ -110,6 +120,7 @@ contract SmartSessionBaseTest is RhinestoneModuleKit, Test {
 
         EnableSessions memory enableData = EnableSessions({
             isigner: ISigner(address(yesSigner)),
+            salt: bytes32(0),
             isignerInitData: "defaultSigner2",
             userOpPolicies: policyData,
             erc1271Policies: new PolicyData[](0),
@@ -117,11 +128,13 @@ contract SmartSessionBaseTest is RhinestoneModuleKit, Test {
             permissionEnableSig: ""
         });
 
+        SignerId signerId = smartSession.getSignerId(enableData.isigner, enableData.isignerInitData);
+
         bytes32 hash =
             smartSession.getDigest(enableData.isigner, instance.account, enableData, SmartSessionMode.UNSAFE_ENABLE);
         enableData.permissionEnableSig = abi.encodePacked(instance.defaultValidator, sign(hash, 1));
 
-        userOpData.userOp.signature = EncodeLib.encodeEnable(defaultSigner2, hex"4141414142", enableData);
+        userOpData.userOp.signature = EncodeLib.encodeEnable(signerId, hex"4141414142", enableData);
         console2.log("enable within session");
         userOpData.execUserOps();
     }
