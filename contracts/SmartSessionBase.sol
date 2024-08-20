@@ -40,6 +40,7 @@ abstract contract SmartSessionBase is ERC7579ValidatorBase {
 
     function _enableISigner(SignerId signerId, address account, ISigner isigner, bytes memory signerConfig) internal {
         if (!isigner.supportsInterface(type(ISigner).interfaceId)) {
+
             revert InvalidISigner(isigner);
         }
         // TODO: add registry check

@@ -25,7 +25,10 @@ import { EIP1271_MAGIC_VALUE, IERC1271 } from "module-bases/interfaces/IERC1271.
 
 import "forge-std/console2.sol";
 
+
 IRegistry constant registry = IRegistry(0x000000000069E2a187AEFFb852bF3cCdC95151B2);
+SmartSession constant smartSession = SmartSession(0x006F777185cf3F0B152E8CEE93587395Aee15129);
+
 
 contract SmartSessionBaseTest is RhinestoneModuleKit, Test {
     using ModuleKitHelpers for *;
@@ -34,7 +37,7 @@ contract SmartSessionBaseTest is RhinestoneModuleKit, Test {
 
     // account and modules
     AccountInstance internal instance;
-    SmartSession internal smartSession;
+    //SmartSession internal smartSession;
     YesPolicy internal yesPolicy;
     YesSigner internal yesSigner;
 
@@ -54,7 +57,9 @@ contract SmartSessionBaseTest is RhinestoneModuleKit, Test {
         IRegistry _registry = IRegistry(address(new MockRegistry()));
         vm.etch(address(registry), address(_registry).code);
 
-        smartSession = new SmartSession();
+        SmartSession _smartSession = new SmartSession();
+        vm.etch(address(smartSession), address(_smartSession).code);
+
         target = new MockTarget();
         yesSigner = new YesSigner();
         yesPolicy = new YesPolicy();
