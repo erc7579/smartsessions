@@ -47,7 +47,7 @@ library HashLib {
 
     function hashActionDataArray(ActionData[] memory actionDataArray) internal pure returns (bytes32) {
         bytes32[] memory hashes = new bytes32[](actionDataArray.length);
-        for (uint256 i = 0; i < actionDataArray.length; i++) {
+        for (uint256 i; i < length; i++) {
             hashes[i] = hashActionData(actionDataArray[i]);
         }
         return keccak256(abi.encodePacked(hashes));
