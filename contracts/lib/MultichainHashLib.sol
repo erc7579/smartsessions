@@ -35,13 +35,10 @@ library MultichainHashLib {
         if (index > hashesAndChainIds.length / 0x28) { //0x28 = 40 = 32bytes+8bytes
             revert HashIndexOutOfBounds(index);
         }
-        console2.logBytes(hashesAndChainIds);
         assembly {
             let offset := add(hashesAndChainIds, add(0x20, mul(index, 0x28)))
             chainId := shr(192, mload(offset))
             hash := mload(add(offset, 0x08))
         }
-        console2.log("chainId extracted: ", chainId);
-        console2.logBytes32(hash);
     }
 }

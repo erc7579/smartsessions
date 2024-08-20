@@ -108,7 +108,6 @@ contract SmartSessionBasicTest is SmartSessionTestBase {
     using EncodeLib for SignerId;
 
     function setUp() public virtual override {
-        
         super.setUp();
 
         vm.startPrank(instance.account);

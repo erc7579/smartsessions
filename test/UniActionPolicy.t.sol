@@ -51,11 +51,9 @@ contract UniversalActionPolicyTest is SmartSessionTestBase {
     Account owner;
 
     function setUp() public virtual override {
-
         super.setUp();
-        
-        mockK1 = new MockK1Validator();
 
+        mockK1 = new MockK1Validator();
         owner = makeAccount("owner");
 
         defaultSigner1 = SignerId.wrap(bytes32(hex"01"));

@@ -49,12 +49,10 @@ contract SmartSessionTest is SmartSessionTestBase {
     Account owner;
 
     function setUp() public virtual override {
-
         super.setUp();
-        
+
         mockK1 = new MockK1Validator();
         owner = makeAccount("owner");
-
         simpleSigner = new SimpleSigner();
         simpleGasPolicy = new SimpleGasPolicy();
         timeFramePolicy = new TimeFramePolicy();
