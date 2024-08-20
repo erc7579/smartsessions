@@ -147,7 +147,7 @@ contract SmartSession is SmartSessionBase {
         bytes32 hash =  enableData.getAndVerifyDigest(nonce, mode);
 
         // ensure that the signerId, that was provided, is the correct getSignerId
-        if (signerId != getSignerId(enableData.sessionToEnable.isigner, enableData.sessionToEnable.isignerInitData)) {
+        if (signerId != getSignerId(enableData.sessionToEnable)) {
             revert InvalidSignerId();
         }
 

@@ -56,9 +56,6 @@ contract UniversalActionPolicyTest is SmartSessionTestBase {
         mockK1 = new MockK1Validator();
         owner = makeAccount("owner");
 
-        defaultSigner1 = SignerId.wrap(bytes32(hex"01"));
-        defaultSigner2 = SignerId.wrap(bytes32(hex"02"));
-
         simpleSigner = new SimpleSigner();
         simpleGasPolicy = new SimpleGasPolicy();
         timeFramePolicy = new TimeFramePolicy();

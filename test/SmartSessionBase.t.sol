@@ -72,8 +72,8 @@ contract SmartSessionTestBase is SmartSessionTestHelpers, RhinestoneModuleKit {
     Account sessionSigner1;
     Account sessionSigner2;
 
-    SignerId defaultSigner1;
-    SignerId defaultSigner2;
+    SignerId defaultSignerId1;
+    SignerId defaultSignerId2;
 
     function setUp() public virtual {
         instance = makeAccountInstance("smartaccount");
@@ -124,7 +124,7 @@ contract SmartSessionBasicTest is SmartSessionTestBase {
         });
 
         SignerId[] memory signerIds = smartSession.enableSessions(sessions);
-        defaultSigner1 = signerIds[0];
+        defaultSignerId1 = signerIds[0];
         vm.stopPrank();
     }
 
@@ -136,7 +136,7 @@ contract SmartSessionBasicTest is SmartSessionTestBase {
             txValidator: address(smartSession)
         });
 
-        userOpData.userOp.signature = EncodeLib.encodeUse({ signerId: defaultSigner1, sig: hex"4141414141" });
+        userOpData.userOp.signature = EncodeLib.encodeUse({ signerId: defaultSignerId1, sig: hex"4141414141" });
         userOpData.execUserOps();
     }
 
@@ -168,7 +168,7 @@ contract SmartSessionBasicTest is SmartSessionTestBase {
         bytes32 hash = keccak256(enableData.hashesAndChainIds);
         enableData.permissionEnableSig = abi.encodePacked(instance.defaultValidator, sign(hash, 1));
         
-        SignerId signerId = smartSession.getSignerId(session.isigner, session.isignerInitData);
+        SignerId signerId = smartSession.getSignerId(session);
         userOpData.userOp.signature = EncodeLib.encodeEnable(signerId, hex"4141414142", enableData);
         userOpData.execUserOps();
     }

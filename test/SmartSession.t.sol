@@ -58,8 +58,8 @@ contract SmartSessionTest is SmartSessionTestBase {
         timeFramePolicy = new TimeFramePolicy();
         valueLimitPolicy = new ValueLimitPolicy();
 
-        defaultSigner1 = smartSession.getSignerId(ISigner(address(simpleSigner)), abi.encodePacked(sessionSigner1.addr));
-        defaultSigner2 = smartSession.getSignerId(ISigner(address(simpleSigner)), abi.encodePacked(sessionSigner2.addr));
+        //defaultSignerId1 = smartSession.getSignerId(ISigner(address(simpleSigner)), abi.encodePacked(sessionSigner1.addr));
+        //defaultSignerId2 = smartSession.getSignerId(ISigner(address(simpleSigner)), abi.encodePacked(sessionSigner2.addr));
 
         instance.installModule({
             moduleTypeId: MODULE_TYPE_VALIDATOR,
@@ -72,7 +72,8 @@ contract SmartSessionTest is SmartSessionTestBase {
     function test_use_Permissions_SingleExecution() public {
         uint256 valueToSet = 1337;
         assertFalse(target.getValue() == valueToSet);
-        _preEnablePermissions();
+        SignerId[] memory signerIds = _preEnablePermissions();
+        SignerId signerId = signerIds[0];
 
         UserOpData memory userOpData = instance.getExecOps({
             target: address(target),
@@ -82,14 +83,15 @@ contract SmartSessionTest is SmartSessionTestBase {
         });
 
         bytes memory sig = sign(userOpData.userOpHash, sessionSigner1.key);
-        userOpData.userOp.signature = EncodeLib.encodeUse({ signerId: defaultSigner1, sig: sig });
+        userOpData.userOp.signature = EncodeLib.encodeUse({ signerId: signerId, sig: sig });
         userOpData.execUserOps();
         assertEq(target.getValue(), valueToSet);
     }
 
     function test_use_Permissions_BatchExecution() public {
         uint256 valueToSet = 1337;
-        _preEnablePermissions();
+        SignerId[] memory signerIds = _preEnablePermissions();
+        SignerId signerId = signerIds[0];
 
         uint256 numberOfExecs = 3;
         Execution[] memory executions = new Execution[](numberOfExecs);
@@ -104,7 +106,7 @@ contract SmartSessionTest is SmartSessionTestBase {
             instance.getExecOps({ executions: executions, txValidator: address(smartSession) });
 
         bytes memory sig = sign(userOpData.userOpHash, sessionSigner1.key);
-        userOpData.userOp.signature = EncodeLib.encodeUse({ signerId: defaultSigner1, sig: sig });
+        userOpData.userOp.signature = EncodeLib.encodeUse({ signerId: signerId, sig: sig });
         userOpData.execUserOps();
         assertEq(target.getValue(), valueToSet + numberOfExecs);
     }
@@ -118,10 +120,10 @@ contract SmartSessionTest is SmartSessionTestBase {
             txValidator: address(smartSession)
         });
 
-        EnableSessions memory enableData = _prepareMockEnableData();
+        (EnableSessions memory enableData, SignerId signerId2) = _prepareMockEnableData();
 
         bytes memory rawSig = sign(userOpData.userOpHash, sessionSigner2.key);
-        userOpData.userOp.signature = EncodeLib.encodeEnable(defaultSigner2, rawSig, enableData);
+        userOpData.userOp.signature = EncodeLib.encodeEnable(signerId2, rawSig, enableData);
         userOpData.execUserOps();
         assertEq(target.getValue(), valueToSet);
     }
@@ -137,11 +139,11 @@ contract SmartSessionTest is SmartSessionTestBase {
             instance.getExecOps({ target: address(0), value: 0, callData: "", txValidator: address(0) });
 
         uint192 nonceKey = uint192(uint160(address(smartSession))) << 32;
-        EnableSessions memory enableData = _prepareMockEnableData();
+        (EnableSessions memory enableData, SignerId signerId2) = _prepareMockEnableData();
         bytes memory context = EncodeLib.encodeContext(
             nonceKey, //192 bits, 24 bytes
             ModeLib.encodeSimpleSingle(), //execution mode, 32 bytes
-            defaultSigner2,
+            signerId2,
             enableData
         );
 
@@ -182,7 +184,7 @@ contract SmartSessionTest is SmartSessionTestBase {
 
     /// =================================================================
 
-    function _preEnablePermissions() internal {
+    function _preEnablePermissions() internal returns (SignerId[] memory signerIds) {
         //enable simple gas policy as userOpPolicy
         PolicyData[] memory userOpPolicies = new PolicyData[](1);
         userOpPolicies[0] =
@@ -211,12 +213,12 @@ contract SmartSessionTest is SmartSessionTestBase {
 
         vm.startPrank(instance.account);
 
-        smartSession.enableSessions(sessions);
+        signerIds = smartSession.enableSessions(sessions);
 
         vm.stopPrank();
     }
 
-    function _prepareMockEnableData() internal view returns (EnableSessions memory enableData) {
+    function _prepareMockEnableData() internal view returns (EnableSessions memory enableData, SignerId signerId) {
         PolicyData[] memory userOpPolicyData = new PolicyData[](1);
         bytes memory policyInitData = abi.encodePacked(uint256(2 ** 256 - 1));
         userOpPolicyData[0] = PolicyData({ policy: address(simpleGasPolicy), initData: policyInitData });
@@ -243,5 +245,6 @@ contract SmartSessionTest is SmartSessionTestBase {
         bytes32 hash = keccak256(enableData.hashesAndChainIds);
 
         enableData.permissionEnableSig = abi.encodePacked(address(mockK1), sign(hash, owner.key));
+        signerId = smartSession.getSignerId(session);
     }
 }
