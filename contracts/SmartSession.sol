@@ -27,6 +27,7 @@ import "./DataTypes.sol";
 import { SmartSessionBase } from "./SmartSessionBase.sol";
 import { IdLib } from "./lib/IdLib.sol";
 import { MultichainHashLib } from "./lib/MultichainHashLib.sol";
+import { SmartSessionModeLib } from "./lib/SmartSessionModeLib.sol";
 
 import "forge-std/console2.sol";
 
@@ -52,6 +53,7 @@ contract SmartSession is SmartSessionBase {
     using ExecutionLib for *;
     using EncodeLib for *;
     using MultichainHashLib for EnableSessions;
+    using SmartSessionModeLib for SmartSessionMode;
 
     error InvalidEnableSignature(address account, bytes32 hash);
     error InvalidSignerId();
@@ -160,18 +162,15 @@ contract SmartSession is SmartSessionBase {
         }
 
         // enable ISigner for this session
-        // if it has already been enabled and the enableData.isigner is address(0), that means
-        // this enableData is to add policies, not to enable a new signer => skip this step
-        // !!! the flow above is now broken as signerId depends on isigner address, so if address(0)
-        // is passed, it won't generate same signerId, so we can't user address(0) as isigner
-        // to skip enabling new isigner
-        if (!_isISignerSet(signerId, account) && address(enableData.sessionToEnable.isigner) != address(0)) {
+        // if we do not have to enable ISigner, we just add policies
+        // Attention: policies to add should be all new.
+        if (!_isISignerSet(signerId, account) && mode.enableSigner()) {
             _enableISigner(signerId, account, enableData.sessionToEnable.isigner, enableData.sessionToEnable.isignerInitData);
-        }
+        } 
 
         // if SmartSessionMode.ENABLE is used, the Registry has to be queried to ensure that Policies and Signers are
         // considered safe
-        bool useRegistry = mode != SmartSessionMode.UNSAFE_ENABLE;
+        bool useRegistry = mode.useRegistry();
 
         // enable all policies for this session
         $userOpPolicies.enable({
