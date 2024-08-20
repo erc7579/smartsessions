@@ -76,7 +76,7 @@ library EncodeLib {
     function digest(
         ISigner signer,
         uint256 nonce,
-        EnableSessions memory data,
+        Session memory session,
         SmartSessionMode mode
     )
         internal
@@ -89,11 +89,11 @@ library EncodeLib {
                 nonce,
                 block.chainid,
                 mode,
-                data.isigner,
-                data.isignerInitData,
-                data.userOpPolicies,
-                data.erc1271Policies,
-                data.actions
+                session.isigner,
+                session.isignerInitData,
+                session.userOpPolicies,
+                session.erc1271Policies,
+                session.actions
             )
         );
     }

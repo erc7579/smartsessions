@@ -81,12 +81,11 @@ abstract contract SmartSessionBase is ERC7579ValidatorBase {
         });
     }
 
-    function enableSessions(EnableSessions[] calldata sessions) public returns (SignerId[] memory signerIds) {
+    function enableSessions(Session[] calldata sessions) public returns (SignerId[] memory signerIds) {
         uint256 length = sessions.length;
         signerIds = new SignerId[](length);
         for (uint256 i; i < length; i++) {
-            EnableSessions calldata session = sessions[i];
-            if (session.permissionEnableSig.length != 0) revert InvalidData();
+            Session calldata session = sessions[i];
             SignerId signerId = getSignerId(session.isigner, session.isignerInitData);
             $enabledSessions.add({ account: msg.sender, value: SignerId.unwrap(signerId) });
             _enableISigner({
@@ -147,7 +146,7 @@ abstract contract SmartSessionBase is ERC7579ValidatorBase {
     function onInstall(bytes calldata data) external override {
         if (data.length == 0) return;
 
-        EnableSessions[] calldata sessions;
+        Session[] calldata sessions;
         assembly ("memory-safe") {
             let dataPointer := add(data.offset, calldataload(data.offset))
 
@@ -181,7 +180,7 @@ abstract contract SmartSessionBase is ERC7579ValidatorBase {
     function getDigest(
         ISigner isigner,
         address account,
-        EnableSessions memory data,
+        Session memory data,
         SmartSessionMode mode
     )
         external

@@ -26,18 +26,16 @@ import { EncodeLib } from "./lib/EncodeLib.sol";
 import "./DataTypes.sol";
 import { SmartSessionBase } from "./SmartSessionBase.sol";
 import { IdLib } from "./lib/IdLib.sol";
+import { MultichainHashLib } from "./lib/MultichainHashLib.sol";
 
 import "forge-std/console2.sol";
 
 /**
  * TODO:
- *     ✅ The flow where permission doesn't enable the new signer, just adds policies for the existing one
- *     - ISigner => Stateless Sig Validator (discussed with zeroknots
- *               https://biconomyworkspace.slack.com/archives/D063X01CUEA/p1720520086702069)
- *     - MultiChain Permission Enable Data (chainId is in EncodeLib.digest now)
- *     ✅ 'No Signature verification required' flow
+ *     - Multichain
+*      - 7739
+ *     - ADD salt to signerId generation + rename SignerId to SessionId  + VERIFY::  The flow where permission doesn't enable the new signer, just adds policies for the existing one
  *     - Permissions hook (spending limits?)
- *     - Check Policies/Signers via Registry before enabling
  */
 
 /**
@@ -53,6 +51,7 @@ contract SmartSession is SmartSessionBase {
     using ConfigLib for *;
     using ExecutionLib for *;
     using EncodeLib for *;
+    using MultichainHashLib for EnableSessions;
 
     error InvalidEnableSignature(address account, bytes32 hash);
     error InvalidSignerId();
@@ -144,12 +143,11 @@ contract SmartSession is SmartSessionBase {
         (enableData, permissionUseSig) = packedSig.decodeEnable();
 
         // in order to prevent replay of an enable flow, we have to iterate a nonce.
-        uint256 nonce = $signerNonce[enableData.isigner][account]++;
+        uint256 nonce = $signerNonce[enableData.sessionToEnable.isigner][account]++;
+        bytes32 hash =  enableData.getAndVerifyDigest(nonce, mode);
 
-        // derive EIP712 of the EnableSessions data. The account owner is expected to sign this via ERC1271
-        bytes32 hash = enableData.isigner.digest(nonce, enableData, mode);
         // ensure that the signerId, that was provided, is the correct getSignerId
-        if (signerId != getSignerId(enableData.isigner, enableData.isignerInitData)) {
+        if (signerId != getSignerId(enableData.sessionToEnable.isigner, enableData.sessionToEnable.isignerInitData)) {
             revert InvalidSignerId();
         }
 
@@ -167,8 +165,8 @@ contract SmartSession is SmartSessionBase {
         // !!! the flow above is now broken as signerId depends on isigner address, so if address(0)
         // is passed, it won't generate same signerId, so we can't user address(0) as isigner
         // to skip enabling new isigner
-        if (!_isISignerSet(signerId, account) && address(enableData.isigner) != address(0)) {
-            _enableISigner(signerId, account, enableData.isigner, enableData.isignerInitData);
+        if (!_isISignerSet(signerId, account) && address(enableData.sessionToEnable.isigner) != address(0)) {
+            _enableISigner(signerId, account, enableData.sessionToEnable.isigner, enableData.sessionToEnable.isignerInitData);
         }
 
         // if SmartSessionMode.ENABLE is used, the Registry has to be queried to ensure that Policies and Signers are
@@ -179,20 +177,20 @@ contract SmartSession is SmartSessionBase {
         $userOpPolicies.enable({
             signerId: signerId,
             sessionId: signerId.toUserOpPolicyId().toSessionId(),
-            policyDatas: enableData.userOpPolicies,
+            policyDatas: enableData.sessionToEnable.userOpPolicies,
             smartAccount: account,
             useRegistry: useRegistry
         });
         $erc1271Policies.enable({
             signerId: signerId,
             sessionId: signerId.toErc1271PolicyId().toSessionId(),
-            policyDatas: enableData.erc1271Policies,
+            policyDatas: enableData.sessionToEnable.erc1271Policies,
             smartAccount: account,
             useRegistry: useRegistry
         });
         $actionPolicies.enable({
             signerId: signerId,
-            actionPolicyDatas: enableData.actions,
+            actionPolicyDatas: enableData.sessionToEnable.actions,
             smartAccount: account,
             useRegistry: useRegistry
         });

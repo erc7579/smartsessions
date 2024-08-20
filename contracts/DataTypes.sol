@@ -40,13 +40,19 @@ struct SignerConf {
     FlatBytesLib.Bytes config;
 }
 
-struct EnableSessions {
+struct Session {
     ISigner isigner;
     bytes32 salt;
     bytes isignerInitData;
     PolicyData[] userOpPolicies;
     PolicyData[] erc1271Policies;
     ActionData[] actions;
+}
+
+struct EnableSessions {
+    uint8 sessionIndex; 
+    bytes hashesAndChainIds;
+    Session sessionToEnable;
     bytes permissionEnableSig;
 }
 
