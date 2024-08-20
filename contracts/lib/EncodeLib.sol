@@ -35,7 +35,9 @@ library EncodeLib {
         //console2.logBytes(packed);
     }
 
-    function unpackMode(bytes calldata packed)
+    function unpackMode(
+        bytes calldata packed
+    )
         internal
         pure
         returns (SmartSessionMode mode, SignerId signerId, bytes calldata data)
@@ -72,7 +74,9 @@ library EncodeLib {
         packedSig = data.packMode(SmartSessionMode.UNSAFE_ENABLE, signerId);
     }
 
-    function decodeEnable(bytes calldata packedSig)
+    function decodeEnable(
+        bytes calldata packedSig
+    )
         internal
         pure
         returns (EnableSessions memory enableData, bytes memory signature)
