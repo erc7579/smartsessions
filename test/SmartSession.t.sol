@@ -232,15 +232,14 @@ contract SmartSessionTest is RhinestoneModuleKit, Test {
         ActionData[] memory actions = new ActionData[](1);
         actions[0] = ActionData({ actionId: actionId, actionPolicies: erc1271Policies });
 
-        EnableSessions[] memory sessions = new EnableSessions[](1);
-        sessions[0] = EnableSessions({
+        Session[] memory sessions = new Session[](1);
+        sessions[0] = Session({
             isigner: ISigner(address(simpleSigner)),
             salt: bytes32(0),
             isignerInitData: abi.encodePacked(sessionSigner1.addr),
             userOpPolicies: userOpPolicies,
             erc1271Policies: erc1271Policies,
-            actions: actions,
-            permissionEnableSig: ""
+            actions: actions
         });
 
         vm.startPrank(instance.account);
@@ -263,20 +262,33 @@ contract SmartSessionTest is RhinestoneModuleKit, Test {
         ActionId actionId = ActionId.wrap(keccak256(abi.encodePacked(address(target), MockTarget.setValue.selector)));
         ActionData[] memory actions = new ActionData[](1);
         actions[0] = ActionData({ actionId: actionId, actionPolicies: actionPolicyData });
-
-        enableData = EnableSessions({
+        
+        Session memory session = Session({
             isigner: ISigner(address(simpleSigner)),
             salt: bytes32(0),
             isignerInitData: abi.encodePacked(sessionSigner2.addr),
             userOpPolicies: userOpPolicyData,
             erc1271Policies: new PolicyData[](0),
-            actions: actions,
+            actions: actions
+        });
+
+        enableData = EnableSessions({
+            sessionIndex: 1,
+            hashesAndChainIds: "",
+            sessionToEnable: session,
             permissionEnableSig: ""
         });
 
-        // sign enableData hash
-        bytes32 hash =
-            smartSession.getDigest(enableData.isigner, instance.account, enableData, SmartSessionMode.UNSAFE_ENABLE);
+        bytes32 sessionDigest = smartSession.getDigest(session.isigner, instance.account, session, SmartSessionMode.UNSAFE_ENABLE);
+        enableData.hashesAndChainIds = abi.encodePacked(
+            uint64(181818), //random chainId
+            sessionDigest,
+            uint64(block.chainid),
+            sessionDigest
+        );
+
+        bytes32 hash = keccak256(enableData.hashesAndChainIds);
+
         enableData.permissionEnableSig = abi.encodePacked(address(mockK1), sign(hash, owner.key));
     }
 }
