@@ -36,9 +36,6 @@ import "forge-std/console2.sol";
  *               https://biconomyworkspace.slack.com/archives/D063X01CUEA/p1720520086702069)
  *     - MultiChain Permission Enable Data (chainId is in EncodeLib.digest now)
  *     ✅ 'No Signature verification required' flow
- *     - No policies (sudo) flow. What do we do with minPoliciesToEnforce ?
- *     - ERC-1271 (security => do not allow validating sig requests from itself)
- *     - Renouncing permissions
  *     - Permissions hook (spending limits?)
  *     - Check Policies/Signers via Registry before enabling
  */

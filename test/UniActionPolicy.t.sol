@@ -30,7 +30,7 @@ import "./mock/UniActionPolicy.sol";
 
 import "forge-std/console2.sol";
 
-IRegistry constant registry = IRegistry(0x0000000000E23E0033C3e93D9D4eBc2FF2AB2AEF);
+IRegistry constant registry = IRegistry(0x000000000069E2a187AEFFb852bF3cCdC95151B2);
 
 contract UniversalActionPolicyTest is RhinestoneModuleKit, Test {
     using ModuleKitHelpers for *;
