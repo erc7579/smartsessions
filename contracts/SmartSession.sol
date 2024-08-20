@@ -64,6 +64,17 @@ contract SmartSession is SmartSessionBase {
     error InvalidUserOpSender(address sender);
     error PermissionPartlyEnabled();
 
+    /**
+     * ERC4337/ERC7579 validation function
+     * the primiary purpose of this function, is to validate if a userOp forwarded by a 7579 account is valid.
+     * This function will disect the userop.singature field, and parse out the provided SignerId, which identifies a
+     * unique ID of a dapp for a specific user. n Policies and one Signer contract are mapped to this Id and will be
+     * checked. Only UserOps that pass policies and signer checks, are considered valid.
+     * Enable Flow:
+     *     SmartSessions allows session keys to be created within the "first" UserOp. If the enable flow is chosen, the
+     *     EnableSessions data, which is packed in userOp.signature is parsed, and stored in the SmartSession storage.
+     *
+     */
     function validateUserOp(
         PackedUserOperation calldata userOp,
         bytes32 userOpHash
@@ -72,10 +83,18 @@ contract SmartSession is SmartSessionBase {
         override
         returns (ValidationData vd)
     {
+        // ensure that userOp.sender == account
+        // SmartSession will sstore configs for a certain account,
+        // so we have to ensure that unauthorized access is not possible
         address account = userOp.sender;
         if (account != msg.sender) revert InvalidUserOpSender(account);
+
+        // unpacking data packed in userOp.signature
         (SmartSessionMode mode, SignerId signerId, bytes calldata packedSig) = userOp.signature.unpackMode();
 
+        // If the SmartSession.USE mode was selected, no futher policies have to be enabled.
+        // We can go straight to userOp validation
+        // This condition is the average case, so should be handled as the first condition
         if (mode == SmartSessionMode.USE) {
             vd = _enforcePolicies({
                 signerId: signerId,
@@ -84,9 +103,18 @@ contract SmartSession is SmartSessionBase {
                 decompressedSignature: packedSig.decodeUse(),
                 account: account
             });
-        } else if (mode == SmartSessionMode.ENABLE || mode == SmartSessionMode.UNSAFE_ENABLE) {
+        }
+        // If the SmartSession.ENABLE mode was selected, the userOp.signature will contain the EnableSessions data
+        // This data will be used to enable policies and signer for the session
+        // The signature of the user on the EnableSessions data will be checked
+        // If the signature is valid, the policies and signer will be enabled
+        // after enabling the session, the policies will be enforced on the userOp similarly to the SmartSession.USE
+        else if (mode == SmartSessionMode.ENABLE || mode == SmartSessionMode.UNSAFE_ENABLE) {
+            // _enablePolicies slices out the data required to enable a session from userOp.signature and returns the
+            // data required to use the actual session
             bytes memory usePermissionSig =
                 _enablePolicies({ signerId: signerId, packedSig: packedSig, account: account, mode: mode });
+
             vd = _enforcePolicies({
                 signerId: signerId,
                 userOpHash: userOpHash,
@@ -94,7 +122,9 @@ contract SmartSession is SmartSessionBase {
                 decompressedSignature: usePermissionSig,
                 account: account
             });
-        } else {
+        }
+        // if an Unknown mode is provided, the function will revert
+        else {
             revert UnsupportedSmartSessionMode(mode);
         }
     }
@@ -116,14 +146,20 @@ contract SmartSession is SmartSessionBase {
         EnableSessions memory enableData;
         (enableData, permissionUseSig) = packedSig.decodeEnable();
 
+        // in order to prevent replay of an enable flow, we have to iterate a nonce.
         uint256 nonce = $signerNonce[enableData.isigner][account]++;
+
+        // derive EIP712 of the EnableSessions data. The account owner is expected to sign this via ERC1271
         bytes32 hash = enableData.isigner.digest(nonce, enableData, mode);
+        // ensure that the signerId, that was provided, is the correct getSignerId
         if (signerId != getSignerId(enableData.isigner, enableData.isignerInitData)) {
             revert InvalidSignerId();
         }
 
         // require signature on account
         // this is critical as it is the only way to ensure that the user is aware of the policies and signer
+        // NOTE: although SmartSession implements a ERC1271 feature, it CAN NOT be used as a valid ERC1271 validator for
+        // this step.
         if (IERC1271(account).isValidSignature(hash, enableData.permissionEnableSig) != EIP1271_MAGIC_VALUE) {
             revert InvalidEnableSignature(account, hash);
         }
@@ -138,7 +174,8 @@ contract SmartSession is SmartSessionBase {
             _enableISigner(signerId, account, enableData.isigner, enableData.isignerInitData);
         }
 
-        console2.log(mode == SmartSessionMode.UNSAFE_ENABLE ? "Unsafe Enable" : "Enable");
+        // if SmartSessionMode.ENABLE is used, the Registry has to be queried to ensure that Policies and Signers are
+        // considered safe
         bool useRegistry = mode != SmartSessionMode.UNSAFE_ENABLE;
 
         // enable all policies for this session

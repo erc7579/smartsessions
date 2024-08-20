@@ -36,6 +36,7 @@ type SessionId is bytes32;
 
 struct SignerConf {
     ISigner isigner;
+    uint48 validUntil;
     FlatBytesLib.Bytes config;
 }
 
