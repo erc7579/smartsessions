@@ -5,6 +5,15 @@ import "../DataTypes.sol";
 
 library SmartSessionModeLib {
 
+    function isUseMode(SmartSessionMode mode) internal pure returns (bool) {
+        if (
+            mode == SmartSessionMode.USE
+        ) {
+            return true;
+        }
+        return false;
+    }
+
     function isEnableMode(SmartSessionMode mode) internal pure returns (bool) {
         if (
             mode == SmartSessionMode.ENABLE || 

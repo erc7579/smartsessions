@@ -24,6 +24,7 @@ import { MockRegistry } from "./mock/MockRegistry.sol";
 import { SimpleSigner } from "./mock/SimpleSigner.sol";
 import { SimpleGasPolicy } from "./mock/SimpleGasPolicy.sol";
 import { TimeFramePolicy } from "./mock/TimeFramePolicy.sol";
+import { UsageLimitPolicy } from "./mock/UsageLimitPolicy.sol";
 import { ValueLimitPolicy } from "./mock/ValueLimitPolicy.sol";
 import { EIP1271_MAGIC_VALUE, IERC1271 } from "module-bases/interfaces/IERC1271.sol";
 import { MockK1Validator } from "test/mock/MockK1Validator.sol";
@@ -45,6 +46,7 @@ contract SmartSessionTest is SmartSessionTestBase {
     SimpleGasPolicy internal simpleGasPolicy;
     TimeFramePolicy internal timeFramePolicy;
     ValueLimitPolicy internal valueLimitPolicy;
+    UsageLimitPolicy internal usageLimitPolicy;
 
     Account owner;
 
@@ -57,6 +59,7 @@ contract SmartSessionTest is SmartSessionTestBase {
         simpleGasPolicy = new SimpleGasPolicy();
         timeFramePolicy = new TimeFramePolicy();
         valueLimitPolicy = new ValueLimitPolicy();
+        usageLimitPolicy = new UsageLimitPolicy();
 
         //defaultSignerId1 = smartSession.getSignerId(ISigner(address(simpleSigner)), abi.encodePacked(sessionSigner1.addr));
         //defaultSignerId2 = smartSession.getSignerId(ISigner(address(simpleSigner)), abi.encodePacked(sessionSigner2.addr));
@@ -126,6 +129,44 @@ contract SmartSessionTest is SmartSessionTestBase {
         userOpData.userOp.signature = EncodeLib.encodeEnable(signerId2, rawSig, enableData);
         userOpData.execUserOps();
         assertEq(target.getValue(), valueToSet);
+    }
+
+    function test_Unsafe_Enable_Add_Policies() public {
+        uint256 valueToSet = 1235;
+        UserOpData memory userOpData = instance.getExecOps({
+            target: address(target),
+            value: 518 * 1e15,
+            callData: abi.encodeCall(MockTarget.setValue, (valueToSet)),
+            txValidator: address(smartSession)
+        });
+
+        (EnableSessions memory enableData, SignerId signerId2) = _prepareMockEnableData();
+
+        bytes memory rawSig = sign(userOpData.userOpHash, sessionSigner2.key);
+        userOpData.userOp.signature = EncodeLib.encodeEnable(signerId2, rawSig, enableData);
+        userOpData.execUserOps();
+        assertEq(target.getValue(), valueToSet);
+
+        // Try to use ENCODE_ENABLE_ADD_POLICIES
+        // check policy is not Initialized yet
+        assertFalse(usageLimitPolicy.isInitialized(address(smartSession), instance.account));
+
+        // make new userOp
+        valueToSet += 1222;
+        userOpData = instance.getExecOps({
+            target: address(target),
+            value: 7 * 1e15,
+            callData: abi.encodeCall(MockTarget.setValue, (valueToSet)),
+            txValidator: address(smartSession)
+        });
+
+        enableData = _prepareAddPolicyEnableData(signerId2);
+
+        rawSig = sign(userOpData.userOpHash, sessionSigner2.key);
+        userOpData.userOp.signature = EncodeLib.encodeEnableAddPolicies(signerId2, rawSig, enableData);
+        userOpData.execUserOps();
+        assertEq(target.getValue(), valueToSet);
+        assertTrue(usageLimitPolicy.isInitialized(address(smartSession), instance.account));
     }
 
     function test_UserOpBuilderFlow() public {
@@ -241,10 +282,30 @@ contract SmartSessionTest is SmartSessionTestBase {
             actions: actions
         });
 
-        enableData = makeMultiChainEnableData(session, instance);
+        enableData = makeMultiChainEnableData(session, instance, SmartSessionMode.UNSAFE_ENABLE);
         bytes32 hash = keccak256(enableData.hashesAndChainIds);
 
         enableData.permissionEnableSig = abi.encodePacked(address(mockK1), sign(hash, owner.key));
         signerId = smartSession.getSignerId(session);
+    }
+
+    function _prepareAddPolicyEnableData(SignerId signerId) internal view returns (EnableSessions memory enableData) {
+        PolicyData[] memory userOpPolicyData = new PolicyData[](1);
+        bytes memory policyInitData = abi.encodePacked(uint256(10));
+        userOpPolicyData[0] = PolicyData({ policy: address(usageLimitPolicy), initData: policyInitData });
+        
+        Session memory session = Session({
+            isigner: ISigner(address(simpleSigner)),
+            salt: bytes32(0),
+            isignerInitData: abi.encodePacked(sessionSigner2.addr),
+            userOpPolicies: userOpPolicyData,
+            erc1271Policies: new PolicyData[](0),
+            actions: new ActionData[](0)
+        });
+
+        enableData = makeMultiChainEnableData(session, instance, SmartSessionMode.UNSAFE_ENABLE_ADD_POLICIES);
+        bytes32 hash = keccak256(enableData.hashesAndChainIds);
+
+        enableData.permissionEnableSig = abi.encodePacked(address(mockK1), sign(hash, owner.key));
     }
 }

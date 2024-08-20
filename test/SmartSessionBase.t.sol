@@ -37,7 +37,7 @@ contract SmartSessionTestHelpers is Test {
         signature = abi.encodePacked(r, s, v);
     }
 
-    function makeMultiChainEnableData(Session memory session, AccountInstance memory instance) internal view returns (EnableSessions memory enableData) {
+    function makeMultiChainEnableData(Session memory session, AccountInstance memory instance, SmartSessionMode mode) internal view returns (EnableSessions memory enableData) {
     
         enableData = EnableSessions({
             sessionIndex: 1,
@@ -46,7 +46,12 @@ contract SmartSessionTestHelpers is Test {
             permissionEnableSig: ""
         });
 
-        bytes32 sessionDigest = smartSession.getDigest(session.isigner, instance.account, session, SmartSessionMode.UNSAFE_ENABLE);
+        bytes32 sessionDigest = smartSession.getDigest({
+            isigner: session.isigner, 
+            account: instance.account, 
+            data: session, 
+            mode: mode
+        });
 
         enableData.hashesAndChainIds = abi.encodePacked(
             uint64(181818), //random chainId
@@ -163,7 +168,7 @@ contract SmartSessionBasicTest is SmartSessionTestBase {
             actions: actions
         });
 
-        EnableSessions memory enableData = makeMultiChainEnableData(session, instance);
+        EnableSessions memory enableData = makeMultiChainEnableData(session, instance, SmartSessionMode.UNSAFE_ENABLE);
 
         bytes32 hash = keccak256(enableData.hashesAndChainIds);
         enableData.permissionEnableSig = abi.encodePacked(instance.defaultValidator, sign(hash, 1));

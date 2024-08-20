@@ -92,7 +92,7 @@ contract SmartSession is SmartSessionBase {
         // If the SmartSession.USE mode was selected, no futher policies have to be enabled.
         // We can go straight to userOp validation
         // This condition is the average case, so should be handled as the first condition
-        if (mode == SmartSessionMode.USE) {
+        if (mode.isUseMode()) {
             vd = _enforcePolicies({
                 signerId: signerId,
                 userOpHash: userOpHash,
@@ -106,7 +106,7 @@ contract SmartSession is SmartSessionBase {
         // The signature of the user on the EnableSessions data will be checked
         // If the signature is valid, the policies and signer will be enabled
         // after enabling the session, the policies will be enforced on the userOp similarly to the SmartSession.USE
-        else if (mode == SmartSessionMode.ENABLE || mode == SmartSessionMode.UNSAFE_ENABLE) {
+        else if (mode.isEnableMode()) {
             // _enablePolicies slices out the data required to enable a session from userOp.signature and returns the
             // data required to use the actual session
             bytes memory usePermissionSig =
