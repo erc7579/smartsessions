@@ -5,7 +5,7 @@ import "../DataTypes.sol";
 
 // Define the type hash for PolicyData
 bytes32 constant POLICY_DATA_TYPEHASH = keccak256("PolicyData(address policy,bytes initData)");
-bytes32 constant ACTION_POLICY_DATA_TYPEHASH = keccak256("ActionPolicy(bytes32 actionId,address policy,bytes initData)");
+bytes32 constant ACTION_POLICY_DATA_TYPEHASH = keccak256("ActionPolicy(bytes32 actionId,PolicyData[] actionPolicies)PolicyData(address policy,bytes initData)");
 
 // Define the type hash for SignerData
 bytes32 constant SIGNER_DATA_TYPEHASH =
