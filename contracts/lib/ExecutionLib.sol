@@ -8,7 +8,7 @@ import { ModeCode as ExecutionMode } from "erc7579/lib/ModeLib.sol";
  * Helper Library for decoding Execution calldata
  * malloc for memory allocation is bad for gas. use this assembly instead
  */
-library ExecutionLib2 {
+library ExecutionLib {
     function decodeUserOpCallData(
         bytes calldata userOpCallData
     )

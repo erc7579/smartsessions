@@ -11,16 +11,6 @@ library EncodeLib {
     using LibZip for bytes;
     using EncodeLib for *;
 
-    // jjjjjj
-    //     internal
-    //     pure
-    //     returns (SmartSessionMode mode, SignerId signerId, bytes calldata packedSig)
-    // {
-    //     mode = SmartSessionMode(uint8(bytes1(userOp.signature[:1])));
-    //     signerId = SignerId.wrap(bytes32(userOp))
-    //     packedSig = userOp.signature[1:];
-    // }
-
     function packMode(
         bytes memory data,
         SmartSessionMode mode,
@@ -31,8 +21,6 @@ library EncodeLib {
         returns (bytes memory packed)
     {
         packed = abi.encodePacked(mode, signerId, data);
-        //console2.log("data");
-        //console2.logBytes(packed);
     }
 
     function unpackMode(
@@ -109,10 +97,6 @@ library EncodeLib {
             )
         );
     }
-
-    // function decodeInstall(bytes calldata enableData) internal pure returns (InstallSessions[] memory sessions) {
-    //     sessions = abi.decode(enableData, (InstallSessions[]));
-    // }
 
     function encodeContext(
         uint192 nonceKey,
