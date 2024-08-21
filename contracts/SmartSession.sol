@@ -29,7 +29,6 @@ import { HashLib } from "./lib/HashLib.sol";
 import { SmartSessionBase } from "./SmartSessionBase.sol";
 import { SmartSessionERC7739 } from "./SmartSessionERC7739.sol";
 import { IdLib } from "./lib/IdLib.sol";
-import { MultichainHashLib } from "./lib/MultichainHashLib.sol";
 import { SmartSessionModeLib } from "./lib/SmartSessionModeLib.sol";
 
 import "forge-std/console2.sol";
@@ -56,7 +55,6 @@ contract SmartSession is SmartSessionBase, SmartSessionERC7739 {
     using ConfigLib for *;
     using ExecutionLib for *;
     using EncodeLib for *;
-    using MultichainHashLib for EnableSessions;
     using SmartSessionModeLib for SmartSessionMode;
 
     error InvalidEnableSignature(address account, bytes32 hash);

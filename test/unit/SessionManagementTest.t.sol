@@ -42,7 +42,7 @@ contract SessionManagementTest is BaseTest {
 
         // create enable sessions object
         enableSessions = _makeMultiChainEnableData(signerId, session, instance, SmartSessionMode.UNSAFE_ENABLE);
-        bytes32 hash = keccak256(enableSessions.hashesAndChainIds);
+        bytes32 hash = HashLib.multichainDigest(enableSessions.hashesAndChainIds);
 
         // user signs the enable hash with wallet
         enableSessions.permissionEnableSig =
@@ -172,7 +172,7 @@ contract SessionManagementTest is BaseTest {
         
         // create enable sessions object
         EnableSessions memory enableSessions = _makeMultiChainEnableData(signerId, session, instance, SmartSessionMode.UNSAFE_ENABLE);
-        bytes32 hash = keccak256(enableSessions.hashesAndChainIds);
+        bytes32 hash = HashLib.multichainDigest(enableSessions.hashesAndChainIds);
 
         // user signs the enable hash with wallet
         enableSessions.permissionEnableSig =

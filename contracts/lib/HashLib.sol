@@ -7,9 +7,6 @@ import { EfficientHashLib } from "solady/utils/EfficientHashLib.sol";
 import "forge-std/console2.sol";
 
 // Typehashes
-
-// TODO: REBUILD WITH string.concat so easier to maintain
-
 string constant POLICY_DATA_NOTATION = "PolicyData(address policy,bytes initData)";
 string constant ACTION_DATA_NOTATION = "ActionData(bytes32 actionId,PolicyData[] actionPolicies)";
 string constant ERC7739_DATA_NOTATION = "ERC7739Data(string[] allowedERC7739Content,PolicyData[] erc1271Policies)";
@@ -36,6 +33,10 @@ bytes32 constant MULTICHAIN_SESSION_TYPEHASH = keccak256(
 
 
 library HashLib {
+
+    error ChainIdMismatch(uint64 providedChainId);
+    error HashMismatch(bytes32 providedHash, bytes32 computedHash);
+
     using EfficientHashLib for bytes32;
     using HashLib for *;
 
@@ -199,5 +200,24 @@ library HashLib {
 
     function hashERC7739Content(string memory content) internal pure returns (bytes32) {
         return keccak256(abi.encodePacked(content));
+    }
+
+    function getAndVerifyDigest(EnableSessions memory enableData, uint256 nonce, SmartSessionMode mode) internal view returns (bytes32 digest) {
+        bytes32 computedHash = enableData.sessionToEnable.sessionDigest(mode, nonce);
+        
+        uint64 providedChainId = enableData.hashesAndChainIds[enableData.sessionIndex].chainId;
+        bytes32 providedHash =  enableData.hashesAndChainIds[enableData.sessionIndex].sessionDigest;
+
+        if (providedChainId != block.chainid) {
+            revert ChainIdMismatch(providedChainId);
+        }
+
+        // ensure digest we've built from the sessionToEnable is included into
+        // the list of digests that were signed
+        if (providedHash != computedHash) {
+            revert HashMismatch(providedHash, computedHash);
+        }
+
+        digest = enableData.hashesAndChainIds.multichainDigest();
     }
 }

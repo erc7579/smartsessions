@@ -29,6 +29,7 @@ import { EIP1271_MAGIC_VALUE, IERC1271 } from "module-bases/interfaces/IERC1271.
 import { MockK1Validator } from "test/mock/MockK1Validator.sol";
 import { UserOperationBuilder } from "contracts/erc7679/UserOpBuilder.sol";
 import { ModeLib, ModeCode as ExecutionMode } from "erc7579/lib/ModeLib.sol";
+import { HashLib } from "contracts/lib/HashLib.sol";
 
 import "forge-std/console2.sol";
 
@@ -132,15 +133,7 @@ contract BaseTest is RhinestoneModuleKit, Test {
         return ERC7739Data({ allowedERC7739Content: contents, erc1271Policies: erc1271Policies });
     }
 
-    /*
     function _makeMultiChainEnableData(SignerId signerId, Session memory session, AccountInstance memory instance, SmartSessionMode mode) internal view returns (EnableSessions memory enableData) {
-        enableData = EnableSessions({
-            sessionIndex: 1,
-            hashesAndChainIds: "",
-            sessionToEnable: session,
-            permissionEnableSig: ""
-        });
-
         bytes32 sessionDigest = smartSession.getSessionDigest({
             signerId: signerId,
             account: instance.account, 
@@ -148,12 +141,18 @@ contract BaseTest is RhinestoneModuleKit, Test {
             mode: mode
         });
 
-        enableData.hashesAndChainIds = EncodeLib.encodeHashesAndChainIds(
-            Solarray.uint64s(181818, uint64(block.chainid)),
-            Solarray.bytes32s(sessionDigest, sessionDigest)
-        );
+        ChainDigest[] memory chainDigests = EncodeLib.encodeHashesAndChainIds(
+                Solarray.uint64s(181818, uint64(block.chainid), 777),
+                Solarray.bytes32s(sessionDigest, sessionDigest, sessionDigest)
+            );
+
+        enableData = EnableSessions({
+            sessionIndex: 1,
+            hashesAndChainIds: chainDigests,
+            sessionToEnable: session,
+            permissionEnableSig: ""
+        });
     }
-    */
 
     // function _enable_exec(
     //     EnableSessions memory enableSessions,
