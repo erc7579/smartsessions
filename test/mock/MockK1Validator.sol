@@ -40,7 +40,7 @@ contract MockK1Validator is IValidator {
         returns (bytes4)
     {
         address owner = smartAccountOwners[msg.sender];
-        console2.log("expecting owner", owner);
+        //console2.log("expecting owner", owner);
 
         return ECDSA.recover(MessageHashUtils.toEthSignedMessageHash(hash), signature) == smartAccountOwners[msg.sender]
             ? EIP1271_MAGIC_VALUE

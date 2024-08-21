@@ -25,6 +25,7 @@ import { SimpleSigner } from "./mock/SimpleSigner.sol";
 import { SimpleGasPolicy } from "./mock/SimpleGasPolicy.sol";
 import { TimeFramePolicy } from "./mock/TimeFramePolicy.sol";
 import { ValueLimitPolicy } from "./mock/ValueLimitPolicy.sol";
+import { UsageLimitPolicy } from "./mock/UsageLimitPolicy.sol";
 import { EIP1271_MAGIC_VALUE, IERC1271 } from "module-bases/interfaces/IERC1271.sol";
 import { MockK1Validator } from "test/mock/MockK1Validator.sol";
 import { UserOperationBuilder } from "contracts/erc7679/UserOpBuilder.sol";
@@ -50,6 +51,7 @@ contract BaseTest is RhinestoneModuleKit, Test {
     SimpleGasPolicy internal simpleGasPolicy;
     TimeFramePolicy internal timeFramePolicy;
     ValueLimitPolicy internal valueLimitPolicy;
+    UsageLimitPolicy internal usageLimitPolicy;
 
     MockTarget target;
     Account sessionSigner1;
@@ -75,6 +77,7 @@ contract BaseTest is RhinestoneModuleKit, Test {
         simpleGasPolicy = new SimpleGasPolicy();
         timeFramePolicy = new TimeFramePolicy();
         valueLimitPolicy = new ValueLimitPolicy();
+        usageLimitPolicy = new UsageLimitPolicy();
 
         instance.installModule({
             moduleTypeId: MODULE_TYPE_VALIDATOR,

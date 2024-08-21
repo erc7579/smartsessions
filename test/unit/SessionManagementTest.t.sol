@@ -115,6 +115,45 @@ contract SessionManagementTest is BaseTest {
         assertEq(target.value(), 1337);
     }
 
+    function test_add_policies_to_session (/*bytes32 salt*/) public {
+        bytes32 salt = keccak256('salt');
+        (SignerId signerId, EnableSessions memory enableSessions) = test_enable_exec(salt);
+
+        assertFalse(usageLimitPolicy.isInitialized(address(smartSession), instance.account));
+
+        UserOpData memory userOpData = instance.getExecOps({
+            target: address(target),
+            value: 0,
+            callData: abi.encodeCall(MockTarget.setValue, (1338)),
+            txValidator: address(smartSession)
+        });
+
+        PolicyData[] memory userOpPolicyData = new PolicyData[](1);
+        bytes memory policyInitData = abi.encodePacked(uint256(10));
+        userOpPolicyData[0] = PolicyData({ policy: address(usageLimitPolicy), initData: policyInitData });
+
+        // session to add one userOp policy
+        Session memory session = Session({
+            isigner: ISigner(address(yesSigner)),
+            salt: salt,
+            isignerInitData: "mockInitData",
+            userOpPolicies: userOpPolicyData,
+            erc7739Policies: _getEmptyERC7739Data("0", new PolicyData[](0)),
+            actions: new ActionData[](0)
+        });
+
+        enableSessions = _makeMultiChainEnableData(signerId, session, instance, SmartSessionMode.UNSAFE_ENABLE_ADD_POLICIES);
+        bytes32 hash = HashLib.multichainDigest(enableSessions.hashesAndChainIds);
+        enableSessions.permissionEnableSig =
+            abi.encodePacked(mockK1, sign(ECDSA.toEthSignedMessageHash(hash), owner.key));
+        userOpData.userOp.signature = EncodeLib.encodeEnableAddPolicies(signerId, hex"4141414142", enableSessions);
+
+        userOpData.execUserOps();
+
+        assertEq(target.value(), 1338);
+        assertTrue(usageLimitPolicy.isInitialized(address(smartSession), instance.account));
+    }
+
     function test_disableSession(bytes32 salt) public {
         (SignerId signerId, EnableSessions memory enableSessions) = test_enable_exec(salt);
 
