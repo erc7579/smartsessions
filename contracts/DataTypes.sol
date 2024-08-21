@@ -49,9 +49,23 @@ struct Session {
     ActionData[] actions;
 }
 
+struct ChainSession {
+    uint64 chainId;
+    Session session;
+}
+
+struct MultiChainSession {
+    ChainSession[] sessionsAndChainIds;
+}
+
+struct ChainDigest {
+    uint64 chainId;
+    bytes32 sessionDigest;
+}
+
 struct EnableSessions {
     uint8 sessionIndex; 
-    bytes hashesAndChainIds;
+    ChainDigest[] hashesAndChainIds;
     Session sessionToEnable;
     bytes permissionEnableSig;
 }

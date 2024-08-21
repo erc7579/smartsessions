@@ -132,6 +132,7 @@ contract BaseTest is RhinestoneModuleKit, Test {
         return ERC7739Data({ allowedERC7739Content: contents, erc1271Policies: erc1271Policies });
     }
 
+    /*
     function _makeMultiChainEnableData(SignerId signerId, Session memory session, AccountInstance memory instance, SmartSessionMode mode) internal view returns (EnableSessions memory enableData) {
         enableData = EnableSessions({
             sessionIndex: 1,
@@ -140,7 +141,7 @@ contract BaseTest is RhinestoneModuleKit, Test {
             permissionEnableSig: ""
         });
 
-        bytes32 sessionDigest = smartSession.getDigest({
+        bytes32 sessionDigest = smartSession.getSessionDigest({
             signerId: signerId,
             account: instance.account, 
             data: session, 
@@ -152,6 +153,7 @@ contract BaseTest is RhinestoneModuleKit, Test {
             Solarray.bytes32s(sessionDigest, sessionDigest)
         );
     }
+    */
 
     // function _enable_exec(
     //     EnableSessions memory enableSessions,
