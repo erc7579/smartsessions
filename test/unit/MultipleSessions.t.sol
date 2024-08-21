@@ -35,7 +35,7 @@ contract MultipleSessionsTest is BaseTest {
         vm.prank(instance.account);
         SignerId[] memory signerIds = smartSession.enableSessions(enableSessionsArray);
         assertEq(SignerId.unwrap(signerId), SignerId.unwrap(signerIds[0]), "signerIds should be the same");
-        assertEq(smartSession.isSessionEnabled(signerId), true, "session failed to enable");
+        assertEq(smartSession.isSessionEnabled(signerId, instance.account), true, "session failed to enable");
     }
 
     function _exec_session(SignerId signerId, address to, uint256 value, bytes memory callData) public {
@@ -63,17 +63,21 @@ contract MultipleSessionsTest is BaseTest {
         assertEq(target.value(), 4);
 
         // check that the sessions are still enabled
-        assertEq(smartSession.isSessionEnabled(signerId1), true, "session 1 should be enabled");
-        assertEq(smartSession.isSessionEnabled(signerId2), true, "session 2 should be enabled");
-        assertEq(smartSession.isSessionEnabled(signerId3), true, "session 3 should be enabled");
-        assertEq(smartSession.isSessionEnabled(signerId4), true, "session 4 should be enabled");
+        assertEq(smartSession.isSessionEnabled(signerId1, instance.account), true, "session 1 should be enabled");
+        assertEq(smartSession.isSessionEnabled(signerId2, instance.account), true, "session 2 should be enabled");
+        assertEq(smartSession.isSessionEnabled(signerId3, instance.account), true, "session 3 should be enabled");
+        assertEq(smartSession.isSessionEnabled(signerId4, instance.account), true, "session 4 should be enabled");
 
         // disable session 1
         vm.prank(instance.account);
         smartSession.removeSession(signerId1);
-        assertEq(smartSession.isSessionEnabled(signerId1), false, "session 1 should be disabled");
-        assertEq(smartSession.isSessionEnabled(signerId2), true, "session 2 should be enabled");
-        assertEq(smartSession.isSessionEnabled(signerId3), true, "session 3 should be enabled");
-        assertEq(smartSession.isSessionEnabled(signerId4), true, "session 4 should be enabled");
+        assertEq(smartSession.isSessionEnabled(signerId1, instance.account), false, "session 1 should be disabled");
+        assertEq(smartSession.isSessionEnabled(signerId2, instance.account), true, "session 2 should be enabled");
+        assertEq(smartSession.isSessionEnabled(signerId3, instance.account), true, "session 3 should be enabled");
+        assertEq(smartSession.isSessionEnabled(signerId4, instance.account), true, "session 4 should be enabled");
+
+        vm.prank(instance.account);
+        smartSession.removeSession(signerId3);
+        assertEq(smartSession.isSessionEnabled(signerId3, instance.account), false, "session 3 should be disabled");
     }
 }

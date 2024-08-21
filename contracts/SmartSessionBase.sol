@@ -124,7 +124,9 @@ abstract contract SmartSessionBase is ERC7579ValidatorBase {
             });
 
             $enabledSessions.add(msg.sender, SignerId.unwrap(signerId));
-            console2.log("enabled session", msg.sender, $enabledSessions.contains(msg.sender, SignerId.unwrap(signerId)));
+            console2.log(
+                "enabled session", msg.sender, $enabledSessions.contains(msg.sender, SignerId.unwrap(signerId))
+            );
             console2.logBytes32(SignerId.unwrap(signerId));
             signerIds[i] = signerId;
             emit SessionCreated(signerId, msg.sender);
@@ -180,8 +182,8 @@ abstract contract SmartSessionBase is ERC7579ValidatorBase {
         return sessionIdsCnt > 0;
     }
 
-    function isSessionEnabled(SignerId signerId) external view returns (bool) {
-        return $enabledSessions.contains(msg.sender, SignerId.unwrap(signerId));
+    function isSessionEnabled(SignerId signerId, address account) external view returns (bool) {
+        return $enabledSessions.contains(account, SignerId.unwrap(signerId));
     }
 
     function isModuleType(uint256 typeID) external pure override returns (bool) {
