@@ -152,11 +152,10 @@ contract MultiKeySignerTest is SmartSessionBasicTest {
         });
 
         bytes32 sessionDigest = smartSession.getDigest(session.isigner, instance.account, session, SmartSessionMode.UNSAFE_ENABLE);
-        enableData.hashesAndChainIds = abi.encodePacked(
-            uint64(181818), //random chainId
-            sessionDigest,
-            uint64(block.chainid),
-            sessionDigest
+        
+        enableData.hashesAndChainIds = EncodeLib.encodeHashesAndChainIds(
+            Solarray.uint64s(181818, uint64(block.chainid)),
+            Solarray.bytes32s(sessionDigest, sessionDigest)
         );
 
         bytes32 hash = keccak256(enableData.hashesAndChainIds);
@@ -267,11 +266,9 @@ contract MultiKeySignerTest is SmartSessionBasicTest {
         });
 
         bytes32 sessionDigest = smartSession.getDigest(session.isigner, instance.account, session, SmartSessionMode.UNSAFE_ENABLE);
-        enableData.hashesAndChainIds = abi.encodePacked(
-            uint64(181818), //random chainId
-            sessionDigest,
-            uint64(block.chainid),
-            sessionDigest
+        enableData.hashesAndChainIds = EncodeLib.encodeHashesAndChainIds(
+            Solarray.uint64s(181818, uint64(block.chainid)),
+            Solarray.bytes32s(sessionDigest, sessionDigest)
         );
 
         bytes32 hash = keccak256(enableData.hashesAndChainIds);

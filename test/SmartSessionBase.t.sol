@@ -53,11 +53,9 @@ contract SmartSessionTestHelpers is Test {
             mode: mode
         });
 
-        enableData.hashesAndChainIds = abi.encodePacked(
-            uint64(181818), //random chainId
-            sessionDigest,
-            uint64(block.chainid),
-            sessionDigest
+        enableData.hashesAndChainIds = EncodeLib.encodeHashesAndChainIds(
+            Solarray.uint64s(181818, uint64(block.chainid)),
+            Solarray.bytes32s(sessionDigest, sessionDigest)
         );
     }
 }
