@@ -4,6 +4,7 @@ pragma solidity ^0.8.25;
 import "./DataTypes.sol";
 import "./utils/EnumerableSet4337.sol";
 
+import "forge-std/console2.sol";
 import { ISigner } from "./interfaces/ISigner.sol";
 import "@rhinestone/flatbytes/src/BytesLib.sol";
 import { SentinelList4337Lib } from "sentinellist/SentinelList4337.sol";
@@ -51,7 +52,6 @@ abstract contract SmartSessionBase is ERC7579ValidatorBase {
         SignerConf storage $conf = $isigners[signerId][account];
         $conf.isigner = isigner;
         $conf.config.store(signerConfig);
-        $enabledSessions.add(account, SignerId.unwrap(signerId));
     }
 
     function enableUserOpPolicies(SignerId signerId, PolicyData[] memory userOpPolicies) public {
@@ -93,7 +93,6 @@ abstract contract SmartSessionBase is ERC7579ValidatorBase {
             EnableSessions calldata session = sessions[i];
             if (session.permissionEnableSig.length != 0) revert InvalidData();
             SignerId signerId = getSignerId(session.isigner, session.salt, session.isignerInitData);
-            $enabledSessions.add({ account: msg.sender, value: SignerId.unwrap(signerId) });
             _enableISigner({
                 signerId: signerId,
                 account: msg.sender,
@@ -123,6 +122,10 @@ abstract contract SmartSessionBase is ERC7579ValidatorBase {
                 smartAccount: msg.sender,
                 useRegistry: true
             });
+
+            $enabledSessions.add(msg.sender, SignerId.unwrap(signerId));
+            console2.log("enabled session", msg.sender, $enabledSessions.contains(msg.sender, SignerId.unwrap(signerId)));
+            console2.logBytes32(SignerId.unwrap(signerId));
             signerIds[i] = signerId;
             emit SessionCreated(signerId, msg.sender);
         }
@@ -175,6 +178,10 @@ abstract contract SmartSessionBase is ERC7579ValidatorBase {
     function isInitialized(address smartAccount) external view returns (bool) {
         uint256 sessionIdsCnt = $enabledSessions.length({ account: smartAccount });
         return sessionIdsCnt > 0;
+    }
+
+    function isSessionEnabled(SignerId signerId) external view returns (bool) {
+        return $enabledSessions.contains(msg.sender, SignerId.unwrap(signerId));
     }
 
     function isModuleType(uint256 typeID) external pure override returns (bool) {

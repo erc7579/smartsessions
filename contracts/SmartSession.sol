@@ -208,6 +208,8 @@ contract SmartSession is SmartSessionBase, SmartSessionERC7739 {
             smartAccount: account,
             useRegistry: useRegistry
         });
+
+        $enabledSessions.add(msg.sender, SignerId.unwrap(signerId));
     }
 
     /**

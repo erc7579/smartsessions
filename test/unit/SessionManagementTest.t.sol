@@ -43,7 +43,6 @@ contract SessionManagementTest is BaseTest {
         bytes32 hash =
             smartSession.getDigest(signerId, instance.account, enableSessions, SmartSessionMode.UNSAFE_ENABLE);
 
-
         // user signs the enable hash with wallet
         enableSessions.permissionEnableSig =
             abi.encodePacked(mockK1, sign(ECDSA.toEthSignedMessageHash(hash), owner.key));
