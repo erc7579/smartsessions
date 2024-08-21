@@ -45,7 +45,7 @@ struct Session {
     bytes32 salt;
     bytes isignerInitData;
     PolicyData[] userOpPolicies;
-    PolicyData[] erc1271Policies;
+    ERC7739Data erc7739Policies;
     ActionData[] actions;
 }
 
@@ -56,12 +56,6 @@ struct EnableSessions {
     bytes permissionEnableSig;
 }
 
-// TODO: add this to session structs
-struct SignerData {
-    ISigner isigner;
-    bytes isignerInitData;
-}
-
 struct PolicyData {
     address policy;
     bytes initData;
@@ -70,6 +64,11 @@ struct PolicyData {
 struct ActionData {
     ActionId actionId;
     PolicyData[] actionPolicies;
+}
+
+struct ERC7739Data {
+    string[] allowedERC7739Content;
+    PolicyData[] erc1271Policies;
 }
 
 ////////////////////////

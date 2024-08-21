@@ -112,7 +112,11 @@ contract UserOperationBuilder is IUserOperationBuilder {
 
 
         try IPermissionEnabled(permissionValidator).isPermissionEnabled(
-            signerId, smartAccount, session.userOpPolicies, session.erc1271Policies, session.actions
+            signerId,
+            smartAccount,
+            session.userOpPolicies,
+            session.erc7739Policies.erc1271Policies,
+            session.actions
         ) returns (bool isEnabled) {
             if (isEnabled) {
                 return EncodeLib.encodeUse(signerId, userOperation.signature);

@@ -38,10 +38,6 @@ library EncodeLib {
         data = packed[33:];
     }
 
-    function getSignerIdFromSignature(bytes calldata packed) internal pure returns (SignerId signerId) {
-        signerId = SignerId.wrap(bytes32(packed[1:33]));
-    }
-
     function encodeUse(SignerId signerId, bytes memory sig) internal pure returns (bytes memory userOpSig) {
         bytes memory d = abi.encode(sig).flzCompress();
         userOpSig = d.packMode(SmartSessionMode.USE, signerId);
@@ -87,32 +83,6 @@ library EncodeLib {
         returns (EnableSessions memory enableData, bytes memory signature)
     {
         (enableData, signature) = abi.decode(packedSig.flzDecompress(), (EnableSessions, bytes));
-    }
-
-    // TODO: would be nice to use a custom EIP712 envelope here
-    function digest(
-        ISigner signer,
-        uint256 nonce,
-        Session memory session,
-        SmartSessionMode mode
-    )
-        internal
-        view
-        returns (bytes32)
-    {
-        return keccak256(
-            abi.encode(
-                signer,
-                nonce,
-                block.chainid,
-                mode,
-                session.isigner,
-                session.isignerInitData,
-                session.userOpPolicies,
-                session.erc1271Policies,
-                session.actions
-            )
-        );
     }
 
     function encodeContext(
