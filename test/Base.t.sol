@@ -40,6 +40,7 @@ contract BaseTest is RhinestoneModuleKit, Test {
     using EncodeLib for SignerId;
 
     // account and modules
+    MockK1Validator internal mockK1;
     AccountInstance internal instance;
     SmartSession internal smartSession;
     YesPolicy internal yesPolicy;
@@ -56,6 +57,7 @@ contract BaseTest is RhinestoneModuleKit, Test {
 
     function setUp() public virtual {
         instance = makeAccountInstance("smartaccount");
+        mockK1 = new MockK1Validator();
 
         IRegistry _registry = IRegistry(address(new MockRegistry()));
         vm.etch(address(registry), address(_registry).code);
@@ -73,6 +75,12 @@ contract BaseTest is RhinestoneModuleKit, Test {
         timeFramePolicy = new TimeFramePolicy();
         valueLimitPolicy = new ValueLimitPolicy();
 
+        instance.installModule({
+            moduleTypeId: MODULE_TYPE_VALIDATOR,
+            module: address(mockK1),
+            data: abi.encodePacked(owner.addr)
+        });
+
         EnableSessions[] memory installData = new EnableSessions[](0);
         instance.installModule({
             moduleTypeId: MODULE_TYPE_VALIDATOR,
@@ -83,7 +91,6 @@ contract BaseTest is RhinestoneModuleKit, Test {
 
     function sign(bytes32 hash, uint256 privKey) internal pure returns (bytes memory signature) {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(privKey, hash);
-
         // Set the signature
         signature = abi.encodePacked(r, s, v);
     }

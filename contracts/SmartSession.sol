@@ -149,7 +149,7 @@ contract SmartSession is SmartSessionBase, SmartSessionERC7739 {
         (enableData, permissionUseSig) = packedSig.decodeEnable();
 
         // in order to prevent replay of an enable flow, we have to iterate a nonce.
-        uint256 nonce = $signerNonce[enableData.isigner][account]++;
+        uint256 nonce = $signerNonce[signerId][account]++;
 
         // derive EIP712 of the EnableSessions data. The account owner is expected to sign this via ERC1271
         bytes32 hash = enableData.digest({ mode: mode, nonce: nonce });

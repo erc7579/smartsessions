@@ -30,6 +30,7 @@ abstract contract SmartSessionBase is ERC7579ValidatorBase {
 
     event SessionCreated(SignerId signerId, address account);
     event SessionRemoved(SignerId signerId, address smartAccount);
+    event IterNonce(SignerId signerId, address account, uint256 newValue);
 
     error InvalidData();
 
@@ -39,7 +40,7 @@ abstract contract SmartSessionBase is ERC7579ValidatorBase {
     EnumerableSet.Bytes32Set internal $enabledSessions;
     mapping(SessionId => mapping(bytes32 contentHash => mapping(address account => bool enabled))) internal
         $enabledERC7739Content;
-    mapping(ISigner signer => mapping(address smartAccount => uint256 nonce)) internal $signerNonce;
+    mapping(SignerId signerId => mapping(address smartAccount => uint256 nonce)) internal $signerNonce;
     mapping(SignerId signerId => mapping(address smartAccount => SignerConf)) internal $isigners;
 
     function _enableISigner(SignerId signerId, address account, ISigner isigner, bytes memory signerConfig) internal {
@@ -181,16 +182,16 @@ abstract contract SmartSessionBase is ERC7579ValidatorBase {
     }
 
     function getDigest(
-        ISigner isigner,
+        SignerId signerId,
         address account,
         EnableSessions memory data,
         SmartSessionMode mode
     )
-        external
+        public
         view
         returns (bytes32)
     {
-        uint256 nonce = $signerNonce[isigner][account];
+        uint256 nonce = $signerNonce[signerId][account];
         return data.digest({ mode: mode, nonce: nonce });
     }
 
@@ -210,7 +211,12 @@ abstract contract SmartSessionBase is ERC7579ValidatorBase {
         return address($isigners[signerId][account].isigner) != address(0);
     }
 
-    function getNonce(ISigner signer, address account) external view returns (uint256) {
-        return $signerNonce[signer][account];
+    function getNonce(SignerId signerId, address account) external view returns (uint256) {
+        return $signerNonce[signerId][account];
+    }
+
+    function revokeEnableSignature(SignerId signerId) external {
+        uint256 nonce = $signerNonce[signerId][msg.sender]++;
+        emit IterNonce(signerId, msg.sender, nonce);
     }
 }

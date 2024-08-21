@@ -12,7 +12,7 @@ bytes32 constant ERC7739_DATA_TYPEHASH = keccak256(
     "ERC7739Data(string[] allowedERC7739Content,PolicyData[] erc1271Policies)PolicyData(address policy,bytes initData)"
 );
 bytes32 constant ENABLE_SESSIONS_TYPEHASH = keccak256(
-    "EnableSessions(uint8 mode,address isigner,bytes32 salt,bytes isignerInitData,PolicyData[] userOpPolicies,ERC7739Data erc7739Policies,ActionData[] actions,bytes permissionEnableSig)PolicyData(address policy,bytes initData)ActionData(bytes32 actionId,PolicyData[] actionPolicies)ERC7739Data(string[] allowedERC7739Content,PolicyData[] erc1271Policies)"
+    "EnableSessions(uint8 mode,address isigner,bytes32 salt,bytes isignerInitData,PolicyData[] userOpPolicies,ERC7739Data erc7739Policies,ActionData[] actions)PolicyData(address policy,bytes initData)ActionData(bytes32 actionId,PolicyData[] actionPolicies)ERC7739Data(string[] allowedERC7739Content,PolicyData[] erc1271Policies)"
 );
 
 library HashLib {
@@ -38,7 +38,6 @@ library HashLib {
                 enableSession.userOpPolicies.hashPolicyDataArray(),
                 enableSession.erc7739Policies.hashERC7739Data(),
                 enableSession.actions.hashActionDataArray(),
-                keccak256(enableSession.permissionEnableSig),
                 nonce
             )
         );
