@@ -4,6 +4,7 @@ pragma solidity ^0.8.25;
 import { PackedUserOperation } from "modulekit/external/ERC4337.sol";
 import { EIP1271_MAGIC_VALUE, IERC1271 } from "module-bases/interfaces/IERC1271.sol";
 
+import "./utils/EnumerableSet4337.sol";
 import {
     ModeCode as ExecutionMode,
     ExecType,
@@ -48,6 +49,7 @@ import "forge-std/console2.sol";
  * @author zeroknots.eth (rhinestone) & Filipp Makarov (biconomy)
  */
 contract SmartSession is SmartSessionBase, SmartSessionERC7739 {
+    using EnumerableSet for EnumerableSet.Bytes32Set;
     using SentinelList4337Lib for SentinelList4337Lib.SentinelList;
     using IdLib for *;
     using HashLib for *;
@@ -214,6 +216,10 @@ contract SmartSession is SmartSessionBase, SmartSessionERC7739 {
         internal
         returns (ValidationData vd)
     {
+        // ensure that the signerId is enabled
+        if (!$enabledSessions.contains({ account: account, value: SignerId.unwrap(signerId) })) {
+            revert InvalidSignerId();
+        }
         /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
         /*                 Check SessionKey ISigner                   */
         /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/

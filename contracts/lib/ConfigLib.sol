@@ -42,6 +42,7 @@ library ConfigLib {
             PolicyData memory policyData = policyDatas[i];
 
             ISubPermission policy = ISubPermission(policyData.policy);
+
             if (!policy.supportsInterface(type(ISubPermission).interfaceId)) revert UnsupportedPolicy(address(policy));
 
             if (useRegistry) registry.checkForAccount(smartAccount, address(policy), POLICY_MODULE_TYPE);
