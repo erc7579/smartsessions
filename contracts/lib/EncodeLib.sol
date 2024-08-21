@@ -11,6 +11,9 @@ library EncodeLib {
     using LibZip for bytes;
     using EncodeLib for *;
 
+    error HashIndexOutOfBounds(uint256 index);
+    error ChainIdAndHashesLengthMismatch(uint256 chainIdsLength, uint256 hashesLength);
+
     function packMode(
         bytes memory data,
         SmartSessionMode mode,
@@ -62,6 +65,20 @@ library EncodeLib {
         packedSig = data.packMode(SmartSessionMode.UNSAFE_ENABLE, signerId);
     }
 
+    function encodeEnableAddPolicies(
+        SignerId signerId,
+        bytes memory sig,
+        EnableSessions memory enableData
+    )
+        internal
+        pure
+        returns (bytes memory packedSig)
+    {
+        bytes memory data = abi.encode(enableData, sig);
+        data = data.flzCompress();
+        packedSig = data.packMode(SmartSessionMode.UNSAFE_ENABLE_ADD_POLICIES, signerId);
+    }
+
     function decodeEnable(
         bytes calldata packedSig
     )
@@ -76,7 +93,7 @@ library EncodeLib {
     function digest(
         ISigner signer,
         uint256 nonce,
-        EnableSessions memory data,
+        Session memory session,
         SmartSessionMode mode
     )
         internal
@@ -89,11 +106,11 @@ library EncodeLib {
                 nonce,
                 block.chainid,
                 mode,
-                data.isigner,
-                data.isignerInitData,
-                data.userOpPolicies,
-                data.erc1271Policies,
-                data.actions
+                session.isigner,
+                session.isignerInitData,
+                session.userOpPolicies,
+                session.erc1271Policies,
+                session.actions
             )
         );
     }
@@ -110,4 +127,26 @@ library EncodeLib {
     {
         context = abi.encodePacked(nonceKey, mode, signerId, abi.encode(enableData));
     }
+
+    function parseHashAndChainIdByIndex(bytes memory hashesAndChainIds, uint8 index) internal pure returns (uint64 chainId, bytes32 hash) {
+        if (index > hashesAndChainIds.length / 0x28) { //0x28 = 40 = 32bytes+8bytes
+            revert HashIndexOutOfBounds(index);
+        }
+        assembly {
+            let offset := add(hashesAndChainIds, add(0x20, mul(index, 0x28)))
+            chainId := shr(192, mload(offset))
+            hash := mload(add(offset, 0x08))
+        }
+    }
+
+    function encodeHashesAndChainIds(uint64[] memory chainIds, bytes32[] memory hashes) internal pure returns (bytes memory hashesAndChainIds) {
+        uint256 length = chainIds.length;
+        if (chainIds.length != hashes.length) {
+            revert ChainIdAndHashesLengthMismatch(length, hashes.length);
+        }
+        for (uint256 i; i < length; i++) {
+            hashesAndChainIds = abi.encodePacked(hashesAndChainIds, chainIds[i], hashes[i]);
+        }
+    }
+
 }
