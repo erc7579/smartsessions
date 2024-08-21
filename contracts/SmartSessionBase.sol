@@ -201,4 +201,8 @@ abstract contract SmartSessionBase is ERC7579ValidatorBase {
     function _isISignerSet(SignerId signerId, address account) internal view returns (bool) {
         return address($isigners[signerId][account].isigner) != address(0);
     }
+
+    function getNonce(ISigner signer, address account) external view returns (uint256) {
+        return $signerNonce[signer][account];
+    }
 }

@@ -10,7 +10,7 @@ contract EnableSessionViaUserOpTest is BaseTest {
         super.setUp();
     }
 
-    function test_enable_exec() public returns (SignerId signerId) {
+    function test_enable_exec() public returns (SignerId signerId, EnableSessions memory enableSessions) {
         // get userOp from ModuleKit
 
         address _target = address(target);
@@ -24,7 +24,7 @@ contract EnableSessionViaUserOpTest is BaseTest {
             txValidator: address(smartSession)
         });
 
-        EnableSessions memory enableSessions = EnableSessions({
+        enableSessions = EnableSessions({
             isigner: ISigner(address(yesSigner)),
             salt: bytes32(0),
             isignerInitData: "mockInitData",
@@ -37,7 +37,8 @@ contract EnableSessionViaUserOpTest is BaseTest {
         // predict signerId correlating to EnableSessions
         signerId = smartSession.getSignerId(enableSessions.isigner, enableSessions.isignerInitData);
 
-        // get hash for enable signature.
+        // get hash for enable signature. A nonce is in here
+        uint256 nonceBefore = smartSession.getNonce(enableSessions.isigner, instance.account);
         bytes32 hash = smartSession.getDigest(
             enableSessions.isigner, instance.account, enableSessions, SmartSessionMode.UNSAFE_ENABLE
         );
@@ -52,6 +53,9 @@ contract EnableSessionViaUserOpTest is BaseTest {
         userOpData.execUserOps();
 
         assertEq(target.value(), 1337);
+
+        uint256 nonceAfter = smartSession.getNonce(enableSessions.isigner, instance.account);
+        assertEq(nonceAfter, nonceBefore + 1, "Nonce not updated");
 
         // now lets re-use the same session to execute another userOp
         userOpData = instance.getExecOps({
@@ -111,7 +115,7 @@ contract EnableSessionViaUserOpTest is BaseTest {
     }
 
     function test_disableSession() public {
-        SignerId signerId = test_enable_exec();
+        (SignerId signerId, EnableSessions memory enableSessions) = test_enable_exec();
 
         vm.prank(instance.account);
 
@@ -128,6 +132,11 @@ contract EnableSessionViaUserOpTest is BaseTest {
         // session key signs the userOP NOTE: this is using encodeUse() since the session is already enabled
         userOpData.userOp.signature = EncodeLib.encodeUse({ signerId: signerId, sig: hex"4141414141" });
 
+        instance.expect4337Revert();
+        userOpData.execUserOps();
+
+        // lets try to replay the same session. THIS MUST FAIL, otherwise session keys can just reenable themselves
+        userOpData.userOp.signature = EncodeLib.encodeEnable(signerId, hex"4141414142", enableSessions);
         instance.expect4337Revert();
         userOpData.execUserOps();
     }
