@@ -178,7 +178,7 @@ contract MultiKeySignerTest is SmartSessionBasicTest {
         bytes[] memory sigs = Solarray.bytess(eoaSig, passkeySig);
 
         userOpData.userOp.signature = EncodeLib.encodeEnable(
-            smartSession.getSignerId(session.isigner, session.isignerInitData), abi.encode(sigs), enableData
+            smartSession.getSignerId(session), abi.encode(sigs), enableData
         );
 
         userOpData.execUserOps();
@@ -195,11 +195,10 @@ contract MultiKeySignerTest is SmartSessionBasicTest {
         //prepare context
         uint128 expire = uint128(block.timestamp + 60*60*24);
         EnableSessions memory enableData = _prepareMockEnableData(expire);
-        SignerId signerId = smartSession.getSignerId(enableData.sessionToEnable.isigner, enableData.sessionToEnable.isignerInitData);
         bytes memory context = EncodeLib.encodeContext(
             nonceKey, //192 bits, 24 bytes
             ModeLib.encodeSimpleSingle(), //execution mode, 32 bytes
-            signerId,
+            smartSession.getSignerId(enableData.sessionToEnable),
             enableData  //abi.encode
         );
 

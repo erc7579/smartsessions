@@ -37,7 +37,7 @@ contract SmartSessionTestHelpers is Test {
         signature = abi.encodePacked(r, s, v);
     }
 
-    function makeMultiChainEnableData(Session memory session, AccountInstance memory instance) internal view returns (EnableSessions memory enableData) {
+    function makeMultiChainEnableData(Session memory session, AccountInstance memory instance, SmartSessionMode mode) internal view returns (EnableSessions memory enableData) {
     
         enableData = EnableSessions({
             sessionIndex: 1,
@@ -46,7 +46,12 @@ contract SmartSessionTestHelpers is Test {
             permissionEnableSig: ""
         });
 
-        bytes32 sessionDigest = smartSession.getDigest(session.isigner, instance.account, session, SmartSessionMode.UNSAFE_ENABLE);
+        bytes32 sessionDigest = smartSession.getDigest({
+            isigner: session.isigner, 
+            account: instance.account, 
+            data: session, 
+            mode: mode
+        });
 
         enableData.hashesAndChainIds = abi.encodePacked(
             uint64(181818), //random chainId
@@ -72,8 +77,8 @@ contract SmartSessionTestBase is SmartSessionTestHelpers, RhinestoneModuleKit {
     Account sessionSigner1;
     Account sessionSigner2;
 
-    SignerId defaultSigner1;
-    SignerId defaultSigner2;
+    SignerId defaultSignerId1;
+    SignerId defaultSignerId2;
 
     function setUp() public virtual {
         instance = makeAccountInstance("smartaccount");
@@ -124,7 +129,7 @@ contract SmartSessionBasicTest is SmartSessionTestBase {
         });
 
         SignerId[] memory signerIds = smartSession.enableSessions(sessions);
-        defaultSigner1 = signerIds[0];
+        defaultSignerId1 = signerIds[0];
         vm.stopPrank();
     }
 
@@ -136,7 +141,7 @@ contract SmartSessionBasicTest is SmartSessionTestBase {
             txValidator: address(smartSession)
         });
 
-        userOpData.userOp.signature = EncodeLib.encodeUse({ signerId: defaultSigner1, sig: hex"4141414141" });
+        userOpData.userOp.signature = EncodeLib.encodeUse({ signerId: defaultSignerId1, sig: hex"4141414141" });
         userOpData.execUserOps();
     }
 
@@ -163,12 +168,12 @@ contract SmartSessionBasicTest is SmartSessionTestBase {
             actions: actions
         });
 
-        EnableSessions memory enableData = makeMultiChainEnableData(session, instance);
+        EnableSessions memory enableData = makeMultiChainEnableData(session, instance, SmartSessionMode.UNSAFE_ENABLE);
 
         bytes32 hash = keccak256(enableData.hashesAndChainIds);
         enableData.permissionEnableSig = abi.encodePacked(instance.defaultValidator, sign(hash, 1));
         
-        SignerId signerId = smartSession.getSignerId(session.isigner, session.isignerInitData);
+        SignerId signerId = smartSession.getSignerId(session);
         userOpData.userOp.signature = EncodeLib.encodeEnable(signerId, hex"4141414142", enableData);
         userOpData.execUserOps();
     }

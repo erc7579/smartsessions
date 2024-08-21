@@ -27,14 +27,14 @@ import "./DataTypes.sol";
 import { SmartSessionBase } from "./SmartSessionBase.sol";
 import { IdLib } from "./lib/IdLib.sol";
 import { MultichainHashLib } from "./lib/MultichainHashLib.sol";
+import { SmartSessionModeLib } from "./lib/SmartSessionModeLib.sol";
 
 import "forge-std/console2.sol";
 
 /**
  * TODO:
- *     - Multichain
 *      - 7739
- *     - ADD salt to signerId generation + rename SignerId to SessionId  + VERIFY::  The flow where permission doesn't enable the new signer, just adds policies for the existing one
+*      - rename SignerId ?
  *     - Permissions hook (spending limits?)
  */
 
@@ -52,6 +52,7 @@ contract SmartSession is SmartSessionBase {
     using ExecutionLib for *;
     using EncodeLib for *;
     using MultichainHashLib for EnableSessions;
+    using SmartSessionModeLib for SmartSessionMode;
 
     error InvalidEnableSignature(address account, bytes32 hash);
     error InvalidSignerId();
@@ -91,7 +92,7 @@ contract SmartSession is SmartSessionBase {
         // If the SmartSession.USE mode was selected, no futher policies have to be enabled.
         // We can go straight to userOp validation
         // This condition is the average case, so should be handled as the first condition
-        if (mode == SmartSessionMode.USE) {
+        if (mode.isUseMode()) {
             vd = _enforcePolicies({
                 signerId: signerId,
                 userOpHash: userOpHash,
@@ -105,7 +106,7 @@ contract SmartSession is SmartSessionBase {
         // The signature of the user on the EnableSessions data will be checked
         // If the signature is valid, the policies and signer will be enabled
         // after enabling the session, the policies will be enforced on the userOp similarly to the SmartSession.USE
-        else if (mode == SmartSessionMode.ENABLE || mode == SmartSessionMode.UNSAFE_ENABLE) {
+        else if (mode.isEnableMode()) {
             // _enablePolicies slices out the data required to enable a session from userOp.signature and returns the
             // data required to use the actual session
             bytes memory usePermissionSig =
@@ -147,7 +148,7 @@ contract SmartSession is SmartSessionBase {
         bytes32 hash =  enableData.getAndVerifyDigest(nonce, mode);
 
         // ensure that the signerId, that was provided, is the correct getSignerId
-        if (signerId != getSignerId(enableData.sessionToEnable.isigner, enableData.sessionToEnable.isignerInitData)) {
+        if (signerId != getSignerId(enableData.sessionToEnable)) {
             revert InvalidSignerId();
         }
 
@@ -160,18 +161,15 @@ contract SmartSession is SmartSessionBase {
         }
 
         // enable ISigner for this session
-        // if it has already been enabled and the enableData.isigner is address(0), that means
-        // this enableData is to add policies, not to enable a new signer => skip this step
-        // !!! the flow above is now broken as signerId depends on isigner address, so if address(0)
-        // is passed, it won't generate same signerId, so we can't user address(0) as isigner
-        // to skip enabling new isigner
-        if (!_isISignerSet(signerId, account) && address(enableData.sessionToEnable.isigner) != address(0)) {
+        // if we do not have to enable ISigner, we just add policies
+        // Attention: policies to add should be all new.
+        if (!_isISignerSet(signerId, account) && mode.enableSigner()) {
             _enableISigner(signerId, account, enableData.sessionToEnable.isigner, enableData.sessionToEnable.isignerInitData);
-        }
+        } 
 
         // if SmartSessionMode.ENABLE is used, the Registry has to be queried to ensure that Policies and Signers are
         // considered safe
-        bool useRegistry = mode != SmartSessionMode.UNSAFE_ENABLE;
+        bool useRegistry = mode.useRegistry();
 
         // enable all policies for this session
         $userOpPolicies.enable({
