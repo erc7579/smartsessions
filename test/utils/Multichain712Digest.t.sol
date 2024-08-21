@@ -52,7 +52,7 @@ contract Multichain712DigestTest is BaseTest {
             });
             sessionsAndChainIds[i] = chainSession;
 
-            bytes32 digest = session.sessionDigest(SmartSessionMode.UNSAFE_ENABLE, nonces[i]);
+            bytes32 digest = session.sessionDigest(modes[i], nonces[i]);
             ChainDigest memory chainDigest = ChainDigest({
                 chainId: chainIds[i],
                 sessionDigest: digest

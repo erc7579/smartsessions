@@ -126,6 +126,9 @@ library HashLib {
         ));
     }
 
+    // it is exactly how signTypedData will hash Such an object
+    // when this object is an inner struct
+    // it won't use eip712 domain for it as it is inner struct
     function sessionDigest(
         Session memory session,
         SmartSessionMode mode,
