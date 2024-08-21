@@ -15,7 +15,7 @@ bytes32 constant POLICY_DATA_TYPEHASH = keccak256(bytes(POLICY_DATA_NOTATION));
 bytes32 constant ACTION_DATA_TYPEHASH = keccak256(bytes(ACTION_DATA_NOTATION));
 bytes32 constant ERC7739_DATA_TYPEHASH = keccak256(bytes(ERC7739_DATA_NOTATION));
 
-string constant SESSION_NOTATION = "Session(uint8 mode,address isigner,bytes32 salt,bytes isignerInitData,PolicyData[] userOpPolicies,ERC7739Data erc7739Policies,ActionData[] actions)";
+string constant SESSION_NOTATION = "Session(address account,address smartSession,uint8 mode,address isigner,bytes32 salt,bytes isignerInitData,PolicyData[] userOpPolicies,ERC7739Data erc7739Policies,ActionData[] actions)";
 string constant CHAIN_SESSION_NOTATION = "ChainSession(uint64 chainId,Session session)";
 string constant MULTI_CHAIN_SESSION_NOTATION = "MultiChainSession(ChainSession[] sessionsAndChainIds)";
 
@@ -82,9 +82,12 @@ library HashLib {
         ));
     }
 
+    // for testing purposes. never used inside the SmartSession as it never has all the sessions
     // need to provide modes and nonces from outside as they are from other chains
     function multichainDigest(
         MultiChainSession memory multichainSession, 
+        address[] memory accounts,
+        address[] memory smartSessions,
         SmartSessionMode[] memory modes,
         uint256[] memory nonces
     ) internal pure returns (bytes32) {  
@@ -95,7 +98,7 @@ library HashLib {
         bytes32 _hash = keccak256(
             abi.encode(
                 MULTICHAIN_SESSION_TYPEHASH,
-                multichainSession.sessionsAndChainIds.hashChainSessionArray(modes, nonces)
+                multichainSession.sessionsAndChainIds.hashChainSessionArray(modes, nonces, accounts, smartSessions)
             )
         );
         return _hash;
@@ -104,12 +107,14 @@ library HashLib {
     function hashChainSessionArray(
         ChainSession[] memory chainSessionArray,
         SmartSessionMode[] memory modes,
-        uint256[] memory nonces
+        uint256[] memory nonces,
+        address[] memory accounts,
+        address[] memory smartSessions
     ) internal pure returns (bytes32) {
         uint256 length = chainSessionArray.length;
         bytes32[] memory hashes = new bytes32[](length);
         for (uint256 i; i < length; i++) {
-            hashes[i] = chainSessionArray[i].hashChainSession(modes[i], nonces[i]);
+            hashes[i] = chainSessionArray[i].hashChainSession(modes[i], nonces[i], accounts[i], smartSessions[i]);
         }
         return keccak256(abi.encodePacked(hashes));
     }
@@ -117,31 +122,52 @@ library HashLib {
     function hashChainSession(
         ChainSession memory chainSession,
         SmartSessionMode mode,
-        uint256 nonce
+        uint256 nonce,
+        address account,
+        address smartSession
     ) internal pure returns (bytes32) {
         return keccak256(abi.encode(
             CHAIN_SESSION_TYPEHASH, 
             chainSession.chainId, 
-            chainSession.session.sessionDigest(mode, nonce)
+            chainSession.session._sessionDigest(account, smartSession, mode, nonce)
         ));
     }
 
-    // it is exactly how signTypedData will hash Such an object
-    // when this object is an inner struct
-    // it won't use eip712 domain for it as it is inner struct
+    // To be used on-chain
     function sessionDigest(
         Session memory session,
+        address account,
         SmartSessionMode mode,
         uint256 nonce
     )
         internal
+        view
+        returns (bytes32)
+    {   
+        return _sessionDigest(session, account, address(this), mode, nonce);
+    }
+    
+    // should never be used directly on-chain, only via sessionDigest
+    // only for external use
+    // it is exactly how signTypedData will hash Such an object
+    // when this object is an inner struct
+    // it won't use eip712 domain for it as it is inner struct
+    function _sessionDigest(
+        Session memory session,
+        address account,
+        address smartSession, // for testing purposes
+        SmartSessionMode mode,
+        uint256 nonce
+    ) internal
         pure
         returns (bytes32 _hash)
     {   
-        // add account address, smart session address here
+        // chainId is not needed as it is in the ChainSession
         _hash = keccak256(
             abi.encode(
                 SESSION_TYPEHASH,
+                account,
+                smartSession,
                 uint8(mode), // Include mode as uint8
                 address(session.isigner),
                 session.salt,
@@ -205,8 +231,13 @@ library HashLib {
         return keccak256(abi.encodePacked(content));
     }
 
-    function getAndVerifyDigest(EnableSessions memory enableData, uint256 nonce, SmartSessionMode mode) internal view returns (bytes32 digest) {
-        bytes32 computedHash = enableData.sessionToEnable.sessionDigest(mode, nonce);
+    function getAndVerifyDigest(
+        EnableSessions memory enableData, 
+        address account, 
+        uint256 nonce, 
+        SmartSessionMode mode
+    ) internal view returns (bytes32 digest) {
+        bytes32 computedHash = enableData.sessionToEnable.sessionDigest(account, mode, nonce);
         
         uint64 providedChainId = enableData.hashesAndChainIds[enableData.sessionIndex].chainId;
         bytes32 providedHash =  enableData.hashesAndChainIds[enableData.sessionIndex].sessionDigest;

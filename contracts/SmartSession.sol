@@ -148,7 +148,7 @@ contract SmartSession is SmartSessionBase, SmartSessionERC7739 {
 
         // in order to prevent replay of an enable flow, we have to iterate a nonce.
         uint256 nonce = $signerNonce[signerId][account]++;
-        bytes32 hash =  enableData.getAndVerifyDigest(nonce, mode);
+        bytes32 hash =  enableData.getAndVerifyDigest(account, nonce, mode);
 
         // ensure that the signerId, that was provided, is the correct getSignerId
         if (signerId != getSignerId(enableData.sessionToEnable)) {

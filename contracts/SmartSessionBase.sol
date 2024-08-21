@@ -201,7 +201,7 @@ abstract contract SmartSessionBase is ERC7579ValidatorBase {
         returns (bytes32)
     {
         uint256 nonce = $signerNonce[signerId][account];
-        return data.sessionDigest({ mode: mode, nonce: nonce });
+        return data.sessionDigest({ account: account, mode: mode, nonce: nonce });
     }
 
     function getSignerId(Session memory session) public pure returns (SignerId signerId) {

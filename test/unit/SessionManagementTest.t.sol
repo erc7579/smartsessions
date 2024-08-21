@@ -115,8 +115,7 @@ contract SessionManagementTest is BaseTest {
         assertEq(target.value(), 1337);
     }
 
-    function test_add_policies_to_session (/*bytes32 salt*/) public {
-        bytes32 salt = keccak256('salt');
+    function test_add_policies_to_session (bytes32 salt) public {
         (SignerId signerId, EnableSessions memory enableSessions) = test_enable_exec(salt);
 
         assertFalse(usageLimitPolicy.isInitialized(address(smartSession), instance.account));
