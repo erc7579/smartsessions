@@ -24,7 +24,9 @@ import { ConfigLib } from "./lib/ConfigLib.sol";
 import { EncodeLib } from "./lib/EncodeLib.sol";
 
 import "./DataTypes.sol";
+import { HashLib } from "./lib/HashLib.sol";
 import { SmartSessionBase } from "./SmartSessionBase.sol";
+import { SmartSessionERC7739 } from "./SmartSessionERC7739.sol";
 import { IdLib } from "./lib/IdLib.sol";
 
 import "forge-std/console2.sol";
@@ -45,9 +47,10 @@ import "forge-std/console2.sol";
  * @title SmartSession
  * @author zeroknots.eth (rhinestone) & Filipp Makarov (biconomy)
  */
-contract SmartSession is SmartSessionBase {
+contract SmartSession is SmartSessionBase, SmartSessionERC7739 {
     using SentinelList4337Lib for SentinelList4337Lib.SentinelList;
     using IdLib for *;
+    using HashLib for *;
     using PolicyLib for *;
     using SignerLib for *;
     using ConfigLib for *;
@@ -147,7 +150,7 @@ contract SmartSession is SmartSessionBase {
         uint256 nonce = $signerNonce[enableData.isigner][account]++;
 
         // derive EIP712 of the EnableSessions data. The account owner is expected to sign this via ERC1271
-        bytes32 hash = enableData.isigner.digest(nonce, enableData, mode);
+        bytes32 hash = enableData.digest({ mode: mode, nonce: nonce });
         // ensure that the signerId, that was provided, is the correct getSignerId
         if (signerId != getSignerId(enableData.isigner, enableData.isignerInitData)) {
             revert InvalidSignerId();
@@ -186,7 +189,7 @@ contract SmartSession is SmartSessionBase {
         $erc1271Policies.enable({
             signerId: signerId,
             sessionId: signerId.toErc1271PolicyId().toSessionId(),
-            policyDatas: enableData.erc1271Policies,
+            policyDatas: enableData.erc7739Policies.erc1271Policies,
             smartAccount: account,
             useRegistry: useRegistry
         });
@@ -303,19 +306,6 @@ contract SmartSession is SmartSessionBase {
         }
     }
 
-    // TODO: implement ERC1271 checks
-    function isValidSignatureWithSender(
-        address sender,
-        bytes32 hash,
-        bytes calldata signature
-    )
-        external
-        view
-        virtual
-        override
-        returns (bytes4 sigValidationResult)
-    { }
-
     function isPermissionEnabled(
         SignerId signerId,
         address account,
@@ -326,7 +316,7 @@ contract SmartSession is SmartSessionBase {
         external
         view
         returns (bool isEnabled)
-    {   
+    {
         //if ISigner is not set for signerId, the permission has not been enabled yet
         if (!_isISignerSet(signerId, account)) {
             return false;
@@ -355,5 +345,64 @@ contract SmartSession is SmartSessionBase {
         // partly enabled permission will prevent the full permission to be enabled
         // and we can not consider it being fully enabled, as it missed some policies we'd want to enforce
         // as per given 'enableData'
+    }
+
+    function isValidSignatureWithSender(
+        address sender,
+        bytes32 hash,
+        bytes calldata signature
+    )
+        external
+        view
+        override
+        returns (bytes4 result)
+    {
+        // disallow that session can be authorized by other sessions
+        if (sender == address(this)) return 0xffffffff;
+
+        bool success = _erc1271IsValidSignatureViaNestedEIP712(sender, hash, _erc1271UnwrapSignature(signature));
+        /// @solidity memory-safe-assembly
+        assembly {
+            // `success ? bytes4(keccak256("isValidSignature(bytes32,bytes)")) : 0xffffffff`.
+            // We use `0xffffffff` for invalid, in convention with the reference implementation.
+            result := shl(224, or(0x1626ba7e, sub(0, iszero(success))))
+        }
+    }
+
+    function _erc1271IsValidSignatureNowCalldata(
+        address sender,
+        bytes32 hash,
+        bytes calldata signature,
+        bytes calldata contents
+    )
+        internal
+        view
+        virtual
+        override
+        returns (bool valid)
+    {
+        console2.log(string(contents));
+        bytes32 contentHash = string(contents).hashERC7739Content();
+        SignerId signerId = SignerId.wrap(bytes32(signature[0:32]));
+        signature = signature[32:];
+        SessionId sessionId = signerId.toErc1271PolicyId().toSessionId(msg.sender);
+        if (!$enabledERC7739Content[sessionId][contentHash][msg.sender]) return false;
+        valid = $erc1271Policies.checkERC1271({
+            account: msg.sender,
+            requestSender: sender,
+            hash: hash,
+            signature: signature,
+            signerId: signerId,
+            sessionId: sessionId,
+            minPoliciesToEnforce: 0
+        });
+
+        if (!valid) return false;
+        // this call reverts if the ISigner is not set or signature is invalid
+        return $isigners.isValidISigner({ hash: hash, account: msg.sender, signerId: signerId, signature: signature });
+    }
+
+    function _domainNameAndVersion() internal pure override returns (string memory, string memory) {
+        return ("SmartSession", "1");
     }
 }

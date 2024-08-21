@@ -41,19 +41,14 @@ struct SignerConf {
 }
 
 struct EnableSessions {
+    // SignerID is the part of the packedSig, so doesnt have to be in here
     ISigner isigner;
     bytes32 salt;
     bytes isignerInitData;
     PolicyData[] userOpPolicies;
-    PolicyData[] erc1271Policies;
+    ERC7739Data erc7739Policies;
     ActionData[] actions;
     bytes permissionEnableSig;
-}
-
-// TODO: add this to session structs
-struct SignerData {
-    ISigner isigner;
-    bytes isignerInitData;
 }
 
 struct PolicyData {
@@ -64,6 +59,11 @@ struct PolicyData {
 struct ActionData {
     ActionId actionId;
     PolicyData[] actionPolicies;
+}
+
+struct ERC7739Data {
+    string[] allowedERC7739Content;
+    PolicyData[] erc1271Policies;
 }
 
 ////////////////////////

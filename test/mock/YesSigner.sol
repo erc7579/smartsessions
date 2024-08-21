@@ -69,6 +69,7 @@ contract YesSigner is ISigner /*, TrustedForwarderWithId*/ {
         bytes calldata data
     )
         external
+        view
         override
         returns (bool validSig)
     {

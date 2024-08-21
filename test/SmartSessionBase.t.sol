@@ -76,13 +76,17 @@ contract SmartSessionBaseTest is RhinestoneModuleKit, Test {
         vm.startPrank(instance.account);
         PolicyData[] memory policyData = new PolicyData[](1);
         policyData[0] = PolicyData({ policy: address(yesPolicy), initData: "" });
+
+        ERC7739Data memory erc7739Data =
+            ERC7739Data({ allowedERC7739Content: new string[](0), erc1271Policies: new PolicyData[](0) });
+
         EnableSessions[] memory sessions = new EnableSessions[](1);
         sessions[0] = EnableSessions({
             isigner: ISigner(address(yesSigner)),
             salt: bytes32(0),
             isignerInitData: "defaultSigner1",
             userOpPolicies: policyData,
-            erc1271Policies: new PolicyData[](0),
+            erc7739Policies: erc7739Data,
             actions: new ActionData[](0),
             permissionEnableSig: ""
         });
@@ -118,12 +122,15 @@ contract SmartSessionBaseTest is RhinestoneModuleKit, Test {
         ActionData[] memory actions = new ActionData[](1);
         actions[0] = ActionData({ actionId: ActionId.wrap(bytes32(hex"01")), actionPolicies: policyData });
 
+        ERC7739Data memory erc7739Data =
+            ERC7739Data({ allowedERC7739Content: new string[](0), erc1271Policies: new PolicyData[](0) });
+
         EnableSessions memory enableData = EnableSessions({
             isigner: ISigner(address(yesSigner)),
             salt: bytes32(0),
             isignerInitData: "defaultSigner2",
             userOpPolicies: policyData,
-            erc1271Policies: new PolicyData[](0),
+            erc7739Policies: erc7739Data,
             actions: actions,
             permissionEnableSig: ""
         });

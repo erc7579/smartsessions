@@ -68,11 +68,7 @@ contract MultiKeySignerTest is SmartSessionBaseTest {
         userOpBuilder = new UserOperationBuilder(address(instance.aux.entrypoint));
         vm.etch(address(mockValidatorE), address(instance.defaultValidator).code);
 
-        instance.installModule({
-            moduleTypeId: MODULE_TYPE_VALIDATOR,
-            module: address(mockValidatorE),
-            data: ""
-        });
+        instance.installModule({ moduleTypeId: MODULE_TYPE_VALIDATOR, module: address(mockValidatorE), data: "" });
 
         (uint256 x, uint256 y) = generatePublicKey(passkey.key);
 
@@ -95,6 +91,8 @@ contract MultiKeySignerTest is SmartSessionBaseTest {
 
         vm.startPrank(instance.account);
 
+        ERC7739Data memory erc7739Data =
+            ERC7739Data({ allowedERC7739Content: new string[](0), erc1271Policies: new PolicyData[](0) });
         PolicyData[] memory policyData = new PolicyData[](1);
         policyData[0] = PolicyData({ policy: address(yesPolicy), initData: "" });
         EnableSessions[] memory sessions = new EnableSessions[](1);
@@ -103,7 +101,7 @@ contract MultiKeySignerTest is SmartSessionBaseTest {
             salt: bytes32(0),
             isignerInitData: params,
             userOpPolicies: policyData,
-            erc1271Policies: new PolicyData[](0),
+            erc7739Policies: erc7739Data,
             actions: new ActionData[](0),
             permissionEnableSig: ""
         });
@@ -143,6 +141,9 @@ contract MultiKeySignerTest is SmartSessionBaseTest {
         PolicyData[] memory policyData = new PolicyData[](1);
         policyData[0] = PolicyData({ policy: address(yesPolicy), initData: "" });
 
+        ERC7739Data memory erc7739Data =
+            ERC7739Data({ allowedERC7739Content: new string[](0), erc1271Policies: new PolicyData[](0) });
+
         ActionData[] memory actions = new ActionData[](1);
         actions[0] = ActionData({ actionId: ActionId.wrap(bytes32(hex"4242424201")), actionPolicies: policyData });
 
@@ -151,7 +152,7 @@ contract MultiKeySignerTest is SmartSessionBaseTest {
             salt: bytes32(0),
             isignerInitData: params,
             userOpPolicies: policyData,
-            erc1271Policies: new PolicyData[](0),
+            erc7739Policies: erc7739Data,
             actions: actions,
             permissionEnableSig: ""
         });
@@ -191,14 +192,14 @@ contract MultiKeySignerTest is SmartSessionBaseTest {
         uint192 nonceKey = uint192(uint160(address(smartSession))) << 32;
 
         //prepare context
-        uint128 expire = uint128(block.timestamp + 60*60*24);
+        uint128 expire = uint128(block.timestamp + 60 * 60 * 24);
         EnableSessions memory enableData = _prepareMockEnableData(expire);
         SignerId signerId = smartSession.getSignerId(enableData.isigner, enableData.isignerInitData);
         bytes memory context = EncodeLib.encodeContext(
             nonceKey, //192 bits, 24 bytes
             ModeLib.encodeSimpleSingle(), //execution mode, 32 bytes
             signerId,
-            enableData  //abi.encode
+            enableData //abi.encode
         );
 
         Execution[] memory executions = new Execution[](1);
@@ -217,11 +218,12 @@ contract MultiKeySignerTest is SmartSessionBaseTest {
 
         userOpData.userOp.signature = userOpBuilder.formatSignature(instance.account, userOpData.userOp, context);
         userOpData.execUserOps();
-        assertEq(target.getValue(), valueBefore+1);
+        assertEq(target.getValue(), valueBefore + 1);
     }
-    
+
     function test_decodeSigners() public {
-        bytes memory data = hex'0200887137dc5f7a1a418125b6b6ec9cd0b6a70d121f019bced0ecf8250c093a82dbf7b6490d122d5bf78ff6421369f6dc839961063837447acdff37242eea1b01f68b91ecab344c95a8ea76449422aaca8592843ba2a9';
+        bytes memory data =
+            hex"0200887137dc5f7a1a418125b6b6ec9cd0b6a70d121f019bced0ecf8250c093a82dbf7b6490d122d5bf78ff6421369f6dc839961063837447acdff37242eea1b01f68b91ecab344c95a8ea76449422aaca8592843ba2a9";
         Signer[] memory signers = this.decodeWrapper(data);
         assertEq(0, uint8(signers[0].signerType), "Type of 1st signer should be 0");
     }
@@ -233,11 +235,11 @@ contract MultiKeySignerTest is SmartSessionBaseTest {
     }
 
     function _prepareMockEnableData(uint128 expiry) internal view returns (EnableSessions memory enableData) {
-
         PolicyData[] memory actionPolicyData = new PolicyData[](1);
         bytes memory policyInitData = abi.encodePacked(expiry, uint128(0));
         actionPolicyData[0] = PolicyData({ policy: address(timeFramePolicy), initData: policyInitData });
-        ActionId actionId = ActionId.wrap(keccak256(abi.encodePacked(address(target), MockTarget.increaseValue.selector)));
+        ActionId actionId =
+            ActionId.wrap(keccak256(abi.encodePacked(address(target), MockTarget.increaseValue.selector)));
         ActionData[] memory actions = new ActionData[](1);
         actions[0] = ActionData({ actionId: actionId, actionPolicies: actionPolicyData });
 
@@ -249,12 +251,15 @@ contract MultiKeySignerTest is SmartSessionBaseTest {
         signers[1] = Signer({ signerType: SignerType.PASSKEY, data: abi.encode(data) });
         bytes memory params = signers._encodeSigners();
 
+        ERC7739Data memory erc7739Data =
+            ERC7739Data({ allowedERC7739Content: new string[](0), erc1271Policies: new PolicyData[](0) });
+
         enableData = EnableSessions({
             isigner: ISigner(address(cosigner)),
             salt: keccak256("salt"),
             isignerInitData: params,
             userOpPolicies: new PolicyData[](0),
-            erc1271Policies: new PolicyData[](0),
+            erc7739Policies: erc7739Data,
             actions: actions,
             permissionEnableSig: ""
         });

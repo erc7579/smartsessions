@@ -232,13 +232,16 @@ contract SmartSessionTest is RhinestoneModuleKit, Test {
         ActionData[] memory actions = new ActionData[](1);
         actions[0] = ActionData({ actionId: actionId, actionPolicies: erc1271Policies });
 
+        ERC7739Data memory erc7739Data =
+            ERC7739Data({ allowedERC7739Content: new string[](0), erc1271Policies: new PolicyData[](0) });
+
         EnableSessions[] memory sessions = new EnableSessions[](1);
         sessions[0] = EnableSessions({
             isigner: ISigner(address(simpleSigner)),
             salt: bytes32(0),
             isignerInitData: abi.encodePacked(sessionSigner1.addr),
             userOpPolicies: userOpPolicies,
-            erc1271Policies: erc1271Policies,
+            erc7739Policies: erc7739Data,
             actions: actions,
             permissionEnableSig: ""
         });
@@ -264,12 +267,15 @@ contract SmartSessionTest is RhinestoneModuleKit, Test {
         ActionData[] memory actions = new ActionData[](1);
         actions[0] = ActionData({ actionId: actionId, actionPolicies: actionPolicyData });
 
+        ERC7739Data memory erc7739Data =
+            ERC7739Data({ allowedERC7739Content: new string[](0), erc1271Policies: new PolicyData[](0) });
+
         enableData = EnableSessions({
             isigner: ISigner(address(simpleSigner)),
             salt: bytes32(0),
             isignerInitData: abi.encodePacked(sessionSigner2.addr),
             userOpPolicies: userOpPolicyData,
-            erc1271Policies: new PolicyData[](0),
+            erc7739Policies: erc7739Data,
             actions: actions,
             permissionEnableSig: ""
         });

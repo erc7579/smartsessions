@@ -7,9 +7,11 @@ import "../interfaces/IPolicy.sol";
 import "../interfaces/IRegistry.sol";
 import { SENTINEL, SentinelList4337Lib } from "sentinellist/SentinelList4337.sol";
 import { IdLib } from "./IdLib.sol";
+import { HashLib } from "./HashLib.sol";
 
 library ConfigLib {
     using SentinelList4337Lib for SentinelList4337Lib.SentinelList;
+    using HashLib for *;
     using ConfigLib for *;
     using AssociatedArrayLib for *;
     using IdLib for *;
@@ -65,8 +67,6 @@ library ConfigLib {
             // record every enabled actionId
             ActionData memory actionPolicyData = actionPolicyDatas[i];
             ActionId actionId = actionPolicyData.actionId;
-            // TODO: It is currently possible to push the same actionId several times
-            // won't be easy to clean. Introduce 'contains' check before pushing
             $self.enabledActionIds[signerId].push(smartAccount, ActionId.unwrap(actionId));
             SessionId sessionId = signerId.toSessionId(actionId);
             $self.actionPolicies[actionId].enable(
@@ -75,17 +75,18 @@ library ConfigLib {
         }
     }
 
-    function disable(SentinelList4337Lib.SentinelList storage $self, SessionId _sessionId, address account) internal {
-        (address[] memory entries,) = $self.getEntriesPaginated(account, SENTINEL, 32);
-
-        uint256 length = entries.length;
+    function enable(
+        mapping(SessionId => mapping(bytes32 => mapping(address => bool))) storage $enabledERC7739Content,
+        string[] memory contents,
+        SessionId sessionId,
+        address smartAccount
+    )
+        internal
+    {
+        uint256 length = contents.length;
         for (uint256 i; i < length; i++) {
-            address entry = entries[i];
-            // TODO: use try catch to prevent dos
-            // ISubPermission(entry).deinitForAccount(account, _sessionId);
-            ISubPermission(entry).onUninstall(abi.encodePacked(_sessionId, account));
+            bytes32 contentHash = contents[i].hashERC7739Content();
+            $enabledERC7739Content[sessionId][contentHash][smartAccount] = true;
         }
-
-        $self.popAll(account);
     }
 }

@@ -110,7 +110,11 @@ contract UserOperationBuilder is IUserOperationBuilder {
         EnableSessions memory enableData = abi.decode(context[88:], (EnableSessions));
 
         try IPermissionEnabled(permissionValidator).isPermissionEnabled(
-            signerId, smartAccount, enableData.userOpPolicies, enableData.erc1271Policies, enableData.actions
+            signerId,
+            smartAccount,
+            enableData.userOpPolicies,
+            enableData.erc7739Policies.erc1271Policies,
+            enableData.actions
         ) returns (bool isEnabled) {
             if (isEnabled) {
                 return EncodeLib.encodeUse(signerId, userOperation.signature);
