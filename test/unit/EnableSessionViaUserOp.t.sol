@@ -10,7 +10,7 @@ contract EnableSessionViaUserOpTest is BaseTest {
         super.setUp();
     }
 
-    function test_enable_exec() public returns (SignerId signerId, EnableSessions memory enableSessions) {
+    function test_enable_exec(bytes32 salt) public returns (SignerId signerId, EnableSessions memory enableSessions) {
         // get userOp from ModuleKit
 
         address _target = address(target);
@@ -26,7 +26,7 @@ contract EnableSessionViaUserOpTest is BaseTest {
 
         enableSessions = EnableSessions({
             isigner: ISigner(address(yesSigner)),
-            salt: bytes32(0),
+            salt: salt,
             isignerInitData: "mockInitData",
             userOpPolicies: _getEmptyPolicyDatas(address(yesPolicy)),
             erc7739Policies: _getEmptyERC7739Data("mockContent", _getEmptyPolicyDatas(address(yesPolicy))),
@@ -35,7 +35,7 @@ contract EnableSessionViaUserOpTest is BaseTest {
         });
 
         // predict signerId correlating to EnableSessions
-        signerId = smartSession.getSignerId(enableSessions.isigner, enableSessions.isignerInitData);
+        signerId = smartSession.getSignerId(enableSessions.isigner, enableSessions.salt, enableSessions.isignerInitData);
 
         // get hash for enable signature. A nonce is in here
         uint256 nonceBefore = smartSession.getNonce(enableSessions.isigner, instance.account);
@@ -75,10 +75,10 @@ contract EnableSessionViaUserOpTest is BaseTest {
         assertEq(target.value(), 1338);
     }
 
-    function test_exec() public returns (SignerId signerId) {
+    function test_exec(bytes32 salt) public returns (SignerId signerId) {
         EnableSessions memory enableSessions = EnableSessions({
             isigner: ISigner(address(yesSigner)),
-            salt: bytes32(0),
+            salt: salt,
             isignerInitData: "mockInitData",
             userOpPolicies: _getEmptyPolicyDatas(address(yesPolicy)),
             erc7739Policies: _getEmptyERC7739Data("mockContent", _getEmptyPolicyDatas(address(yesPolicy))),
@@ -86,7 +86,7 @@ contract EnableSessionViaUserOpTest is BaseTest {
             permissionEnableSig: ""
         });
 
-        signerId = smartSession.getSignerId(enableSessions.isigner, enableSessions.isignerInitData);
+        signerId = smartSession.getSignerId(enableSessions.isigner, enableSessions.salt, enableSessions.isignerInitData);
 
         EnableSessions[] memory enableSessionsArray = new EnableSessions[](1);
         enableSessionsArray[0] = enableSessions;
@@ -114,8 +114,8 @@ contract EnableSessionViaUserOpTest is BaseTest {
         assertEq(target.value(), 1337);
     }
 
-    function test_disableSession() public {
-        (SignerId signerId, EnableSessions memory enableSessions) = test_enable_exec();
+    function test_disableSession(bytes32 salt) public {
+        (SignerId signerId, EnableSessions memory enableSessions) = test_enable_exec(salt);
 
         vm.prank(instance.account);
 

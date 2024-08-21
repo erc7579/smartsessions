@@ -60,7 +60,7 @@ contract SmartSession is SmartSessionBase, SmartSessionERC7739 {
     using EncodeLib for *;
 
     error InvalidEnableSignature(address account, bytes32 hash);
-    error InvalidSignerId();
+    error InvalidSignerId(SignerId signerId);
     error UnsupportedExecutionType();
     error UnsupportedSmartSessionMode(SmartSessionMode mode);
     error InvalidUserOpSender(address sender);
@@ -154,8 +154,15 @@ contract SmartSession is SmartSessionBase, SmartSessionERC7739 {
         // derive EIP712 of the EnableSessions data. The account owner is expected to sign this via ERC1271
         bytes32 hash = enableData.digest({ mode: mode, nonce: nonce });
         // ensure that the signerId, that was provided, is the correct getSignerId
-        if (signerId != getSignerId(enableData.isigner, enableData.isignerInitData)) {
-            revert InvalidSignerId();
+        if (
+            signerId
+                != getSignerId({
+                    isigner: enableData.isigner,
+                    salt: enableData.salt,
+                    isignerInitData: enableData.isignerInitData
+                })
+        ) {
+            revert InvalidSignerId(signerId);
         }
 
         // require signature on account
@@ -218,7 +225,7 @@ contract SmartSession is SmartSessionBase, SmartSessionERC7739 {
     {
         // ensure that the signerId is enabled
         if (!$enabledSessions.contains({ account: account, value: SignerId.unwrap(signerId) })) {
-            revert InvalidSignerId();
+            revert InvalidSignerId(signerId);
         }
         /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
         /*                 Check SessionKey ISigner                   */
