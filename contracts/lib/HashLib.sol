@@ -4,30 +4,35 @@ pragma solidity ^0.8.25;
 import "../DataTypes.sol";
 import { EfficientHashLib } from "solady/utils/EfficientHashLib.sol";
 
+import "forge-std/console2.sol";
+
 // Typehashes
 
 // TODO: REBUILD WITH string.concat so easier to maintain
 
-bytes32 constant POLICY_DATA_TYPEHASH = keccak256("PolicyData(address policy,bytes initData)");
-bytes32 constant ACTION_DATA_TYPEHASH =
-    keccak256("ActionData(bytes32 actionId,PolicyData[] actionPolicies)PolicyData(address policy,bytes initData)");
-bytes32 constant ERC7739_DATA_TYPEHASH = keccak256(
-    "ERC7739Data(string[] allowedERC7739Content,PolicyData[] erc1271Policies)PolicyData(address policy,bytes initData)"
+string constant POLICY_DATA_NOTATION = "PolicyData(address policy,bytes initData)";
+string constant ACTION_DATA_NOTATION = "ActionData(bytes32 actionId,PolicyData[] actionPolicies)";
+string constant ERC7739_DATA_NOTATION = "ERC7739Data(string[] allowedERC7739Content,PolicyData[] erc1271Policies)";
+
+bytes32 constant POLICY_DATA_TYPEHASH = keccak256(bytes(POLICY_DATA_NOTATION));
+bytes32 constant ACTION_DATA_TYPEHASH = keccak256(bytes(ACTION_DATA_NOTATION));
+bytes32 constant ERC7739_DATA_TYPEHASH = keccak256(bytes(ERC7739_DATA_NOTATION));
+
+string constant SESSION_NOTATION = "Session(uint8 mode,address isigner,bytes32 salt,bytes isignerInitData,PolicyData[] userOpPolicies,ERC7739Data erc7739Policies,ActionData[] actions)";
+string constant CHAIN_SESSION_NOTATION = "ChainSession(uint64 chainId,Session session)";
+string constant MULTI_CHAIN_SESSION_NOTATION = "MultiChainSession(ChainSession[] sessionsAndChainIds)";
+
+bytes32 constant SESSION_TYPEHASH = keccak256(
+    abi.encodePacked(bytes(SESSION_NOTATION), bytes(POLICY_DATA_NOTATION), bytes(ACTION_DATA_NOTATION), bytes(ERC7739_DATA_NOTATION))
 );
 
-string constant SESSION_NOTATION = "Session(uint8 mode,address isigner,bytes32 salt,bytes isignerInitData,PolicyData[] userOpPolicies,ERC7739Data erc7739Policies,ActionData[] actions)PolicyData(address policy,bytes initData)ActionData(bytes32 actionId,PolicyData[] actionPolicies)ERC7739Data(string[] allowedERC7739Content,PolicyData[] erc1271Policies)";
-//string constant CHAIN_SESSION_NOTATION = string.concat("ChainSession(uint64 chainId,Session session)", SESSION_NOTATION);
-
-bytes32 constant SESSION_TYPEHASH = keccak256(bytes(SESSION_NOTATION));
-
 bytes32 constant CHAIN_SESSION_TYPEHASH = keccak256(
-    "ChainSession(uint64 chainId,Session session)Session(uint8 mode,address isigner,bytes32 salt,bytes isignerInitData,PolicyData[] userOpPolicies,ERC7739Data erc7739Policies,ActionData[] actions)PolicyData(address policy,bytes initData)ActionData(bytes32 actionId,PolicyData[] actionPolicies)ERC7739Data(string[] allowedERC7739Content,PolicyData[] erc1271Policies)"
+    abi.encodePacked(bytes(CHAIN_SESSION_NOTATION), bytes(SESSION_NOTATION), bytes(POLICY_DATA_NOTATION), bytes(ACTION_DATA_NOTATION), bytes(ERC7739_DATA_NOTATION))
 );
 
 bytes32 constant MULTICHAIN_SESSION_TYPEHASH = keccak256(
-    "MultiChainSession(ChainSession[] sessionsAndChainIds)ChainSession(uint64 chainId,Session session)Session(uint8 mode,address isigner,bytes32 salt,bytes isignerInitData,PolicyData[] userOpPolicies,ERC7739Data erc7739Policies,ActionData[] actions)PolicyData(address policy,bytes initData)ActionData(bytes32 actionId,PolicyData[] actionPolicies)ERC7739Data(string[] allowedERC7739Content,PolicyData[] erc1271Policies)"
+    abi.encodePacked(bytes(MULTI_CHAIN_SESSION_NOTATION), bytes(CHAIN_SESSION_NOTATION), bytes(SESSION_NOTATION), bytes(POLICY_DATA_NOTATION), bytes(ACTION_DATA_NOTATION), bytes(ERC7739_DATA_NOTATION))
 );
-
 
 
 library HashLib {
@@ -50,6 +55,7 @@ library HashLib {
                 hashesAndChainIds.hashChainDigestArray()
             )
         );
+
         return _hash;
         // TODO: ADD EIP 712 domain separator
         // for multichain 
