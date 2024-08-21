@@ -40,14 +40,19 @@ struct SignerConf {
     FlatBytesLib.Bytes config;
 }
 
-struct EnableSessions {
-    // SignerID is the part of the packedSig, so doesnt have to be in here
+struct Session {
     ISigner isigner;
     bytes32 salt;
     bytes isignerInitData;
     PolicyData[] userOpPolicies;
     ERC7739Data erc7739Policies;
     ActionData[] actions;
+}
+
+struct EnableSessions {
+    uint8 sessionIndex; 
+    bytes hashesAndChainIds;
+    Session sessionToEnable;
     bytes permissionEnableSig;
 }
 
@@ -75,7 +80,9 @@ struct UninstallSessions {
 enum SmartSessionMode {
     USE,
     ENABLE,
-    UNSAFE_ENABLE
+    UNSAFE_ENABLE,
+    ENABLE_ADD_POLICIES,
+    UNSAFE_ENABLE_ADD_POLICIES
 }
 
 struct Policy {

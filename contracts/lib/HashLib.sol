@@ -20,7 +20,7 @@ library HashLib {
     using HashLib for *;
 
     function digest(
-        EnableSessions memory enableSession,
+        Session memory enableSession,
         SmartSessionMode mode,
         uint256 nonce
     )

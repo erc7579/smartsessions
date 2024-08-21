@@ -25,23 +25,24 @@ contract SessionManagementTest is BaseTest {
             txValidator: address(smartSession)
         });
 
-        enableSessions = EnableSessions({
+        Session memory session = Session({
             isigner: ISigner(address(yesSigner)),
             salt: salt,
             isignerInitData: "mockInitData",
             userOpPolicies: _getEmptyPolicyDatas(address(yesPolicy)),
             erc7739Policies: _getEmptyERC7739Data("mockContent", _getEmptyPolicyDatas(address(yesPolicy))),
-            actions: _getEmptyActionDatas(ActionId.wrap(bytes32(uint256(1))), address(yesPolicy)),
-            permissionEnableSig: ""
+            actions: _getEmptyActionDatas(ActionId.wrap(bytes32(uint256(1))), address(yesPolicy))
         });
 
         // predict signerId correlating to EnableSessions
-        signerId = smartSession.getSignerId(enableSessions.isigner, enableSessions.salt, enableSessions.isignerInitData);
+        signerId = smartSession.getSignerId(session);
 
         // get hash for enable signature. A nonce is in here
         uint256 nonceBefore = smartSession.getNonce(signerId, instance.account);
-        bytes32 hash =
-            smartSession.getDigest(signerId, instance.account, enableSessions, SmartSessionMode.UNSAFE_ENABLE);
+
+        // create enable sessions object
+        enableSessions = _makeMultiChainEnableData(signerId, session, instance, SmartSessionMode.UNSAFE_ENABLE);
+        bytes32 hash = keccak256(enableSessions.hashesAndChainIds);
 
         // user signs the enable hash with wallet
         enableSessions.permissionEnableSig =
@@ -77,20 +78,19 @@ contract SessionManagementTest is BaseTest {
     }
 
     function test_exec(bytes32 salt) public returns (SignerId signerId) {
-        EnableSessions memory enableSessions = EnableSessions({
+        Session memory session = Session({
             isigner: ISigner(address(yesSigner)),
             salt: salt,
             isignerInitData: "mockInitData",
             userOpPolicies: _getEmptyPolicyDatas(address(yesPolicy)),
             erc7739Policies: _getEmptyERC7739Data("mockContent", _getEmptyPolicyDatas(address(yesPolicy))),
-            actions: _getEmptyActionDatas(ActionId.wrap(bytes32(uint256(1))), address(yesPolicy)),
-            permissionEnableSig: ""
+            actions: _getEmptyActionDatas(ActionId.wrap(bytes32(uint256(1))), address(yesPolicy))
         });
 
-        signerId = smartSession.getSignerId(enableSessions.isigner, enableSessions.salt, enableSessions.isignerInitData);
+        signerId = smartSession.getSignerId(session);
 
-        EnableSessions[] memory enableSessionsArray = new EnableSessions[](1);
-        enableSessionsArray[0] = enableSessions;
+        Session[] memory enableSessionsArray = new Session[](1);
+        enableSessionsArray[0] = session;
 
         vm.prank(instance.account);
         smartSession.enableSessions(enableSessionsArray);
@@ -154,24 +154,25 @@ contract SessionManagementTest is BaseTest {
             txValidator: address(smartSession)
         });
 
-        EnableSessions memory enableSessions = EnableSessions({
+        Session memory session = Session({
             isigner: ISigner(address(yesSigner)),
             salt: salt,
             isignerInitData: "mockInitData",
             userOpPolicies: _getEmptyPolicyDatas(address(yesPolicy)),
             erc7739Policies: _getEmptyERC7739Data("mockContent", _getEmptyPolicyDatas(address(yesPolicy))),
-            actions: _getEmptyActionDatas(ActionId.wrap(bytes32(uint256(1))), address(yesPolicy)),
-            permissionEnableSig: ""
+            actions: _getEmptyActionDatas(ActionId.wrap(bytes32(uint256(1))), address(yesPolicy))
         });
 
         // predict signerId correlating to EnableSessions
         SignerId signerId =
-            smartSession.getSignerId(enableSessions.isigner, enableSessions.salt, enableSessions.isignerInitData);
+            smartSession.getSignerId(session);
 
         // get hash for enable signature. A nonce is in here
         uint256 nonceBefore = smartSession.getNonce(signerId, instance.account);
-        bytes32 hash =
-            smartSession.getDigest(signerId, instance.account, enableSessions, SmartSessionMode.UNSAFE_ENABLE);
+        
+        // create enable sessions object
+        EnableSessions memory enableSessions = _makeMultiChainEnableData(signerId, session, instance, SmartSessionMode.UNSAFE_ENABLE);
+        bytes32 hash = keccak256(enableSessions.hashesAndChainIds);
 
         // user signs the enable hash with wallet
         enableSessions.permissionEnableSig =

@@ -16,21 +16,20 @@ contract MultipleSessionsTest is BaseTest {
     function _makeSession(bytes32 salt, uint256 setValue) public returns (SignerId signerId) {
         // get userOp from ModuleKit
 
-        EnableSessions memory enableSessions = EnableSessions({
+        Session memory session = Session({
             isigner: ISigner(address(yesSigner)),
             salt: salt,
             isignerInitData: "mockInitData",
             userOpPolicies: _getEmptyPolicyDatas(address(yesPolicy)),
             erc7739Policies: _getEmptyERC7739Data("mockContent", _getEmptyPolicyDatas(address(yesPolicy))),
-            actions: _getEmptyActionDatas(ActionId.wrap(bytes32(uint256(1))), address(yesPolicy)),
-            permissionEnableSig: ""
+            actions: _getEmptyActionDatas(ActionId.wrap(bytes32(uint256(1))), address(yesPolicy))
         });
 
         // predict signerId correlating to EnableSessions
-        signerId = smartSession.getSignerId(enableSessions.isigner, enableSessions.salt, enableSessions.isignerInitData);
+        signerId = smartSession.getSignerId(session);
 
-        EnableSessions[] memory enableSessionsArray = new EnableSessions[](1);
-        enableSessionsArray[0] = enableSessions;
+        Session[] memory enableSessionsArray = new Session[](1);
+        enableSessionsArray[0] = session;
 
         vm.prank(instance.account);
         SignerId[] memory signerIds = smartSession.enableSessions(enableSessionsArray);

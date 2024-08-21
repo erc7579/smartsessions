@@ -17,7 +17,7 @@ import { HashLib } from "./lib/HashLib.sol";
 abstract contract SmartSessionBase is ERC7579ValidatorBase {
     using EnumerableSet for EnumerableSet.Bytes32Set;
     using FlatBytesLib for *;
-    using HashLib for EnableSessions;
+    using HashLib for Session;
     using ConfigLib for *;
     using EncodeLib for *;
     using IdLib for *;
@@ -86,13 +86,13 @@ abstract contract SmartSessionBase is ERC7579ValidatorBase {
         });
     }
 
-    function enableSessions(EnableSessions[] calldata sessions) public returns (SignerId[] memory signerIds) {
+    function enableSessions(Session[] calldata sessions) public returns (SignerId[] memory signerIds) {
         uint256 length = sessions.length;
         signerIds = new SignerId[](length);
         for (uint256 i; i < length; i++) {
-            EnableSessions calldata session = sessions[i];
-            if (session.permissionEnableSig.length != 0) revert InvalidData();
-            SignerId signerId = getSignerId(session.isigner, session.salt, session.isignerInitData);
+            Session calldata session = sessions[i];
+            SignerId signerId = getSignerId(session);
+            $enabledSessions.add({ account: msg.sender, value: SignerId.unwrap(signerId) });
             _enableISigner({
                 signerId: signerId,
                 account: msg.sender,
@@ -155,7 +155,7 @@ abstract contract SmartSessionBase is ERC7579ValidatorBase {
     function onInstall(bytes calldata data) external override {
         if (data.length == 0) return;
 
-        EnableSessions[] calldata sessions;
+        Session[] calldata sessions;
         assembly ("memory-safe") {
             let dataPointer := add(data.offset, calldataload(data.offset))
 
@@ -193,7 +193,7 @@ abstract contract SmartSessionBase is ERC7579ValidatorBase {
     function getDigest(
         SignerId signerId,
         address account,
-        EnableSessions memory data,
+        Session memory data,
         SmartSessionMode mode
     )
         public
@@ -204,16 +204,8 @@ abstract contract SmartSessionBase is ERC7579ValidatorBase {
         return data.digest({ mode: mode, nonce: nonce });
     }
 
-    function getSignerId(
-        ISigner isigner,
-        bytes32 salt,
-        bytes memory isignerInitData
-    )
-        public
-        pure
-        returns (SignerId signerId)
-    {
-        signerId = SignerId.wrap(keccak256(abi.encode(isigner, salt, isignerInitData)));
+    function getSignerId(Session memory session) public pure returns (SignerId signerId) {
+        signerId = SignerId.wrap(keccak256(abi.encode(session.isigner, session.isignerInitData, session.salt)));
     }
 
     function _isISignerSet(SignerId signerId, address account) internal view returns (bool) {
