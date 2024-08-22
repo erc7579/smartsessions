@@ -14,8 +14,7 @@ import { IActionPolicy, I1271Policy } from "../interfaces/IPolicy.sol";
 import { IdLib } from "./IdLib.sol";
 
 import { IERC7579Account } from "erc7579/interfaces/IERC7579Account.sol";
-import { SENTINEL, SentinelList4337Lib } from "sentinellist/SentinelList4337.sol";
-import "../utils/EnumerableSet4337.sol";
+import { EnumerableSet } from "../utils/EnumerableSet4337.sol";
 
 library PolicyLib {
     using SentinelList4337Lib for SentinelList4337Lib.SentinelList;

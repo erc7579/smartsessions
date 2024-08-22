@@ -3,15 +3,12 @@ pragma solidity ^0.8.25;
 
 import "../DataTypes.sol";
 import { AssociatedArrayLib } from "../utils/AssociatedArrayLib.sol";
-import "../interfaces/IPolicy.sol";
-import "../interfaces/IRegistry.sol";
-import { SENTINEL, SentinelList4337Lib } from "sentinellist/SentinelList4337.sol";
+import { IRegistry, ModuleType } from "../interfaces/IRegistry.sol";
 import { IdLib } from "./IdLib.sol";
 import { HashLib } from "./HashLib.sol";
-import "../utils/EnumerableSet4337.sol";
+import { EnumerableSet } from "../utils/EnumerableSet4337.sol";
 
 library ConfigLib {
-    using SentinelList4337Lib for SentinelList4337Lib.SentinelList;
     using EnumerableSet for EnumerableSet.AddressSet;
     using HashLib for *;
     using ConfigLib for *;
