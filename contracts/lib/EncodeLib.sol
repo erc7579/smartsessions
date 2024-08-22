@@ -98,8 +98,16 @@ library EncodeLib {
         context = abi.encodePacked(nonceKey, mode, signerId, abi.encode(enableData));
     }
 
-    function parseHashAndChainIdByIndex(bytes memory hashesAndChainIds, uint8 index) internal pure returns (uint64 chainId, bytes32 hash) {
-        if (index > hashesAndChainIds.length / 0x28) { //0x28 = 40 = 32bytes+8bytes
+    function parseHashAndChainIdByIndex(
+        bytes memory hashesAndChainIds,
+        uint8 index
+    )
+        internal
+        pure
+        returns (uint64 chainId, bytes32 hash)
+    {
+        if (index > hashesAndChainIds.length / 0x28) {
+            //0x28 = 40 = 32bytes+8bytes
             revert HashIndexOutOfBounds(index);
         }
         assembly {
@@ -109,7 +117,14 @@ library EncodeLib {
         }
     }
 
-    function encodeHashesAndChainIds(uint64[] memory chainIds, bytes32[] memory hashes) internal pure returns (bytes memory hashesAndChainIds) {
+    function encodeHashesAndChainIds(
+        uint64[] memory chainIds,
+        bytes32[] memory hashes
+    )
+        internal
+        pure
+        returns (bytes memory hashesAndChainIds)
+    {
         uint256 length = chainIds.length;
         if (chainIds.length != hashes.length) {
             revert ChainIdAndHashesLengthMismatch(length, hashes.length);
@@ -118,5 +133,4 @@ library EncodeLib {
             hashesAndChainIds = abi.encodePacked(hashesAndChainIds, chainIds[i], hashes[i]);
         }
     }
-
 }

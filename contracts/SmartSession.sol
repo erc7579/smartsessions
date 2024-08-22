@@ -36,8 +36,8 @@ import "forge-std/console2.sol";
 
 /**
  * TODO:
-*      - 7739
-*      - rename SignerId ?
+ *      - 7739
+ *      - rename SignerId ?
  *     - Permissions hook (spending limits?)
  */
 
@@ -65,6 +65,12 @@ contract SmartSession is SmartSessionBase, SmartSessionERC7739 {
     error UnsupportedSmartSessionMode(SmartSessionMode mode);
     error InvalidUserOpSender(address sender);
     error PermissionPartlyEnabled();
+
+    uint256 private immutable MIN_POLICIES_TO_ENFORCE;
+
+    constructor(uint256 minPoliciesToEnforce) {
+        MIN_POLICIES_TO_ENFORCE = minPoliciesToEnforce;
+    }
 
     /**
      * ERC4337/ERC7579 validation function
@@ -150,7 +156,7 @@ contract SmartSession is SmartSessionBase, SmartSessionERC7739 {
 
         // in order to prevent replay of an enable flow, we have to iterate a nonce.
         uint256 nonce = $signerNonce[signerId][account]++;
-        bytes32 hash =  enableData.getAndVerifyDigest(nonce, mode);
+        bytes32 hash = enableData.getAndVerifyDigest(nonce, mode);
 
         // ensure that the signerId, that was provided, is the correct getSignerId
         if (signerId != getSignerId(enableData.sessionToEnable)) {
@@ -160,7 +166,7 @@ contract SmartSession is SmartSessionBase, SmartSessionERC7739 {
         // require signature on account
         // this is critical as it is the only way to ensure that the user is aware of the policies and signer
         // NOTE: although SmartSession implements a ERC1271 feature, it CAN NOT be used as a valid ERC1271 validator for
-        // this step.
+        // this step. SmartSessions ERC1271 function must prevent this
         if (IERC1271(account).isValidSignature(hash, enableData.permissionEnableSig) != EIP1271_MAGIC_VALUE) {
             revert InvalidEnableSignature(account, hash);
         }
@@ -169,8 +175,10 @@ contract SmartSession is SmartSessionBase, SmartSessionERC7739 {
         // if we do not have to enable ISigner, we just add policies
         // Attention: policies to add should be all new.
         if (!_isISignerSet(signerId, account) && mode.enableSigner()) {
-            _enableISigner(signerId, account, enableData.sessionToEnable.isigner, enableData.sessionToEnable.isignerInitData);
-        } 
+            _enableISigner(
+                signerId, account, enableData.sessionToEnable.isigner, enableData.sessionToEnable.isignerInitData
+            );
+        }
 
         // if SmartSessionMode.ENABLE is used, the Registry has to be queried to ensure that Policies and Signers are
         // considered safe
@@ -238,7 +246,7 @@ contract SmartSession is SmartSessionBase, SmartSessionERC7739 {
             userOp: userOp,
             signer: signerId,
             callOnIPolicy: abi.encodeCall(IUserOpPolicy.checkUserOpPolicy, (signerId.toSessionId(), userOp)),
-            minPoliciesToEnforce: 0
+            minPolicies: MIN_POLICIES_TO_ENFORCE
         });
 
         bytes4 selector = bytes4(userOp.callData[0:4]);
@@ -263,7 +271,11 @@ contract SmartSession is SmartSessionBase, SmartSessionERC7739 {
             }
             // DEFAULT EXEC & BATCH CALL
             else if (callType == CALLTYPE_BATCH) {
-                vd = $actionPolicies.actionPolicies.checkBatch7579Exec({ userOp: userOp, signerId: signerId });
+                vd = $actionPolicies.actionPolicies.checkBatch7579Exec({
+                    userOp: userOp,
+                    signerId: signerId,
+                    minPolicies: MIN_POLICIES_TO_ENFORCE
+                });
             }
             // DEFAULT EXEC & SINGLE CALL
             else if (callType == CALLTYPE_SINGLE) {
@@ -274,7 +286,8 @@ contract SmartSession is SmartSessionBase, SmartSessionERC7739 {
                     signerId: signerId,
                     target: target,
                     value: value,
-                    callData: callData
+                    callData: callData,
+                    minPolicies: MIN_POLICIES_TO_ENFORCE
                 });
             } else {
                 revert UnsupportedExecutionType();
@@ -290,7 +303,7 @@ contract SmartSession is SmartSessionBase, SmartSessionERC7739 {
         /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
         // all other executions are supported and are handled by the actionPolicies
         else {
-            ActionId actionId = account.toActionId(userOp.callData);
+            ActionId actionId = account.toActionId(bytes4(userOp.callData[:4]));
 
             vd = $actionPolicies.actionPolicies[actionId].check({
                 userOp: userOp,
@@ -299,13 +312,13 @@ contract SmartSession is SmartSessionBase, SmartSessionERC7739 {
                     IActionPolicy.checkAction,
                     (
                         signerId.toSessionId(actionId),
+                        account, // account
                         account, // target
                         0, // value
-                        userOp.callData, // data
-                        userOp
+                        userOp.callData // data
                     )
                 ),
-                minPoliciesToEnforce: 0
+                minPolicies: MIN_POLICIES_TO_ENFORCE
             });
         }
     }

@@ -13,6 +13,7 @@ import { ValidationDataLib } from "contracts/lib/ValidationDataLib.sol";
 import { IActionPolicy, I1271Policy } from "../interfaces/IPolicy.sol";
 import { IdLib } from "./IdLib.sol";
 
+import { IERC7579Account } from "erc7579/interfaces/IERC7579Account.sol";
 import { SENTINEL, SentinelList4337Lib } from "sentinellist/SentinelList4337.sol";
 
 library PolicyLib {
@@ -24,6 +25,7 @@ library PolicyLib {
     using ValidationDataLib for ERC7579ValidatorBase.ValidationData;
 
     error PolicyAlreadyUsed(address policy);
+    error InvalidSelfCall();
     error PolicyViolation(SignerId signerId, address policy);
     error UnsupportedCallType(CallType callType);
     error NoPoliciesSet(SignerId signerId);
@@ -39,7 +41,7 @@ library PolicyLib {
         PackedUserOperation calldata userOp,
         SignerId signer,
         bytes memory callOnIPolicy,
-        uint256 minPoliciesToEnforce
+        uint256 minPolicies
     )
         internal
         returns (ERC7579ValidatorBase.ValidationData vd)
@@ -47,7 +49,7 @@ library PolicyLib {
         address account = userOp.sender;
         (address[] memory policies,) = $self.policyList[signer].getEntriesPaginated(account, SENTINEL, 32);
         uint256 length = policies.length;
-        if (minPoliciesToEnforce > length) revert NoPoliciesSet(signer);
+        if (minPolicies > length) revert NoPoliciesSet(signer);
 
         // iterate over all policies and intersect the validation data
         for (uint256 i; i < length; i++) {
@@ -64,33 +66,33 @@ library PolicyLib {
         SignerId signerId,
         address target,
         uint256 value,
-        bytes calldata callData
+        bytes calldata callData,
+        uint256 minPolicies
     )
         internal
         returns (ERC7579ValidatorBase.ValidationData vd)
     {
-        ActionId actionId = target.toActionId(callData);
+        bytes4 targetSig = bytes4(callData[0:4]);
+
+        // In theory it could be possible, that a 7579 account calls its own execute function and thus bypasses the
+        // policy check, since policies would be blind to the calldata in the nested execution
+        if (targetSig == IERC7579Account.execute.selector && target == userOp.sender) revert InvalidSelfCall();
+        ActionId actionId = target.toActionId(targetSig);
         vd = $policies[actionId].check({
             userOp: userOp,
             signer: signerId,
             callOnIPolicy: abi.encodeCall(
-                IActionPolicy.checkAction,
-                (
-                    signerId.toSessionId(actionId),
-                    target, // target
-                    value, // value
-                    callData, // data
-                    userOp
-                )
+                IActionPolicy.checkAction, (signerId.toSessionId(actionId), userOp.sender, target, value, callData)
             ),
-            minPoliciesToEnforce: 0
+            minPolicies: minPolicies
         });
     }
 
     function checkBatch7579Exec(
         mapping(ActionId => Policy) storage $policies,
         PackedUserOperation calldata userOp,
-        SignerId signerId
+        SignerId signerId,
+        uint256 minPolicies
     )
         internal
         returns (ERC7579ValidatorBase.ValidationData vd)
@@ -107,7 +109,8 @@ library PolicyLib {
                     signerId: signerId,
                     target: execution.target,
                     value: execution.value,
-                    callData: execution.callData
+                    callData: execution.callData,
+                    minPolicies: minPolicies
                 })
             );
         }

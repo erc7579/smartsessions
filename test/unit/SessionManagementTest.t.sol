@@ -164,14 +164,14 @@ contract SessionManagementTest is BaseTest {
         });
 
         // predict signerId correlating to EnableSessions
-        SignerId signerId =
-            smartSession.getSignerId(session);
+        SignerId signerId = smartSession.getSignerId(session);
 
         // get hash for enable signature. A nonce is in here
         uint256 nonceBefore = smartSession.getNonce(signerId, instance.account);
-        
+
         // create enable sessions object
-        EnableSessions memory enableSessions = _makeMultiChainEnableData(signerId, session, instance, SmartSessionMode.UNSAFE_ENABLE);
+        EnableSessions memory enableSessions =
+            _makeMultiChainEnableData(signerId, session, instance, SmartSessionMode.UNSAFE_ENABLE);
         bytes32 hash = keccak256(enableSessions.hashesAndChainIds);
 
         // user signs the enable hash with wallet

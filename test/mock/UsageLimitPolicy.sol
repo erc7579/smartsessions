@@ -28,17 +28,8 @@ contract UsageLimitPolicy is IUserOpPolicy, IActionPolicy {
         return _checkUsageLimit(id, msg.sender, op.sender);
     }
 
-    function checkAction(
-        SessionId id,
-        address,
-        uint256,
-        bytes calldata,
-        PackedUserOperation calldata op
-    )
-        external
-        returns (uint256)
-    {
-        return _checkUsageLimit(id, msg.sender, op.sender);
+    function checkAction(SessionId id, address account, address, uint256, bytes calldata) external returns (uint256) {
+        return _checkUsageLimit(id, msg.sender, account);
     }
 
     function _checkUsageLimit(SessionId id, address mxer, address smartAccount) internal returns (uint256) {
@@ -80,16 +71,8 @@ contract UsageLimitPolicy is IUserOpPolicy, IActionPolicy {
         return usedIds[msg.sender][account] > 0;
     }
 
-    function isInitialized(address mxer, address account) external view returns (bool) {
-        return usedIds[mxer][account] > 0;
-    }
-
     function isInitialized(address account, SessionId id) external view returns (bool) {
         return status[id][msg.sender][account] == Status.Live;
-    }
-
-    function isInitialized(address mxer, address account, SessionId id) external view returns (bool) {
-        return status[id][mxer][account] == Status.Live;
     }
 
     function isModuleType(uint256 id) external pure returns (bool) {

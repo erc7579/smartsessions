@@ -66,16 +66,16 @@ contract UniActionPolicy is IActionPolicy {
 
     function checkAction(
         SessionId id,
+        address account,
         address,
         uint256 value,
-        bytes calldata data,
-        PackedUserOperation calldata op
+        bytes calldata data
     )
         external
         returns (uint256)
     {
-        require(status[id][msg.sender][op.sender] == Status.Live);
-        ActionConfig storage config = actionConfigs[id][msg.sender][op.sender];
+        require(status[id][msg.sender][account] == Status.Live);
+        ActionConfig storage config = actionConfigs[id][msg.sender][account];
         require(value <= config.valueLimit);
         ParamRule[16] memory rules = config.paramRules.rules;
         uint256 length = config.paramRules.length;

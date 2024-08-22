@@ -66,7 +66,7 @@ contract BaseTest is RhinestoneModuleKit, Test {
         sessionSigner1 = makeAccount("sessionSigner1");
         sessionSigner2 = makeAccount("sessionSigner2");
 
-        smartSession = new SmartSession();
+        smartSession = new SmartSession(1);
         target = new MockTarget();
         yesSigner = new YesSigner();
         yesPolicy = new YesPolicy();
@@ -132,7 +132,16 @@ contract BaseTest is RhinestoneModuleKit, Test {
         return ERC7739Data({ allowedERC7739Content: contents, erc1271Policies: erc1271Policies });
     }
 
-    function _makeMultiChainEnableData(SignerId signerId, Session memory session, AccountInstance memory instance, SmartSessionMode mode) internal view returns (EnableSessions memory enableData) {
+    function _makeMultiChainEnableData(
+        SignerId signerId,
+        Session memory session,
+        AccountInstance memory instance,
+        SmartSessionMode mode
+    )
+        internal
+        view
+        returns (EnableSessions memory enableData)
+    {
         enableData = EnableSessions({
             sessionIndex: 1,
             hashesAndChainIds: "",
@@ -140,16 +149,11 @@ contract BaseTest is RhinestoneModuleKit, Test {
             permissionEnableSig: ""
         });
 
-        bytes32 sessionDigest = smartSession.getDigest({
-            signerId: signerId,
-            account: instance.account, 
-            data: session, 
-            mode: mode
-        });
+        bytes32 sessionDigest =
+            smartSession.getDigest({ signerId: signerId, account: instance.account, data: session, mode: mode });
 
         enableData.hashesAndChainIds = EncodeLib.encodeHashesAndChainIds(
-            Solarray.uint64s(181818, uint64(block.chainid)),
-            Solarray.bytes32s(sessionDigest, sessionDigest)
+            Solarray.uint64s(181_818, uint64(block.chainid)), Solarray.bytes32s(sessionDigest, sessionDigest)
         );
     }
 

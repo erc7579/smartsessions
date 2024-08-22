@@ -50,7 +50,7 @@ struct Session {
 }
 
 struct EnableSessions {
-    uint8 sessionIndex; 
+    uint8 sessionIndex;
     bytes hashesAndChainIds;
     Session sessionToEnable;
     bytes permissionEnableSig;
