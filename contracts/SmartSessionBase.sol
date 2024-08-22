@@ -16,6 +16,7 @@ import { HashLib } from "./lib/HashLib.sol";
 
 abstract contract SmartSessionBase is ERC7579ValidatorBase {
     using EnumerableSet for EnumerableSet.Bytes32Set;
+    using EnumerableSet for EnumerableSet.AddressSet;
     using FlatBytesLib for *;
     using HashLib for Session;
     using ConfigLib for *;
@@ -134,13 +135,13 @@ abstract contract SmartSessionBase is ERC7579ValidatorBase {
     }
 
     function removeSession(SignerId signerId) public {
-        $userOpPolicies.policyList[signerId].popAll(msg.sender);
-        $erc1271Policies.policyList[signerId].popAll(msg.sender);
+        $userOpPolicies.policyList[signerId].removeAll(msg.sender);
+        $erc1271Policies.policyList[signerId].removeAll(msg.sender);
 
         uint256 actionLength = $actionPolicies.enabledActionIds[signerId].length(msg.sender);
         for (uint256 i; i < actionLength; i++) {
             ActionId actionId = ActionId.wrap($actionPolicies.enabledActionIds[signerId].get(msg.sender, i));
-            $actionPolicies.actionPolicies[actionId].policyList[signerId].popAll(msg.sender);
+            $actionPolicies.actionPolicies[actionId].policyList[signerId].removeAll(msg.sender);
         }
 
         $enabledSessions.remove({ account: msg.sender, value: SignerId.unwrap(signerId) });

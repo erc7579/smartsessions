@@ -15,9 +15,11 @@ import { IdLib } from "./IdLib.sol";
 
 import { IERC7579Account } from "erc7579/interfaces/IERC7579Account.sol";
 import { SENTINEL, SentinelList4337Lib } from "sentinellist/SentinelList4337.sol";
+import "../utils/EnumerableSet4337.sol";
 
 library PolicyLib {
     using SentinelList4337Lib for SentinelList4337Lib.SentinelList;
+    using EnumerableSet for EnumerableSet.AddressSet;
     using ExecutionLib for *;
     using IdLib for *;
     using PolicyLib for *;
@@ -39,7 +41,7 @@ library PolicyLib {
     function check(
         Policy storage $self,
         PackedUserOperation calldata userOp,
-        SignerId signer,
+        SignerId signerId,
         bytes memory callOnIPolicy,
         uint256 minPolicies
     )
@@ -47,15 +49,15 @@ library PolicyLib {
         returns (ERC7579ValidatorBase.ValidationData vd)
     {
         address account = userOp.sender;
-        (address[] memory policies,) = $self.policyList[signer].getEntriesPaginated(account, SENTINEL, 32);
+        address[] memory policies = $self.policyList[signerId].values({ account: account });
         uint256 length = policies.length;
-        if (minPolicies > length) revert NoPoliciesSet(signer);
+        if (minPolicies > length) revert NoPoliciesSet(signerId);
 
         // iterate over all policies and intersect the validation data
         for (uint256 i; i < length; i++) {
             uint256 validationDataFromPolicy = uint256(bytes32(policies[i].safeCall({ callData: callOnIPolicy })));
             vd = ERC7579ValidatorBase.ValidationData.wrap(validationDataFromPolicy);
-            if (vd.isFailed()) revert PolicyViolation(signer, policies[i]);
+            if (vd.isFailed()) revert PolicyViolation(signerId, policies[i]);
             vd = vd.intersectValidationData(vd);
         }
     }
@@ -80,7 +82,7 @@ library PolicyLib {
         ActionId actionId = target.toActionId(targetSig);
         vd = $policies[actionId].check({
             userOp: userOp,
-            signer: signerId,
+            signerId: signerId,
             callOnIPolicy: abi.encodeCall(
                 IActionPolicy.checkAction, (signerId.toSessionId(actionId), userOp.sender, target, value, callData)
             ),
@@ -190,7 +192,7 @@ library PolicyLib {
         view
         returns (bool valid)
     {
-        (address[] memory policies,) = $self.policyList[signerId].getEntriesPaginated(account, SENTINEL, 32);
+        address[] memory policies = $self.policyList[signerId].values({ account: account });
         uint256 length = policies.length;
         if (minPoliciesToEnforce > length) revert NoPoliciesSet(signerId);
 

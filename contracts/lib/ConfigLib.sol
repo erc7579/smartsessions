@@ -8,9 +8,11 @@ import "../interfaces/IRegistry.sol";
 import { SENTINEL, SentinelList4337Lib } from "sentinellist/SentinelList4337.sol";
 import { IdLib } from "./IdLib.sol";
 import { HashLib } from "./HashLib.sol";
+import "../utils/EnumerableSet4337.sol";
 
 library ConfigLib {
     using SentinelList4337Lib for SentinelList4337Lib.SentinelList;
+    using EnumerableSet for EnumerableSet.AddressSet;
     using HashLib for *;
     using ConfigLib for *;
     using AssociatedArrayLib for *;
@@ -49,7 +51,7 @@ library ConfigLib {
 
             ISubPermission(policy).onInstall({ data: abi.encodePacked(sessionId, smartAccount, policyData.initData) });
 
-            $policy.policyList[signerId].safePush(smartAccount, address(policy));
+            $policy.policyList[signerId].add({ account: smartAccount, value: address(policy) });
             emit PolicyEnabled(signerId, address(policy), smartAccount);
         }
     }

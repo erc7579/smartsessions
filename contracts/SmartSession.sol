@@ -244,7 +244,7 @@ contract SmartSession is SmartSessionBase, SmartSessionERC7739 {
         // check userOp policies. This reverts if policies are violated
         vd = $userOpPolicies.check({
             userOp: userOp,
-            signer: signerId,
+            signerId: signerId,
             callOnIPolicy: abi.encodeCall(IUserOpPolicy.checkUserOpPolicy, (signerId.toSessionId(), userOp)),
             minPolicies: MIN_POLICIES_TO_ENFORCE
         });
@@ -307,7 +307,7 @@ contract SmartSession is SmartSessionBase, SmartSessionERC7739 {
 
             vd = $actionPolicies.actionPolicies[actionId].check({
                 userOp: userOp,
-                signer: signerId,
+                signerId: signerId,
                 callOnIPolicy: abi.encodeCall(
                     IActionPolicy.checkAction,
                     (
