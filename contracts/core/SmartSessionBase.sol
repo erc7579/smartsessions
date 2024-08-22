@@ -148,7 +148,6 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
                 useRegistry: true
             });
 
-            $enabledSessions.add(msg.sender, SignerId.unwrap(signerId));
             signerIds[i] = signerId;
             emit SessionCreated(signerId, msg.sender);
         }
