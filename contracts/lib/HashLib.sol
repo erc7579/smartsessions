@@ -104,7 +104,10 @@ library HashLib {
         ));
     }
 
-    // To be used on-chain
+    /**
+     * Hashes the data from the Session struct with some security critical data
+     * such as nonce, account address, smart session address, and mode
+     */
     function sessionDigest(
         Session memory session,
         address account,
@@ -118,11 +121,15 @@ library HashLib {
         return _sessionDigest(session, account, address(this), mode, nonce);
     }
     
-    // should never be used directly on-chain, only via sessionDigest
-    // only for external use
-    // it is exactly how signTypedData will hash Such an object
-    // when this object is an inner struct
-    // it won't use eip712 domain for it as it is inner struct
+    /** 
+     * Should never be used directly on-chain, only via sessionDigest()
+     * Only for external use - to be able to pass smartSession when 
+     * testing for different chains which may have different addresses for 
+     * the Smart Session contract
+     * It is exactly how signTypedData will hash such an object
+     * when this object is an inner struct
+     * It won't use eip712 domain for it as it is inner struct
+     */
     function _sessionDigest(
         Session memory session,
         address account,
