@@ -2,7 +2,7 @@
 pragma solidity ^0.8.25;
 
 import "../DataTypes.sol";
-import "@rhinestone/flatbytes/src/BytesLib.sol";
+import { ISmartSession } from "../ISmartSession.sol";
 import { EnumerableSet } from "../utils/EnumerableSet4337.sol";
 import { ISigner } from "../interfaces/ISigner.sol";
 import { SentinelList4337Lib } from "sentinellist/SentinelList4337.sol";
@@ -13,7 +13,7 @@ import { IdLib } from "../lib/IdLib.sol";
 import { HashLib } from "../lib/HashLib.sol";
 import { NonceManager } from "./NonceManager.sol";
 
-abstract contract SmartSessionBase is ERC7579ValidatorBase, NonceManager {
+abstract contract SmartSessionBase is ISmartSession, ERC7579ValidatorBase, NonceManager {
     using EnumerableSet for EnumerableSet.Bytes32Set;
     using EnumerableSet for EnumerableSet.AddressSet;
     using FlatBytesLib for *;
