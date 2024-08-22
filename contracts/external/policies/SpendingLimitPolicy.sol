@@ -56,6 +56,31 @@ contract SpendingLimitPolicy is IActionPolicy {
 
     function isInitialized(address account, SessionId id) external view override returns (bool) { }
 
+    function _isTokenTransfer(
+        address account,
+        bytes calldata callData
+    )
+        internal
+        pure
+        returns (bool isTransfer, uint256 amount)
+    {
+        bytes4 functionSelector = bytes4(callData[0:4]);
+
+        if (functionSelector == IERC20.approve.selector) {
+            (, amount) = abi.decode(callData[4:], (address, uint256));
+            return (true, amount);
+        } else if (functionSelector == IERC20.transfer.selector) {
+            (, amount) = abi.decode(callData[4:], (address, uint256));
+            return (true, amount);
+        } else if (functionSelector == IERC20.transferFrom.selector) {
+            address from;
+            (, from, amount) = abi.decode(callData[4:], (address, address, uint256));
+            if (from != account) revert();
+            return (true, amount);
+        }
+        return (false, 0);
+    }
+
     function checkAction(
         SessionId id,
         address account,
@@ -67,32 +92,11 @@ contract SpendingLimitPolicy is IActionPolicy {
         override
         returns (uint256)
     {
-        uint256 amount;
-        address token;
-        bytes4 functionSelector;
+        if (value != 0) return VALIDATION_FAILED;
+        (bool isTokenTransfer, uint256 amount) = _isTokenTransfer(account, callData);
+        if (!isTokenTransfer) return VALIDATION_FAILED;
 
-        if (callData.length == 0 && value != 0) {
-            amount = value;
-            token = NATIVE_TOKEN;
-        } else {
-            functionSelector = bytes4(callData[0:4]);
-
-            if (functionSelector == IERC20.approve.selector) {
-                token = target;
-                (, amount) = abi.decode(callData[4:], (address, uint256));
-            } else if (functionSelector == IERC20.transfer.selector) {
-                token = target;
-                (, amount) = abi.decode(callData[4:], (address, uint256));
-            } else if (functionSelector == IERC20.transferFrom.selector) {
-                token = target;
-                address from;
-                (, from, amount) = abi.decode(callData[4:], (address, address, uint256));
-                if (from != account) revert("TokenPolicy: transferFrom sender must be userOp.sender");
-            }
-        }
-        if (amount == 0) return VALIDATION_SUCCESS;
-
-        TokenPolicyData storage $ = _getPolicy({ id: id, userOpSender: account, token: token });
+        TokenPolicyData storage $ = _getPolicy({ id: id, userOpSender: account, token: target });
 
         uint256 spendingLimit = $.spendingLimit;
         uint256 alreadySpent = $.alreadySpent;
@@ -103,7 +107,6 @@ contract SpendingLimitPolicy is IActionPolicy {
             return VALIDATION_FAILED;
         } else {
             $.alreadySpent = newAmount;
-            // emit TokenSpent(id, msg.sender, token, account, amount);
             return VALIDATION_SUCCESS;
         }
     }
