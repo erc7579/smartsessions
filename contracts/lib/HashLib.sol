@@ -43,17 +43,13 @@ bytes32 constant _DOMAIN_TYPEHASH =
 // Version: "" (string)
 // ChainId: 0 (uint256)
 // VerifyingContract: address(0) (address)
+// it is introduced for compatibility with signTypedData()
+// all the critical data such as chainId and verifyingContract are included 
+// in session hashes
 // https://docs.metamask.io/wallet/reference/eth_signtypeddata_v4 
 bytes32 constant _DOMAIN_SEPARATOR = 0xa82dd76056d04dc31e30c73f86aa4966336112e8b5e9924bb194526b08c250c1;
 
 library HashLib {
-
-    // Constants for the multichain domain separator
-// it is introduced for compatibility with signTypedData()
-// all the critical data such as chainId and verifyingContract are included 
-// in session hashes
-string constant NAME = "SmartSession";
-string constant VERSION = "";
 
     error ChainIdMismatch(uint64 providedChainId);
     error HashMismatch(bytes32 providedHash, bytes32 computedHash);
@@ -61,15 +57,16 @@ string constant VERSION = "";
     using EfficientHashLib for bytes32;
     using HashLib for *;
 
-    // the object that is passed to signTypedData() is MultiChainSession
-    // signTypedData signs it as per eip-712
-    // 1. hashStruct(Session)
-    // 2. hashStruct(ChainSession)
-    // 3. abi.encodePacked 2's together
-    // + domain separator (we can take fake one)
-    // so we have to do same, just w/o 1. as it is already provided to us as a digest
-
-    // SHOULD MIMIC SignTypedData() behaviour
+    /** 
+     * Mimics SignTypedData() behaviour
+     * 1. hashStruct(Session)
+     * 2. hashStruct(ChainSession)
+     * 3. abi.encodePacked hashStruct's for 2) together
+     * 4. Hash it together with MULTI_CHAIN_SESSION_TYPEHASH 
+     * as it was MultiChainSession struct
+     * 5. Add multichain domain separator 
+     * This method doest same, just w/o 1. as it is already provided to us as a digest
+     */
     function multichainDigest(ChainDigest[] memory hashesAndChainIds) internal view returns (bytes32) {  
         bytes32 structHash = keccak256(
             abi.encode(
@@ -81,6 +78,9 @@ string constant VERSION = "";
         return MessageHashUtils.toTypedDataHash(_DOMAIN_SEPARATOR, structHash);
     }
 
+    /**
+     * Hash array of ChainDigest structs
+     */
     function hashChainDigestArray(ChainDigest[] memory chainDigestArray) internal pure returns (bytes32) {
         uint256 length = chainDigestArray.length;
         bytes32[] memory hashes = new bytes32[](length);
@@ -90,65 +90,17 @@ string constant VERSION = "";
         return keccak256(abi.encodePacked(hashes));
     }
 
-    // we have session digests, however to mimic signTypedData() behaviour, we need to use CHAIN_SESSION_TYPEHASH
-    // not CHAIN_DIGEST_TYPEHASH. We just use sessionDigest instead of rebuilding it
+    /** 
+    * We have session digests, not full Session structs
+    * However to mimic signTypedData() behaviour, we need to use CHAIN_SESSION_TYPEHASH
+    * not CHAIN_DIGEST_TYPEHASH. We just use the ready session digest instead of rebuilding it
+    */
     function hashChainDigestMimicRPC(ChainDigest memory chainDigest) internal pure returns (bytes32) {
         return keccak256(abi.encode(
             CHAIN_SESSION_TYPEHASH, 
             chainDigest.chainId, 
             chainDigest.sessionDigest // this is the digest obtained using sessionDigest()
             // we just do not rebuild it here for all sessions, but receive it from off-chain
-        ));
-    }
-
-    // for testing purposes. never used inside the SmartSession as it never has all the sessions
-    // need to provide modes and nonces from outside as they are from other chains
-    function multichainDigest(
-        MultiChainSession memory multichainSession, 
-        address[] memory accounts,
-        address[] memory smartSessions,
-        SmartSessionMode[] memory modes,
-        uint256[] memory nonces
-    ) internal pure returns (bytes32) {  
-        // make hash from the full sessions => should return same hash as signTypedData()
-        // and should return same hash as multichainDigest(ChainDigest[])
-        
-        // multichainSession.sessionsAndChainIds
-        bytes32 structHash = keccak256(
-            abi.encode(
-                MULTICHAIN_SESSION_TYPEHASH,
-                multichainSession.sessionsAndChainIds.hashChainSessionArray(modes, nonces, accounts, smartSessions)
-            )
-        );
-        return MessageHashUtils.toTypedDataHash(_DOMAIN_SEPARATOR, structHash);
-    }
-
-    function hashChainSessionArray(
-        ChainSession[] memory chainSessionArray,
-        SmartSessionMode[] memory modes,
-        uint256[] memory nonces,
-        address[] memory accounts,
-        address[] memory smartSessions
-    ) internal pure returns (bytes32) {
-        uint256 length = chainSessionArray.length;
-        bytes32[] memory hashes = new bytes32[](length);
-        for (uint256 i; i < length; i++) {
-            hashes[i] = chainSessionArray[i].hashChainSession(modes[i], nonces[i], accounts[i], smartSessions[i]);
-        }
-        return keccak256(abi.encodePacked(hashes));
-    }
-
-    function hashChainSession(
-        ChainSession memory chainSession,
-        SmartSessionMode mode,
-        uint256 nonce,
-        address account,
-        address smartSession
-    ) internal pure returns (bytes32) {
-        return keccak256(abi.encode(
-            CHAIN_SESSION_TYPEHASH, 
-            chainSession.chainId, 
-            chainSession.session._sessionDigest(account, smartSession, mode, nonce)
         ));
     }
 

@@ -7,6 +7,7 @@ contract Multichain712DigestTest is BaseTest {
     using ModuleKitUserOp for *;
     using EncodeLib for *;
     using HashLib for *;
+    using TestHashLib for *;
 
     function setUp() public virtual override {
         super.setUp();

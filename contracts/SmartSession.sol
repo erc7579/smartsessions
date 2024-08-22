@@ -34,12 +34,6 @@ import { IdLib } from "./lib/IdLib.sol";
 import { SmartSessionModeLib } from "./lib/SmartSessionModeLib.sol";
 
 /**
- * TODO:
- *      - rename SignerId ?
- *     - Permissions hook (spending limits?)
- */
-
-/**
  *
  * @title SmartSession
  * @author zeroknots.eth (rhinestone) & Filipp Makarov (biconomy)
@@ -284,8 +278,9 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
                 revert UnsupportedExecutionType();
             }
         }
-        // SmartSession does not support executeFromUserOp,
+        // SmartSession does not support executeUserOp,
         // should this function selector be used in the userOp: revert
+        // see why: https://github.com/erc7579/smartsessions/issues/17
         else if (selector == IAccountExecute.executeUserOp.selector) {
             revert UnsupportedExecutionType();
         }
