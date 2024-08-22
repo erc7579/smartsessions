@@ -103,7 +103,7 @@ contract SpendingLimitPolicy is IActionPolicy {
             return VALIDATION_FAILED;
         } else {
             $.alreadySpent = newAmount;
-            emit TokenSpent(id, msg.sender, token, account, amount);
+            // emit TokenSpent(id, msg.sender, token, account, amount);
             return VALIDATION_SUCCESS;
         }
     }

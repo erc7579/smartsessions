@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity ^0.8.25;
 
+import "./DataTypes.sol";
+
 import { PackedUserOperation } from "modulekit/external/ERC4337.sol";
 import { EIP1271_MAGIC_VALUE, IERC1271 } from "module-bases/interfaces/IERC1271.sol";
 
@@ -24,19 +26,15 @@ import { SignerLib } from "./lib/SignerLib.sol";
 import { ConfigLib } from "./lib/ConfigLib.sol";
 import { EncodeLib } from "./lib/EncodeLib.sol";
 
-import "./DataTypes.sol";
 import { HashLib } from "./lib/HashLib.sol";
-import { SmartSessionBase } from "./SmartSessionBase.sol";
-import { SmartSessionERC7739 } from "./SmartSessionERC7739.sol";
+import { SmartSessionBase } from "./core/SmartSessionBase.sol";
+import { SmartSessionERC7739 } from "./core/SmartSessionERC7739.sol";
 import { IdLib } from "./lib/IdLib.sol";
 import { MultichainHashLib } from "./lib/MultichainHashLib.sol";
 import { SmartSessionModeLib } from "./lib/SmartSessionModeLib.sol";
 
-import "forge-std/console2.sol";
-
 /**
  * TODO:
- *      - 7739
  *      - rename SignerId ?
  *     - Permissions hook (spending limits?)
  */
@@ -186,6 +184,7 @@ contract SmartSession is SmartSessionBase, SmartSessionERC7739 {
 
         // enable all policies for this session
         $userOpPolicies.enable({
+            policyType: PolicyType.USER_OP,
             signerId: signerId,
             sessionId: signerId.toUserOpPolicyId().toSessionId(),
             policyDatas: enableData.sessionToEnable.userOpPolicies,
@@ -193,6 +192,7 @@ contract SmartSession is SmartSessionBase, SmartSessionERC7739 {
             useRegistry: useRegistry
         });
         $erc1271Policies.enable({
+            policyType: PolicyType.ERC1271,
             signerId: signerId,
             sessionId: signerId.toErc1271PolicyId().toSessionId(),
             policyDatas: enableData.sessionToEnable.erc7739Policies.erc1271Policies,
@@ -244,7 +244,7 @@ contract SmartSession is SmartSessionBase, SmartSessionERC7739 {
         // check userOp policies. This reverts if policies are violated
         vd = $userOpPolicies.check({
             userOp: userOp,
-            signer: signerId,
+            signerId: signerId,
             callOnIPolicy: abi.encodeCall(IUserOpPolicy.checkUserOpPolicy, (signerId.toSessionId(), userOp)),
             minPolicies: MIN_POLICIES_TO_ENFORCE
         });
@@ -307,7 +307,7 @@ contract SmartSession is SmartSessionBase, SmartSessionERC7739 {
 
             vd = $actionPolicies.actionPolicies[actionId].check({
                 userOp: userOp,
-                signer: signerId,
+                signerId: signerId,
                 callOnIPolicy: abi.encodeCall(
                     IActionPolicy.checkAction,
                     (
@@ -417,9 +417,5 @@ contract SmartSession is SmartSessionBase, SmartSessionERC7739 {
         if (!valid) return false;
         // this call reverts if the ISigner is not set or signature is invalid
         return $isigners.isValidISigner({ hash: hash, account: msg.sender, signerId: signerId, signature: signature });
-    }
-
-    function _domainNameAndVersion() internal pure override returns (string memory, string memory) {
-        return ("SmartSession", "1");
     }
 }
