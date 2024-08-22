@@ -6,7 +6,7 @@
     "name": "Biconomy & Rhinestone"
   },
   "dependencies": {
-    "@rhinestone/modulekit": "^0.4.0",
+    "@rhinestone/modulekit": "^0.4.10",
     "freshcryptolib": "github:rdubois-crypto/FreshCryptoLib",
     "@rhinestone/sentinellist": "github:rhinestonewtf/sentinellist",
     "@rhinestone/flatbytes": "github:rhinestonewtf/flatbytes"
@@ -56,6 +56,5 @@
   ],
   "publishConfig": {
     "access": "public"
-  },
-  "packageManager": "pnpm@9.0.5+sha1.6db99351548f394a1d96aa1de98dec032aef8823"
+  }
 }

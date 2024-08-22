@@ -1,18 +1,18 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-// @author zeroknots rhinestone
+import { ValidationData } from "../DataTypes.sol";
 
-import { ERC7579ValidatorBase } from "modulekit/Modules.sol";
+// @author zeroknots rhinestone
 
 library ValidationDataLib {
     function intersectValidationData(
-        ERC7579ValidatorBase.ValidationData a,
-        ERC7579ValidatorBase.ValidationData b
+        ValidationData a,
+        ValidationData b
     )
         internal
         pure
-        returns (ERC7579ValidatorBase.ValidationData validationData)
+        returns (ValidationData validationData)
     {
         assembly {
             // xor(a,b) == shows only matching bits

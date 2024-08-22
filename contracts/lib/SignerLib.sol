@@ -2,17 +2,12 @@
 pragma solidity ^0.8.25;
 
 import "../DataTypes.sol";
-import "../interfaces/ISigner.sol";
-import { ERC7579ValidatorBase } from "modulekit/Modules.sol";
+import { ISigner } from "../interfaces/ISigner.sol";
 import { IdLib } from "./IdLib.sol";
-
-import "forge-std/console2.sol";
 
 library SignerLib {
     using IdLib for *;
     using FlatBytesLib for *;
-
-    bytes4 internal constant EIP1271_SUCCESS = 0x1626ba7e;
 
     error SignerNotFound(SignerId signerId, address account);
     error InvalidSessionKeySignature(SignerId signerId, ISigner isigner, address account, bytes32 userOpHash);
@@ -25,6 +20,7 @@ library SignerLib {
         bytes memory signature
     )
         internal
+        view
     {
         ISigner isigner = $isigners[signerId][account].isigner;
         if (address(isigner) == address(0)) revert SignerNotFound(signerId, account);

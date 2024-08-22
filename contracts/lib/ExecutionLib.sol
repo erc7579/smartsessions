@@ -9,9 +9,7 @@ import { ModeCode as ExecutionMode } from "erc7579/lib/ModeLib.sol";
  * malloc for memory allocation is bad for gas. use this assembly instead
  */
 library ExecutionLib {
-    function decodeUserOpCallData(
-        bytes calldata userOpCallData
-    )
+    function decodeUserOpCallData(bytes calldata userOpCallData)
         internal
         pure
         returns (bytes calldata erc7579ExecutionCalldata)
@@ -50,9 +48,7 @@ library ExecutionLib {
         callData = abi.encode(executions);
     }
 
-    function decodeSingle(
-        bytes calldata executionCalldata
-    )
+    function decodeSingle(bytes calldata executionCalldata)
         internal
         pure
         returns (address target, uint256 value, bytes calldata callData)

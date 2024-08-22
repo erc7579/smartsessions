@@ -13,8 +13,8 @@ library IdLib {
         userOpPolicyId = UserOpPolicyId.wrap(SignerId.unwrap(signerId));
     }
 
-    function toActionId(address target, bytes calldata data) internal pure returns (ActionId actionId) {
-        actionId = ActionId.wrap(keccak256(abi.encodePacked(target, data.length >= 4 ? bytes4(data[0:4]) : bytes4(0))));
+    function toActionId(address target, bytes4 functionSelector) internal pure returns (ActionId actionId) {
+        actionId = ActionId.wrap(keccak256(abi.encodePacked(target, functionSelector)));
     }
 
     function toActionPolicyId(SignerId signerId, ActionId actionId) internal pure returns (ActionPolicyId policyId) {

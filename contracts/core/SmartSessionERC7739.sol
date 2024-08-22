@@ -1,11 +1,12 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+pragma solidity ^0.8.25;
+
 import { EIP712 } from "solady/utils/EIP712.sol";
-import { ERC1271 } from "solady/accounts/ERC1271.sol";
-import { SignatureCheckerLib } from "solady/utils/SignatureCheckerLib.sol";
-import "forge-std/console2.sol";
+import { ISmartSession } from "../ISmartSession.sol";
 
 /// @notice ERC1271 mixin with nested EIP-712 approach.
 /// @author Solady (https://github.com/vectorized/solady/blob/main/src/accounts/ERC1271.sol)
-abstract contract SmartSessionERC7739 is EIP712 {
+abstract contract SmartSessionERC7739 is ISmartSession, EIP712 {
     /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
     /*                         CONSTANTS                          */
     /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
@@ -233,5 +234,9 @@ abstract contract SmartSessionERC7739 is EIP712 {
             mstore(add(m, 0xe0), salt)
             mstore(add(m, 0x100), keccak256(add(extensions, 0x20), shl(5, mload(extensions))))
         }
+    }
+
+    function _domainNameAndVersion() internal pure override returns (string memory, string memory) {
+        return ("SmartSession", "1");
     }
 }

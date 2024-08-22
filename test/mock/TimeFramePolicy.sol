@@ -40,16 +40,16 @@ contract TimeFramePolicy is IUserOpPolicy, IActionPolicy {
 
     function checkAction(
         SessionId id,
+        address account,
         address,
         uint256,
-        bytes calldata,
-        PackedUserOperation calldata op
+        bytes calldata
     )
         external
         view
         returns (uint256)
     {
-        return _checkTimeFrame(id, msg.sender, op.sender);
+        return _checkTimeFrame(id, msg.sender, account);
     }
 
     /*
@@ -116,16 +116,8 @@ contract TimeFramePolicy is IUserOpPolicy, IActionPolicy {
         return usedIds[msg.sender][smartAccount] > 0;
     }
 
-    function isInitialized(address multiplexer, address smartAccount) external view returns (bool) {
-        return usedIds[multiplexer][smartAccount] > 0;
-    }
-
     function isInitialized(address account, SessionId id) external view override returns (bool) {
         return status[id][msg.sender][account] == Status.Live;
-    }
-
-    function isInitialized(address multiplexer, address account, SessionId id) external view override returns (bool) {
-        return status[id][multiplexer][account] == Status.Live;
     }
 
     function supportsInterface(bytes4 interfaceID) external pure override returns (bool) {
