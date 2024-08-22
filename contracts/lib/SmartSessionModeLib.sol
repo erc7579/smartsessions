@@ -4,11 +4,8 @@ pragma solidity ^0.8.25;
 import "../DataTypes.sol";
 
 library SmartSessionModeLib {
-
     function isUseMode(SmartSessionMode mode) internal pure returns (bool) {
-        if (
-            mode == SmartSessionMode.USE
-        ) {
+        if (mode == SmartSessionMode.USE) {
             return true;
         }
         return false;
@@ -16,10 +13,8 @@ library SmartSessionModeLib {
 
     function isEnableMode(SmartSessionMode mode) internal pure returns (bool) {
         if (
-            mode == SmartSessionMode.ENABLE || 
-            mode == SmartSessionMode.UNSAFE_ENABLE ||
-            mode == SmartSessionMode.ENABLE_ADD_POLICIES || 
-            mode == SmartSessionMode.UNSAFE_ENABLE_ADD_POLICIES
+            mode == SmartSessionMode.ENABLE || mode == SmartSessionMode.UNSAFE_ENABLE
+                || mode == SmartSessionMode.ENABLE_ADD_POLICIES || mode == SmartSessionMode.UNSAFE_ENABLE_ADD_POLICIES
         ) {
             return true;
         }
@@ -27,20 +22,14 @@ library SmartSessionModeLib {
     }
 
     function enableSigner(SmartSessionMode mode) internal pure returns (bool) {
-        if (
-            mode == SmartSessionMode.ENABLE || 
-            mode == SmartSessionMode.UNSAFE_ENABLE
-        ) {
+        if (mode == SmartSessionMode.ENABLE || mode == SmartSessionMode.UNSAFE_ENABLE) {
             return true;
         }
         return false;
     }
 
     function useRegistry(SmartSessionMode mode) internal pure returns (bool) {
-        if (
-            mode == SmartSessionMode.ENABLE || 
-            mode == SmartSessionMode.ENABLE_ADD_POLICIES 
-        ) {
+        if (mode == SmartSessionMode.ENABLE || mode == SmartSessionMode.ENABLE_ADD_POLICIES) {
             return true;
         }
         return false;

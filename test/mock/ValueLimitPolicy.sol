@@ -31,15 +31,15 @@ contract ValueLimitPolicy is IActionPolicy {
 
     function checkAction(
         SessionId id,
+        address account,
         address,
         uint256 value,
-        bytes calldata callData,
-        PackedUserOperation calldata op
+        bytes calldata callData
     )
         external
         returns (uint256)
     {
-        ValueLimitConfig storage config = valueLimitConfigs[id][msg.sender][op.sender];
+        ValueLimitConfig storage config = valueLimitConfigs[id][msg.sender][account];
         if (config.valueLimit == 0) {
             revert("ValueLimitPolicy: config not installed");
         }
@@ -76,16 +76,8 @@ contract ValueLimitPolicy is IActionPolicy {
         return id == 7;
     }
 
-    function isInitialized(address multiplexer, address account, SessionId id) external view override returns (bool) {
-        return valueLimitConfigs[id][multiplexer][account].valueLimit > 0;
-    }
-
     function isInitialized(address account, SessionId id) external view override returns (bool) {
         return valueLimitConfigs[id][msg.sender][account].valueLimit > 0;
-    }
-
-    function isInitialized(address multiplexer, address account) external view override returns (bool) {
-        return usedIds[multiplexer][account] > 0;
     }
 
     function isInitialized(address account) external view override returns (bool) {

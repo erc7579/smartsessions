@@ -7,12 +7,7 @@ import "../DataTypes.sol";
 import "forge-std/interfaces/IERC165.sol";
 
 interface ISubPermission is IERC165, IERC7579Module {
-    //function initForAccount(address account, SessionId id, bytes calldata initData) external;
-    //function deinitForAccount(address account, SessionId id) external;
     function isInitialized(address account, SessionId id) external view returns (bool);
-    function isInitialized(address multiplexer, address account, SessionId id) external view returns (bool);
-    function isInitialized(address account) external view returns (bool);
-    function isInitialized(address multiplexer, address account) external view returns (bool);
 }
 
 interface IUserOpPolicy is ISubPermission {
@@ -23,10 +18,10 @@ interface IUserOpPolicy is ISubPermission {
 interface IActionPolicy is ISubPermission {
     function checkAction(
         SessionId id,
+        address account,
         address target,
         uint256 value,
-        bytes calldata data,
-        PackedUserOperation calldata op
+        bytes calldata data
     )
         external
         returns (uint256);

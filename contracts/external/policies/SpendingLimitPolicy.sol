@@ -13,7 +13,7 @@ uint256 constant VALIDATION_SUCCESS = 0;
 uint256 constant VALIDATION_FAILED = 1;
 
 contract SpendingLimitPolicy is IActionPolicy {
-    event TokenSpent(SessionId id, address token, address account, uint256 amount);
+    event TokenSpent(SessionId id, address multiplexer, address token, address account, uint256 amount);
 
     error InvalidTokenAddress(address token);
 
@@ -56,16 +56,12 @@ contract SpendingLimitPolicy is IActionPolicy {
 
     function isInitialized(address account, SessionId id) external view override returns (bool) { }
 
-    function isInitialized(address multiplexer, address account, SessionId id) external view override returns (bool) { }
-
-    function isInitialized(address multiplexer, address account) external view override returns (bool) { }
-
     function checkAction(
         SessionId id,
+        address account,
         address target,
         uint256 value,
-        bytes calldata callData,
-        PackedUserOperation calldata op
+        bytes calldata callData
     )
         external
         override
@@ -91,12 +87,12 @@ contract SpendingLimitPolicy is IActionPolicy {
                 token = target;
                 address from;
                 (, from, amount) = abi.decode(callData[4:], (address, address, uint256));
-                if (from != op.sender) revert("TokenPolicy: transferFrom sender must be userOp.sender");
+                if (from != account) revert("TokenPolicy: transferFrom sender must be userOp.sender");
             }
         }
         if (amount == 0) return VALIDATION_SUCCESS;
 
-        TokenPolicyData storage $ = _getPolicy({ id: id, userOpSender: op.sender, token: token });
+        TokenPolicyData storage $ = _getPolicy({ id: id, userOpSender: account, token: token });
 
         uint256 spendingLimit = $.spendingLimit;
         uint256 alreadySpent = $.alreadySpent;
@@ -107,7 +103,7 @@ contract SpendingLimitPolicy is IActionPolicy {
             return VALIDATION_FAILED;
         } else {
             $.alreadySpent = newAmount;
-            emit TokenSpent(id, token, op.sender, amount);
+            // emit TokenSpent(id, msg.sender, token, account, amount);
             return VALIDATION_SUCCESS;
         }
     }

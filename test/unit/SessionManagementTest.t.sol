@@ -1,5 +1,5 @@
 import "../Base.t.sol";
-import "contracts/SmartSessionBase.sol";
+import "contracts/core/SmartSessionBase.sol";
 import "solady/utils/ECDSA.sol";
 
 contract SessionManagementTest is BaseTest {
@@ -121,7 +121,7 @@ contract SessionManagementTest is BaseTest {
         vm.prank(instance.account);
 
         vm.expectEmit(true, true, true, true, address(smartSession));
-        emit SmartSessionBase.SessionRemoved({ signerId: signerId, smartAccount: instance.account });
+        emit ISmartSession.SessionRemoved({ signerId: signerId, smartAccount: instance.account });
         smartSession.removeSession(signerId);
 
         UserOpData memory userOpData = instance.getExecOps({
@@ -164,14 +164,14 @@ contract SessionManagementTest is BaseTest {
         });
 
         // predict signerId correlating to EnableSessions
-        SignerId signerId =
-            smartSession.getSignerId(session);
+        SignerId signerId = smartSession.getSignerId(session);
 
         // get hash for enable signature. A nonce is in here
         uint256 nonceBefore = smartSession.getNonce(signerId, instance.account);
-        
+
         // create enable sessions object
-        EnableSessions memory enableSessions = _makeMultiChainEnableData(signerId, session, instance, SmartSessionMode.UNSAFE_ENABLE);
+        EnableSessions memory enableSessions =
+            _makeMultiChainEnableData(signerId, session, instance, SmartSessionMode.UNSAFE_ENABLE);
         bytes32 hash = keccak256(enableSessions.hashesAndChainIds);
 
         // user signs the enable hash with wallet

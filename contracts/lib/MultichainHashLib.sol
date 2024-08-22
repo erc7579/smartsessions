@@ -6,17 +6,25 @@ import "./EncodeLib.sol";
 import "./HashLib.sol";
 
 library MultichainHashLib {
-
     using EncodeLib for *;
     using HashLib for Session;
 
     error ChainIdMismatch(uint64 providedChainId);
     error HashMismatch(bytes32 providedHash, bytes32 computedHash);
 
-    function getAndVerifyDigest(EnableSessions memory enableData, uint256 nonce, SmartSessionMode mode) internal view returns (bytes32 digest) {
+    function getAndVerifyDigest(
+        EnableSessions memory enableData,
+        uint256 nonce,
+        SmartSessionMode mode
+    )
+        internal
+        view
+        returns (bytes32 digest)
+    {
         bytes32 computedHash = enableData.sessionToEnable.digest(mode, nonce);
-        
-        (uint64 providedChainId, bytes32 providedHash) = enableData.hashesAndChainIds.parseHashAndChainIdByIndex(enableData.sessionIndex);
+
+        (uint64 providedChainId, bytes32 providedHash) =
+            enableData.hashesAndChainIds.parseHashAndChainIdByIndex(enableData.sessionIndex);
 
         if (providedChainId != block.chainid) {
             revert ChainIdMismatch(providedChainId);

@@ -34,7 +34,7 @@ contract DeploySmartSession is Script {
     }
 
     function _deploySmartSession() public returns (address) {
-        SmartSession smartSession = new SmartSession();
+        SmartSession smartSession = new SmartSession(1);
         console2.log("SmartSession Addr: ", address(smartSession));
 
         return address(smartSession);
