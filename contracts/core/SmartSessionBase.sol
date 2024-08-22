@@ -209,6 +209,11 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
 
     function isModuleType(uint256 typeID) external pure override returns (bool) {
         if (typeID == ERC7579_MODULE_TYPE_VALIDATOR) return true;
+
+        // if SmartSessions is to be used as a ERC1271/ERC7739 validator module, the account has to implement  function
+        // supportsNestedTypedDataSign() public view virtual returns (bytes32 result)
+        // this can be achieved by adding this function selector in your 7579 account as a fallback handler
+        // YOU MUST NOT add any of the write functions via 7579 fallback selector
         if (typeID == ERC7579_MODULE_TYPE_FALLBACK) return true;
     }
 

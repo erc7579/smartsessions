@@ -53,9 +53,24 @@ interface ISmartSession {
     )
         external
         returns (ValidationData vd);
+    /**
+     * ERC7579 compliant onInstall function.
+     * extected to abi.encode(Session[])  for the enable data
+     *
+     * Note: It's possible to install the smartsession module with data = ""
+     */
     function onInstall(bytes memory data) external;
+
+    /**
+     * ERC7579 compliant uninstall function.
+     * will wipe all sessionIds and associated Policies / Signers
+     */
     function onUninstall(bytes memory) external;
 
+    /**
+     * ERC7579 compliant ERC1271 function
+     * this function allows session keys to sign ERC1271 requests.
+     */
     function isValidSignatureWithSender(
         address sender,
         bytes32 hash,
