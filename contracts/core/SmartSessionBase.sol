@@ -10,6 +10,7 @@ import { ERC7579ValidatorBase } from "modulekit/Modules.sol";
 import { IModule as IERC7579Module } from "erc7579/interfaces/IERC7579Module.sol";
 import { ConfigLib } from "../lib/ConfigLib.sol";
 import { EncodeLib } from "../lib/EncodeLib.sol";
+import { PolicyLib } from "../lib/PolicyLib.sol";
 import { IdLib } from "../lib/IdLib.sol";
 import { HashLib } from "../lib/HashLib.sol";
 import { NonceManager } from "./NonceManager.sol";
@@ -19,6 +20,7 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
     using EnumerableSet for EnumerableSet.AddressSet;
     using FlatBytesLib for *;
     using HashLib for Session;
+    using PolicyLib for *;
     using ConfigLib for *;
     using EncodeLib for *;
     using IdLib for *;
@@ -233,5 +235,46 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
 
     function _isISignerSet(SignerId signerId, address account) internal view returns (bool) {
         return address($isigners[signerId][account].isigner) != address(0);
+    }
+
+    function isPermissionEnabled(
+        SignerId signerId,
+        address account,
+        PolicyData[] memory userOpPolicies,
+        PolicyData[] memory erc1271Policies,
+        ActionData[] memory actions
+    )
+        external
+        view
+        returns (bool isEnabled)
+    {
+        //if ISigner is not set for signerId, the permission has not been enabled yet
+        if (!_isISignerSet(signerId, account)) {
+            return false;
+        }
+        bool uo = $userOpPolicies.areEnabled({
+            signerId: signerId,
+            sessionId: signerId.toUserOpPolicyId().toSessionId(account),
+            smartAccount: account,
+            policyDatas: userOpPolicies
+        });
+        bool erc1271 = $erc1271Policies.areEnabled({
+            signerId: signerId,
+            sessionId: signerId.toErc1271PolicyId().toSessionId(account),
+            smartAccount: account,
+            policyDatas: erc1271Policies
+        });
+        bool action =
+            $actionPolicies.areEnabled({ signerId: signerId, smartAccount: account, actionPolicyDatas: actions });
+        uint256 res;
+        assembly {
+            res := add(add(uo, erc1271), action)
+        }
+        if (res == 0) return false;
+        else if (res == 3) return true;
+        else revert PermissionPartlyEnabled();
+        // partly enabled permission will prevent the full permission to be enabled
+        // and we can not consider it being fully enabled, as it missed some policies we'd want to enforce
+        // as per given 'enableData'
     }
 }

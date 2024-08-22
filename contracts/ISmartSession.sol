@@ -36,6 +36,17 @@ interface ISmartSession {
     /*                           ERC7579                          */
     /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
 
+    /**
+     * ERC4337/ERC7579 validation function
+     * the primiary purpose of this function, is to validate if a userOp forwarded by a 7579 account is valid.
+     * This function will disect the userop.singature field, and parse out the provided SignerId, which identifies a
+     * unique ID of a dapp for a specific user. n Policies and one Signer contract are mapped to this Id and will be
+     * checked. Only UserOps that pass policies and signer checks, are considered valid.
+     * Enable Flow:
+     *     SmartSessions allows session keys to be created within the "first" UserOp. If the enable flow is chosen, the
+     *     EnableSessions data, which is packed in userOp.signature is parsed, and stored in the SmartSession storage.
+     *
+     */
     function validateUserOp(
         PackedUserOperation memory userOp,
         bytes32 userOpHash
