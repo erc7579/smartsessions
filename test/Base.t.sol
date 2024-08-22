@@ -150,7 +150,7 @@ contract BaseTest is RhinestoneModuleKit, Test {
             );
 
         enableData = EnableSessions({
-            sessionIndex: 1,
+            chainDigestIndex: 1,
             hashesAndChainIds: chainDigests,
             sessionToEnable: session,
             permissionEnableSig: ""

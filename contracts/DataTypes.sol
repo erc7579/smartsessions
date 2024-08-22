@@ -65,7 +65,7 @@ struct ChainDigest {
 }
 
 struct EnableSessions {
-    uint8 sessionIndex; 
+    uint8 chainDigestIndex; 
     ChainDigest[] hashesAndChainIds;
     Session sessionToEnable;
     bytes permissionEnableSig;

@@ -239,8 +239,8 @@ library HashLib {
     ) internal view returns (bytes32 digest) {
         bytes32 computedHash = enableData.sessionToEnable.sessionDigest(account, mode, nonce);
         
-        uint64 providedChainId = enableData.hashesAndChainIds[enableData.sessionIndex].chainId;
-        bytes32 providedHash =  enableData.hashesAndChainIds[enableData.sessionIndex].sessionDigest;
+        uint64 providedChainId = enableData.hashesAndChainIds[enableData.chainDigestIndex].chainId;
+        bytes32 providedHash =  enableData.hashesAndChainIds[enableData.chainDigestIndex].sessionDigest;
 
         if (providedChainId != block.chainid) {
             revert ChainIdMismatch(providedChainId);
