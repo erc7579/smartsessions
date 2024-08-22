@@ -3,6 +3,7 @@ pragma solidity ^0.8.25;
 
 import "../DataTypes.sol";
 import { EfficientHashLib } from "solady/utils/EfficientHashLib.sol";
+import { MessageHashUtils } from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
 import "forge-std/console2.sol";
 
@@ -31,8 +32,28 @@ bytes32 constant MULTICHAIN_SESSION_TYPEHASH = keccak256(
     abi.encodePacked(bytes(MULTI_CHAIN_SESSION_NOTATION), bytes(CHAIN_SESSION_NOTATION), bytes(SESSION_NOTATION), bytes(POLICY_DATA_NOTATION), bytes(ACTION_DATA_NOTATION), bytes(ERC7739_DATA_NOTATION))
 );
 
+/// @dev `keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)")`.
+bytes32 constant _DOMAIN_TYPEHASH =
+        0x8b73c3c69bb8fe3d512ecc4cf759cc79239f7b179b0ffacaa9a75d522b39400f;
+
+// keccak256(abi.encode(_DOMAIN_TYPEHASH, keccak256("SmartSession"), keccak256(""), 0, address(0)));
+// One should use the same domain separator where possible 
+// or provide the following EIP712Domain struct to the signTypedData() function
+// Name: "SmartSession" (string)
+// Version: "" (string)
+// ChainId: 0 (uint256)
+// VerifyingContract: address(0) (address)
+// https://docs.metamask.io/wallet/reference/eth_signtypeddata_v4 
+bytes32 constant _DOMAIN_SEPARATOR = 0xa82dd76056d04dc31e30c73f86aa4966336112e8b5e9924bb194526b08c250c1;
 
 library HashLib {
+
+    // Constants for the multichain domain separator
+// it is introduced for compatibility with signTypedData()
+// all the critical data such as chainId and verifyingContract are included 
+// in session hashes
+string constant NAME = "SmartSession";
+string constant VERSION = "";
 
     error ChainIdMismatch(uint64 providedChainId);
     error HashMismatch(bytes32 providedHash, bytes32 computedHash);
@@ -49,17 +70,15 @@ library HashLib {
     // so we have to do same, just w/o 1. as it is already provided to us as a digest
 
     // SHOULD MIMIC SignTypedData() behaviour
-    function multichainDigest(ChainDigest[] memory hashesAndChainIds) internal pure returns (bytes32) {  
-        bytes32 _hash = keccak256(
+    function multichainDigest(ChainDigest[] memory hashesAndChainIds) internal view returns (bytes32) {  
+        bytes32 structHash = keccak256(
             abi.encode(
                 MULTICHAIN_SESSION_TYPEHASH,
                 hashesAndChainIds.hashChainDigestArray()
             )
         );
 
-        return _hash;
-        // TODO: ADD EIP 712 domain separator
-        // for multichain 
+        return MessageHashUtils.toTypedDataHash(_DOMAIN_SEPARATOR, structHash);
     }
 
     function hashChainDigestArray(ChainDigest[] memory chainDigestArray) internal pure returns (bytes32) {
@@ -95,13 +114,13 @@ library HashLib {
         // and should return same hash as multichainDigest(ChainDigest[])
         
         // multichainSession.sessionsAndChainIds
-        bytes32 _hash = keccak256(
+        bytes32 structHash = keccak256(
             abi.encode(
                 MULTICHAIN_SESSION_TYPEHASH,
                 multichainSession.sessionsAndChainIds.hashChainSessionArray(modes, nonces, accounts, smartSessions)
             )
         );
-        return _hash;
+        return MessageHashUtils.toTypedDataHash(_DOMAIN_SEPARATOR, structHash);
     }
 
     function hashChainSessionArray(
@@ -254,4 +273,5 @@ library HashLib {
 
         digest = enableData.hashesAndChainIds.multichainDigest();
     }
+
 }
