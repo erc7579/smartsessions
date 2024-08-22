@@ -123,7 +123,6 @@ abstract contract SmartSessionBase is ERC7579ValidatorBase {
                 useRegistry: true
             });
 
-            $enabledSessions.add(msg.sender, SignerId.unwrap(signerId));
             console2.log(
                 "enabled session", msg.sender, $enabledSessions.contains(msg.sender, SignerId.unwrap(signerId))
             );
