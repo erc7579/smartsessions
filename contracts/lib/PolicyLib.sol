@@ -18,7 +18,6 @@ import { IERC7579Account } from "erc7579/interfaces/IERC7579Account.sol";
 import { EnumerableSet } from "../utils/EnumerableSet4337.sol";
 
 library PolicyLib {
-    using SentinelList4337Lib for SentinelList4337Lib.SentinelList;
     using EnumerableSet for EnumerableSet.AddressSet;
     using ExecutionLib for *;
     using IdLib for *;

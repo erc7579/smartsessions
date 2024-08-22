@@ -1,6 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+pragma solidity ^0.8.25;
+
 import { EIP712 } from "solady/utils/EIP712.sol";
-import { ERC1271 } from "solady/accounts/ERC1271.sol";
-import { SignatureCheckerLib } from "solady/utils/SignatureCheckerLib.sol";
 import { ISmartSession } from "../ISmartSession.sol";
 
 /// @notice ERC1271 mixin with nested EIP-712 approach.

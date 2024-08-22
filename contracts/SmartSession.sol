@@ -47,7 +47,6 @@ import { SmartSessionModeLib } from "./lib/SmartSessionModeLib.sol";
  */
 contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
     using EnumerableSet for EnumerableSet.Bytes32Set;
-    using SentinelList4337Lib for SentinelList4337Lib.SentinelList;
     using IdLib for *;
     using HashLib for *;
     using PolicyLib for *;

@@ -9,8 +9,6 @@ library SignerLib {
     using IdLib for *;
     using FlatBytesLib for *;
 
-    bytes4 internal constant EIP1271_SUCCESS = 0x1626ba7e;
-
     error SignerNotFound(SignerId signerId, address account);
     error InvalidSessionKeySignature(SignerId signerId, ISigner isigner, address account, bytes32 userOpHash);
 

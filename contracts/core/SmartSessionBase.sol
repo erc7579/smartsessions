@@ -6,8 +6,6 @@ import { ISmartSession } from "../ISmartSession.sol";
 import { EnumerableSet } from "../utils/EnumerableSet4337.sol";
 import { ISigner } from "../interfaces/ISigner.sol";
 import { SentinelList4337Lib } from "sentinellist/SentinelList4337.sol";
-import { ERC7579ValidatorBase } from "modulekit/Modules.sol";
-import { IModule as IERC7579Module } from "erc7579/interfaces/IERC7579Module.sol";
 import { ConfigLib } from "../lib/ConfigLib.sol";
 import { EncodeLib } from "../lib/EncodeLib.sol";
 import { PolicyLib } from "../lib/PolicyLib.sol";
@@ -33,9 +31,9 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
     Policy internal $erc1271Policies;
     EnumerableActionPolicy internal $actionPolicies;
     EnumerableSet.Bytes32Set internal $enabledSessions;
-    mapping(SessionId => mapping(bytes32 contentHash => mapping(address account => bool enabled))) internal
+    mapping(SessionId sessionId => mapping(bytes32 contentHash => mapping(address account => bool enabled))) internal
         $enabledERC7739Content;
-    mapping(SignerId signerId => mapping(address smartAccount => SignerConf)) internal $isigners;
+    mapping(SignerId signerId => mapping(address smartAccount => SignerConf conf)) internal $isigners;
 
     function _enableISigner(SignerId signerId, address account, ISigner isigner, bytes memory signerConfig) internal {
         if (!isigner.supportsInterface(type(ISigner).interfaceId)) {
@@ -151,7 +149,6 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
             });
 
             $enabledSessions.add(msg.sender, SignerId.unwrap(signerId));
-            console2.logBytes32(SignerId.unwrap(signerId));
             signerIds[i] = signerId;
             emit SessionCreated(signerId, msg.sender);
         }
