@@ -1,5 +1,5 @@
 import "../Base.t.sol";
-import "contracts/SmartSessionBase.sol";
+import "contracts/core/SmartSessionBase.sol";
 import "solady/utils/ECDSA.sol";
 
 contract MultipleSessionsTest is BaseTest {

@@ -1,20 +1,19 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity ^0.8.25;
 
-import "./DataTypes.sol";
-import "./utils/EnumerableSet4337.sol";
-
-import "forge-std/console2.sol";
-import { ISigner } from "./interfaces/ISigner.sol";
+import "../DataTypes.sol";
 import "@rhinestone/flatbytes/src/BytesLib.sol";
+import { EnumerableSet } from "../utils/EnumerableSet4337.sol";
+import { ISigner } from "../interfaces/ISigner.sol";
 import { SentinelList4337Lib } from "sentinellist/SentinelList4337.sol";
 import { ERC7579ValidatorBase } from "modulekit/Modules.sol";
-import { ConfigLib } from "./lib/ConfigLib.sol";
-import { EncodeLib } from "./lib/EncodeLib.sol";
-import { IdLib } from "./lib/IdLib.sol";
-import { HashLib } from "./lib/HashLib.sol";
+import { ConfigLib } from "../lib/ConfigLib.sol";
+import { EncodeLib } from "../lib/EncodeLib.sol";
+import { IdLib } from "../lib/IdLib.sol";
+import { HashLib } from "../lib/HashLib.sol";
+import { NonceManager } from "./NonceManager.sol";
 
-abstract contract SmartSessionBase is ERC7579ValidatorBase {
+abstract contract SmartSessionBase is ERC7579ValidatorBase, NonceManager {
     using EnumerableSet for EnumerableSet.Bytes32Set;
     using EnumerableSet for EnumerableSet.AddressSet;
     using FlatBytesLib for *;
@@ -32,7 +31,6 @@ abstract contract SmartSessionBase is ERC7579ValidatorBase {
 
     event SessionCreated(SignerId signerId, address account);
     event SessionRemoved(SignerId signerId, address smartAccount);
-    event IterNonce(SignerId signerId, address account, uint256 newValue);
 
     error InvalidData();
 
@@ -42,7 +40,6 @@ abstract contract SmartSessionBase is ERC7579ValidatorBase {
     EnumerableSet.Bytes32Set internal $enabledSessions;
     mapping(SessionId => mapping(bytes32 contentHash => mapping(address account => bool enabled))) internal
         $enabledERC7739Content;
-    mapping(SignerId signerId => mapping(address smartAccount => uint256 nonce)) internal $signerNonce;
     mapping(SignerId signerId => mapping(address smartAccount => SignerConf)) internal $isigners;
 
     function _enableISigner(SignerId signerId, address account, ISigner isigner, bytes memory signerConfig) internal {
@@ -242,14 +239,5 @@ abstract contract SmartSessionBase is ERC7579ValidatorBase {
 
     function _isISignerSet(SignerId signerId, address account) internal view returns (bool) {
         return address($isigners[signerId][account].isigner) != address(0);
-    }
-
-    function getNonce(SignerId signerId, address account) external view returns (uint256) {
-        return $signerNonce[signerId][account];
-    }
-
-    function revokeEnableSignature(SignerId signerId) external {
-        uint256 nonce = $signerNonce[signerId][msg.sender]++;
-        emit IterNonce(signerId, msg.sender, nonce);
     }
 }
