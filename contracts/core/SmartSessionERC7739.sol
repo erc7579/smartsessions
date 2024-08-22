@@ -1,10 +1,11 @@
 import { EIP712 } from "solady/utils/EIP712.sol";
 import { ERC1271 } from "solady/accounts/ERC1271.sol";
 import { SignatureCheckerLib } from "solady/utils/SignatureCheckerLib.sol";
+import { ISmartSession } from "../ISmartSession.sol";
 
 /// @notice ERC1271 mixin with nested EIP-712 approach.
 /// @author Solady (https://github.com/vectorized/solady/blob/main/src/accounts/ERC1271.sol)
-abstract contract SmartSessionERC7739 is EIP712 {
+abstract contract SmartSessionERC7739 is ISmartSession, EIP712 {
     /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
     /*                         CONSTANTS                          */
     /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/

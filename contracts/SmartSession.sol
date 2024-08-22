@@ -2,6 +2,7 @@
 pragma solidity ^0.8.25;
 
 import "./DataTypes.sol";
+import { ISmartSession } from "./ISmartSession.sol";
 
 import { PackedUserOperation } from "modulekit/external/ERC4337.sol";
 import { EIP1271_MAGIC_VALUE, IERC1271 } from "module-bases/interfaces/IERC1271.sol";
@@ -44,7 +45,7 @@ import { SmartSessionModeLib } from "./lib/SmartSessionModeLib.sol";
  * @title SmartSession
  * @author zeroknots.eth (rhinestone) & Filipp Makarov (biconomy)
  */
-contract SmartSession is SmartSessionBase, SmartSessionERC7739 {
+contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
     using EnumerableSet for EnumerableSet.Bytes32Set;
     using SentinelList4337Lib for SentinelList4337Lib.SentinelList;
     using IdLib for *;
@@ -57,12 +58,12 @@ contract SmartSession is SmartSessionBase, SmartSessionERC7739 {
     using MultichainHashLib for EnableSessions;
     using SmartSessionModeLib for SmartSessionMode;
 
-    error InvalidEnableSignature(address account, bytes32 hash);
-    error InvalidSignerId(SignerId signerId);
-    error UnsupportedExecutionType();
-    error UnsupportedSmartSessionMode(SmartSessionMode mode);
-    error InvalidUserOpSender(address sender);
-    error PermissionPartlyEnabled();
+    // error InvalidEnableSignature(address account, bytes32 hash);
+    // error InvalidSignerId(SignerId signerId);
+    // error UnsupportedExecutionType();
+    // error UnsupportedSmartSessionMode(SmartSessionMode mode);
+    // error InvalidUserOpSender(address sender);
+    // error PermissionPartlyEnabled();
 
     uint256 private immutable MIN_POLICIES_TO_ENFORCE;
 

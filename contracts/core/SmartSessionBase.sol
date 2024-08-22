@@ -7,13 +7,14 @@ import { EnumerableSet } from "../utils/EnumerableSet4337.sol";
 import { ISigner } from "../interfaces/ISigner.sol";
 import { SentinelList4337Lib } from "sentinellist/SentinelList4337.sol";
 import { ERC7579ValidatorBase } from "modulekit/Modules.sol";
+import { IModule as IERC7579Module } from "erc7579/interfaces/IERC7579Module.sol";
 import { ConfigLib } from "../lib/ConfigLib.sol";
 import { EncodeLib } from "../lib/EncodeLib.sol";
 import { IdLib } from "../lib/IdLib.sol";
 import { HashLib } from "../lib/HashLib.sol";
 import { NonceManager } from "./NonceManager.sol";
 
-abstract contract SmartSessionBase is ISmartSession, ERC7579ValidatorBase, NonceManager {
+abstract contract SmartSessionBase is ISmartSession, NonceManager {
     using EnumerableSet for EnumerableSet.Bytes32Set;
     using EnumerableSet for EnumerableSet.AddressSet;
     using FlatBytesLib for *;
@@ -25,14 +26,6 @@ abstract contract SmartSessionBase is ISmartSession, ERC7579ValidatorBase, Nonce
     using AssociatedArrayLib for *;
     using ConfigLib for Policy;
     using ConfigLib for EnumerableActionPolicy;
-
-    error InvalidISigner(ISigner isigner);
-    error InvalidSession(SignerId signerId);
-
-    event SessionCreated(SignerId signerId, address account);
-    event SessionRemoved(SignerId signerId, address smartAccount);
-
-    error InvalidData();
 
     Policy internal $userOpPolicies;
     Policy internal $erc1271Policies;
@@ -206,7 +199,7 @@ abstract contract SmartSessionBase is ISmartSession, ERC7579ValidatorBase, Nonce
         }
     }
 
-    function isInitialized(address smartAccount) external view returns (bool) {
+    function isInitialized(address smartAccount) external view override returns (bool) {
         uint256 sessionIdsCnt = $enabledSessions.length({ account: smartAccount });
         return sessionIdsCnt > 0;
     }
@@ -216,7 +209,8 @@ abstract contract SmartSessionBase is ISmartSession, ERC7579ValidatorBase, Nonce
     }
 
     function isModuleType(uint256 typeID) external pure override returns (bool) {
-        return typeID == TYPE_VALIDATOR;
+        if (typeID == ERC7579_MODULE_TYPE_VALIDATOR) return true;
+        if (typeID == ERC7579_MODULE_TYPE_FALLBACK) return true;
     }
 
     function getDigest(

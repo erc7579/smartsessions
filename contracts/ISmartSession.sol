@@ -2,24 +2,21 @@
 pragma solidity ^0.8.4;
 
 import "./DataTypes.sol";
-import { ERC7579ValidatorBase } from "modulekit/Modules.sol";
 
 interface ISmartSession {
-    error AlreadyInitialized(address smartAccount);
     error AssociatedArray_OutOfBounds(uint256 index);
     error ChainIdMismatch(uint64 providedChainId);
     error HashIndexOutOfBounds(uint256 index);
     error HashMismatch(bytes32 providedHash, bytes32 computedHash);
     error InvalidData();
     error InvalidEnableSignature(address account, bytes32 hash);
-    error InvalidISigner(address isigner);
+    error InvalidISigner(ISigner isigner);
     error InvalidSelfCall();
     error InvalidSession(SignerId signerId);
     error InvalidSessionKeySignature(SignerId signerId, address isigner, address account, bytes32 userOpHash);
     error InvalidSignerId(SignerId signerId);
     error InvalidUserOpSender(address sender);
     error NoPoliciesSet(SignerId signerId);
-    error NotInitialized(address smartAccount);
     error PartlyEnabledActions();
     error PartlyEnabledPolicies();
     error PermissionPartlyEnabled();
@@ -44,7 +41,7 @@ interface ISmartSession {
         bytes32 userOpHash
     )
         external
-        returns (ERC7579ValidatorBase.ValidationData vd);
+        returns (ValidationData vd);
     function onInstall(bytes memory data) external;
     function onUninstall(bytes memory) external;
 
@@ -87,18 +84,6 @@ interface ISmartSession {
         view
         returns (bytes32);
 
-    function eip712Domain()
-        external
-        view
-        returns (
-            bytes1 fields,
-            string memory name,
-            string memory version,
-            uint256 chainId,
-            address verifyingContract,
-            bytes32 salt,
-            uint256[] memory extensions
-        );
     function getNonce(SignerId signerId, address account) external view returns (uint256);
     function getSignerId(Session memory session) external pure returns (SignerId signerId);
     function isPermissionEnabled(

@@ -2,6 +2,7 @@
 pragma solidity ^0.8.25;
 
 import "../DataTypes.sol";
+import { ISmartSession } from "../ISmartSession.sol";
 import { PackedUserOperation } from "modulekit/external/ERC4337.sol";
 import { AssociatedArrayLib } from "../utils/AssociatedArrayLib.sol";
 
@@ -23,18 +24,10 @@ library PolicyLib {
     using IdLib for *;
     using PolicyLib for *;
     using AssociatedArrayLib for *;
-    using ValidationDataLib for ERC7579ValidatorBase.ValidationData;
+    using ValidationDataLib for ValidationData;
 
-    error PolicyAlreadyUsed(address policy);
-    error InvalidSelfCall();
-    error PolicyViolation(SignerId signerId, address policy);
-    error UnsupportedCallType(CallType callType);
-    error NoPoliciesSet(SignerId signerId);
-    error PartlyEnabledPolicies();
-    error PartlyEnabledActions();
-
-    function isFailed(ERC7579ValidatorBase.ValidationData packedData) internal pure returns (bool sigFailed) {
-        sigFailed = (ERC7579ValidatorBase.ValidationData.unwrap(packedData) & 1) == 1;
+    function isFailed(ValidationData packedData) internal pure returns (bool sigFailed) {
+        sigFailed = (ValidationData.unwrap(packedData) & 1) == 1;
     }
 
     function check(
@@ -45,18 +38,18 @@ library PolicyLib {
         uint256 minPolicies
     )
         internal
-        returns (ERC7579ValidatorBase.ValidationData vd)
+        returns (ValidationData vd)
     {
         address account = userOp.sender;
         address[] memory policies = $self.policyList[signerId].values({ account: account });
         uint256 length = policies.length;
-        if (minPolicies > length) revert NoPoliciesSet(signerId);
+        if (minPolicies > length) revert ISmartSession.NoPoliciesSet(signerId);
 
         // iterate over all policies and intersect the validation data
         for (uint256 i; i < length; i++) {
             uint256 validationDataFromPolicy = uint256(bytes32(policies[i].safeCall({ callData: callOnIPolicy })));
-            vd = ERC7579ValidatorBase.ValidationData.wrap(validationDataFromPolicy);
-            if (vd.isFailed()) revert PolicyViolation(signerId, policies[i]);
+            vd = ValidationData.wrap(validationDataFromPolicy);
+            if (vd.isFailed()) revert ISmartSession.PolicyViolation(signerId, policies[i]);
             vd = vd.intersectValidationData(vd);
         }
     }
@@ -71,13 +64,15 @@ library PolicyLib {
         uint256 minPolicies
     )
         internal
-        returns (ERC7579ValidatorBase.ValidationData vd)
+        returns (ValidationData vd)
     {
         bytes4 targetSig = bytes4(callData[0:4]);
 
         // In theory it could be possible, that a 7579 account calls its own execute function and thus bypasses the
         // policy check, since policies would be blind to the calldata in the nested execution
-        if (targetSig == IERC7579Account.execute.selector && target == userOp.sender) revert InvalidSelfCall();
+        if (targetSig == IERC7579Account.execute.selector && target == userOp.sender) {
+            revert ISmartSession.InvalidSelfCall();
+        }
         ActionId actionId = target.toActionId(targetSig);
         vd = $policies[actionId].check({
             userOp: userOp,
@@ -96,7 +91,7 @@ library PolicyLib {
         uint256 minPolicies
     )
         internal
-        returns (ERC7579ValidatorBase.ValidationData vd)
+        returns (ValidationData vd)
     {
         Execution[] calldata executions = userOp.callData.decodeUserOpCallData().decodeBatch();
         uint256 length = executions.length;
@@ -147,7 +142,7 @@ library PolicyLib {
         }
         if (enabledPolicies == 0) return false;
         else if (enabledPolicies == length) return true;
-        else revert PartlyEnabledPolicies();
+        else revert ISmartSession.PartlyEnabledPolicies();
     }
 
     function areEnabled(
@@ -174,7 +169,7 @@ library PolicyLib {
         }
         if (actionsProperlyEnabled == 0) return false;
         else if (actionsProperlyEnabled == length) return true;
-        else revert PartlyEnabledActions();
+        else revert ISmartSession.PartlyEnabledActions();
     }
 
     function checkERC1271(
@@ -193,7 +188,7 @@ library PolicyLib {
     {
         address[] memory policies = $self.policyList[signerId].values({ account: account });
         uint256 length = policies.length;
-        if (minPoliciesToEnforce > length) revert NoPoliciesSet(signerId);
+        if (minPoliciesToEnforce > length) revert ISmartSession.NoPoliciesSet(signerId);
 
         // iterate over all policies and intersect the validation data
         for (uint256 i; i < length; i++) {

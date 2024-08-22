@@ -2,6 +2,7 @@
 pragma solidity ^0.8.25;
 
 import "../DataTypes.sol";
+import { ISmartSession } from "../ISmartSession.sol";
 import { AssociatedArrayLib } from "../utils/AssociatedArrayLib.sol";
 import { IRegistry, ModuleType } from "../interfaces/IRegistry.sol";
 import { IdLib } from "./IdLib.sol";
@@ -16,9 +17,6 @@ library ConfigLib {
     using IdLib for *;
 
     error UnsupportedPolicy(address policy);
-
-    event PolicyEnabled(SignerId signerId, PolicyType policyType, address policy, address smartAccount);
-    event PolicyDisabled(SignerId signerId, PolicyType policyType, address policy, address smartAccount);
 
     IRegistry internal constant registry = IRegistry(0x000000000069E2a187AEFFb852bF3cCdC95151B2);
     ModuleType internal constant POLICY_MODULE_TYPE = ModuleType.wrap(7);
@@ -51,7 +49,7 @@ library ConfigLib {
             ISubPermission(policy).onInstall({ data: abi.encodePacked(sessionId, smartAccount, policyData.initData) });
 
             $policy.policyList[signerId].add(smartAccount, address(policy));
-            emit PolicyEnabled(signerId, policyType, address(policy), smartAccount);
+            emit ISmartSession.PolicyEnabled(signerId, policyType, address(policy), smartAccount);
         }
     }
 
@@ -109,7 +107,7 @@ library ConfigLib {
         for (uint256 i; i < length; i++) {
             address policy = policies[i];
             $policy.policyList[signerId].remove(smartAccount, policy);
-            emit PolicyDisabled(signerId, policyType, address(policy), smartAccount);
+            emit ISmartSession.PolicyDisabled(signerId, policyType, address(policy), smartAccount);
         }
     }
 }

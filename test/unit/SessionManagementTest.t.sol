@@ -121,7 +121,7 @@ contract SessionManagementTest is BaseTest {
         vm.prank(instance.account);
 
         vm.expectEmit(true, true, true, true, address(smartSession));
-        emit SmartSessionBase.SessionRemoved({ signerId: signerId, smartAccount: instance.account });
+        emit ISmartSession.SessionRemoved({ signerId: signerId, smartAccount: instance.account });
         smartSession.removeSession(signerId);
 
         UserOpData memory userOpData = instance.getExecOps({
