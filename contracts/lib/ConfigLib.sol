@@ -20,7 +20,8 @@ library ConfigLib {
 
     error UnsupportedPolicy(address policy);
 
-    event PolicyEnabled(SignerId signerId, address policy, address smartAccount);
+    event PolicyEnabled(SignerId signerId, PolicyType policyType, address policy, address smartAccount);
+    event PolicyDisabled(SignerId signerId, PolicyType policyType, address policy, address smartAccount);
 
     IRegistry internal constant registry = IRegistry(0x000000000069E2a187AEFFb852bF3cCdC95151B2);
     ModuleType internal constant POLICY_MODULE_TYPE = ModuleType.wrap(7);
@@ -30,6 +31,7 @@ library ConfigLib {
      */
     function enable(
         Policy storage $policy,
+        PolicyType policyType,
         SignerId signerId,
         SessionId sessionId,
         PolicyData[] memory policyDatas,
@@ -51,8 +53,8 @@ library ConfigLib {
 
             ISubPermission(policy).onInstall({ data: abi.encodePacked(sessionId, smartAccount, policyData.initData) });
 
-            $policy.policyList[signerId].add({ account: smartAccount, value: address(policy) });
-            emit PolicyEnabled(signerId, address(policy), smartAccount);
+            $policy.policyList[signerId].add(smartAccount, address(policy));
+            emit PolicyEnabled(signerId, policyType, address(policy), smartAccount);
         }
     }
 
@@ -71,10 +73,14 @@ library ConfigLib {
             ActionData memory actionPolicyData = actionPolicyDatas[i];
             ActionId actionId = actionPolicyData.actionId;
             $self.enabledActionIds[signerId].push(smartAccount, ActionId.unwrap(actionId));
-            SessionId sessionId = signerId.toSessionId(actionId);
-            $self.actionPolicies[actionId].enable(
-                signerId, sessionId, actionPolicyData.actionPolicies, smartAccount, useRegistry
-            );
+            $self.actionPolicies[actionId].enable({
+                policyType: PolicyType.ACTION,
+                signerId: signerId,
+                sessionId: signerId.toSessionId(actionId),
+                policyDatas: actionPolicyData.actionPolicies,
+                smartAccount: smartAccount,
+                useRegistry: useRegistry
+            });
         }
     }
 
@@ -90,6 +96,23 @@ library ConfigLib {
         for (uint256 i; i < length; i++) {
             bytes32 contentHash = contents[i].hashERC7739Content();
             $enabledERC7739Content[sessionId][contentHash][smartAccount] = true;
+        }
+    }
+
+    function disable(
+        Policy storage $policy,
+        PolicyType policyType,
+        address smartAccount,
+        SignerId signerId,
+        address[] calldata policies
+    )
+        internal
+    {
+        uint256 length = policies.length;
+        for (uint256 i; i < length; i++) {
+            address policy = policies[i];
+            $policy.policyList[signerId].remove(smartAccount, policy);
+            emit PolicyDisabled(signerId, policyType, address(policy), smartAccount);
         }
     }
 }

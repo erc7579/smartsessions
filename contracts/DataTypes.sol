@@ -86,6 +86,12 @@ enum SmartSessionMode {
     UNSAFE_ENABLE_ADD_POLICIES
 }
 
+enum PolicyType {
+    USER_OP,
+    ACTION,
+    ERC1271
+}
+
 struct Policy {
     mapping(SignerId => EnumerableSet.AddressSet) policyList;
 }

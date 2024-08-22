@@ -186,6 +186,7 @@ contract SmartSession is SmartSessionBase, SmartSessionERC7739 {
 
         // enable all policies for this session
         $userOpPolicies.enable({
+            policyType: PolicyType.USER_OP,
             signerId: signerId,
             sessionId: signerId.toUserOpPolicyId().toSessionId(),
             policyDatas: enableData.sessionToEnable.userOpPolicies,
@@ -193,6 +194,7 @@ contract SmartSession is SmartSessionBase, SmartSessionERC7739 {
             useRegistry: useRegistry
         });
         $erc1271Policies.enable({
+            policyType: PolicyType.ERC1271,
             signerId: signerId,
             sessionId: signerId.toErc1271PolicyId().toSessionId(),
             policyDatas: enableData.sessionToEnable.erc7739Policies.erc1271Policies,
