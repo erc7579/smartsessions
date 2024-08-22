@@ -2,8 +2,8 @@
 pragma solidity ^0.8.25;
 
 import "../DataTypes.sol";
+import { ISmartSession } from "../ISmartSession.sol";
 import { PackedUserOperation } from "modulekit/external/ERC4337.sol";
-import "forge-std/console2.sol";
 import { LibZip } from "solady/utils/LibZip.sol";
 import { ModeCode as ExecutionMode } from "erc7579/lib/ModeLib.sol";
 
@@ -11,7 +11,6 @@ library EncodeLib {
     using LibZip for bytes;
     using EncodeLib for *;
 
-    error HashIndexOutOfBounds(uint256 index);
     error ChainIdAndHashesLengthMismatch(uint256 chainIdsLength, uint256 hashesLength);
 
     function packMode(
@@ -110,5 +109,4 @@ library EncodeLib {
         }
         return hashesAndChainIds;
     }
-
 }

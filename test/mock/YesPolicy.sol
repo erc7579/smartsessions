@@ -37,33 +37,23 @@ contract YesPolicy is IUserOpPolicy, IActionPolicy {
 
     function checkAction(
         SessionId id,
+        address account,
         address target,
         uint256 value,
-        bytes calldata data,
-        PackedUserOperation calldata op
+        bytes calldata data
     )
         external
         override
         returns (uint256)
     {
-        actionState[id][msg.sender][op.sender] += 1;
-    }
-
-    function isInitialized(address multiplexer, address account, SessionId id) external view override returns (bool) {
-        return userOpState[id][multiplexer][account] != 0;
+        actionState[id][msg.sender][account] += 1;
     }
 
     function isInitialized(address account, SessionId id) external view override returns (bool) {
         return userOpState[id][msg.sender][account] != 0;
     }
 
-    function isInitialized(address account) external view override returns (bool) {
-        revert("Not implemented");
-    }
-
-    function isInitialized(address multiplexer, address account) external view override returns (bool) {
-        revert("Not implemented");
-    }
+    function isInitialized(address account) external view override returns (bool) { }
 
     function supportsInterface(bytes4 interfaceID) external view override returns (bool) {
         return true;

@@ -81,6 +81,13 @@ library EnumerableSet {
         }
     }
 
+    function _removeAll(Set storage set, address account) internal {
+        uint256 len = _length(set, account);
+        for (uint256 i; i < len; i++) {
+            _remove(set, account, _at(set, account, i));
+        }
+    }
+
     /**
      * @dev Returns true if the value is in the set. O(1).
      */
@@ -145,6 +152,10 @@ library EnumerableSet {
      */
     function remove(Bytes32Set storage set, address account, bytes32 value) internal returns (bool) {
         return _remove(set._inner, account, value);
+    }
+
+    function removeAll(Bytes32Set storage set, address account) internal {
+        return _removeAll(set._inner, account);
     }
 
     /**
@@ -221,6 +232,10 @@ library EnumerableSet {
         return _remove(set._inner, account, bytes32(uint256(uint160(value))));
     }
 
+    function removeAll(AddressSet storage set, address account) internal {
+        return _removeAll(set._inner, account);
+    }
+
     /**
      * @dev Returns true if the value is in the set. O(1).
      */
@@ -293,6 +308,10 @@ library EnumerableSet {
      */
     function remove(UintSet storage set, address account, uint256 value) internal returns (bool) {
         return _remove(set._inner, account, bytes32(value));
+    }
+
+    function removeAll(UintSet storage set, address account) internal {
+        return _removeAll(set._inner, account);
     }
 
     /**

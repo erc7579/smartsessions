@@ -1,5 +1,5 @@
 import "../Base.t.sol";
-import "contracts/SmartSessionBase.sol";
+import "contracts/core/SmartSessionBase.sol";
 import "solady/utils/ECDSA.sol";
 
 contract SessionManagementTest is BaseTest {
@@ -115,10 +115,11 @@ contract SessionManagementTest is BaseTest {
         assertEq(target.value(), 1337);
     }
 
-    function test_add_policies_to_session (bytes32 salt) public {
+    function test_add_policies_to_session (/*bytes32 salt*/) public {
+        bytes32 salt = keccak256('salt');
         (SignerId signerId, EnableSessions memory enableSessions) = test_enable_exec(salt);
 
-        assertFalse(usageLimitPolicy.isInitialized(address(smartSession), instance.account));
+        assertFalse(usageLimitPolicy.isInitialized(instance.account, address(smartSession)));
 
         UserOpData memory userOpData = instance.getExecOps({
             target: address(target),
@@ -150,7 +151,7 @@ contract SessionManagementTest is BaseTest {
         userOpData.execUserOps();
 
         assertEq(target.value(), 1338);
-        assertTrue(usageLimitPolicy.isInitialized(address(smartSession), instance.account));
+        assertTrue(usageLimitPolicy.isInitialized(instance.account, address(smartSession)));
     }
 
     function test_disableSession(bytes32 salt) public {
@@ -159,7 +160,7 @@ contract SessionManagementTest is BaseTest {
         vm.prank(instance.account);
 
         vm.expectEmit(true, true, true, true, address(smartSession));
-        emit SmartSessionBase.SessionRemoved({ signerId: signerId, smartAccount: instance.account });
+        emit ISmartSession.SessionRemoved({ signerId: signerId, smartAccount: instance.account });
         smartSession.removeSession(signerId);
 
         UserOpData memory userOpData = instance.getExecOps({
@@ -202,12 +203,11 @@ contract SessionManagementTest is BaseTest {
         });
 
         // predict signerId correlating to EnableSessions
-        SignerId signerId =
-            smartSession.getSignerId(session);
+        SignerId signerId = smartSession.getSignerId(session);
 
         // get hash for enable signature. A nonce is in here
         uint256 nonceBefore = smartSession.getNonce(signerId, instance.account);
-        
+
         // create enable sessions object
         EnableSessions memory enableSessions = _makeMultiChainEnableData(signerId, session, instance, SmartSessionMode.UNSAFE_ENABLE);
         bytes32 hash = HashLib.multichainDigest(enableSessions.hashesAndChainIds);

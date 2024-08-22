@@ -69,7 +69,7 @@ contract BaseTest is RhinestoneModuleKit, Test {
         sessionSigner1 = makeAccount("sessionSigner1");
         sessionSigner2 = makeAccount("sessionSigner2");
 
-        smartSession = new SmartSession();
+        smartSession = new SmartSession(0);
         target = new MockTarget();
         yesSigner = new YesSigner();
         yesPolicy = new YesPolicy();
