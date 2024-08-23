@@ -126,8 +126,7 @@ contract SessionManagementTest is BaseTest {
         assertEq(target.value(), 1337);
     }
 
-    function test_add_policies_to_session( /*bytes32 salt*/ ) public {
-        bytes32 salt = keccak256("salt");
+    function test_add_policies_to_session( bytes32 salt ) public {
         (PermissionId permissionId, EnableSession memory enableSessions) = test_enable_exec(salt);
 
         ConfigId configId = permissionId.toConfigId(instance.account);
