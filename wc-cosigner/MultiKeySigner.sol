@@ -73,21 +73,6 @@ contract MultiKeySigner {
     error InvalidSignatureLength();
     error InvalidSignatureType();
 
-    // can use sender as argument here as the method is view
-    // so even external calls with arbitrary sender can not break things
-    function checkSignature(
-        ConfigId permissionId,
-        address sender,
-        bytes32 hash,
-        bytes calldata sig
-    )
-        external
-        view
-        returns (bytes4)
-    {
-        return 0xffffffff;
-    }
-
     function onInstall(bytes calldata data) external {
         revert();
     }
@@ -103,18 +88,6 @@ contract MultiKeySigner {
     }
 
     function _deinitForAccount(address account, ConfigId id) internal { }
-
-    function checkUserOpSignature(
-        bytes32 id,
-        PackedUserOperation calldata userOp,
-        bytes32 userOpHash
-    )
-        external
-        payable
-        returns (uint256)
-    {
-        return 1;
-    }
 
     function validateSignatureWithData(
         bytes32 hash,
