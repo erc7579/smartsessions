@@ -21,6 +21,10 @@ contract YesPolicy is IUserOpPolicy, IActionPolicy {
         userOpState[id][msg.sender][opSender] = 1;
     }
 
+    function initializeWithMultiplexer(address account, ConfigId configId, bytes calldata initData) external {
+        userOpState[configId][msg.sender][account] = 1;
+    }
+
     function onUninstall(bytes calldata data) external {
         (ConfigId id, address opSender, bytes calldata _data) = data.parseInstallData();
         userOpState[id][msg.sender][opSender] = 0;

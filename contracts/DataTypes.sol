@@ -10,29 +10,12 @@ import { FlatBytesLib } from "@rhinestone/flatbytes/src/BytesLib.sol";
 /*                       Parameters                           */
 /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
 
-struct Session {
-    ISessionValidator sessionValidator;
-    bytes32 salt;
-    bytes sessionValidatorInitData;
-    PolicyData[] userOpPolicies;
-    ERC7739Data erc7739Policies;
-    ActionData[] actions;
-}
-
 struct EnableSession {
     uint8 chainDigestIndex;
     ChainDigest[] hashesAndChainIds;
     Session sessionToEnable;
+    // in order to enable a session, the smart account has to sign a digest. The signature for this is stored here.
     bytes permissionEnableSig;
-}
-
-struct ChainSession {
-    uint64 chainId;
-    Session session;
-}
-
-struct MultiChainSession {
-    ChainSession[] sessionsAndChainIds;
 }
 
 struct ChainDigest {
@@ -40,11 +23,43 @@ struct ChainDigest {
     bytes32 sessionDigest;
 }
 
+struct Session {
+    // every userOp has to be signed by the session key "owner".
+    // the signature is validated via a stateless external contract: ISessionValidator, that can implement different
+    // means of
+    // validation.
+    ISessionValidator sessionValidator;
+    // the ISessionValidator contract can be configured with different parameters, that are passed in the
+    // sessionValidatorInitData
+    bytes sessionValidatorInitData;
+    // A session key owner can have multiple sessions, with the same parameters. To facilitate this, a salt is necessary
+    // to avoid collision
+    bytes32 salt;
+    // When every session can have multiple policies set.
+    PolicyData[] userOpPolicies;
+    ERC7739Data erc7739Policies;
+    // A common usecase of session keys is to scope access to a speficic target and function selector. SmartSession
+    // calls this "Action".
+    // With ActionData we can specify policies that are only run, if a 7579 execution contains a specific action.
+    ActionData[] actions;
+}
+
+struct MultiChainSession {
+    ChainSession[] sessionsAndChainIds;
+}
+
+struct ChainSession {
+    uint64 chainId;
+    Session session;
+}
+
+// Policy data is a struct that contains the policy address and the initialization data for the policy.
 struct PolicyData {
     address policy;
     bytes initData;
 }
 
+// Action data is a struct that contains the actionId and the policies that are associated with this action.
 struct ActionData {
     ActionId actionId;
     PolicyData[] actionPolicies;

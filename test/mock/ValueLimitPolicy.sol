@@ -69,6 +69,10 @@ contract ValueLimitPolicy is IActionPolicy {
         _onInstallPolicy(id, opSender, _data);
     }
 
+    function initializeWithMultiplexer(address account, ConfigId configId, bytes calldata initData) external {
+        _onInstallPolicy(configId, account, initData);
+    }
+
     function onUninstall(bytes calldata data) external {
         (ConfigId id, address opSender, bytes calldata _data) = data.parseInstallData();
         _onUninstallPolicy(id, opSender, _data);

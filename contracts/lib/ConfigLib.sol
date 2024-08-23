@@ -39,18 +39,26 @@ library ConfigLib {
         // iterage over all policyData
         uint256 lengthConfigs = policyDatas.length;
         for (uint256 i; i < lengthConfigs; i++) {
-            PolicyData memory policyData = policyDatas[i];
+            address policy = policyDatas[i].policy;
 
-            ISubPermission policy = ISubPermission(policyData.policy);
+            // TODO: can we remove this check?
+            if (!ISubPermission(policy).supportsInterface(type(ISubPermission).interfaceId)) {
+                revert UnsupportedPolicy(policy);
+            }
 
-            if (!policy.supportsInterface(type(ISubPermission).interfaceId)) revert UnsupportedPolicy(address(policy));
+            // this will revert if the policy is not attested to
+            if (useRegistry) {
+                registry.checkForAccount({ smartAccount: smartAccount, module: policy, moduleType: POLICY_MODULE_TYPE });
+            }
 
-            if (useRegistry) registry.checkForAccount(smartAccount, address(policy), POLICY_MODULE_TYPE);
+            $policy.policyList[permissionId].add({ account: smartAccount, value: policy });
+            ISubPermission(policy).initializeWithMultiplexer({
+                account: smartAccount,
+                configId: configId,
+                initData: policyDatas[i].initData
+            });
 
-            ISubPermission(policy).onInstall({ data: abi.encodePacked(configId, smartAccount, policyData.initData) });
-
-            $policy.policyList[permissionId].add(smartAccount, address(policy));
-            emit ISmartSession.PolicyEnabled(permissionId, policyType, address(policy), smartAccount);
+            emit ISmartSession.PolicyEnabled(permissionId, policyType, policy, smartAccount);
         }
     }
 

@@ -48,6 +48,8 @@ contract SpendingLimitPolicy is IActionPolicy {
 
     function onInstall(bytes calldata data) external override { }
 
+    function initializeWithMultiplexer(address account, ConfigId configId, bytes calldata initData) external { }
+
     function onUninstall(bytes calldata data) external override { }
 
     function isModuleType(uint256 moduleTypeId) external view override returns (bool) { }
