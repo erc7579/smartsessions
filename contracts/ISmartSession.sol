@@ -10,6 +10,7 @@ interface ISmartSession {
     error HashIndexOutOfBounds(uint256 index);
     error HashMismatch(bytes32 providedHash, bytes32 computedHash);
     error InvalidData();
+    error InvalidActionId();
     error InvalidEnableSignature(address account, bytes32 hash);
     error InvalidISessionValidator(ISessionValidator sessionValidator);
     error InvalidSelfCall();

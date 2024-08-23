@@ -4,20 +4,7 @@ pragma solidity ^0.8.25;
 import "../DataTypes.sol";
 
 library IdLib {
-    function toPermissionId(
-        address account,
-        ISessionValidator sessionValidator
-    )
-        internal
-        view
-        returns (PermissionId permissionId)
-    {
-        permissionId = PermissionId.wrap(
-            keccak256(abi.encodePacked("Signer Id for ", account, address(sessionValidator), block.timestamp))
-        );
-    }
-
-    function toUserOpPolicyId(PermissionId permissionId) internal view returns (UserOpPolicyId userOpPolicyId) {
+    function toUserOpPolicyId(PermissionId permissionId) internal pure returns (UserOpPolicyId userOpPolicyId) {
         userOpPolicyId = UserOpPolicyId.wrap(PermissionId.unwrap(permissionId));
     }
 
@@ -36,25 +23,19 @@ library IdLib {
         policyId = ActionPolicyId.wrap(keccak256(abi.encodePacked(permissionId, actionId)));
     }
 
-    function toErc1271PolicyId(PermissionId permissionId) internal view returns (Erc1271PolicyId erc1271PolicyId) {
+    function toErc1271PolicyId(PermissionId permissionId) internal pure returns (Erc1271PolicyId erc1271PolicyId) {
         erc1271PolicyId = Erc1271PolicyId.wrap(keccak256(abi.encodePacked("ERC1271: ", permissionId)));
     }
 
-    /* function toSignedActionId(PermissionId permissionId, ActionId actionId) pure returns (SignedActionId policyId) {
-    policyId = SignedActionId.wrap(
-        keccak256(abi.encodePacked("ERC1271: ", PermissionId.unwrap(permissionId), ActionId.unwrap(actionId)))
-    );
-    } */
-
-    function toConfigId(PermissionId permissionId, address account) internal view returns (ConfigId _id) {
+    function toConfigId(PermissionId permissionId, address account) internal pure returns (ConfigId _id) {
         _id = ConfigId.wrap(keccak256(abi.encodePacked(account, permissionId)));
     }
 
-    function toConfigId(UserOpPolicyId userOpPolicyId, address account) internal view returns (ConfigId _id) {
+    function toConfigId(UserOpPolicyId userOpPolicyId, address account) internal pure returns (ConfigId _id) {
         _id = ConfigId.wrap(keccak256(abi.encodePacked(account, userOpPolicyId)));
     }
 
-    function toConfigId(ActionPolicyId actionPolicyId, address account) internal view returns (ConfigId _id) {
+    function toConfigId(ActionPolicyId actionPolicyId, address account) internal pure returns (ConfigId _id) {
         _id = ConfigId.wrap(keccak256(abi.encodePacked(account, actionPolicyId)));
     }
 
@@ -64,13 +45,13 @@ library IdLib {
         address account
     )
         internal
-        view
+        pure
         returns (ConfigId _id)
     {
         _id = toConfigId(toActionPolicyId(permissionId, actionId), account);
     }
 
-    function toConfigId(Erc1271PolicyId erc1271PolicyId, address account) internal view returns (ConfigId _id) {
+    function toConfigId(Erc1271PolicyId erc1271PolicyId, address account) internal pure returns (ConfigId _id) {
         _id = ConfigId.wrap(keccak256(abi.encodePacked(account, erc1271PolicyId)));
     }
 
@@ -92,5 +73,17 @@ library IdLib {
 
     function toConfigId(Erc1271PolicyId erc1271PolicyId) internal view returns (ConfigId _id) {
         _id = toConfigId(erc1271PolicyId, msg.sender);
+    }
+
+    function toPermissionIdMemory(Session memory session) internal pure returns (PermissionId permissionId) {
+        permissionId = PermissionId.wrap(
+            keccak256(abi.encode(session.sessionValidator, session.sessionValidatorInitData, session.salt))
+        );
+    }
+
+    function toPermissionId(Session calldata session) internal pure returns (PermissionId permissionId) {
+        permissionId = PermissionId.wrap(
+            keccak256(abi.encode(session.sessionValidator, session.sessionValidatorInitData, session.salt))
+        );
     }
 }

@@ -43,7 +43,10 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
     )
         internal
     {
-        if (!sessionValidator.supportsInterface(type(ISessionValidator).interfaceId)) {
+        if (
+            address(sessionValidator) == address(0)
+                || !sessionValidator.supportsInterface(type(ISessionValidator).interfaceId)
+        ) {
             revert InvalidISessionValidator(sessionValidator);
         }
         // TODO: add registry check
@@ -130,10 +133,11 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
 
     function enableSessions(Session[] calldata sessions) public returns (PermissionId[] memory permissionIds) {
         uint256 length = sessions.length;
+        if (length == 0) revert InvalidData();
         permissionIds = new PermissionId[](length);
         for (uint256 i; i < length; i++) {
             Session calldata session = sessions[i];
-            PermissionId permissionId = getPermissionId(session);
+            PermissionId permissionId = session.toPermissionId();
             $enabledSessions.add({ account: msg.sender, value: PermissionId.unwrap(permissionId) });
             _enableISessionValidator({
                 permissionId: permissionId,
@@ -173,6 +177,7 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
     }
 
     function removeSession(PermissionId permissionId) public {
+        if (permissionId == EMPTY_PERMISSIONID) revert InvalidSession(permissionId);
         $userOpPolicies.policyList[permissionId].removeAll(msg.sender);
         $erc1271Policies.policyList[permissionId].removeAll(msg.sender);
 
@@ -192,9 +197,12 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
      * @param data The data to initialize the module with
      */
     function onInstall(bytes calldata data) external override {
+        // It's allowed to install smartsessions on a ERC7579 account without any params
         if (data.length == 0) return;
 
         Session[] calldata sessions;
+
+        // equivalent of abi.decode(data,Session[])
         assembly ("memory-safe") {
             let dataPointer := add(data.offset, calldataload(data.offset))
 
@@ -249,10 +257,8 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
         return data.sessionDigest({ account: account, mode: mode, nonce: nonce });
     }
 
-    function getPermissionId(Session memory session) public pure returns (PermissionId permissionId) {
-        permissionId = PermissionId.wrap(
-            keccak256(abi.encode(session.sessionValidator, session.sessionValidatorInitData, session.salt))
-        );
+    function getPermissionId(Session calldata session) public pure returns (PermissionId permissionId) {
+        permissionId = session.toPermissionId();
     }
 
     function _isISessionValidatorSet(PermissionId permissionId, address account) internal view returns (bool) {

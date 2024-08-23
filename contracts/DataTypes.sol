@@ -110,15 +110,22 @@ type PermissionId is bytes32;
 
 type ActionId is bytes32;
 
-type UserOpPolicyId is bytes32;
-
 type ActionPolicyId is bytes32;
+
+type UserOpPolicyId is bytes32;
 
 type Erc1271PolicyId is bytes32;
 
 type ConfigId is bytes32;
 
 type ValidationData is uint256;
+
+ActionId constant EMPTY_ACTIONID = ActionId.wrap(bytes32(0));
+PermissionId constant EMPTY_PERMISSIONID = PermissionId.wrap(bytes32(0));
+UserOpPolicyId constant EMPTY_USEROPPOLICYID = UserOpPolicyId.wrap(bytes32(0));
+ActionPolicyId constant EMPTY_ACTIONPOLICYID = ActionPolicyId.wrap(bytes32(0));
+Erc1271PolicyId constant EMPTY_ERC1271POLICYID = Erc1271PolicyId.wrap(bytes32(0));
+ConfigId constant EMPTY_CONFIGID = ConfigId.wrap(bytes32(0));
 
 ValidationData constant ERC4377_VALIDATION_SUCCESS = ValidationData.wrap(0);
 ValidationData constant ERC4337_VALIDATION_FAILED = ValidationData.wrap(1);
@@ -139,4 +146,64 @@ function permissionIdEq(PermissionId uid1, PermissionId uid2) pure returns (bool
 
 function permissionIdNeq(PermissionId uid1, PermissionId uid2) pure returns (bool) {
     return PermissionId.unwrap(uid1) != PermissionId.unwrap(uid2);
+}
+
+// ActionId
+using { actionIdEq as == } for ActionId global;
+using { actionIdNeq as != } for ActionId global;
+
+function actionIdEq(ActionId id1, ActionId id2) pure returns (bool) {
+    return ActionId.unwrap(id1) == ActionId.unwrap(id2);
+}
+
+function actionIdNeq(ActionId id1, ActionId id2) pure returns (bool) {
+    return ActionId.unwrap(id1) != ActionId.unwrap(id2);
+}
+
+// UserOpPolicyId
+using { userOpPolicyIdEq as == } for UserOpPolicyId global;
+using { userOpPolicyIdNeq as != } for UserOpPolicyId global;
+
+function userOpPolicyIdEq(UserOpPolicyId id1, UserOpPolicyId id2) pure returns (bool) {
+    return UserOpPolicyId.unwrap(id1) == UserOpPolicyId.unwrap(id2);
+}
+
+function userOpPolicyIdNeq(UserOpPolicyId id1, UserOpPolicyId id2) pure returns (bool) {
+    return UserOpPolicyId.unwrap(id1) != UserOpPolicyId.unwrap(id2);
+}
+
+// ActionPolicyId
+using { actionPolicyIdEq as == } for ActionPolicyId global;
+using { actionPolicyIdNeq as != } for ActionPolicyId global;
+
+function actionPolicyIdEq(ActionPolicyId id1, ActionPolicyId id2) pure returns (bool) {
+    return ActionPolicyId.unwrap(id1) == ActionPolicyId.unwrap(id2);
+}
+
+function actionPolicyIdNeq(ActionPolicyId id1, ActionPolicyId id2) pure returns (bool) {
+    return ActionPolicyId.unwrap(id1) != ActionPolicyId.unwrap(id2);
+}
+
+// Erc1271PolicyId
+using { erc1271PolicyIdEq as == } for Erc1271PolicyId global;
+using { erc1271PolicyIdNeq as != } for Erc1271PolicyId global;
+
+function erc1271PolicyIdEq(Erc1271PolicyId id1, Erc1271PolicyId id2) pure returns (bool) {
+    return Erc1271PolicyId.unwrap(id1) == Erc1271PolicyId.unwrap(id2);
+}
+
+function erc1271PolicyIdNeq(Erc1271PolicyId id1, Erc1271PolicyId id2) pure returns (bool) {
+    return Erc1271PolicyId.unwrap(id1) != Erc1271PolicyId.unwrap(id2);
+}
+
+// ConfigId
+using { configIdEq as == } for ConfigId global;
+using { configIdNeq as != } for ConfigId global;
+
+function configIdEq(ConfigId id1, ConfigId id2) pure returns (bool) {
+    return ConfigId.unwrap(id1) == ConfigId.unwrap(id2);
+}
+
+function configIdNeq(ConfigId id1, ConfigId id2) pure returns (bool) {
+    return ConfigId.unwrap(id1) != ConfigId.unwrap(id2);
 }

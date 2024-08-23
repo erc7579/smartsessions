@@ -86,12 +86,7 @@ contract BaseTest is RhinestoneModuleKit, Test {
             data: abi.encodePacked(owner.addr)
         });
 
-        EnableSession[] memory installData = new EnableSession[](0);
-        instance.installModule({
-            moduleTypeId: MODULE_TYPE_VALIDATOR,
-            module: address(smartSession),
-            data: abi.encode(installData)
-        });
+        instance.installModule({ moduleTypeId: MODULE_TYPE_VALIDATOR, module: address(smartSession), data: "" });
     }
 
     function sign(bytes32 hash, uint256 privKey) internal pure returns (bytes memory signature) {
@@ -166,29 +161,4 @@ contract BaseTest is RhinestoneModuleKit, Test {
             permissionEnableSig: ""
         });
     }
-
-    // function _enable_exec(
-    //     EnableSession memory enableSessions,
-    //     address target,
-    //     uint256 value,
-    //     bytes calldata callData
-    // )
-    //     internal
-    // {
-    //     // get userOp from ModuleKit
-    //     UserOpData memory userOpData = instance.getExecOps({
-    //         target: target,
-    //         value: value,
-    //         callData: callData,
-    //         txValidator: address(smartSession)
-    //     });
-    //
-    //     // predict permissionId correlating to EnableSession
-    //     PermissionId permissionId = smartSession.getPermissionId(enableSessions.sessionValidator,
-    // enableSessions.sessionValidatorInitData);
-    //
-    //     bytes32 hash =
-    //         smartSession.getDigest(enableData.sessionValidator, instance.account, enableData,
-    // SmartSessionMode.UNSAFE_ENABLE);
-    // }
 }
