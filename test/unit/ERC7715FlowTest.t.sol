@@ -63,20 +63,32 @@ contract ERC7715FlowTest is BaseTest {
         userOpData.userOp.nonce = nonce;
         userOpData.userOp.callData = callData;
         userOpData.userOp.signature = hex"4141414142";
-        
-        //userOpData.userOpHash = instance.aux.entrypoint.getUserOpHash(userOpData.userOp);
 
         // format sig
         bytes memory formattedSig = userOpBuilder.formatSignature(instance.account, userOpData.userOp, context);
-        
+        userOpData.userOp.signature = formattedSig;
+
         // execute userOp with modulekit
         userOpData.execUserOps();
 
         assertEq(target.value(), 1337);
 
-        /* userOpData.execUserOps();
+        // TRY AGAIN WITH THE PERMISSION ALREADY ENABLED
+        uint256 nonce2 = userOpBuilder.getNonce(instance.account, context);
 
-        assertEq(target.value(), 1338); */
+        executions[0] = Execution(address(target), 0, abi.encodeCall(MockTarget.setValue, (1338)));
+        callData = userOpBuilder.getCallData(instance.account, executions, context);
+
+        userOpData.userOp.nonce = nonce2;
+        userOpData.userOp.callData = callData;
+        userOpData.userOp.signature = hex"4141414142";
+
+        formattedSig = userOpBuilder.formatSignature(instance.account, userOpData.userOp, context);
+        userOpData.userOp.signature = formattedSig;
+
+        userOpData.execUserOps();
+
+        assertEq(target.value(), 1338);
     }
 
     

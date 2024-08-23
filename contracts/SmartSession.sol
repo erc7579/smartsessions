@@ -33,8 +33,6 @@ import { SmartSessionERC7739 } from "./core/SmartSessionERC7739.sol";
 import { IdLib } from "./lib/IdLib.sol";
 import { SmartSessionModeLib } from "./lib/SmartSessionModeLib.sol";
 
-import "forge-std/console2.sol";
-
 /**
  * @title SmartSession
  * @author Filipp Makarov (Biconomy) & zeroknots.eth (Rhinestone)
@@ -89,12 +87,8 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
         address account = userOp.sender;
         if (account != msg.sender) revert InvalidUserOpSender(account);
 
-        console2.log("000");
         // unpacking data packed in userOp.signature
         (SmartSessionMode mode, PermissionId permissionId, bytes calldata packedSig) = userOp.signature.unpackMode();
-
-        console2.log("111");
-        console2.log(uint256(mode));
 
         // If the SmartSession.USE mode was selected, no futher policies have to be enabled.
         // We can go straight to userOp validation
