@@ -194,8 +194,7 @@ contract SessionManagementTest is BaseTest {
         userOpData.execUserOps();
     }
 
-    function test_is_permission_enabled(/*bytes32 salt*/) public {
-        bytes32 salt = keccak256('salt');
+    function test_is_permission_enabled(bytes32 salt) public {
         (PermissionId permissionId, EnableSession memory enableSessions) = test_enable_exec(salt);
         bool isEnabled = smartSession.isPermissionEnabled({
             permissionId: permissionId,
