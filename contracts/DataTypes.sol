@@ -73,9 +73,7 @@ struct ERC7739Data {
 enum SmartSessionMode {
     USE,
     ENABLE,
-    UNSAFE_ENABLE,
-    ENABLE_ADD_POLICIES,
-    UNSAFE_ENABLE_ADD_POLICIES
+    UNSAFE_ENABLE
 }
 
 /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
