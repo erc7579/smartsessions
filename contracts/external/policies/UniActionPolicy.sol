@@ -7,8 +7,13 @@ import "contracts/lib/SubModuleLib.sol";
 
 /**
  * @title UniActionPolicy: Universal Action Policy
- * @dev A policy that allows the user to define custom rules for actions.
- *      based on function signatures. 
+ * @dev A policy that allows defining custom rules for actions based on function signatures. 
+ * Rules can be configured for function arguments with conditions.
+ * So the argument is compared to a reference value against the the condition.
+ * If you need to deal with dynamic-length arguments, such as bytes, please refer to 
+ * https://docs.soliditylang.org/en/v0.8.24/abi-spec.html#function-selector-and-argument-encoding 
+ * to learn more about how dynamic arguments are represented in the calldata 
+ * and which offsets should be used to access them.
  */
 
 struct ActionConfig {

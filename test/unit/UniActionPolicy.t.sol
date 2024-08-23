@@ -68,6 +68,7 @@ contract UniversalActionPolicyTest is BaseTest {
         (uint256 postBal, bytes32 postBal32) = mockCallee.bals(instance.account);
         assertEq(postBal, valToAdd);
         assertEq(postBal32, valToAdd32);
+        assertTrue(uniPolicy.isInitialized(address(smartSession), instance.account));
     }
 
     function getMockUniPolicyInitData(ActionId actionId) internal view returns (bytes memory policyInitData) {
