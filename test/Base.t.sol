@@ -25,10 +25,13 @@ import { SimpleSigner } from "./mock/SimpleSigner.sol";
 import { SimpleGasPolicy } from "./mock/SimpleGasPolicy.sol";
 import { TimeFramePolicy } from "./mock/TimeFramePolicy.sol";
 import { ValueLimitPolicy } from "./mock/ValueLimitPolicy.sol";
+import { UsageLimitPolicy } from "./mock/UsageLimitPolicy.sol";
 import { EIP1271_MAGIC_VALUE, IERC1271 } from "module-bases/interfaces/IERC1271.sol";
 import { MockK1Validator } from "test/mock/MockK1Validator.sol";
 import { UserOperationBuilder } from "contracts/erc7679/UserOpBuilder.sol";
 import { ModeLib, ModeCode as ExecutionMode } from "erc7579/lib/ModeLib.sol";
+import { HashLib } from "contracts/lib/HashLib.sol";
+import { TestHashLib } from "test/utils/TestHashLib.sol";
 
 import "forge-std/console2.sol";
 
@@ -49,6 +52,7 @@ contract BaseTest is RhinestoneModuleKit, Test {
     SimpleGasPolicy internal simpleGasPolicy;
     TimeFramePolicy internal timeFramePolicy;
     ValueLimitPolicy internal valueLimitPolicy;
+    UsageLimitPolicy internal usageLimitPolicy;
 
     MockTarget target;
     Account sessionSigner1;
@@ -74,6 +78,7 @@ contract BaseTest is RhinestoneModuleKit, Test {
         simpleGasPolicy = new SimpleGasPolicy();
         timeFramePolicy = new TimeFramePolicy();
         valueLimitPolicy = new ValueLimitPolicy();
+        usageLimitPolicy = new UsageLimitPolicy();
 
         instance.installModule({
             moduleTypeId: MODULE_TYPE_VALIDATOR,
@@ -132,29 +137,25 @@ contract BaseTest is RhinestoneModuleKit, Test {
         return ERC7739Data({ allowedERC7739Content: contents, erc1271Policies: erc1271Policies });
     }
 
-    function _makeMultiChainEnableData(
-        SignerId signerId,
-        Session memory session,
-        AccountInstance memory instance,
-        SmartSessionMode mode
-    )
-        internal
-        view
-        returns (EnableSessions memory enableData)
-    {
+    function _makeMultiChainEnableData(SignerId signerId, Session memory session, AccountInstance memory instance, SmartSessionMode mode) internal view returns (EnableSessions memory enableData) {
+        bytes32 sessionDigest = smartSession.getSessionDigest({
+            signerId: signerId,
+            account: instance.account, 
+            data: session, 
+            mode: mode
+        });
+
+        ChainDigest[] memory chainDigests = EncodeLib.encodeHashesAndChainIds(
+                Solarray.uint64s(181818, uint64(block.chainid), 777),
+                Solarray.bytes32s(sessionDigest, sessionDigest, sessionDigest)
+            );
+
         enableData = EnableSessions({
-            sessionIndex: 1,
-            hashesAndChainIds: "",
+            chainDigestIndex: 1,
+            hashesAndChainIds: chainDigests,
             sessionToEnable: session,
             permissionEnableSig: ""
         });
-
-        bytes32 sessionDigest =
-            smartSession.getDigest({ signerId: signerId, account: instance.account, data: session, mode: mode });
-
-        enableData.hashesAndChainIds = EncodeLib.encodeHashesAndChainIds(
-            Solarray.uint64s(181_818, uint64(block.chainid)), Solarray.bytes32s(sessionDigest, sessionDigest)
-        );
     }
 
     // function _enable_exec(

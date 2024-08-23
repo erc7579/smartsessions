@@ -6,6 +6,8 @@ import "./interfaces/ISigner.sol";
 import { EnumerableSet } from "./utils/EnumerableSet4337.sol";
 import { FlatBytesLib } from "@rhinestone/flatbytes/src/BytesLib.sol";
 
+import "forge-std/console2.sol";
+
 type SignerId is bytes32;
 
 using { signerIdEq as == } for SignerId global;
@@ -48,9 +50,23 @@ struct Session {
     ActionData[] actions;
 }
 
+struct ChainSession {
+    uint64 chainId;
+    Session session;
+}
+
+struct MultiChainSession {
+    ChainSession[] sessionsAndChainIds;
+}
+
+struct ChainDigest {
+    uint64 chainId;
+    bytes32 sessionDigest;
+}
+
 struct EnableSessions {
-    uint8 sessionIndex;
-    bytes hashesAndChainIds;
+    uint8 chainDigestIndex; 
+    ChainDigest[] hashesAndChainIds;
     Session sessionToEnable;
     bytes permissionEnableSig;
 }

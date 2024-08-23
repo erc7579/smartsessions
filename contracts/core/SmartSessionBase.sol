@@ -216,7 +216,7 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
         if (typeID == ERC7579_MODULE_TYPE_FALLBACK) return true;
     }
 
-    function getDigest(
+    function getSessionDigest(
         SignerId signerId,
         address account,
         Session memory data,
@@ -227,7 +227,7 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
         returns (bytes32)
     {
         uint256 nonce = $signerNonce[signerId][account];
-        return data.digest({ mode: mode, nonce: nonce });
+        return data.sessionDigest({ account: account, mode: mode, nonce: nonce });
     }
 
     function getSignerId(Session memory session) public pure returns (SignerId signerId) {

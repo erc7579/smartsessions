@@ -100,7 +100,7 @@ interface ISmartSession {
     /*                      View Functions                        */
     /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
 
-    function getDigest(
+    function getSessionDigest(
         SignerId signerId,
         address account,
         Session memory data,

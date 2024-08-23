@@ -31,14 +31,7 @@ import { HashLib } from "./lib/HashLib.sol";
 import { SmartSessionBase } from "./core/SmartSessionBase.sol";
 import { SmartSessionERC7739 } from "./core/SmartSessionERC7739.sol";
 import { IdLib } from "./lib/IdLib.sol";
-import { MultichainHashLib } from "./lib/MultichainHashLib.sol";
 import { SmartSessionModeLib } from "./lib/SmartSessionModeLib.sol";
-
-/**
- * TODO:
- *      - rename SignerId ?
- *     - Permissions hook (spending limits?)
- */
 
 /**
  *
@@ -54,7 +47,6 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
     using ConfigLib for *;
     using ExecutionLib for *;
     using EncodeLib for *;
-    using MultichainHashLib for EnableSessions;
     using SmartSessionModeLib for SmartSessionMode;
 
     uint256 private immutable MIN_POLICIES_TO_ENFORCE;
@@ -147,7 +139,7 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
 
         // in order to prevent replay of an enable flow, we have to iterate a nonce.
         uint256 nonce = $signerNonce[signerId][account]++;
-        bytes32 hash = enableData.getAndVerifyDigest(nonce, mode);
+        bytes32 hash =  enableData.getAndVerifyDigest(account, nonce, mode);
 
         // ensure that the signerId, that was provided, is the correct getSignerId
         if (signerId != getSignerId(enableData.sessionToEnable)) {
@@ -286,8 +278,9 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
                 revert UnsupportedExecutionType();
             }
         }
-        // SmartSession does not support executeFromUserOp,
+        // SmartSession does not support executeUserOp,
         // should this function selector be used in the userOp: revert
+        // see why: https://github.com/erc7579/smartsessions/issues/17
         else if (selector == IAccountExecute.executeUserOp.selector) {
             revert UnsupportedExecutionType();
         }
