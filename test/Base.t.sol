@@ -28,7 +28,7 @@ import { ValueLimitPolicy } from "./mock/ValueLimitPolicy.sol";
 import { UsageLimitPolicy } from "./mock/UsageLimitPolicy.sol";
 import { EIP1271_MAGIC_VALUE, IERC1271 } from "module-bases/interfaces/IERC1271.sol";
 import { MockK1Validator } from "test/mock/MockK1Validator.sol";
-import { UserOperationBuilder } from "contracts/erc7679/UserOpBuilder.sol";
+import { UserOperationBuilder } from "test/mock/erc7679/UserOpBuilder.sol";
 import { ModeLib, ModeCode as ExecutionMode } from "erc7579/lib/ModeLib.sol";
 import { HashLib } from "contracts/lib/HashLib.sol";
 import { TestHashLib } from "test/utils/TestHashLib.sol";

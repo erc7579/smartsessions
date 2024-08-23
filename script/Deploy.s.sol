@@ -10,7 +10,7 @@ import "test/mock/UsageLimitPolicy.sol";
 import "test/mock/TimeFramePolicy.sol";
 import "test/mock/SimpleGasPolicy.sol";
 import "test/mock/ValueLimitPolicy.sol";
-import "contracts/erc7679/UserOpBuilder.sol";
+import "test/mock/erc7679/UserOpBuilder.sol";
 import "test/mock/YesPolicy.sol";
 import "test/mock/MockK1Validator.sol";
 import { MockValidator } from "@rhinestone/modulekit/src/Mocks.sol";
