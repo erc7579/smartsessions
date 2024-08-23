@@ -4,7 +4,6 @@ pragma solidity ^0.8.0;
 import { ValidationData } from "../DataTypes.sol";
 
 // @author zeroknots rhinestone
-
 library ValidationDataLib {
     function intersectValidationData(
         ValidationData a,

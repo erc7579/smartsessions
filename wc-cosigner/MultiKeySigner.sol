@@ -4,8 +4,8 @@ pragma solidity ^0.8.23;
 
 import { ECDSA } from "solady/utils/ECDSA.sol";
 import "./passkey.sol";
-import "contracts/interfaces/ISigner.sol";
-import { SubLib } from "contracts/lib/SubLib.sol";
+import "contracts/interfaces/ISessionValidator.sol";
+import { SubLib } from "./SubLib.sol";
 import "forge-std/console2.sol";
 
 struct Config {
@@ -73,21 +73,6 @@ contract MultiKeySigner {
     error InvalidSignatureLength();
     error InvalidSignatureType();
 
-    // can use sender as argument here as the method is view
-    // so even external calls with arbitrary sender can not break things
-    function checkSignature(
-        SessionId signerId,
-        address sender,
-        bytes32 hash,
-        bytes calldata sig
-    )
-        external
-        view
-        returns (bytes4)
-    {
-        return 0xffffffff;
-    }
-
     function onInstall(bytes calldata data) external {
         revert();
     }
@@ -99,22 +84,10 @@ contract MultiKeySigner {
     }
 
     function supportsInterface(bytes4 sig) external view returns (bool) {
-        return sig == type(ISigner).interfaceId;
+        return sig == type(ISessionValidator).interfaceId;
     }
 
-    function _deinitForAccount(address account, SessionId id) internal { }
-
-    function checkUserOpSignature(
-        bytes32 id,
-        PackedUserOperation calldata userOp,
-        bytes32 userOpHash
-    )
-        external
-        payable
-        returns (uint256)
-    {
-        return 1;
-    }
+    function _deinitForAccount(address account, ConfigId id) internal { }
 
     function validateSignatureWithData(
         bytes32 hash,

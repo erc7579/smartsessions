@@ -1,22 +1,30 @@
 import "../Base.t.sol";
 import "contracts/core/SmartSessionBase.sol";
 import "solady/utils/ECDSA.sol";
+import "contracts/lib/IdLib.sol";
 
 contract SessionManagementTest is BaseTest {
+    using IdLib for *;
     using ModuleKitHelpers for *;
     using ModuleKitUserOp for *;
-    using EncodeLib for SignerId;
+    using EncodeLib for PermissionId;
 
     function setUp() public virtual override {
         super.setUp();
     }
 
-    function test_enable_exec(bytes32 salt) public returns (SignerId signerId, EnableSessions memory enableSessions) {
+    function test_enable_exec(
+        bytes32 salt
+    )
+        public
+        returns (PermissionId permissionId, EnableSession memory enableSessions)
+    {
         // get userOp from ModuleKit
 
         address _target = address(target);
         uint256 value = 0;
         bytes memory callData = abi.encodeCall(MockTarget.setValue, (1337));
+        ActionId actionId = _target.toActionId(MockTarget.setValue.selector);
 
         UserOpData memory userOpData = instance.getExecOps({
             target: _target,
@@ -26,22 +34,22 @@ contract SessionManagementTest is BaseTest {
         });
 
         Session memory session = Session({
-            isigner: ISigner(address(yesSigner)),
+            sessionValidator: ISessionValidator(address(yesSigner)),
             salt: salt,
-            isignerInitData: "mockInitData",
+            sessionValidatorInitData: "mockInitData",
             userOpPolicies: _getEmptyPolicyDatas(address(yesPolicy)),
             erc7739Policies: _getEmptyERC7739Data("mockContent", _getEmptyPolicyDatas(address(yesPolicy))),
-            actions: _getEmptyActionDatas(ActionId.wrap(bytes32(uint256(1))), address(yesPolicy))
+            actions: _getEmptyActionDatas(actionId, address(yesPolicy))
         });
 
-        // predict signerId correlating to EnableSessions
-        signerId = smartSession.getSignerId(session);
+        // predict permissionId correlating to EnableSession
+        permissionId = smartSession.getPermissionId(session);
 
         // get hash for enable signature. A nonce is in here
-        uint256 nonceBefore = smartSession.getNonce(signerId, instance.account);
+        uint256 nonceBefore = smartSession.getNonce(permissionId, instance.account);
 
         // create enable sessions object
-        enableSessions = _makeMultiChainEnableData(signerId, session, instance, SmartSessionMode.UNSAFE_ENABLE);
+        enableSessions = _makeMultiChainEnableData(permissionId, session, instance, SmartSessionMode.UNSAFE_ENABLE);
         bytes32 hash = HashLib.multichainDigest(enableSessions.hashesAndChainIds);
 
         // user signs the enable hash with wallet
@@ -49,14 +57,14 @@ contract SessionManagementTest is BaseTest {
             abi.encodePacked(mockK1, sign(ECDSA.toEthSignedMessageHash(hash), owner.key));
 
         // session key signs the userOP
-        userOpData.userOp.signature = EncodeLib.encodeEnable(signerId, hex"4141414142", enableSessions);
+        userOpData.userOp.signature = EncodeLib.encodeEnable(permissionId, hex"4141414142", enableSessions);
 
         // execute userOp with modulekit
         userOpData.execUserOps();
 
         assertEq(target.value(), 1337);
 
-        uint256 nonceAfter = smartSession.getNonce(signerId, instance.account);
+        uint256 nonceAfter = smartSession.getNonce(permissionId, instance.account);
         assertEq(nonceAfter, nonceBefore + 1, "Nonce not updated");
 
         // now lets re-use the same session to execute another userOp
@@ -67,9 +75,9 @@ contract SessionManagementTest is BaseTest {
             txValidator: address(smartSession)
         });
 
-        // We can reuse the same signerId since the session is already enabled
+        // We can reuse the same permissionId since the session is already enabled
         // NOTE: this is using encodeUse() since the session is already enabled
-        userOpData.userOp.signature = EncodeLib.encodeUse({ signerId: signerId, sig: hex"4141414141" });
+        userOpData.userOp.signature = EncodeLib.encodeUse({ permissionId: permissionId, sig: hex"4141414141" });
 
         // execute userOp with modulekit
         userOpData.execUserOps();
@@ -77,27 +85,30 @@ contract SessionManagementTest is BaseTest {
         assertEq(target.value(), 1338);
     }
 
-    function test_exec(bytes32 salt) public returns (SignerId signerId) {
+    function test_exec(bytes32 salt) public returns (PermissionId permissionId) {
+        address _target = address(target);
+        uint256 value = 0;
+        bytes memory callData = abi.encodeCall(MockTarget.setValue, (1337));
+        ActionId actionId = _target.toActionId(MockTarget.setValue.selector);
+
+        console2.log("test: actionId");
+        console2.logBytes32(ActionId.unwrap(actionId));
         Session memory session = Session({
-            isigner: ISigner(address(yesSigner)),
+            sessionValidator: ISessionValidator(address(yesSigner)),
             salt: salt,
-            isignerInitData: "mockInitData",
+            sessionValidatorInitData: "mockInitData",
             userOpPolicies: _getEmptyPolicyDatas(address(yesPolicy)),
             erc7739Policies: _getEmptyERC7739Data("mockContent", _getEmptyPolicyDatas(address(yesPolicy))),
-            actions: _getEmptyActionDatas(ActionId.wrap(bytes32(uint256(1))), address(yesPolicy))
+            actions: _getEmptyActionDatas(actionId, address(yesPolicy))
         });
 
-        signerId = smartSession.getSignerId(session);
+        permissionId = smartSession.getPermissionId(session);
 
         Session[] memory enableSessionsArray = new Session[](1);
         enableSessionsArray[0] = session;
 
         vm.prank(instance.account);
         smartSession.enableSessions(enableSessionsArray);
-
-        address _target = address(target);
-        uint256 value = 0;
-        bytes memory callData = abi.encodeCall(MockTarget.setValue, (1337));
 
         // get userOp from ModuleKit
         UserOpData memory userOpData = instance.getExecOps({
@@ -107,7 +118,7 @@ contract SessionManagementTest is BaseTest {
             txValidator: address(smartSession)
         });
         // session key signs the userOP NOTE: this is using encodeUse() since the session is already enabled
-        userOpData.userOp.signature = EncodeLib.encodeUse({ signerId: signerId, sig: hex"4141414141" });
+        userOpData.userOp.signature = EncodeLib.encodeUse({ permissionId: permissionId, sig: hex"4141414141" });
 
         // execute userOp with modulekit
         userOpData.execUserOps();
@@ -115,11 +126,12 @@ contract SessionManagementTest is BaseTest {
         assertEq(target.value(), 1337);
     }
 
-    function test_add_policies_to_session (/*bytes32 salt*/) public {
-        bytes32 salt = keccak256('salt');
-        (SignerId signerId, EnableSessions memory enableSessions) = test_enable_exec(salt);
+    function test_add_policies_to_session( bytes32 salt ) public {
+        (PermissionId permissionId, EnableSession memory enableSessions) = test_enable_exec(salt);
 
-        assertFalse(usageLimitPolicy.isInitialized(instance.account, address(smartSession)));
+        ConfigId configId = permissionId.toConfigId(instance.account);
+
+        assertFalse(usageLimitPolicy.isInitialized(instance.account, address(smartSession), configId));
 
         UserOpData memory userOpData = instance.getExecOps({
             target: address(target),
@@ -134,34 +146,35 @@ contract SessionManagementTest is BaseTest {
 
         // session to add one userOp policy
         Session memory session = Session({
-            isigner: ISigner(address(yesSigner)),
+            sessionValidator: ISessionValidator(address(yesSigner)),
             salt: salt,
-            isignerInitData: "mockInitData",
+            sessionValidatorInitData: "mockInitData",
             userOpPolicies: userOpPolicyData,
             erc7739Policies: _getEmptyERC7739Data("0", new PolicyData[](0)),
             actions: new ActionData[](0)
         });
 
-        enableSessions = _makeMultiChainEnableData(signerId, session, instance, SmartSessionMode.UNSAFE_ENABLE_ADD_POLICIES);
+        enableSessions =
+            _makeMultiChainEnableData(permissionId, session, instance, SmartSessionMode.UNSAFE_ENABLE_ADD_POLICIES);
         bytes32 hash = HashLib.multichainDigest(enableSessions.hashesAndChainIds);
         enableSessions.permissionEnableSig =
             abi.encodePacked(mockK1, sign(ECDSA.toEthSignedMessageHash(hash), owner.key));
-        userOpData.userOp.signature = EncodeLib.encodeEnableAddPolicies(signerId, hex"4141414142", enableSessions);
+        userOpData.userOp.signature = EncodeLib.encodeEnableAddPolicies(permissionId, hex"4141414142", enableSessions);
 
         userOpData.execUserOps();
 
         assertEq(target.value(), 1338);
-        assertTrue(usageLimitPolicy.isInitialized(instance.account, address(smartSession)));
+        assertTrue(usageLimitPolicy.isInitialized(instance.account, address(smartSession), configId));
     }
 
     function test_disableSession(bytes32 salt) public {
-        (SignerId signerId, EnableSessions memory enableSessions) = test_enable_exec(salt);
+        (PermissionId permissionId, EnableSession memory enableSessions) = test_enable_exec(salt);
 
         vm.prank(instance.account);
 
         vm.expectEmit(true, true, true, true, address(smartSession));
-        emit ISmartSession.SessionRemoved({ signerId: signerId, smartAccount: instance.account });
-        smartSession.removeSession(signerId);
+        emit ISmartSession.SessionRemoved({ permissionId: permissionId, smartAccount: instance.account });
+        smartSession.removeSession(permissionId);
 
         UserOpData memory userOpData = instance.getExecOps({
             target: address(target),
@@ -170,13 +183,13 @@ contract SessionManagementTest is BaseTest {
             txValidator: address(smartSession)
         });
         // session key signs the userOP NOTE: this is using encodeUse() since the session is already enabled
-        userOpData.userOp.signature = EncodeLib.encodeUse({ signerId: signerId, sig: hex"4141414141" });
+        userOpData.userOp.signature = EncodeLib.encodeUse({ permissionId: permissionId, sig: hex"4141414141" });
 
         instance.expect4337Revert();
         userOpData.execUserOps();
 
         // lets try to replay the same session. THIS MUST FAIL, otherwise session keys can just reenable themselves
-        userOpData.userOp.signature = EncodeLib.encodeEnable(signerId, hex"4141414142", enableSessions);
+        userOpData.userOp.signature = EncodeLib.encodeEnable(permissionId, hex"4141414142", enableSessions);
         instance.expect4337Revert();
         userOpData.execUserOps();
     }
@@ -194,22 +207,23 @@ contract SessionManagementTest is BaseTest {
         });
 
         Session memory session = Session({
-            isigner: ISigner(address(yesSigner)),
+            sessionValidator: ISessionValidator(address(yesSigner)),
             salt: salt,
-            isignerInitData: "mockInitData",
+            sessionValidatorInitData: "mockInitData",
             userOpPolicies: _getEmptyPolicyDatas(address(yesPolicy)),
             erc7739Policies: _getEmptyERC7739Data("mockContent", _getEmptyPolicyDatas(address(yesPolicy))),
             actions: _getEmptyActionDatas(ActionId.wrap(bytes32(uint256(1))), address(yesPolicy))
         });
 
-        // predict signerId correlating to EnableSessions
-        SignerId signerId = smartSession.getSignerId(session);
+        // predict permissionId correlating to EnableSession
+        PermissionId permissionId = smartSession.getPermissionId(session);
 
         // get hash for enable signature. A nonce is in here
-        uint256 nonceBefore = smartSession.getNonce(signerId, instance.account);
+        uint256 nonceBefore = smartSession.getNonce(permissionId, instance.account);
 
         // create enable sessions object
-        EnableSessions memory enableSessions = _makeMultiChainEnableData(signerId, session, instance, SmartSessionMode.UNSAFE_ENABLE);
+        EnableSession memory enableSessions =
+            _makeMultiChainEnableData(permissionId, session, instance, SmartSessionMode.UNSAFE_ENABLE);
         bytes32 hash = HashLib.multichainDigest(enableSessions.hashesAndChainIds);
 
         // user signs the enable hash with wallet
@@ -217,9 +231,9 @@ contract SessionManagementTest is BaseTest {
             abi.encodePacked(mockK1, sign(ECDSA.toEthSignedMessageHash(hash), owner.key));
 
         vm.prank(instance.account);
-        smartSession.revokeEnableSignature(signerId);
+        smartSession.revokeEnableSignature(permissionId);
         // session key signs the userOP
-        userOpData.userOp.signature = EncodeLib.encodeEnable(signerId, hex"4141414142", enableSessions);
+        userOpData.userOp.signature = EncodeLib.encodeEnable(permissionId, hex"4141414142", enableSessions);
 
         // execute userOp with modulekit
         instance.expect4337Revert();

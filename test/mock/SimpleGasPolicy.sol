@@ -3,7 +3,7 @@
 pragma solidity ^0.8.23;
 
 import "contracts/interfaces/IPolicy.sol";
-import "contracts/lib/SubLib.sol";
+import "./SubLib.sol";
 
 contract SimpleGasPolicy is IUserOpPolicy {
     using SubLib for bytes;
@@ -14,10 +14,10 @@ contract SimpleGasPolicy is IUserOpPolicy {
     }
 
     mapping(address msgSender => mapping(address opSender => uint256)) public usedIds;
-    mapping(SessionId id => mapping(address msgSender => mapping(address userOpSender => GasLimitConfig))) public
+    mapping(ConfigId id => mapping(address msgSender => mapping(address userOpSender => GasLimitConfig))) public
         gasLimitConfigs;
 
-    function checkUserOpPolicy(SessionId id, PackedUserOperation calldata userOp) external returns (uint256) {
+    function checkUserOpPolicy(ConfigId id, PackedUserOperation calldata userOp) external returns (uint256) {
         GasLimitConfig storage config = gasLimitConfigs[id][msg.sender][userOp.sender];
         if (config.gasLimit == 0) {
             revert("GasLimitPolicy: policy not installed");
@@ -34,25 +34,29 @@ contract SimpleGasPolicy is IUserOpPolicy {
         return VALIDATION_SUCCESS;
     }
 
-    function _onInstallPolicy(SessionId id, address opSender, bytes calldata _data) internal {
+    function _onInstallPolicy(ConfigId id, address opSender, bytes calldata _data) internal {
         require(gasLimitConfigs[id][msg.sender][opSender].gasLimit == 0);
         usedIds[msg.sender][opSender]++;
         gasLimitConfigs[id][msg.sender][opSender].gasLimit = uint256(bytes32(_data[0:32]));
     }
 
-    function _onUninstallPolicy(SessionId id, address opSender, bytes calldata) internal {
+    function _onUninstallPolicy(ConfigId id, address opSender, bytes calldata) internal {
         require(gasLimitConfigs[id][msg.sender][opSender].gasLimit != 0);
         delete gasLimitConfigs[id][msg.sender][opSender];
         usedIds[msg.sender][opSender]--;
     }
 
     function onInstall(bytes calldata data) external {
-        (SessionId id, address opSender, bytes calldata _data) = data.parseInstallData();
+        (ConfigId id, address opSender, bytes calldata _data) = data.parseInstallData();
         _onInstallPolicy(id, opSender, _data);
     }
 
+    function initializeWithMultiplexer(address account, ConfigId configId, bytes calldata initData) external {
+        _onInstallPolicy(configId, account, initData);
+    }
+
     function onUninstall(bytes calldata data) external {
-        (SessionId id, address opSender, bytes calldata _data) = data.parseInstallData();
+        (ConfigId id, address opSender, bytes calldata _data) = data.parseInstallData();
         _onUninstallPolicy(id, opSender, _data);
     }
 
@@ -60,12 +64,16 @@ contract SimpleGasPolicy is IUserOpPolicy {
         return id == 7; //userOpPolicy
     }
 
-    function isInitialized(address account, SessionId id) external view override returns (bool) {
-        return gasLimitConfigs[id][msg.sender][account].gasLimit > 0;
+    function isInitialized(address account, ConfigId id) external view override returns (bool) {
+        return gasLimitConfigs[id][account][account].gasLimit > 0;
     }
 
     function isInitialized(address account) external view override returns (bool) {
         return usedIds[msg.sender][account] > 0;
+    }
+
+    function isInitialized(address account, address multiplexer, ConfigId id) external view override returns (bool) {
+        return gasLimitConfigs[id][multiplexer][account].gasLimit > 0;
     }
 
     function supportsInterface(bytes4 interfaceID) external pure override returns (bool) {

@@ -2,8 +2,6 @@
 pragma solidity ^0.8.25;
 
 import "../DataTypes.sol";
-import { ISmartSession } from "../ISmartSession.sol";
-import { PackedUserOperation } from "modulekit/external/ERC4337.sol";
 import { LibZip } from "solady/utils/LibZip.sol";
 import { ModeCode as ExecutionMode } from "erc7579/lib/ModeLib.sol";
 
@@ -16,13 +14,13 @@ library EncodeLib {
     function packMode(
         bytes memory data,
         SmartSessionMode mode,
-        SignerId signerId
+        PermissionId permissionId
     )
         internal
         pure
         returns (bytes memory packed)
     {
-        packed = abi.encodePacked(mode, signerId, data);
+        packed = abi.encodePacked(mode, permissionId, data);
     }
 
     function unpackMode(
@@ -30,16 +28,16 @@ library EncodeLib {
     )
         internal
         pure
-        returns (SmartSessionMode mode, SignerId signerId, bytes calldata data)
+        returns (SmartSessionMode mode, PermissionId permissionId, bytes calldata data)
     {
         mode = SmartSessionMode(uint8(bytes1(packed[:1])));
-        signerId = SignerId.wrap(bytes32(packed[1:33]));
+        permissionId = PermissionId.wrap(bytes32(packed[1:33]));
         data = packed[33:];
     }
 
-    function encodeUse(SignerId signerId, bytes memory sig) internal pure returns (bytes memory userOpSig) {
+    function encodeUse(PermissionId permissionId, bytes memory sig) internal pure returns (bytes memory userOpSig) {
         bytes memory d = abi.encode(sig).flzCompress();
-        userOpSig = d.packMode(SmartSessionMode.USE, signerId);
+        userOpSig = d.packMode(SmartSessionMode.USE, permissionId);
     }
 
     function decodeUse(bytes memory packedSig) internal pure returns (bytes memory signature) {
@@ -47,9 +45,9 @@ library EncodeLib {
     }
 
     function encodeEnable(
-        SignerId signerId,
+        PermissionId permissionId,
         bytes memory sig,
-        EnableSessions memory enableData
+        EnableSession memory enableData
     )
         internal
         pure
@@ -57,13 +55,13 @@ library EncodeLib {
     {
         bytes memory data = abi.encode(enableData, sig);
         data = data.flzCompress();
-        packedSig = data.packMode(SmartSessionMode.UNSAFE_ENABLE, signerId);
+        packedSig = data.packMode(SmartSessionMode.UNSAFE_ENABLE, permissionId);
     }
 
     function encodeEnableAddPolicies(
-        SignerId signerId,
+        PermissionId permissionId,
         bytes memory sig,
-        EnableSessions memory enableData
+        EnableSession memory enableData
     )
         internal
         pure
@@ -71,7 +69,7 @@ library EncodeLib {
     {
         bytes memory data = abi.encode(enableData, sig);
         data = data.flzCompress();
-        packedSig = data.packMode(SmartSessionMode.UNSAFE_ENABLE_ADD_POLICIES, signerId);
+        packedSig = data.packMode(SmartSessionMode.UNSAFE_ENABLE_ADD_POLICIES, permissionId);
     }
 
     function decodeEnable(
@@ -79,25 +77,32 @@ library EncodeLib {
     )
         internal
         pure
-        returns (EnableSessions memory enableData, bytes memory signature)
+        returns (EnableSession memory enableData, bytes memory signature)
     {
-        (enableData, signature) = abi.decode(packedSig.flzDecompress(), (EnableSessions, bytes));
+        (enableData, signature) = abi.decode(packedSig.flzDecompress(), (EnableSession, bytes));
     }
 
     function encodeContext(
         uint192 nonceKey,
         ExecutionMode mode,
-        SignerId signerId,
-        EnableSessions memory enableData
+        PermissionId permissionId,
+        EnableSession memory enableData
     )
         internal
         pure
         returns (bytes memory context)
     {
-        context = abi.encodePacked(nonceKey, mode, signerId, abi.encode(enableData));
+        context = abi.encodePacked(nonceKey, mode, permissionId, abi.encode(enableData));
     }
 
-    function encodeHashesAndChainIds(uint64[] memory chainIds, bytes32[] memory hashes) internal pure returns (ChainDigest[] memory ) {
+    function encodeHashesAndChainIds(
+        uint64[] memory chainIds,
+        bytes32[] memory hashes
+    )
+        internal
+        pure
+        returns (ChainDigest[] memory)
+    {
         uint256 length = chainIds.length;
         if (length != hashes.length) {
             revert ChainIdAndHashesLengthMismatch(length, hashes.length);

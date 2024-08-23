@@ -3,7 +3,7 @@
 pragma solidity ^0.8.23;
 
 import "contracts/interfaces/IPolicy.sol";
-import "contracts/lib/SubLib.sol";
+import "./SubLib.sol";
 
 contract UsageLimitPolicy is IUserOpPolicy, IActionPolicy {
     enum Status {
@@ -20,19 +20,19 @@ contract UsageLimitPolicy is IUserOpPolicy, IActionPolicy {
     using SubLib for bytes;
 
     mapping(address msgSender => mapping(address opSender => uint256)) public usedIds;
-    mapping(SessionId id => mapping(address msgSender => mapping(address userOpSender => Status))) public status;
-    mapping(SessionId id => mapping(address msgSender => mapping(address userOpSender => UsageLimitConfig))) public
+    mapping(ConfigId id => mapping(address msgSender => mapping(address userOpSender => Status))) public status;
+    mapping(ConfigId id => mapping(address msgSender => mapping(address userOpSender => UsageLimitConfig))) public
         usageLimitConfigs;
 
-    function checkUserOpPolicy(SessionId id, PackedUserOperation calldata op) external returns (uint256) {
+    function checkUserOpPolicy(ConfigId id, PackedUserOperation calldata op) external returns (uint256) {
         return _checkUsageLimit(id, msg.sender, op.sender);
     }
 
-    function checkAction(SessionId id, address account, address, uint256, bytes calldata) external returns (uint256) {
+    function checkAction(ConfigId id, address account, address, uint256, bytes calldata) external returns (uint256) {
         return _checkUsageLimit(id, msg.sender, account);
     }
 
-    function _checkUsageLimit(SessionId id, address mxer, address smartAccount) internal returns (uint256) {
+    function _checkUsageLimit(ConfigId id, address mxer, address smartAccount) internal returns (uint256) {
         require(status[id][mxer][smartAccount] == Status.Live);
         UsageLimitConfig storage config = usageLimitConfigs[id][mxer][smartAccount];
         if (config.limit == 0) {
@@ -44,26 +44,30 @@ contract UsageLimitPolicy is IUserOpPolicy, IActionPolicy {
         return VALIDATION_SUCCESS;
     }
 
-    function _onInstallPolicy(SessionId id, address opSender, bytes calldata _data) internal {
+    function _onInstallPolicy(ConfigId id, address opSender, bytes calldata _data) internal {
         require(status[id][msg.sender][opSender] == Status.NA);
         usedIds[msg.sender][opSender]++;
         status[id][msg.sender][opSender] = Status.Live;
         usageLimitConfigs[id][msg.sender][opSender].limit = uint256(bytes32(_data[0:32]));
     }
 
-    function _onUninstallPolicy(SessionId id, address opSender, bytes calldata) internal {
+    function _onUninstallPolicy(ConfigId id, address opSender, bytes calldata) internal {
         require(status[id][msg.sender][opSender] == Status.Live);
         status[id][msg.sender][opSender] = Status.Deprecated;
         usedIds[msg.sender][opSender]--;
     }
 
     function onInstall(bytes calldata data) external {
-        (SessionId id, address opSender, bytes calldata _data) = data.parseInstallData();
+        (ConfigId id, address opSender, bytes calldata _data) = data.parseInstallData();
         _onInstallPolicy(id, opSender, _data);
     }
 
+    function initializeWithMultiplexer(address account, ConfigId configId, bytes calldata initData) external {
+        _onInstallPolicy(configId, account, initData);
+    }
+
     function onUninstall(bytes calldata data) external {
-        (SessionId id, address opSender, bytes calldata _data) = data.parseInstallData();
+        (ConfigId id, address opSender, bytes calldata _data) = data.parseInstallData();
         _onUninstallPolicy(id, opSender, _data);
     }
 
@@ -71,11 +75,11 @@ contract UsageLimitPolicy is IUserOpPolicy, IActionPolicy {
         return usedIds[msg.sender][account] > 0;
     }
 
-    function isInitialized(address account, address multiplexer) external view returns (bool) {
+    function isInitialized(address account, address multiplexer, ConfigId id) external view override returns (bool) {
         return usedIds[multiplexer][account] > 0;
     }
 
-    function isInitialized(address account, SessionId id) external view returns (bool) {
+    function isInitialized(address account, ConfigId id) external view returns (bool) {
         return status[id][msg.sender][account] == Status.Live;
     }
 

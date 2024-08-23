@@ -4,7 +4,7 @@ pragma solidity ^0.8.25;
 import "../DataTypes.sol";
 import { ISmartSession } from "../ISmartSession.sol";
 import { EnumerableSet } from "../utils/EnumerableSet4337.sol";
-import { ISigner } from "../interfaces/ISigner.sol";
+import { ISessionValidator } from "../interfaces/ISessionValidator.sol";
 import { SentinelList4337Lib } from "sentinellist/SentinelList4337.sol";
 import { ConfigLib } from "../lib/ConfigLib.sol";
 import { EncodeLib } from "../lib/EncodeLib.sol";
@@ -31,140 +31,250 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
     Policy internal $erc1271Policies;
     EnumerableActionPolicy internal $actionPolicies;
     EnumerableSet.Bytes32Set internal $enabledSessions;
-    mapping(SessionId sessionId => mapping(bytes32 contentHash => mapping(address account => bool enabled))) internal
+    mapping(ConfigId configId => mapping(bytes32 contentHash => mapping(address account => bool enabled))) internal
         $enabledERC7739Content;
-    mapping(SignerId signerId => mapping(address smartAccount => SignerConf conf)) internal $isigners;
+    mapping(PermissionId permissionId => mapping(address smartAccount => SignerConf conf)) internal $sessionValidators;
 
-    function _enableISigner(SignerId signerId, address account, ISigner isigner, bytes memory signerConfig) internal {
-        if (!isigner.supportsInterface(type(ISigner).interfaceId)) {
-            revert InvalidISigner(isigner);
+    /**
+     * @notice Enable and configure an ISessionValidator for a specific permission and account
+     * @dev This function sets up the session validator and stores its configuration
+     * @param permissionId The unique identifier for the permission
+     * @param account The account address for which the validator is being set
+     * @param sessionValidator The ISessionValidator contract to be enabled
+     * @param signerConfig The configuration data for the session validator
+     */
+    function _enableISessionValidator(
+        PermissionId permissionId,
+        address account,
+        ISessionValidator sessionValidator,
+        bytes memory signerConfig
+    )
+        internal
+    {
+        // Check if the sessionValidator is valid and supports the required interface
+        if (
+            address(sessionValidator) == address(0)
+                || !sessionValidator.supportsInterface(type(ISessionValidator).interfaceId)
+        ) {
+            revert InvalidISessionValidator(sessionValidator);
         }
         // TODO: add registry check
-        SignerConf storage $conf = $isigners[signerId][account];
-        $conf.isigner = isigner;
+
+        // Get the storage reference for the signer configuration
+        SignerConf storage $conf = $sessionValidators[permissionId][account];
+        // Set the session validator
+        $conf.sessionValidator = sessionValidator;
+
+        // Store the signer configuration
         $conf.config.store(signerConfig);
     }
 
-    function enableUserOpPolicies(SignerId signerId, PolicyData[] memory userOpPolicies) public {
-        if ($enabledSessions.contains(msg.sender, SignerId.unwrap(signerId)) == false) revert InvalidSession(signerId);
+    /**
+     * @notice Enable user operation policies for a specific permission
+     * @dev This function allows adding or updating user operation policies
+     * @param permissionId The unique identifier for the permission
+     * @param userOpPolicies An array of PolicyData structures containing policy information
+     */
+    function enableUserOpPolicies(PermissionId permissionId, PolicyData[] memory userOpPolicies) public {
+        // Check if the session is enabled for the caller and the given permission
+        if ($enabledSessions.contains(msg.sender, PermissionId.unwrap(permissionId)) == false) {
+            revert InvalidSession(permissionId);
+        }
+
+        // Check if the session is enabled for the caller and the given permission
         $userOpPolicies.enable({
             policyType: PolicyType.USER_OP,
-            signerId: signerId,
-            sessionId: signerId.toUserOpPolicyId().toSessionId(),
+            permissionId: permissionId,
+            configId: permissionId.toUserOpPolicyId().toConfigId(),
             policyDatas: userOpPolicies,
             smartAccount: msg.sender,
             useRegistry: true
         });
     }
 
-    function disableUserOpPolicies(SignerId signerId, address[] calldata policies) public {
-        if ($enabledSessions.contains(msg.sender, SignerId.unwrap(signerId)) == false) revert InvalidSession(signerId);
+    /**
+     * @notice Disable specific user operation policies for a given permission
+     * @param permissionId The unique identifier for the permission
+     * @param policies An array of policy addresses to be disabled
+     */
+    function disableUserOpPolicies(PermissionId permissionId, address[] calldata policies) public {
+        // Check if the session is enabled for the caller and the given permission
+        if ($enabledSessions.contains(msg.sender, PermissionId.unwrap(permissionId)) == false) {
+            revert InvalidSession(permissionId);
+        }
+        // Disable the specified user operation policies
         $userOpPolicies.disable({
             policyType: PolicyType.USER_OP,
             smartAccount: msg.sender,
-            signerId: signerId,
+            permissionId: permissionId,
             policies: policies
         });
     }
 
-    function enableERC1271Policies(SignerId signerId, PolicyData[] memory erc1271Policies) public {
-        if ($enabledSessions.contains(msg.sender, SignerId.unwrap(signerId)) == false) revert InvalidSession(signerId);
+    /**
+     * @notice Enable ERC1271 policies for a specific permission
+     * @param permissionId The unique identifier for the permission
+     * @param erc1271Policies An array of PolicyData structures containing ERC1271 policy information
+     */
+    function enableERC1271Policies(PermissionId permissionId, PolicyData[] memory erc1271Policies) public {
+        // Check if the session is enabled for the caller and the given permission
+        if ($enabledSessions.contains(msg.sender, PermissionId.unwrap(permissionId)) == false) {
+            revert InvalidSession(permissionId);
+        }
+        // Enable the ERC1271 policies
         $erc1271Policies.enable({
             policyType: PolicyType.ERC1271,
-            signerId: signerId,
-            sessionId: signerId.toErc1271PolicyId().toSessionId(),
+            permissionId: permissionId,
+            configId: permissionId.toErc1271PolicyId().toConfigId(),
             policyDatas: erc1271Policies,
             smartAccount: msg.sender,
             useRegistry: true
         });
     }
 
-    function disableERC1271Policies(SignerId signerId, address[] calldata policies) public {
-        if ($enabledSessions.contains(msg.sender, SignerId.unwrap(signerId)) == false) revert InvalidSession(signerId);
+    /**
+     * @notice Disable specific ERC1271 policies for a given permission
+     * @param permissionId The unique identifier for the permission
+     * @param policies An array of policy addresses to be disabled
+     */
+    function disableERC1271Policies(PermissionId permissionId, address[] calldata policies) public {
+        // Check if the session is enabled for the caller and the given permission
+        if ($enabledSessions.contains(msg.sender, PermissionId.unwrap(permissionId)) == false) {
+            revert InvalidSession(permissionId);
+        }
+
+        // Disable the specified ERC1271 policies
         $erc1271Policies.disable({
             policyType: PolicyType.ERC1271,
             smartAccount: msg.sender,
-            signerId: signerId,
+            permissionId: permissionId,
             policies: policies
         });
     }
 
-    function enableActionPolicies(SignerId signerId, ActionData[] memory actionPolicies) public {
-        if ($enabledSessions.contains(msg.sender, SignerId.unwrap(signerId)) == false) revert InvalidSession(signerId);
+    /**
+     * @notice Enable action policies for a specific permission
+     * @param permissionId The unique identifier for the permission
+     * @param actionPolicies An array of ActionData structures containing action policy information
+     */
+    function enableActionPolicies(PermissionId permissionId, ActionData[] memory actionPolicies) public {
+        // Check if the session is enabled for the caller and the given permission
+        if ($enabledSessions.contains(msg.sender, PermissionId.unwrap(permissionId)) == false) {
+            revert InvalidSession(permissionId);
+        }
+
+        // Enable the action policies
         $actionPolicies.enable({
-            signerId: signerId,
+            permissionId: permissionId,
             actionPolicyDatas: actionPolicies,
             smartAccount: msg.sender,
             useRegistry: true
         });
     }
 
-    function disableActionPolicies(SignerId signerId, ActionId actionId, address[] calldata policies) public {
-        if ($enabledSessions.contains(msg.sender, SignerId.unwrap(signerId)) == false) revert InvalidSession(signerId);
+    /**
+     * @notice Disable specific action policies for a given permission and action ID
+     * @param permissionId The unique identifier for the permission
+     * @param actionId The specific action identifier
+     * @param policies An array of policy addresses to be disabled
+     */
+    function disableActionPolicies(PermissionId permissionId, ActionId actionId, address[] calldata policies) public {
+        // Check if the session is enabled for the caller and the given permission
+        if ($enabledSessions.contains(msg.sender, PermissionId.unwrap(permissionId)) == false) {
+            revert InvalidSession(permissionId);
+        }
+
+        // Disable the specified action policies for the given action ID
         $actionPolicies.actionPolicies[actionId].disable({
             policyType: PolicyType.ACTION,
             smartAccount: msg.sender,
-            signerId: signerId,
+            permissionId: permissionId,
             policies: policies
         });
     }
 
-    function enableSessions(Session[] calldata sessions) public returns (SignerId[] memory signerIds) {
+    /**
+     * @notice Enable multiple sessions with their associated policies
+     * @param sessions An array of Session structures to be enabled
+     * @return permissionIds An array of PermissionId values corresponding to the enabled sessions
+     */
+    function enableSessions(Session[] calldata sessions) public returns (PermissionId[] memory permissionIds) {
         uint256 length = sessions.length;
-        signerIds = new SignerId[](length);
+        if (length == 0) revert InvalidData();
+
+        permissionIds = new PermissionId[](length);
+
         for (uint256 i; i < length; i++) {
             Session calldata session = sessions[i];
-            SignerId signerId = getSignerId(session);
-            $enabledSessions.add({ account: msg.sender, value: SignerId.unwrap(signerId) });
-            _enableISigner({
-                signerId: signerId,
+            PermissionId permissionId = session.toPermissionId();
+
+            // Add the session to the list of enabled sessions for the caller
+            $enabledSessions.add({ account: msg.sender, value: PermissionId.unwrap(permissionId) });
+
+            // Enable the ISessionValidator for this session
+            _enableISessionValidator({
+                permissionId: permissionId,
                 account: msg.sender,
-                isigner: session.isigner,
-                signerConfig: session.isignerInitData
+                sessionValidator: session.sessionValidator,
+                signerConfig: session.sessionValidatorInitData
             });
 
+            // Enable UserOp policies
             $userOpPolicies.enable({
                 policyType: PolicyType.USER_OP,
-                signerId: signerId,
-                sessionId: signerId.toUserOpPolicyId().toSessionId(),
+                permissionId: permissionId,
+                configId: permissionId.toUserOpPolicyId().toConfigId(),
                 policyDatas: session.userOpPolicies,
                 smartAccount: msg.sender,
                 useRegistry: true
             });
 
+            // Enable ERC1271 policies
             $erc1271Policies.enable({
                 policyType: PolicyType.ERC1271,
-                signerId: signerId,
-                sessionId: signerId.toErc1271PolicyId().toSessionId(),
+                permissionId: permissionId,
+                configId: permissionId.toErc1271PolicyId().toConfigId(),
                 policyDatas: session.erc7739Policies.erc1271Policies,
                 smartAccount: msg.sender,
                 useRegistry: true
             });
 
+            // Enable ERC1271 policies
             $actionPolicies.enable({
-                signerId: signerId,
+                permissionId: permissionId,
                 actionPolicyDatas: session.actions,
                 smartAccount: msg.sender,
                 useRegistry: true
             });
 
-            signerIds[i] = signerId;
-            emit SessionCreated(signerId, msg.sender);
+            permissionIds[i] = permissionId;
+            emit SessionCreated(permissionId, msg.sender);
         }
     }
 
-    function removeSession(SignerId signerId) public {
-        $userOpPolicies.policyList[signerId].removeAll(msg.sender);
-        $erc1271Policies.policyList[signerId].removeAll(msg.sender);
+    /**
+     * @notice Remove a session and all its associated policies
+     * @param permissionId The unique identifier for the session to be removed
+     */
+    function removeSession(PermissionId permissionId) public {
+        if (permissionId == EMPTY_PERMISSIONID) revert InvalidSession(permissionId);
 
-        uint256 actionLength = $actionPolicies.enabledActionIds[signerId].length(msg.sender);
+        // Remove all UserOp policies for this session
+        $userOpPolicies.policyList[permissionId].removeAll(msg.sender);
+
+        // Remove all ERC1271 policies for this session
+        $erc1271Policies.policyList[permissionId].removeAll(msg.sender);
+
+        // Remove all Action policies for this session
+        uint256 actionLength = $actionPolicies.enabledActionIds[permissionId].length(msg.sender);
         for (uint256 i; i < actionLength; i++) {
-            ActionId actionId = ActionId.wrap($actionPolicies.enabledActionIds[signerId].get(msg.sender, i));
-            $actionPolicies.actionPolicies[actionId].policyList[signerId].removeAll(msg.sender);
+            ActionId actionId = ActionId.wrap($actionPolicies.enabledActionIds[permissionId].get(msg.sender, i));
+            $actionPolicies.actionPolicies[actionId].policyList[permissionId].removeAll(msg.sender);
         }
 
-        $enabledSessions.remove({ account: msg.sender, value: SignerId.unwrap(signerId) });
-        emit SessionRemoved(signerId, msg.sender);
+        // Remove all ERC1271 policies for this session
+        $enabledSessions.remove({ account: msg.sender, value: PermissionId.unwrap(permissionId) });
+        emit SessionRemoved(permissionId, msg.sender);
     }
 
     /**
@@ -173,9 +283,12 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
      * @param data The data to initialize the module with
      */
     function onInstall(bytes calldata data) external override {
+        // It's allowed to install smartsessions on a ERC7579 account without any params
         if (data.length == 0) return;
 
         Session[] calldata sessions;
+
+        // equivalent of abi.decode(data,Session[])
         assembly ("memory-safe") {
             let dataPointer := add(data.offset, calldataload(data.offset))
 
@@ -189,21 +302,21 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
      * De-initialize the module with the given data
      */
     function onUninstall(bytes calldata /*data*/ ) external override {
-        uint256 sessionIdsCnt = $enabledSessions.length({ account: msg.sender });
+        uint256 configIdsCnt = $enabledSessions.length({ account: msg.sender });
 
-        for (uint256 i; i < sessionIdsCnt; i++) {
-            SignerId sessionId = SignerId.wrap($enabledSessions.at({ account: msg.sender, index: i }));
-            removeSession(sessionId);
+        for (uint256 i; i < configIdsCnt; i++) {
+            PermissionId configId = PermissionId.wrap($enabledSessions.at({ account: msg.sender, index: i }));
+            removeSession(configId);
         }
     }
 
     function isInitialized(address smartAccount) external view override returns (bool) {
-        uint256 sessionIdsCnt = $enabledSessions.length({ account: smartAccount });
-        return sessionIdsCnt > 0;
+        uint256 configIdsCnt = $enabledSessions.length({ account: smartAccount });
+        return configIdsCnt > 0;
     }
 
-    function isSessionEnabled(SignerId signerId, address account) external view returns (bool) {
-        return $enabledSessions.contains(account, SignerId.unwrap(signerId));
+    function isSessionEnabled(PermissionId permissionId, address account) external view returns (bool) {
+        return $enabledSessions.contains(account, PermissionId.unwrap(permissionId));
     }
 
     function isModuleType(uint256 typeID) external pure override returns (bool) {
@@ -217,7 +330,7 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
     }
 
     function getSessionDigest(
-        SignerId signerId,
+        PermissionId permissionId,
         address account,
         Session memory data,
         SmartSessionMode mode
@@ -226,20 +339,20 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
         view
         returns (bytes32)
     {
-        uint256 nonce = $signerNonce[signerId][account];
+        uint256 nonce = $signerNonce[permissionId][account];
         return data.sessionDigest({ account: account, mode: mode, nonce: nonce });
     }
 
-    function getSignerId(Session memory session) public pure returns (SignerId signerId) {
-        signerId = SignerId.wrap(keccak256(abi.encode(session.isigner, session.isignerInitData, session.salt)));
+    function getPermissionId(Session calldata session) public pure returns (PermissionId permissionId) {
+        permissionId = session.toPermissionId();
     }
 
-    function _isISignerSet(SignerId signerId, address account) internal view returns (bool) {
-        return address($isigners[signerId][account].isigner) != address(0);
+    function _isISessionValidatorSet(PermissionId permissionId, address account) internal view returns (bool) {
+        return address($sessionValidators[permissionId][account].sessionValidator) != address(0);
     }
 
     function isPermissionEnabled(
-        SignerId signerId,
+        PermissionId permissionId,
         address account,
         PolicyData[] memory userOpPolicies,
         PolicyData[] memory erc1271Policies,
@@ -249,24 +362,27 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
         view
         returns (bool isEnabled)
     {
-        //if ISigner is not set for signerId, the permission has not been enabled yet
-        if (!_isISignerSet(signerId, account)) {
+        //if ISessionValidator is not set for permissionId, the permission has not been enabled yet
+        if (!_isISessionValidatorSet(permissionId, account)) {
             return false;
         }
         bool uo = $userOpPolicies.areEnabled({
-            signerId: signerId,
-            sessionId: signerId.toUserOpPolicyId().toSessionId(account),
+            permissionId: permissionId,
+            configId: permissionId.toUserOpPolicyId().toConfigId(account),
             smartAccount: account,
             policyDatas: userOpPolicies
         });
         bool erc1271 = $erc1271Policies.areEnabled({
-            signerId: signerId,
-            sessionId: signerId.toErc1271PolicyId().toSessionId(account),
+            permissionId: permissionId,
+            configId: permissionId.toErc1271PolicyId().toConfigId(account),
             smartAccount: account,
             policyDatas: erc1271Policies
         });
-        bool action =
-            $actionPolicies.areEnabled({ signerId: signerId, smartAccount: account, actionPolicyDatas: actions });
+        bool action = $actionPolicies.areEnabled({
+            permissionId: permissionId,
+            smartAccount: account,
+            actionPolicyDatas: actions
+        });
         uint256 res;
         assembly {
             res := add(add(uo, erc1271), action)

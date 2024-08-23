@@ -13,7 +13,7 @@ import {
 import { MODULE_TYPE_VALIDATOR, MODULE_TYPE_EXECUTOR, Execution } from "modulekit/external/ERC7579.sol";
 import { SmartSession } from "contracts/SmartSession.sol";
 import { EncodeLib } from "contracts/lib/EncodeLib.sol";
-import { ISigner } from "contracts/interfaces/ISigner.sol";
+import { ISessionValidator } from "contracts/interfaces/ISessionValidator.sol";
 import { IRegistry } from "contracts/interfaces/IRegistry.sol";
 import "contracts/DataTypes.sol";
 import { EncodeLib } from "contracts/lib/EncodeLib.sol";
@@ -40,7 +40,7 @@ IRegistry constant registry = IRegistry(0x000000000069E2a187AEFFb852bF3cCdC95151
 contract BaseTest is RhinestoneModuleKit, Test {
     using ModuleKitHelpers for *;
     using ModuleKitUserOp for *;
-    using EncodeLib for SignerId;
+    using EncodeLib for PermissionId;
 
     // account and modules
     MockK1Validator internal mockK1;
@@ -70,7 +70,7 @@ contract BaseTest is RhinestoneModuleKit, Test {
         sessionSigner1 = makeAccount("sessionSigner1");
         sessionSigner2 = makeAccount("sessionSigner2");
 
-        smartSession = new SmartSession(0);
+        smartSession = new SmartSession();
         target = new MockTarget();
         yesSigner = new YesSigner();
         yesPolicy = new YesPolicy();
@@ -86,12 +86,7 @@ contract BaseTest is RhinestoneModuleKit, Test {
             data: abi.encodePacked(owner.addr)
         });
 
-        EnableSessions[] memory installData = new EnableSessions[](0);
-        instance.installModule({
-            moduleTypeId: MODULE_TYPE_VALIDATOR,
-            module: address(smartSession),
-            data: abi.encode(installData)
-        });
+        instance.installModule({ moduleTypeId: MODULE_TYPE_VALIDATOR, module: address(smartSession), data: "" });
     }
 
     function sign(bytes32 hash, uint256 privKey) internal pure returns (bytes memory signature) {
@@ -137,47 +132,33 @@ contract BaseTest is RhinestoneModuleKit, Test {
         return ERC7739Data({ allowedERC7739Content: contents, erc1271Policies: erc1271Policies });
     }
 
-    function _makeMultiChainEnableData(SignerId signerId, Session memory session, AccountInstance memory instance, SmartSessionMode mode) internal view returns (EnableSessions memory enableData) {
+    function _makeMultiChainEnableData(
+        PermissionId permissionId,
+        Session memory session,
+        AccountInstance memory instance,
+        SmartSessionMode mode
+    )
+        internal
+        view
+        returns (EnableSession memory enableData)
+    {
         bytes32 sessionDigest = smartSession.getSessionDigest({
-            signerId: signerId,
-            account: instance.account, 
-            data: session, 
+            permissionId: permissionId,
+            account: instance.account,
+            data: session,
             mode: mode
         });
 
         ChainDigest[] memory chainDigests = EncodeLib.encodeHashesAndChainIds(
-                Solarray.uint64s(181818, uint64(block.chainid), 777),
-                Solarray.bytes32s(sessionDigest, sessionDigest, sessionDigest)
-            );
+            Solarray.uint64s(181_818, uint64(block.chainid), 777),
+            Solarray.bytes32s(sessionDigest, sessionDigest, sessionDigest)
+        );
 
-        enableData = EnableSessions({
+        enableData = EnableSession({
             chainDigestIndex: 1,
             hashesAndChainIds: chainDigests,
             sessionToEnable: session,
             permissionEnableSig: ""
         });
     }
-
-    // function _enable_exec(
-    //     EnableSessions memory enableSessions,
-    //     address target,
-    //     uint256 value,
-    //     bytes calldata callData
-    // )
-    //     internal
-    // {
-    //     // get userOp from ModuleKit
-    //     UserOpData memory userOpData = instance.getExecOps({
-    //         target: target,
-    //         value: value,
-    //         callData: callData,
-    //         txValidator: address(smartSession)
-    //     });
-    //
-    //     // predict signerId correlating to EnableSessions
-    //     SignerId signerId = smartSession.getSignerId(enableSessions.isigner, enableSessions.isignerInitData);
-    //
-    //     bytes32 hash =
-    //         smartSession.getDigest(enableData.isigner, instance.account, enableData, SmartSessionMode.UNSAFE_ENABLE);
-    // }
 }

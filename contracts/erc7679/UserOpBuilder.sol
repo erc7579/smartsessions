@@ -13,7 +13,7 @@ import "forge-std/Console2.sol";
 
 interface IPermissionEnabled {
     function isPermissionEnabled(
-        SignerId signerId,
+        PermissionId permissionId,
         address smartAccount,
         PolicyData[] memory userOpPolicies,
         PolicyData[] memory erc1271Policies,
@@ -29,8 +29,8 @@ contract UserOperationBuilder is IUserOperationBuilder {
      *    PermissionContext is a bytes array : ...
      *    0-24 : nonce key
      *    24-56: execution mode
-     *    56-88: signerId
-     *    88: abi.encode(EnableSessions)
+     *    56-88: permissionId
+     *    88: abi.encode(EnableSession)
      */
     using ExecutionLib for *;
     using EncodeLib for *;
@@ -95,28 +95,28 @@ contract UserOperationBuilder is IUserOperationBuilder {
     {
         if (context.length < 88) {
             revert("Context too short");
-            // context should contain at least 24 bytes nonce_key, 32 bytes mode, and 32 bytes signerId
+            // context should contain at least 24 bytes nonce_key, 32 bytes mode, and 32 bytes permissionId
         }
 
-        SignerId signerId = SignerId.wrap(bytes32(context[56:88]));
+        PermissionId permissionId = PermissionId.wrap(bytes32(context[56:88]));
 
         if (context.length == 88) {
-            // if by some (weird) reason the context contains only 32bytes signerId on top of
+            // if by some (weird) reason the context contains only 32bytes permissionId on top of
             // the nonce_key and mode => then it is a context for just using the permission
-            return EncodeLib.encodeUse(signerId, userOperation.signature);
+            return EncodeLib.encodeUse(permissionId, userOperation.signature);
         }
 
         address permissionValidator = address(bytes20(context[0:20]));
-        EnableSessions memory enableData = abi.decode(context[88:], (EnableSessions));
+        EnableSession memory enableData = abi.decode(context[88:], (EnableSession));
         Session memory session = enableData.sessionToEnable;
 
         try IPermissionEnabled(permissionValidator).isPermissionEnabled(
-            signerId, smartAccount, session.userOpPolicies, session.erc7739Policies.erc1271Policies, session.actions
+            permissionId, smartAccount, session.userOpPolicies, session.erc7739Policies.erc1271Policies, session.actions
         ) returns (bool isEnabled) {
             if (isEnabled) {
-                return EncodeLib.encodeUse(signerId, userOperation.signature);
+                return EncodeLib.encodeUse(permissionId, userOperation.signature);
             } else {
-                return EncodeLib.encodeEnable(signerId, userOperation.signature, enableData);
+                return EncodeLib.encodeEnable(permissionId, userOperation.signature, enableData);
             }
         } catch (bytes memory error) {
             revert InvalidPermission(error);

@@ -4,25 +4,29 @@ pragma solidity ^0.8.23;
 
 import "contracts/interfaces/IPolicy.sol";
 import { _packValidationData } from "@ERC4337/account-abstraction/contracts/core/Helpers.sol";
-import "contracts/lib/SubLib.sol";
+import "./SubLib.sol";
 import "forge-std/console2.sol";
 
 contract YesPolicy is IUserOpPolicy, IActionPolicy {
     using SubLib for bytes;
 
-    mapping(SessionId id => mapping(address msgSender => mapping(address userOpSender => uint256 calls))) public
+    mapping(ConfigId id => mapping(address msgSender => mapping(address userOpSender => uint256 calls))) public
         userOpState;
 
-    mapping(SessionId id => mapping(address msgSender => mapping(address userOpSender => uint256 calls))) public
+    mapping(ConfigId id => mapping(address msgSender => mapping(address userOpSender => uint256 calls))) public
         actionState;
 
     function onInstall(bytes calldata data) external {
-        (SessionId id, address opSender, bytes calldata _data) = data.parseInstallData();
+        (ConfigId id, address opSender, bytes calldata _data) = data.parseInstallData();
         userOpState[id][msg.sender][opSender] = 1;
     }
 
+    function initializeWithMultiplexer(address account, ConfigId configId, bytes calldata initData) external {
+        userOpState[configId][msg.sender][account] = 1;
+    }
+
     function onUninstall(bytes calldata data) external {
-        (SessionId id, address opSender, bytes calldata _data) = data.parseInstallData();
+        (ConfigId id, address opSender, bytes calldata _data) = data.parseInstallData();
         userOpState[id][msg.sender][opSender] = 0;
     }
 
@@ -30,13 +34,13 @@ contract YesPolicy is IUserOpPolicy, IActionPolicy {
         return id == 7;
     }
 
-    function checkUserOpPolicy(SessionId id, PackedUserOperation calldata userOp) external override returns (uint256) {
+    function checkUserOpPolicy(ConfigId id, PackedUserOperation calldata userOp) external override returns (uint256) {
         userOpState[id][msg.sender][userOp.sender] += 1;
         return 0;
     }
 
     function checkAction(
-        SessionId id,
+        ConfigId id,
         address account,
         address target,
         uint256 value,
@@ -49,8 +53,12 @@ contract YesPolicy is IUserOpPolicy, IActionPolicy {
         actionState[id][msg.sender][account] += 1;
     }
 
-    function isInitialized(address account, SessionId id) external view override returns (bool) {
-        return userOpState[id][msg.sender][account] != 0;
+    function isInitialized(address account, ConfigId id) external view override returns (bool) {
+        return userOpState[id][account][account] != 0;
+    }
+
+    function isInitialized(address account, address multiplexer, ConfigId id) external view override returns (bool) {
+        return userOpState[id][multiplexer][account] != 0;
     }
 
     function isInitialized(address account) external view override returns (bool) { }

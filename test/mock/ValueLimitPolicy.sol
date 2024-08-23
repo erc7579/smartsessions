@@ -3,7 +3,7 @@
 pragma solidity ^0.8.23;
 
 import "contracts/interfaces/IPolicy.sol";
-import "contracts/lib/SubLib.sol";
+import "./SubLib.sol";
 
 contract ValueLimitPolicy is IActionPolicy {
     using SubLib for bytes;
@@ -14,23 +14,25 @@ contract ValueLimitPolicy is IActionPolicy {
     }
 
     mapping(address msgSender => mapping(address opSender => uint256)) public usedIds;
-    mapping(SessionId id => mapping(address msgSender => mapping(address userOpSender => ValueLimitConfig))) public
+    mapping(ConfigId id => mapping(address msgSender => mapping(address userOpSender => ValueLimitConfig))) public
         valueLimitConfigs;
 
-    // TODO: Make per SignerId limits => this will allow to set value transfer limits not per action, but per session
+    // TODO: Make per PermissionId limits => this will allow to set value transfer limits not per action, but per
+    // session
     // key (signer)
     // To make this, need to make one more mapping
-    // mapping(SignerId signerId => mapping(address msgSender => mapping(address userOpSender => ValueLimitConfig)))
+    // mapping(PermissionId permissionId => mapping(address msgSender => mapping(address userOpSender =>
+    // ValueLimitConfig)))
     // public valueLimitConfigs;
     // and receive this limit in onInstall
-    // and use EncodeLib.getSignerIdFromSignature() method to get signerId from op.signature
-    // and check/increment value limits and usage per SignerId as well
+    // and use EncodeLib.getPermissionIdFromSignature() method to get permissionId from op.signature
+    // and check/increment value limits and usage per PermissionId as well
     // so there can be no checking limits per action (need to set let's say 0xfefefefefefe as valueLimit to avoid check
     // and increment)
-    // but check per signerId
+    // but check per permissionId
 
     function checkAction(
-        SessionId id,
+        ConfigId id,
         address account,
         address,
         uint256 value,
@@ -50,25 +52,29 @@ contract ValueLimitPolicy is IActionPolicy {
         return VALIDATION_SUCCESS;
     }
 
-    function _onInstallPolicy(SessionId id, address opSender, bytes calldata _data) internal {
+    function _onInstallPolicy(ConfigId id, address opSender, bytes calldata _data) internal {
         require(valueLimitConfigs[id][msg.sender][opSender].valueLimit == 0);
         usedIds[msg.sender][opSender]++;
         valueLimitConfigs[id][msg.sender][opSender].valueLimit = uint256(bytes32(_data[0:32]));
     }
 
-    function _onUninstallPolicy(SessionId id, address opSender, bytes calldata) internal {
+    function _onUninstallPolicy(ConfigId id, address opSender, bytes calldata) internal {
         require(valueLimitConfigs[id][msg.sender][opSender].valueLimit != 0);
         delete valueLimitConfigs[id][msg.sender][opSender];
         usedIds[msg.sender][opSender]--;
     }
 
     function onInstall(bytes calldata data) external {
-        (SessionId id, address opSender, bytes calldata _data) = data.parseInstallData();
+        (ConfigId id, address opSender, bytes calldata _data) = data.parseInstallData();
         _onInstallPolicy(id, opSender, _data);
     }
 
+    function initializeWithMultiplexer(address account, ConfigId configId, bytes calldata initData) external {
+        _onInstallPolicy(configId, account, initData);
+    }
+
     function onUninstall(bytes calldata data) external {
-        (SessionId id, address opSender, bytes calldata _data) = data.parseInstallData();
+        (ConfigId id, address opSender, bytes calldata _data) = data.parseInstallData();
         _onUninstallPolicy(id, opSender, _data);
     }
 
@@ -76,8 +82,12 @@ contract ValueLimitPolicy is IActionPolicy {
         return id == 7;
     }
 
-    function isInitialized(address account, SessionId id) external view override returns (bool) {
-        return valueLimitConfigs[id][msg.sender][account].valueLimit > 0;
+    function isInitialized(address account, ConfigId id) external view override returns (bool) {
+        return valueLimitConfigs[id][account][account].valueLimit > 0;
+    }
+
+    function isInitialized(address account, address multiplexer, ConfigId id) external view override returns (bool) {
+        return valueLimitConfigs[id][multiplexer][account].valueLimit > 0;
     }
 
     function isInitialized(address account) external view override returns (bool) {

@@ -21,7 +21,7 @@ library SmartSessionModeLib {
         return false;
     }
 
-    function enableSigner(SmartSessionMode mode) internal pure returns (bool) {
+    function enableSessionValidator(SmartSessionMode mode) internal pure returns (bool) {
         if (mode == SmartSessionMode.ENABLE || mode == SmartSessionMode.UNSAFE_ENABLE) {
             return true;
         }
