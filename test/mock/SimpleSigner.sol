@@ -2,14 +2,10 @@
 
 pragma solidity ^0.8.23;
 
-import { PackedUserOperation, SessionId, ISigner } from "contracts/interfaces/ISigner.sol";
+import { ISessionValidator } from "contracts/interfaces/ISessionValidator.sol";
 import { ECDSA } from "solady/utils/ECDSA.sol";
 
-// removing trusted forwarder dependency here as it is only required during onInstall/onUninstall
-// and not during usage (checkSignature)
-// import { TrustedForwarderWithId } from "contracts/utils/TrustedForwarders.sol";
-
-contract SimpleSigner {
+contract SimpleSigner is ISessionValidator {
     function supportsInterface(bytes4 interfaceID) external pure returns (bool) {
         return true;
     }
@@ -20,6 +16,7 @@ contract SimpleSigner {
         bytes calldata data
     )
         external
+        view
         returns (bool validSig)
     {
         address owner = address(bytes20(data[0:20]));

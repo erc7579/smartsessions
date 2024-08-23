@@ -3,6 +3,7 @@ pragma solidity ^0.8.25;
 
 import "../DataTypes.sol";
 import { ISmartSession } from "../ISmartSession.sol";
+import { ISubPermission } from "../interfaces/IPolicy.sol";
 import { PackedUserOperation } from "modulekit/external/ERC4337.sol";
 import { AssociatedArrayLib } from "../utils/AssociatedArrayLib.sol";
 
@@ -32,7 +33,7 @@ library PolicyLib {
     function check(
         Policy storage $self,
         PackedUserOperation calldata userOp,
-        SignerId signerId,
+        PermissionId permissionId,
         bytes memory callOnIPolicy,
         uint256 minPolicies
     )
@@ -40,15 +41,15 @@ library PolicyLib {
         returns (ValidationData vd)
     {
         address account = userOp.sender;
-        address[] memory policies = $self.policyList[signerId].values({ account: account });
+        address[] memory policies = $self.policyList[permissionId].values({ account: account });
         uint256 length = policies.length;
-        if (minPolicies > length) revert ISmartSession.NoPoliciesSet(signerId);
+        if (minPolicies > length) revert ISmartSession.NoPoliciesSet(permissionId);
 
         // iterate over all policies and intersect the validation data
         for (uint256 i; i < length; i++) {
             uint256 validationDataFromPolicy = uint256(bytes32(policies[i].safeCall({ callData: callOnIPolicy })));
             vd = ValidationData.wrap(validationDataFromPolicy);
-            if (vd.isFailed()) revert ISmartSession.PolicyViolation(signerId, policies[i]);
+            if (vd.isFailed()) revert ISmartSession.PolicyViolation(permissionId, policies[i]);
             vd = vd.intersectValidationData(vd);
         }
     }
@@ -56,7 +57,7 @@ library PolicyLib {
     function checkSingle7579Exec(
         mapping(ActionId => Policy) storage $policies,
         PackedUserOperation calldata userOp,
-        SignerId signerId,
+        PermissionId permissionId,
         address target,
         uint256 value,
         bytes calldata callData,
@@ -75,9 +76,9 @@ library PolicyLib {
         ActionId actionId = target.toActionId(targetSig);
         vd = $policies[actionId].check({
             userOp: userOp,
-            signerId: signerId,
+            permissionId: permissionId,
             callOnIPolicy: abi.encodeCall(
-                IActionPolicy.checkAction, (signerId.toSessionId(actionId), userOp.sender, target, value, callData)
+                IActionPolicy.checkAction, (permissionId.toConfigId(actionId), userOp.sender, target, value, callData)
             ),
             minPolicies: minPolicies
         });
@@ -86,7 +87,7 @@ library PolicyLib {
     function checkBatch7579Exec(
         mapping(ActionId => Policy) storage $policies,
         PackedUserOperation calldata userOp,
-        SignerId signerId,
+        PermissionId permissionId,
         uint256 minPolicies
     )
         internal
@@ -101,7 +102,7 @@ library PolicyLib {
                 checkSingle7579Exec({
                     $policies: $policies,
                     userOp: userOp,
-                    signerId: signerId,
+                    permissionId: permissionId,
                     target: execution.target,
                     value: execution.value,
                     callData: execution.callData,
@@ -119,8 +120,8 @@ library PolicyLib {
 
     function areEnabled(
         Policy storage $policies,
-        SignerId signerId,
-        SessionId sessionId,
+        PermissionId permissionId,
+        ConfigId configId,
         address smartAccount,
         PolicyData[] memory policyDatas
     )
@@ -135,8 +136,8 @@ library PolicyLib {
             PolicyData memory policyData = policyDatas[i];
             ISubPermission policy = ISubPermission(policyData.policy);
             if (
-                $policies.policyList[signerId].contains(smartAccount, address(policy))
-                    && policy.isInitialized(smartAccount, sessionId)
+                $policies.policyList[permissionId].contains(smartAccount, address(policy))
+                    && policy.isInitialized(smartAccount, configId)
             ) enabledPolicies++;
         }
         if (enabledPolicies == 0) return false;
@@ -146,7 +147,7 @@ library PolicyLib {
 
     function areEnabled(
         EnumerableActionPolicy storage $self,
-        SignerId signerId,
+        PermissionId permissionId,
         address smartAccount,
         ActionData[] memory actionPolicyDatas
     )
@@ -159,10 +160,10 @@ library PolicyLib {
         for (uint256 i; i < length; i++) {
             ActionData memory actionPolicyData = actionPolicyDatas[i];
             ActionId actionId = actionPolicyData.actionId;
-            SessionId sessionId = signerId.toSessionId(actionId, smartAccount);
+            ConfigId configId = permissionId.toConfigId(actionId, smartAccount);
             if (
                 $self.actionPolicies[actionId].areEnabled(
-                    signerId, sessionId, smartAccount, actionPolicyData.actionPolicies
+                    permissionId, configId, smartAccount, actionPolicyData.actionPolicies
                 )
             ) actionsProperlyEnabled++;
         }
@@ -177,22 +178,22 @@ library PolicyLib {
         address requestSender,
         bytes32 hash,
         bytes calldata signature,
-        SignerId signerId,
-        SessionId sessionId,
+        PermissionId permissionId,
+        ConfigId configId,
         uint256 minPoliciesToEnforce
     )
         internal
         view
         returns (bool valid)
     {
-        address[] memory policies = $self.policyList[signerId].values({ account: account });
+        address[] memory policies = $self.policyList[permissionId].values({ account: account });
         uint256 length = policies.length;
-        if (minPoliciesToEnforce > length) revert ISmartSession.NoPoliciesSet(signerId);
+        if (minPoliciesToEnforce > length) revert ISmartSession.NoPoliciesSet(permissionId);
 
         // iterate over all policies and intersect the validation data
         for (uint256 i; i < length; i++) {
             valid = I1271Policy(policies[i]).check1271SignedAction({
-                id: sessionId,
+                id: configId,
                 requestSender: requestSender,
                 account: account,
                 hash: hash,

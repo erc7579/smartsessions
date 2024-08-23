@@ -2,52 +2,28 @@
 pragma solidity ^0.8.25;
 
 import "./utils/AssociatedArrayLib.sol";
-import "./interfaces/ISigner.sol";
+import "./interfaces/ISessionValidator.sol";
 import { EnumerableSet } from "./utils/EnumerableSet4337.sol";
 import { FlatBytesLib } from "@rhinestone/flatbytes/src/BytesLib.sol";
 
-import "forge-std/console2.sol";
-
-type SignerId is bytes32;
-
-using { signerIdEq as == } for SignerId global;
-using { signerIdNeq as != } for SignerId global;
-
-function signerIdEq(SignerId uid1, SignerId uid2) pure returns (bool) {
-    return SignerId.unwrap(uid1) == SignerId.unwrap(uid2);
-}
-
-function signerIdNeq(SignerId uid1, SignerId uid2) pure returns (bool) {
-    return SignerId.unwrap(uid1) != SignerId.unwrap(uid2);
-}
-
-type ActionId is bytes32;
-
-type UserOpPolicyId is bytes32;
-
-type ActionPolicyId is bytes32;
-
-type Erc1271PolicyId is bytes32;
-
-// type SignedActionId is bytes32;
-
-type SessionId is bytes32;
-
-// =====
-
-struct SignerConf {
-    ISigner isigner;
-    uint48 validUntil;
-    FlatBytesLib.Bytes config;
-}
+/*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
+/*                       Parameters                           */
+/*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
 
 struct Session {
-    ISigner isigner;
+    ISessionValidator sessionValidator;
     bytes32 salt;
-    bytes isignerInitData;
+    bytes sessionValidatorInitData;
     PolicyData[] userOpPolicies;
     ERC7739Data erc7739Policies;
     ActionData[] actions;
+}
+
+struct EnableSession {
+    uint8 chainDigestIndex;
+    ChainDigest[] hashesAndChainIds;
+    Session sessionToEnable;
+    bytes permissionEnableSig;
 }
 
 struct ChainSession {
@@ -62,13 +38,6 @@ struct MultiChainSession {
 struct ChainDigest {
     uint64 chainId;
     bytes32 sessionDigest;
-}
-
-struct EnableSessions {
-    uint8 chainDigestIndex; 
-    ChainDigest[] hashesAndChainIds;
-    Session sessionToEnable;
-    bytes permissionEnableSig;
 }
 
 struct PolicyData {
@@ -86,12 +55,6 @@ struct ERC7739Data {
     PolicyData[] erc1271Policies;
 }
 
-////////////////////////
-
-struct UninstallSessions {
-    SignerId signerId;
-}
-
 enum SmartSessionMode {
     USE,
     ENABLE,
@@ -100,20 +63,45 @@ enum SmartSessionMode {
     UNSAFE_ENABLE_ADD_POLICIES
 }
 
+/*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
+/*                         Storage                            */
+/*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
+
+struct SignerConf {
+    ISessionValidator sessionValidator;
+    uint48 validUntil;
+    FlatBytesLib.Bytes config;
+}
+
+struct Policy {
+    mapping(PermissionId => EnumerableSet.AddressSet) policyList;
+}
+
+struct EnumerableActionPolicy {
+    mapping(ActionId => Policy) actionPolicies;
+    mapping(PermissionId => AssociatedArrayLib.Bytes32Array) enabledActionIds;
+}
+
+/*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
+/*                 Custom Types & Constants                   */
+/*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
 enum PolicyType {
     USER_OP,
     ACTION,
     ERC1271
 }
 
-struct Policy {
-    mapping(SignerId => EnumerableSet.AddressSet) policyList;
-}
+type PermissionId is bytes32;
 
-struct EnumerableActionPolicy {
-    mapping(ActionId => Policy) actionPolicies;
-    mapping(SignerId => AssociatedArrayLib.Bytes32Array) enabledActionIds;
-}
+type ActionId is bytes32;
+
+type UserOpPolicyId is bytes32;
+
+type ActionPolicyId is bytes32;
+
+type Erc1271PolicyId is bytes32;
+
+type ConfigId is bytes32;
 
 type ValidationData is uint256;
 
@@ -126,3 +114,14 @@ uint256 constant ERC7579_MODULE_TYPE_VALIDATOR = 1;
 uint256 constant ERC7579_MODULE_TYPE_EXECUTOR = 2;
 uint256 constant ERC7579_MODULE_TYPE_FALLBACK = 3;
 uint256 constant ERC7579_MODULE_TYPE_HOOK = 4;
+
+using { permissionIdEq as == } for PermissionId global;
+using { permissionIdNeq as != } for PermissionId global;
+
+function permissionIdEq(PermissionId uid1, PermissionId uid2) pure returns (bool) {
+    return PermissionId.unwrap(uid1) == PermissionId.unwrap(uid2);
+}
+
+function permissionIdNeq(PermissionId uid1, PermissionId uid2) pure returns (bool) {
+    return PermissionId.unwrap(uid1) != PermissionId.unwrap(uid2);
+}

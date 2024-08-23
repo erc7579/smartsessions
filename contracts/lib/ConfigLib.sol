@@ -2,6 +2,7 @@
 pragma solidity ^0.8.25;
 
 import "../DataTypes.sol";
+import { ISubPermission } from "../interfaces/IPolicy.sol";
 import { ISmartSession } from "../ISmartSession.sol";
 import { AssociatedArrayLib } from "../utils/AssociatedArrayLib.sol";
 import { IRegistry, ModuleType } from "../interfaces/IRegistry.sol";
@@ -22,13 +23,13 @@ library ConfigLib {
     ModuleType internal constant POLICY_MODULE_TYPE = ModuleType.wrap(7);
 
     /**
-     * Generic function to enable policies for a signerId
+     * Generic function to enable policies for a permissionId
      */
     function enable(
         Policy storage $policy,
         PolicyType policyType,
-        SignerId signerId,
-        SessionId sessionId,
+        PermissionId permissionId,
+        ConfigId configId,
         PolicyData[] memory policyDatas,
         address smartAccount,
         bool useRegistry
@@ -46,16 +47,16 @@ library ConfigLib {
 
             if (useRegistry) registry.checkForAccount(smartAccount, address(policy), POLICY_MODULE_TYPE);
 
-            ISubPermission(policy).onInstall({ data: abi.encodePacked(sessionId, smartAccount, policyData.initData) });
+            ISubPermission(policy).onInstall({ data: abi.encodePacked(configId, smartAccount, policyData.initData) });
 
-            $policy.policyList[signerId].add(smartAccount, address(policy));
-            emit ISmartSession.PolicyEnabled(signerId, policyType, address(policy), smartAccount);
+            $policy.policyList[permissionId].add(smartAccount, address(policy));
+            emit ISmartSession.PolicyEnabled(permissionId, policyType, address(policy), smartAccount);
         }
     }
 
     function enable(
         EnumerableActionPolicy storage $self,
-        SignerId signerId,
+        PermissionId permissionId,
         ActionData[] memory actionPolicyDatas,
         address smartAccount,
         bool useRegistry
@@ -67,11 +68,11 @@ library ConfigLib {
             // record every enabled actionId
             ActionData memory actionPolicyData = actionPolicyDatas[i];
             ActionId actionId = actionPolicyData.actionId;
-            $self.enabledActionIds[signerId].push(smartAccount, ActionId.unwrap(actionId));
+            $self.enabledActionIds[permissionId].push(smartAccount, ActionId.unwrap(actionId));
             $self.actionPolicies[actionId].enable({
                 policyType: PolicyType.ACTION,
-                signerId: signerId,
-                sessionId: signerId.toSessionId(actionId),
+                permissionId: permissionId,
+                configId: permissionId.toConfigId(actionId),
                 policyDatas: actionPolicyData.actionPolicies,
                 smartAccount: smartAccount,
                 useRegistry: useRegistry
@@ -80,9 +81,9 @@ library ConfigLib {
     }
 
     function enable(
-        mapping(SessionId => mapping(bytes32 => mapping(address => bool))) storage $enabledERC7739Content,
+        mapping(ConfigId => mapping(bytes32 => mapping(address => bool))) storage $enabledERC7739Content,
         string[] memory contents,
-        SessionId sessionId,
+        ConfigId configId,
         address smartAccount
     )
         internal
@@ -90,7 +91,7 @@ library ConfigLib {
         uint256 length = contents.length;
         for (uint256 i; i < length; i++) {
             bytes32 contentHash = contents[i].hashERC7739Content();
-            $enabledERC7739Content[sessionId][contentHash][smartAccount] = true;
+            $enabledERC7739Content[configId][contentHash][smartAccount] = true;
         }
     }
 
@@ -98,7 +99,7 @@ library ConfigLib {
         Policy storage $policy,
         PolicyType policyType,
         address smartAccount,
-        SignerId signerId,
+        PermissionId permissionId,
         address[] calldata policies
     )
         internal
@@ -106,8 +107,8 @@ library ConfigLib {
         uint256 length = policies.length;
         for (uint256 i; i < length; i++) {
             address policy = policies[i];
-            $policy.policyList[signerId].remove(smartAccount, policy);
-            emit ISmartSession.PolicyDisabled(signerId, policyType, address(policy), smartAccount);
+            $policy.policyList[permissionId].remove(smartAccount, policy);
+            emit ISmartSession.PolicyDisabled(permissionId, policyType, address(policy), smartAccount);
         }
     }
 }

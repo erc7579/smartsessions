@@ -60,12 +60,12 @@ contract UniActionPolicy is IActionPolicy {
     using UniActionLib for *;
 
     mapping(address msgSender => mapping(address opSender => uint256)) public usedIds;
-    mapping(SessionId id => mapping(address msgSender => mapping(address userOpSender => Status))) public status;
-    mapping(SessionId id => mapping(address msgSender => mapping(address userOpSender => ActionConfig))) public
+    mapping(ConfigId id => mapping(address msgSender => mapping(address userOpSender => Status))) public status;
+    mapping(ConfigId id => mapping(address msgSender => mapping(address userOpSender => ActionConfig))) public
         actionConfigs;
 
     function checkAction(
-        SessionId id,
+        ConfigId id,
         address account,
         address,
         uint256 value,
@@ -87,7 +87,7 @@ contract UniActionPolicy is IActionPolicy {
         return VALIDATION_SUCCESS;
     }
 
-    function _onInstallPolicy(SessionId id, address opSender, bytes calldata _data) internal {
+    function _onInstallPolicy(ConfigId id, address opSender, bytes calldata _data) internal {
         require(status[id][msg.sender][opSender] == Status.NA);
         usedIds[msg.sender][opSender]++;
         status[id][msg.sender][opSender] = Status.Live;
@@ -95,19 +95,19 @@ contract UniActionPolicy is IActionPolicy {
         actionConfigs[id][msg.sender][opSender].fill(config);
     }
 
-    function _onUninstallPolicy(SessionId id, address opSender, bytes calldata) internal {
+    function _onUninstallPolicy(ConfigId id, address opSender, bytes calldata) internal {
         require(status[id][msg.sender][opSender] == Status.Live);
         status[id][msg.sender][opSender] = Status.Deprecated;
         usedIds[msg.sender][opSender]--;
     }
 
     function onInstall(bytes calldata data) external {
-        (SessionId id, address opSender, bytes calldata _data) = data.parseInstallData();
+        (ConfigId id, address opSender, bytes calldata _data) = data.parseInstallData();
         _onInstallPolicy(id, opSender, _data);
     }
 
     function onUninstall(bytes calldata data) external {
-        (SessionId id, address opSender, bytes calldata _data) = data.parseInstallData();
+        (ConfigId id, address opSender, bytes calldata _data) = data.parseInstallData();
         _onUninstallPolicy(id, opSender, _data);
     }
 
@@ -119,11 +119,11 @@ contract UniActionPolicy is IActionPolicy {
         return usedIds[mxer][account] > 0;
     }
 
-    function isInitialized(address account, SessionId id) external view returns (bool) {
+    function isInitialized(address account, ConfigId id) external view returns (bool) {
         return status[id][msg.sender][account] == Status.Live;
     }
 
-    function isInitialized(address mxer, address account, SessionId id) external view returns (bool) {
+    function isInitialized(address mxer, address account, ConfigId id) external view returns (bool) {
         return status[id][mxer][account] == Status.Live;
     }
 

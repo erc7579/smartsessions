@@ -13,7 +13,7 @@ import {
 import { MODULE_TYPE_VALIDATOR, MODULE_TYPE_EXECUTOR, Execution } from "modulekit/external/ERC7579.sol";
 import { SmartSession } from "contracts/SmartSession.sol";
 import { EncodeLib } from "contracts/lib/EncodeLib.sol";
-import { ISigner } from "contracts/interfaces/ISigner.sol";
+import { ISessionValidator } from "contracts/interfaces/ISessionValidator.sol";
 import "contracts/DataTypes.sol";
 import { EncodeLib } from "contracts/lib/EncodeLib.sol";
 import { MockTarget } from "./mock/MockTarget.sol";
@@ -36,7 +36,7 @@ IRegistry constant registry = IRegistry(0x000000000069E2a187AEFFb852bF3cCdC95151
 contract UniversalActionPolicyTest is SmartSessionTestBase {
     using ModuleKitHelpers for *;
     using ModuleKitUserOp for *;
-    using EncodeLib for SignerId;
+    using EncodeLib for PermissionId;
 
     // account and modules
     
@@ -77,7 +77,7 @@ contract UniversalActionPolicyTest is SmartSessionTestBase {
         assertEq(prevBal32, 0);
 
         // Enable Uni Action Policy Permission
-        SignerId[] memory signerIds = _preEnablePermissions();
+        PermissionId[] memory permissionIds = _preEnablePermissions();
 
         UserOpData memory userOpData = instance.getExecOps({
             target: address(mockCallee),
@@ -87,7 +87,7 @@ contract UniversalActionPolicyTest is SmartSessionTestBase {
         });
 
         bytes memory sig = sign(userOpData.userOpHash, sessionSigner1.key);
-        userOpData.userOp.signature = EncodeLib.encodeUse({ signerId: signerIds[0], sig: sig });
+        userOpData.userOp.signature = EncodeLib.encodeUse({ permissionId: permissionIds[0], sig: sig });
         userOpData.execUserOps();
 
         (uint256 postBal, bytes32 postBal32) = mockCallee.bals(instance.account);
@@ -97,7 +97,7 @@ contract UniversalActionPolicyTest is SmartSessionTestBase {
 
     /// =================================================================
 
-    function _preEnablePermissions() internal returns (SignerId[] memory signerIds) {
+    function _preEnablePermissions() internal returns (PermissionId[] memory permissionIds) {
         //enable simple gas policy as userOpPolicy
         PolicyData[] memory userOpPolicies = new PolicyData[](1);
         userOpPolicies[0] =
@@ -153,9 +153,9 @@ contract UniversalActionPolicyTest is SmartSessionTestBase {
 
         Session[] memory sessions = new Session[](1);
         sessions[0] = Session({
-            isigner: ISigner(address(simpleSigner)),
+            sessionValidator: ISessionValidator(address(simpleSigner)),
             salt: bytes32(0),
-            isignerInitData: abi.encodePacked(sessionSigner1.addr),
+            sessionValidatorInitData: abi.encodePacked(sessionSigner1.addr),
             userOpPolicies: userOpPolicies,
             erc7739Policies: erc7739Data,
             actions: actions
@@ -163,7 +163,7 @@ contract UniversalActionPolicyTest is SmartSessionTestBase {
 
         vm.startPrank(instance.account);
 
-        signerIds = smartSession.enableSessions(sessions);
+        permissionIds = smartSession.enableSessions(sessions);
 
         vm.stopPrank();
     }

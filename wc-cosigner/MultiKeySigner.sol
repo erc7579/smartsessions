@@ -4,7 +4,7 @@ pragma solidity ^0.8.23;
 
 import { ECDSA } from "solady/utils/ECDSA.sol";
 import "./passkey.sol";
-import "contracts/interfaces/ISigner.sol";
+import "contracts/interfaces/ISessionValidator.sol";
 import { SubLib } from "contracts/lib/SubLib.sol";
 import "forge-std/console2.sol";
 
@@ -76,7 +76,7 @@ contract MultiKeySigner {
     // can use sender as argument here as the method is view
     // so even external calls with arbitrary sender can not break things
     function checkSignature(
-        SessionId signerId,
+        ConfigId permissionId,
         address sender,
         bytes32 hash,
         bytes calldata sig
@@ -99,10 +99,10 @@ contract MultiKeySigner {
     }
 
     function supportsInterface(bytes4 sig) external view returns (bool) {
-        return sig == type(ISigner).interfaceId;
+        return sig == type(ISessionValidator).interfaceId;
     }
 
-    function _deinitForAccount(address account, SessionId id) internal { }
+    function _deinitForAccount(address account, ConfigId id) internal { }
 
     function checkUserOpSignature(
         bytes32 id,

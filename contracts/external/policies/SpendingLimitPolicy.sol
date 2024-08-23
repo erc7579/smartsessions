@@ -13,7 +13,7 @@ uint256 constant VALIDATION_SUCCESS = 0;
 uint256 constant VALIDATION_FAILED = 1;
 
 contract SpendingLimitPolicy is IActionPolicy {
-    event TokenSpent(SessionId id, address multiplexer, address token, address account, uint256 amount);
+    event TokenSpent(ConfigId id, address multiplexer, address token, address account, uint256 amount);
 
     error InvalidTokenAddress(address token);
 
@@ -23,12 +23,12 @@ contract SpendingLimitPolicy is IActionPolicy {
     }
 
     mapping(
-        SessionId id
+        ConfigId id
             => mapping(address msgSender => mapping(address token => mapping(address userOpSender => TokenPolicyData)))
     ) internal $policyData;
 
     function _getPolicy(
-        SessionId id,
+        ConfigId id,
         address userOpSender,
         address token
     )
@@ -54,7 +54,9 @@ contract SpendingLimitPolicy is IActionPolicy {
 
     function isInitialized(address smartAccount) external view override returns (bool) { }
 
-    function isInitialized(address account, SessionId id) external view override returns (bool) { }
+    function isInitialized(address account, ConfigId id) external view override returns (bool) { }
+
+    function isInitialized(address account, address multiplexer, ConfigId id) external view override returns (bool) { }
 
     function _isTokenTransfer(
         address account,
@@ -82,7 +84,7 @@ contract SpendingLimitPolicy is IActionPolicy {
     }
 
     function checkAction(
-        SessionId id,
+        ConfigId id,
         address account,
         address target,
         uint256 value,

@@ -22,24 +22,16 @@ contract TimeFramePolicy is IUserOpPolicy, IActionPolicy {
     using SubLib for bytes;
 
     mapping(address msgSender => mapping(address opSender => uint256)) public usedIds;
-    mapping(SessionId id => mapping(address msgSender => mapping(address opSender => Status))) public status;
-    mapping(SessionId id => mapping(address msgSender => mapping(address opSender => TimeFrameConfig))) public
+    mapping(ConfigId id => mapping(address msgSender => mapping(address opSender => Status))) public status;
+    mapping(ConfigId id => mapping(address msgSender => mapping(address opSender => TimeFrameConfig))) public
         timeFrameConfigs;
 
-    function checkUserOpPolicy(
-        SessionId id,
-        PackedUserOperation calldata op
-    )
-        external
-        view
-        override
-        returns (uint256)
-    {
+    function checkUserOpPolicy(ConfigId id, PackedUserOperation calldata op) external view override returns (uint256) {
         return _checkTimeFrame(id, msg.sender, op.sender);
     }
 
     function checkAction(
-        SessionId id,
+        ConfigId id,
         address account,
         address,
         uint256,
@@ -78,13 +70,13 @@ contract TimeFramePolicy is IUserOpPolicy, IActionPolicy {
     }
     */
 
-    function _checkTimeFrame(SessionId id, address multiplexer, address smartAccount) internal view returns (uint256) {
+    function _checkTimeFrame(ConfigId id, address multiplexer, address smartAccount) internal view returns (uint256) {
         require(status[id][multiplexer][smartAccount] == Status.Live);
         TimeFrameConfig storage config = timeFrameConfigs[id][multiplexer][smartAccount];
         return _packValidationData(false, config.validUntil, config.validAfter);
     }
 
-    function _onInstallPolicy(SessionId id, address opSender, bytes calldata _data) internal {
+    function _onInstallPolicy(ConfigId id, address opSender, bytes calldata _data) internal {
         require(status[id][msg.sender][opSender] == Status.NA);
         usedIds[msg.sender][opSender]++;
         status[id][msg.sender][opSender] = Status.Live;
@@ -92,19 +84,19 @@ contract TimeFramePolicy is IUserOpPolicy, IActionPolicy {
         timeFrameConfigs[id][msg.sender][opSender].validAfter = uint48(uint128(bytes16(_data[16:32])));
     }
 
-    function _onUninstallPolicy(SessionId id, address opSender, bytes calldata) internal {
+    function _onUninstallPolicy(ConfigId id, address opSender, bytes calldata) internal {
         require(status[id][msg.sender][opSender] == Status.Live);
         status[id][msg.sender][opSender] = Status.Deprecated;
         usedIds[msg.sender][opSender]--;
     }
 
     function onInstall(bytes calldata data) external {
-        (SessionId id, address opSender, bytes calldata _data) = data.parseInstallData();
+        (ConfigId id, address opSender, bytes calldata _data) = data.parseInstallData();
         _onInstallPolicy(id, opSender, _data);
     }
 
     function onUninstall(bytes calldata data) external {
-        (SessionId id, address opSender, bytes calldata _data) = data.parseInstallData();
+        (ConfigId id, address opSender, bytes calldata _data) = data.parseInstallData();
         _onUninstallPolicy(id, opSender, _data);
     }
 
@@ -116,8 +108,12 @@ contract TimeFramePolicy is IUserOpPolicy, IActionPolicy {
         return usedIds[msg.sender][smartAccount] > 0;
     }
 
-    function isInitialized(address account, SessionId id) external view override returns (bool) {
-        return status[id][msg.sender][account] == Status.Live;
+    function isInitialized(address account, ConfigId id) external view override returns (bool) {
+        return status[id][account][account] == Status.Live;
+    }
+
+    function isInitialized(address account, address multiplexer, ConfigId id) external view override returns (bool) {
+        return status[id][multiplexer][account] == Status.Live;
     }
 
     function supportsInterface(bytes4 interfaceID) external pure override returns (bool) {

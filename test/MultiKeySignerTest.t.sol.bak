@@ -32,7 +32,7 @@ contract MultiKeySignerTest is SmartSessionBasicTest {
     uint256 responseTypeLocation = 1;
     uint256 counter = 144_444;
 
-    SignerId walletconnectSignerId;
+    PermissionId walletconnectPermissionId;
 
     Account passkey;
     Account passkey2;
@@ -87,16 +87,16 @@ contract MultiKeySignerTest is SmartSessionBasicTest {
         policyData[0] = PolicyData({ policy: address(yesPolicy), initData: "" });
         Session[] memory sessions = new Session[](1);
         sessions[0] = Session({
-            isigner: ISigner(address(cosigner)),
+            sessionValidator: ISessionValidator(address(cosigner)),
             salt: bytes32(0),
-            isignerInitData: params,
+            sessionValidatorInitData: params,
             userOpPolicies: policyData,
             erc7739Policies: erc7739Data,
             actions: new ActionData[](0)
         });
 
-        SignerId[] memory signerIds = smartSession.enableSessions(sessions);
-        walletconnectSignerId = signerIds[0];
+        PermissionId[] memory permissionIds = smartSession.enableSessions(sessions);
+        walletconnectPermissionId = permissionIds[0];
     }
 
     function test_exec_CoSigner() public {
@@ -114,7 +114,7 @@ contract MultiKeySignerTest is SmartSessionBasicTest {
         bytes memory passkeySig = _rootSignDigest(passkey.key, ethHash, true);
         bytes[] memory sigs = Solarray.bytess(eoaSig, passkeySig);
 
-        userOpData.userOp.signature = EncodeLib.encodeUse({ signerId: walletconnectSignerId, sig: abi.encode(sigs) });
+        userOpData.userOp.signature = EncodeLib.encodeUse({ permissionId: walletconnectPermissionId, sig: abi.encode(sigs) });
         userOpData.execUserOps();
     }
 
@@ -137,15 +137,15 @@ contract MultiKeySignerTest is SmartSessionBasicTest {
         actions[0] = ActionData({ actionId: ActionId.wrap(bytes32(hex"4242424201")), actionPolicies: policyData });
 
         Session memory session = Session({
-            isigner: ISigner(address(cosigner)),
+            sessionValidator: ISessionValidator(address(cosigner)),
             salt: bytes32(0),
-            isignerInitData: params,
+            sessionValidatorInitData: params,
             userOpPolicies: policyData,
             erc7739Policies: erc7739Data,
             actions: actions
         });
 
-        EnableSessions memory enableData = EnableSessions({
+        EnableSession memory enableData = EnableSession({
             sessionIndex: 1,
             hashesAndChainIds: "",
             sessionToEnable: session,
@@ -153,7 +153,7 @@ contract MultiKeySignerTest is SmartSessionBasicTest {
             permissionEnableSig: ""
         });
 
-        bytes32 sessionDigest = smartSession.getDigest(session.isigner, instance.account, session, SmartSessionMode.UNSAFE_ENABLE);
+        bytes32 sessionDigest = smartSession.getDigest(session.sessionValidator, instance.account, session, SmartSessionMode.UNSAFE_ENABLE);
         
         enableData.hashesAndChainIds = EncodeLib.encodeHashesAndChainIds(
             Solarray.uint64s(181818, uint64(block.chainid)),
@@ -179,7 +179,7 @@ contract MultiKeySignerTest is SmartSessionBasicTest {
         bytes[] memory sigs = Solarray.bytess(eoaSig, passkeySig);
 
         userOpData.userOp.signature = EncodeLib.encodeEnable(
-            smartSession.getSignerId(session), abi.encode(sigs), enableData
+            smartSession.getPermissionId(session), abi.encode(sigs), enableData
         );
 
         userOpData.execUserOps();
@@ -195,11 +195,11 @@ contract MultiKeySignerTest is SmartSessionBasicTest {
 
         //prepare context
         uint128 expire = uint128(block.timestamp + 60 * 60 * 24);
-        EnableSessions memory enableData = _prepareMockEnableData(expire);
+        EnableSession memory enableData = _prepareMockEnableData(expire);
         bytes memory context = EncodeLib.encodeContext(
             nonceKey, //192 bits, 24 bytes
             ModeLib.encodeSimpleSingle(), //execution mode, 32 bytes
-            smartSession.getSignerId(enableData.sessionToEnable),
+            smartSession.getPermissionId(enableData.sessionToEnable),
             enableData  //abi.encode
         );
 
@@ -235,7 +235,7 @@ contract MultiKeySignerTest is SmartSessionBasicTest {
         return data.decodeSigners();
     }
 
-    function _prepareMockEnableData(uint128 expiry) internal view returns (EnableSessions memory enableData) {
+    function _prepareMockEnableData(uint128 expiry) internal view returns (EnableSession memory enableData) {
         PolicyData[] memory actionPolicyData = new PolicyData[](1);
         bytes memory policyInitData = abi.encodePacked(expiry, uint128(0));
         actionPolicyData[0] = PolicyData({ policy: address(timeFramePolicy), initData: policyInitData });
@@ -257,22 +257,22 @@ contract MultiKeySignerTest is SmartSessionBasicTest {
             ERC7739Data({ allowedERC7739Content: new string[](0), erc1271Policies: new PolicyData[](0) });
 
         Session memory session = Session({
-            isigner: ISigner(address(cosigner)),
+            sessionValidator: ISessionValidator(address(cosigner)),
             salt: keccak256("salt"),
-            isignerInitData: params,
+            sessionValidatorInitData: params,
             userOpPolicies: new PolicyData[](0),
             erc7739Policies: erc7739Data,
             actions: actions
         });
 
-        enableData = EnableSessions({
+        enableData = EnableSession({
             sessionIndex: 1,
             hashesAndChainIds: "",
             sessionToEnable: session,
             permissionEnableSig: ""
         });
 
-        bytes32 sessionDigest = smartSession.getDigest(session.isigner, instance.account, session, SmartSessionMode.UNSAFE_ENABLE);
+        bytes32 sessionDigest = smartSession.getDigest(session.sessionValidator, instance.account, session, SmartSessionMode.UNSAFE_ENABLE);
         enableData.hashesAndChainIds = EncodeLib.encodeHashesAndChainIds(
             Solarray.uint64s(181818, uint64(block.chainid)),
             Solarray.bytes32s(sessionDigest, sessionDigest)

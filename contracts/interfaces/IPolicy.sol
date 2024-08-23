@@ -7,17 +7,18 @@ import "../DataTypes.sol";
 import "forge-std/interfaces/IERC165.sol";
 
 interface ISubPermission is IERC165, IERC7579Module {
-    function isInitialized(address account, SessionId id) external view returns (bool);
+    function isInitialized(address account, ConfigId id) external view returns (bool);
+    function isInitialized(address account, address mulitplexer, ConfigId id) external view returns (bool);
 }
 
 interface IUserOpPolicy is ISubPermission {
     // MUST implement mapping(id => msg.sender => userOp.sender => state);
-    function checkUserOpPolicy(SessionId id, PackedUserOperation calldata userOp) external returns (uint256);
+    function checkUserOpPolicy(ConfigId id, PackedUserOperation calldata userOp) external returns (uint256);
 }
 
 interface IActionPolicy is ISubPermission {
     function checkAction(
-        SessionId id,
+        ConfigId id,
         address account,
         address target,
         uint256 value,
@@ -30,7 +31,7 @@ interface IActionPolicy is ISubPermission {
 interface I1271Policy is ISubPermission {
     // request sender is probably protocol, so can introduce policies based on it.
     function check1271SignedAction(
-        SessionId id,
+        ConfigId id,
         address requestSender,
         address account,
         bytes32 hash,
