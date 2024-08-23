@@ -171,7 +171,7 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
         // enable ISessionValidator for this session
         // if we do not have to enable ISessionValidator, we just add policies
         // Attention: policies to add should be all new.
-        if (!_isISessionValidatorSet(permissionId, account) && mode.enableSigner()) {
+        if (!_isISessionValidatorSet(permissionId, account) && mode.enableSessionValidator()) {
             _enableISessionValidator(
                 permissionId,
                 account,
