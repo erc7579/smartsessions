@@ -271,10 +271,10 @@ contract P256Verifier {
             // X1 != X2
             // invariant(x1 != x2);
             uint256 comp_PP = mulmod(comp_P, comp_P, p); // PP = P^2
+            uint256 comp_Q = mulmod(x1, comp_PP, p); // Q = X1*PP
             uint256 comp_PPP = mulmod(comp_PP, comp_P, p); // PPP = P*PP
             zz3 = mulmod(zz1, comp_PP, p); //// ZZ3 = ZZ1*PP
             zzz3 = mulmod(zzz1, comp_PPP, p); //// ZZZ3 = ZZZ1*PPP
-            uint256 comp_Q = mulmod(x1, comp_PP, p); // Q = X1*PP
             x3 = addmod(
                 addmod(mulmod(comp_R, comp_R, p), p - comp_PPP, p), // (R^2) + (-PPP)
                 mulmod(minus_2modp, comp_Q, p), // (-2)*(Q)
@@ -313,6 +313,7 @@ contract P256Verifier {
     )
         internal
         pure
+        //returns (uint256 x3, uint256 y3, uint256 zz3, uint256 zzz3)
         returns (uint256 x3, uint256 y3, uint256 zz3, uint256 zzz3)
     {
         if (ecZZ_IsInf(zz1, zzz1)) return ecZZ_PointAtInf();

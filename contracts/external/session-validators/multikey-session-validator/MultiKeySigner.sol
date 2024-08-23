@@ -5,7 +5,7 @@ pragma solidity ^0.8.23;
 import { ECDSA } from "solady/utils/ECDSA.sol";
 import "./passkey.sol";
 import "contracts/interfaces/ISessionValidator.sol";
-import { SubLib } from "./SubLib.sol";
+//import { SubLib } from "../../../lib/SubLib.sol";
 import "forge-std/console2.sol";
 
 struct Config {
@@ -65,19 +65,13 @@ library SignerEncode {
 
 contract MultiKeySigner {
     using PasskeyHelper for *;
-    using SubLib for bytes;
+    //using SubLib for bytes;
     using SignerEncode for *;
 
     error InvalidPublicKey();
 
     error InvalidSignatureLength();
     error InvalidSignatureType();
-
-    function onInstall(bytes calldata data) external {
-        revert();
-    }
-
-    function onUninstall(bytes calldata data) external { }
 
     function isModuleType(uint256 id) external pure returns (bool) {
         return id == 111;
@@ -86,8 +80,6 @@ contract MultiKeySigner {
     function supportsInterface(bytes4 sig) external view returns (bool) {
         return sig == type(ISessionValidator).interfaceId;
     }
-
-    function _deinitForAccount(address account, ConfigId id) internal { }
 
     function validateSignatureWithData(
         bytes32 hash,
