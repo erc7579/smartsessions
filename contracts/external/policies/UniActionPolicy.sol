@@ -84,11 +84,9 @@ contract UniActionPolicy is IActionPolicy {
         require(status[id][msg.sender][account] == Status.Live);
         ActionConfig storage config = actionConfigs[id][msg.sender][account];
         require(value <= config.valueLimitPerUse);
-        ParamRule[16] memory rules = config.paramRules.rules;
         uint256 length = config.paramRules.length;
         for (uint256 i = 0; i < length; i++) {
-            ParamRule memory rule = rules[i];
-            if (!rule.check(data)) return VALIDATION_FAILED;
+            if (!config.paramRules.rules[i].check(data)) return VALIDATION_FAILED;
         }
 
         return VALIDATION_SUCCESS;
