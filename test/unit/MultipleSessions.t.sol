@@ -1,9 +1,11 @@
 import "../Base.t.sol";
 import "contracts/core/SmartSessionBase.sol";
 import "solady/utils/ECDSA.sol";
+import "contracts/lib/IdLib.sol";
 
 contract MultipleSessionsTest is BaseTest {
     using ModuleKitHelpers for *;
+    using IdLib for *;
     using ModuleKitUserOp for *;
     using EncodeLib for PermissionId;
 
@@ -13,7 +15,14 @@ contract MultipleSessionsTest is BaseTest {
         super.setUp();
     }
 
-    function _makeSession(bytes32 salt, uint256 setValue) public returns (PermissionId permissionId) {
+    function _makeSession(
+        ActionId actionId,
+        bytes32 salt,
+        uint256 setValue
+    )
+        public
+        returns (PermissionId permissionId)
+    {
         // get userOp from ModuleKit
 
         Session memory session = Session({
@@ -22,7 +31,7 @@ contract MultipleSessionsTest is BaseTest {
             sessionValidatorInitData: "mockInitData",
             userOpPolicies: _getEmptyPolicyDatas(address(yesPolicy)),
             erc7739Policies: _getEmptyERC7739Data("mockContent", _getEmptyPolicyDatas(address(yesPolicy))),
-            actions: _getEmptyActionDatas(ActionId.wrap(bytes32(uint256(1))), address(yesPolicy))
+            actions: _getEmptyActionDatas(actionId, address(yesPolicy))
         });
 
         // predict permissionId correlating to EnableSession
@@ -49,10 +58,11 @@ contract MultipleSessionsTest is BaseTest {
     }
 
     function test_multiple_session() public {
-        PermissionId permissionId1 = _makeSession("salt1", 1);
-        PermissionId permissionId2 = _makeSession("salt2", 2);
-        PermissionId permissionId3 = _makeSession("salt3", 3);
-        PermissionId permissionId4 = _makeSession("salt4", 4);
+        ActionId actionId = address(target).toActionId(MockTarget.setValue.selector);
+        PermissionId permissionId1 = _makeSession(actionId, "salt1", 1);
+        PermissionId permissionId2 = _makeSession(actionId, "salt2", 2);
+        PermissionId permissionId3 = _makeSession(actionId, "salt3", 3);
+        PermissionId permissionId4 = _makeSession(actionId, "salt4", 4);
 
         _exec_session(permissionId2, address(target), 0, abi.encodeCall(MockTarget.setValue, (2)));
         assertEq(target.value(), 2);

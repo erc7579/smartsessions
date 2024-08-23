@@ -33,6 +33,8 @@ import { SmartSessionERC7739 } from "./core/SmartSessionERC7739.sol";
 import { IdLib } from "./lib/IdLib.sol";
 import { SmartSessionModeLib } from "./lib/SmartSessionModeLib.sol";
 
+import "forge-std/console2.sol";
+
 /**
  *
  * @title SmartSession
@@ -48,12 +50,6 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
     using ExecutionLib for *;
     using EncodeLib for *;
     using SmartSessionModeLib for SmartSessionMode;
-
-    uint256 private immutable MIN_POLICIES_TO_ENFORCE;
-
-    constructor(uint256 minPoliciesToEnforce) {
-        MIN_POLICIES_TO_ENFORCE = minPoliciesToEnforce;
-    }
 
     /**
      * ERC4337/ERC7579 validation function
@@ -234,7 +230,7 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
             userOp: userOp,
             permissionId: permissionId,
             callOnIPolicy: abi.encodeCall(IUserOpPolicy.checkUserOpPolicy, (permissionId.toConfigId(), userOp)),
-            minPolicies: MIN_POLICIES_TO_ENFORCE
+            minPolicies: 0
         });
 
         bytes4 selector = bytes4(userOp.callData[0:4]);
@@ -262,7 +258,7 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
                 vd = $actionPolicies.actionPolicies.checkBatch7579Exec({
                     userOp: userOp,
                     permissionId: permissionId,
-                    minPolicies: MIN_POLICIES_TO_ENFORCE
+                    minPolicies: 1
                 });
             }
             // DEFAULT EXEC & SINGLE CALL
@@ -275,7 +271,7 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
                     target: target,
                     value: value,
                     callData: callData,
-                    minPolicies: MIN_POLICIES_TO_ENFORCE
+                    minPolicies: 1
                 });
             } else {
                 revert UnsupportedExecutionType();
@@ -293,6 +289,8 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
         // all other executions are supported and are handled by the actionPolicies
         else {
             ActionId actionId = account.toActionId(bytes4(userOp.callData[:4]));
+            console2.log("actionId");
+            console2.logBytes32(ActionId.unwrap(actionId));
 
             vd = $actionPolicies.actionPolicies[actionId].check({
                 userOp: userOp,
@@ -307,7 +305,7 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
                         userOp.callData // data
                     )
                 ),
-                minPolicies: MIN_POLICIES_TO_ENFORCE
+                minPolicies: 1
             });
         }
     }
