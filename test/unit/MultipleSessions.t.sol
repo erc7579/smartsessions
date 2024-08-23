@@ -91,4 +91,82 @@ contract MultipleSessionsTest is BaseTest {
         smartSession.removeSession(permissionId3);
         assertEq(smartSession.isSessionEnabled(permissionId3, instance.account), false, "session 3 should be disabled");
     }
+
+    function test_batched_exec() public {
+        ActionId actionId = address(target).toActionId(MockTarget.setValue.selector);
+        PermissionId permissionId = _makeSession(actionId, "salt1", 1);
+
+        Execution[] memory executions = new Execution[](3);
+        executions[0] =
+            Execution({ target: address(target), value: 0, callData: abi.encodeCall(MockTarget.setValue, (1)) });
+        executions[1] =
+            Execution({ target: address(target), value: 0, callData: abi.encodeCall(MockTarget.setValue, (2)) });
+        executions[2] =
+            Execution({ target: address(target), value: 0, callData: abi.encodeCall(MockTarget.setValue, (3)) });
+
+        // get userOp from ModuleKit
+        UserOpData memory userOpData =
+            instance.getExecOps({ executions: executions, txValidator: address(smartSession) });
+
+        userOpData.userOp.signature = EncodeLib.encodeUse({ permissionId: permissionId, sig: hex"4141414141" });
+        userOpData.execUserOps();
+
+        assertEq(target.value(), 3);
+
+        // lets add another actionId to the permission
+
+        ActionId actionId2 = address(target).toActionId(MockTarget.increaseValue.selector);
+        ActionData[] memory actionPolicies = _getEmptyActionDatas(actionId2, address(yesPolicy));
+
+        vm.prank(instance.account);
+        smartSession.enableActionPolicies(permissionId, actionPolicies);
+
+        executions = new Execution[](2);
+        executions[0] =
+            Execution({ target: address(target), value: 0, callData: abi.encodeCall(MockTarget.setValue, (1)) });
+        executions[1] =
+            Execution({ target: address(target), value: 0, callData: abi.encodeCall(MockTarget.increaseValue, ()) });
+
+        // get userOp from ModuleKit
+        userOpData = instance.getExecOps({ executions: executions, txValidator: address(smartSession) });
+
+        userOpData.userOp.signature = EncodeLib.encodeUse({ permissionId: permissionId, sig: hex"4141414141" });
+        userOpData.execUserOps();
+
+        assertEq(target.value(), 2);
+
+        // lets disable the action policy again
+
+        vm.prank(instance.account);
+        smartSession.disableActionPolicies(
+            permissionId, actionId2, Solarray.addresses(actionPolicies[0].actionPolicies[0].policy)
+        );
+
+        userOpData = instance.getExecOps({ executions: executions, txValidator: address(smartSession) });
+        userOpData.userOp.signature = EncodeLib.encodeUse({ permissionId: permissionId, sig: hex"4141414141" });
+
+        instance.expect4337Revert();
+        userOpData.execUserOps();
+    }
+
+    function test_batched_exec_notAuthorized__shouldFail() public {
+        ActionId actionId = address(target).toActionId(MockTarget.setValue.selector);
+        PermissionId permissionId = _makeSession(actionId, "salt1", 1);
+
+        Execution[] memory executions = new Execution[](3);
+        executions[0] =
+            Execution({ target: address(target), value: 0, callData: abi.encodeCall(MockTarget.setValue, (1)) });
+        executions[1] =
+            Execution({ target: address(target), value: 0, callData: abi.encodeCall(MockTarget.increaseValue, ()) });
+        executions[2] =
+            Execution({ target: address(target), value: 0, callData: abi.encodeCall(MockTarget.setValue, (3)) });
+
+        // get userOp from ModuleKit
+        UserOpData memory userOpData =
+            instance.getExecOps({ executions: executions, txValidator: address(smartSession) });
+
+        userOpData.userOp.signature = EncodeLib.encodeUse({ permissionId: permissionId, sig: hex"4141414141" });
+        instance.expect4337Revert();
+        userOpData.execUserOps();
+    }
 }
