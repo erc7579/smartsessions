@@ -2,7 +2,7 @@
 pragma solidity ^0.8.25;
 
 import "../DataTypes.sol";
-import { ISubPermission } from "../interfaces/IPolicy.sol";
+import { IPolicy } from "../interfaces/IPolicy.sol";
 import { ISmartSession } from "../ISmartSession.sol";
 import { AssociatedArrayLib } from "../utils/AssociatedArrayLib.sol";
 import { IRegistry, ModuleType } from "../interfaces/IRegistry.sol";
@@ -42,7 +42,7 @@ library ConfigLib {
             address policy = policyDatas[i].policy;
 
             // TODO: can we remove this check?
-            if (!ISubPermission(policy).supportsInterface(type(ISubPermission).interfaceId)) {
+            if (!IPolicy(policy).supportsInterface(type(IPolicy).interfaceId)) {
                 revert UnsupportedPolicy(policy);
             }
 
@@ -52,7 +52,7 @@ library ConfigLib {
             }
 
             $policy.policyList[permissionId].add({ account: smartAccount, value: policy });
-            ISubPermission(policy).initializeWithMultiplexer({
+            IPolicy(policy).initializeWithMultiplexer({
                 account: smartAccount,
                 configId: configId,
                 initData: policyDatas[i].initData

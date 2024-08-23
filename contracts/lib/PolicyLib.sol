@@ -3,7 +3,7 @@ pragma solidity ^0.8.25;
 
 import "../DataTypes.sol";
 import { ISmartSession } from "../ISmartSession.sol";
-import { ISubPermission } from "../interfaces/IPolicy.sol";
+import { IPolicy } from "../interfaces/IPolicy.sol";
 import { PackedUserOperation } from "modulekit/external/ERC4337.sol";
 import { AssociatedArrayLib } from "../utils/AssociatedArrayLib.sol";
 
@@ -134,7 +134,7 @@ library PolicyLib {
         uint256 enabledPolicies;
         for (uint256 i; i < length; i++) {
             PolicyData memory policyData = policyDatas[i];
-            ISubPermission policy = ISubPermission(policyData.policy);
+            IPolicy policy = IPolicy(policyData.policy);
             if (
                 $policies.policyList[permissionId].contains(smartAccount, address(policy))
                     && policy.isInitialized(smartAccount, configId)
