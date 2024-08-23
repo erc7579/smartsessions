@@ -3,14 +3,18 @@
 pragma solidity ^0.8.23;
 
 import "contracts/interfaces/IPolicy.sol";
-import "./SubLib.sol";
+import "contracts/lib/SubModuleLib.sol";
+
+/**
+ * @title UniActionPolicy: Universal Action Policy
+ * @dev A policy that allows the user to define custom rules for actions.
+ *      based on function signatures. 
+ */
 
 struct ActionConfig {
-    uint256 valueLimit;
-    // add valueUsed?
+    uint256 valueLimitPerUse;
     ParamRules paramRules;
 }
-// Relation[] paramRelations; // TODO:
 
 struct ParamRules {
     uint256 length;
@@ -39,16 +43,6 @@ enum ParamCondition {
     NOT_EQUAL
 }
 
-/*
-struct Relation {
-    address verifier;
-    bytes4 selector;
-    bytes1 argsAmount;
-    uint64[4] offsets;
-    bytes32 context;
-}
-*/
-
 contract UniActionPolicy is IActionPolicy {
     enum Status {
         NA,
@@ -56,7 +50,7 @@ contract UniActionPolicy is IActionPolicy {
         Deprecated
     }
 
-    using SubLib for bytes;
+    using SubModuleLib for bytes;
     using UniActionLib for *;
 
     mapping(address msgSender => mapping(address opSender => uint256)) public usedIds;
@@ -76,7 +70,7 @@ contract UniActionPolicy is IActionPolicy {
     {
         require(status[id][msg.sender][account] == Status.Live);
         ActionConfig storage config = actionConfigs[id][msg.sender][account];
-        require(value <= config.valueLimit);
+        require(value <= config.valueLimitPerUse);
         ParamRule[16] memory rules = config.paramRules.rules;
         uint256 length = config.paramRules.length;
         for (uint256 i = 0; i < length; i++) {
@@ -170,10 +164,35 @@ library UniActionLib {
     }
 
     function fill(ActionConfig storage $config, ActionConfig memory config) internal {
-        $config.valueLimit = config.valueLimit;
+        $config.valueLimitPerUse = config.valueLimitPerUse;
         $config.paramRules.length = config.paramRules.length;
         for (uint256 i; i < config.paramRules.length; i++) {
             $config.paramRules.rules[i] = config.paramRules.rules[i];
         }
     }
 }
+
+/**
+  Further development:
+
+  - Add compound value limit. 
+    struct ActionConfig {
+        uint256 valueLimitPerUse;
+        uint256 totalValueLimit;
+        uint256 valueUsed;
+        ParamRules paramRules;
+    }
+
+    - Add param relations.
+
+    Add this to ActionConfig => Relation[] paramRelations;     
+        struct Relation {
+            address verifier;
+            bytes4 selector;
+            bytes1 argsAmount;
+            uint64[4] offsets;
+            bytes32 context;
+        }
+    Add checking for relations.
+
+ */

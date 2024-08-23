@@ -3,7 +3,7 @@
 pragma solidity ^0.8.23;
 
 import "contracts/interfaces/IPolicy.sol";
-import "./SubLib.sol";
+import "contracts/lib/SubModuleLib.sol";
 
 contract UsageLimitPolicy is IUserOpPolicy, IActionPolicy {
     enum Status {
@@ -17,7 +17,7 @@ contract UsageLimitPolicy is IUserOpPolicy, IActionPolicy {
         uint256 used;
     }
 
-    using SubLib for bytes;
+    using SubModuleLib for bytes;
 
     mapping(address msgSender => mapping(address opSender => uint256)) public usedIds;
     mapping(ConfigId id => mapping(address msgSender => mapping(address userOpSender => Status))) public status;

@@ -3,10 +3,10 @@
 pragma solidity ^0.8.23;
 
 import "contracts/interfaces/IPolicy.sol";
-import "./SubLib.sol";
+import "contracts/lib/SubModuleLib.sol";
 
 contract ValueLimitPolicy is IActionPolicy {
-    using SubLib for bytes;
+    using SubModuleLib for bytes;
 
     struct ValueLimitConfig {
         uint256 valueLimit;

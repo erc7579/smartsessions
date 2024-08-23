@@ -3,7 +3,7 @@ pragma solidity ^0.8.25;
 
 import "contracts/DataTypes.sol";
 
-library SubLib {
+library SubModuleLib {
     error DataTooShort(uint256 length);
 
     function parseInstallData(bytes calldata data) internal pure returns (ConfigId, address, bytes calldata) {
