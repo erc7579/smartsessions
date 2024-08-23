@@ -4,6 +4,21 @@ pragma solidity ^0.8.4;
 import "./DataTypes.sol";
 import { PackedUserOperation } from "modulekit/external/ERC4337.sol";
 
+/**
+ * @title ISmartSession
+ * @author Filipp Makarov (Biconomy) & zeroknots.eth (Rhinestone) 
+ * @dev A collaborative effort between Rhinestone and Biconomy to create a powerful
+ *      and flexible session key management system for ERC-4337 and ERC-7579 accounts.
+ * SmartSession is an advanced module for ERC-4337 and ERC-7579 compatible smart contract wallets, enabling granular
+ * control over session keys. It allows users to create and manage temporary, limited-permission access to their
+ * accounts through configurable policies. The module supports various policy types, including user operation
+ * validation, action-specific policies, and ERC-1271 signature validation. SmartSession implements a unique "enable
+ * flow" that allows session keys to be created within the first user operation, enhancing security and user experience.
+ * It uses a nested EIP-712 approach for signature validation, providing phishing resistance and compatibility with
+ * existing wallet interfaces. The module also supports batched executions and integrates with external policy contracts
+ * for flexible permission management. Overall, SmartSession offers a comprehensive solution for secure, temporary
+ * account access in the evolving landscape of account abstraction.
+ */
 interface ISmartSession {
     error AssociatedArray_OutOfBounds(uint256 index);
     error ChainIdMismatch(uint64 providedChainId);
