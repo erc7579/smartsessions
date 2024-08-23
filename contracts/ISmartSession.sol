@@ -45,7 +45,7 @@ interface ISmartSession {
     error UnsupportedPolicy(address policy);
     error UnsupportedSmartSessionMode(SmartSessionMode mode);
 
-    event IterNonce(PermissionId permissionId, address account, uint256 newValue);
+    event NonceIterated(PermissionId permissionId, address account, uint256 newValue);
     event PolicyDisabled(PermissionId permissionId, PolicyType policyType, address policy, address smartAccount);
     event PolicyEnabled(PermissionId permissionId, PolicyType policyType, address policy, address smartAccount);
     event SessionCreated(PermissionId permissionId, address account);
