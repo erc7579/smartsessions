@@ -58,20 +58,6 @@ library EncodeLib {
         packedSig = data.packMode(SmartSessionMode.UNSAFE_ENABLE, permissionId);
     }
 
-    function encodeEnableAddPolicies(
-        PermissionId permissionId,
-        bytes memory sig,
-        EnableSession memory enableData
-    )
-        internal
-        pure
-        returns (bytes memory packedSig)
-    {
-        bytes memory data = abi.encode(enableData, sig);
-        data = data.flzCompress();
-        packedSig = data.packMode(SmartSessionMode.UNSAFE_ENABLE_ADD_POLICIES, permissionId);
-    }
-
     function decodeEnable(
         bytes calldata packedSig
     )

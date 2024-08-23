@@ -155,11 +155,6 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
         uint256 nonce = $signerNonce[permissionId][account]++;
         bytes32 hash = enableData.getAndVerifyDigest(account, nonce, mode);
 
-        // Verify that the provided permissionId matches the computed one
-        if (permissionId != enableData.sessionToEnable.toPermissionIdMemory()) {
-            revert InvalidPermissionId(permissionId);
-        }
-
         // require signature on account
         // this is critical as it is the only way to ensure that the user is aware of the policies and signer
         // NOTE: although SmartSession implements a ERC1271 feature, it CAN NOT be used as a valid ERC1271 validator for
@@ -168,10 +163,27 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
             revert InvalidEnableSignature(account, hash);
         }
 
-        // enable ISessionValidator for this session
-        // if we do not have to enable ISessionValidator, we just add policies
-        // Attention: policies to add should be all new.
-        if (!_isISessionValidatorSet(permissionId, account) && mode.enableSessionValidator()) {
+        /**
+         * Enable mode can involve enabling ISessionValidator (new Permission) 
+         * or just adding policies (existing permission)
+         * a) ISessionValidator is not set => enable ISessionValidator
+         * b) ISessionValidator is set => just add policies
+         * Attention: if the same policy that has already been configured is added again,
+         * the policy will be overwritten with the new configuration 
+         */
+        
+        if (!_isISessionValidatorSet(permissionId, account)) {
+            // Verify that the provided permissionId matches the computed one
+            // Only need to verify this if enabling new ISessionValidator
+            // as the permissionId is calculated from the ISessionValidator address
+            // and its init data
+            // If we're just adding policies, do not need to recalculate the permissionId
+            // as we're not touching ISessionValidator config  => we can provide empty 
+            // ISessionValidator address and init data in the session object 
+            // and thus save on calldata
+            if (permissionId != enableData.sessionToEnable.toPermissionIdMemory()) {
+                revert InvalidPermissionId(permissionId);
+            }
             _enableISessionValidator(
                 permissionId,
                 account,

@@ -155,11 +155,11 @@ contract SessionManagementTest is BaseTest {
         });
 
         enableSessions =
-            _makeMultiChainEnableData(permissionId, session, instance, SmartSessionMode.UNSAFE_ENABLE_ADD_POLICIES);
+            _makeMultiChainEnableData(permissionId, session, instance, SmartSessionMode.UNSAFE_ENABLE);
         bytes32 hash = HashLib.multichainDigest(enableSessions.hashesAndChainIds);
         enableSessions.permissionEnableSig =
             abi.encodePacked(mockK1, sign(ECDSA.toEthSignedMessageHash(hash), owner.key));
-        userOpData.userOp.signature = EncodeLib.encodeEnableAddPolicies(permissionId, hex"4141414142", enableSessions);
+        userOpData.userOp.signature = EncodeLib.encodeEnable(permissionId, hex"4141414142", enableSessions);
 
         userOpData.execUserOps();
 
