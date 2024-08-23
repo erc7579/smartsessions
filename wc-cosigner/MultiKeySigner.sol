@@ -5,7 +5,7 @@ pragma solidity ^0.8.23;
 import { ECDSA } from "solady/utils/ECDSA.sol";
 import "./passkey.sol";
 import "contracts/interfaces/ISessionValidator.sol";
-import { SubLib } from "contracts/lib/SubLib.sol";
+import { SubLib } from "./SubLib.sol";
 import "forge-std/console2.sol";
 
 struct Config {

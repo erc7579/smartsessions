@@ -5,8 +5,6 @@ import "../DataTypes.sol";
 import { EfficientHashLib } from "solady/utils/EfficientHashLib.sol";
 import { MessageHashUtils } from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
-import "forge-std/console2.sol";
-
 // Typehashes
 string constant POLICY_DATA_NOTATION = "PolicyData(address policy,bytes initData)";
 string constant ACTION_DATA_NOTATION = "ActionData(bytes32 actionId,PolicyData[] actionPolicies)";

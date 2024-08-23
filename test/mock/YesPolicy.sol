@@ -4,7 +4,7 @@ pragma solidity ^0.8.23;
 
 import "contracts/interfaces/IPolicy.sol";
 import { _packValidationData } from "@ERC4337/account-abstraction/contracts/core/Helpers.sol";
-import "contracts/lib/SubLib.sol";
+import "./SubLib.sol";
 import "forge-std/console2.sol";
 
 contract YesPolicy is IUserOpPolicy, IActionPolicy {

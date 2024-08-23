@@ -3,7 +3,7 @@
 pragma solidity ^0.8.23;
 
 import "contracts/interfaces/IPolicy.sol";
-import "contracts/lib/SubLib.sol";
+import "./SubLib.sol";
 
 contract UsageLimitPolicy is IUserOpPolicy, IActionPolicy {
     enum Status {

@@ -2,8 +2,6 @@
 pragma solidity ^0.8.25;
 
 import "../DataTypes.sol";
-import { ISmartSession } from "../ISmartSession.sol";
-import { PackedUserOperation } from "modulekit/external/ERC4337.sol";
 import { LibZip } from "solady/utils/LibZip.sol";
 import { ModeCode as ExecutionMode } from "erc7579/lib/ModeLib.sol";
 
