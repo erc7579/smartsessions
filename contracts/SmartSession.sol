@@ -168,7 +168,8 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
          * or just adding policies (existing permission)
          * a) ISessionValidator is not set => enable ISessionValidator
          * b) ISessionValidator is set => just add policies
-         * Attention: policies to add should be all new.
+         * Attention: if the same policy that has already been configured is added again,
+         * the policy will be overwritten with the new configuration 
          */
         
         if (!_isISessionValidatorSet(permissionId, account)) {
