@@ -4,6 +4,7 @@ erc4337-validation/=node_modules/@rhinestone/erc4337-validation/src/
 safe7579/=node_modules/@rhinestone/safe7579/src/
 modulekit/=node_modules/@rhinestone/modulekit/src/
 module-bases/=node_modules/@rhinestone/module-bases/src/
+solmate/=node_modules/solmate/src/
 
 @ERC4337/=node_modules/@ERC4337/
 account-abstraction/=node_modules/@ERC4337/account-abstraction/contracts/
@@ -18,3 +19,5 @@ solady/=node_modules/solady/src/
 solarray/=node_modules/solarray/src/
 @prb/math/=node_modules/@prb/math/src/
 freshcryptolib/=node_modules/freshcryptolib/solidity/src/
+kernel/=node_modules/@zerodev/kernel/src/
+ExcessivelySafeCall/=node_modules/excessively-safe-call/src/

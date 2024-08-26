@@ -5,13 +5,15 @@ import "forge-std/Script.sol";
 import "contracts/SmartSession.sol";
 
 import "test/mock/SimpleSigner.sol";
-import "test/mock/UniActionPolicy.sol";
+import "contracts/external/policies/UniActionPolicy.sol";
 import "test/mock/UsageLimitPolicy.sol";
 import "test/mock/TimeFramePolicy.sol";
 import "test/mock/SimpleGasPolicy.sol";
 import "test/mock/ValueLimitPolicy.sol";
-import "contracts/erc7679/UserOpBuilder.sol";
+import "test/mock/erc7679/UserOpBuilder.sol";
 import "test/mock/YesPolicy.sol";
+import "test/mock/MockK1Validator.sol";
+import { MockValidator } from "@rhinestone/modulekit/src/Mocks.sol";
 
 contract DeploySmartSession is Script {
     uint256 privKey;
@@ -22,10 +24,11 @@ contract DeploySmartSession is Script {
 
         vm.startBroadcast(privKey);
 
-        _deploySmartSession();
-        _deployUOBuilder();
-        _deploySubModules();
-        _deployWcCosigner();
+        //_deploySmartSession();
+        //_deployUOBuilder();
+        //_deploySubModules();
+        //_deployWcCosigner();
+        _deployValidators();
 
         vm.stopBroadcast();
     }
@@ -45,7 +48,7 @@ contract DeploySmartSession is Script {
     }
 
     function _deployWcCosigner() public returns (address) {
-        bytes memory bytecode = abi.encodePacked(vm.getCode("./out/WCSigner.sol/WCSigner.json"));
+        bytes memory bytecode = abi.encodePacked(vm.getCode("./out/MultiKeySigner.sol/MultiKeySigner.json"));
 
         address anotherAddress;
         address cosigner;
@@ -74,5 +77,13 @@ contract DeploySmartSession is Script {
 
         ValueLimitPolicy valueLimitPolicy = new ValueLimitPolicy();
         console.log("ValueLimitPolicy Address ", address(valueLimitPolicy));
+    }
+
+    function _deployValidators() public returns (address) {
+        MockK1Validator k1validator = new MockK1Validator();
+        console.log("MockK1Validator Address ", address(k1validator));
+
+        MockValidator mockValidator = new MockValidator();
+        console.log("Mock Validator Address ", address(mockValidator));
     }
 }

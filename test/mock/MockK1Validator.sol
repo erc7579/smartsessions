@@ -12,6 +12,7 @@ import { ECDSA } from "solady/utils/ECDSA.sol";
 import { SignatureCheckerLib } from "solady/utils/SignatureCheckerLib.sol";
 import { MessageHashUtils } from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import { EIP1271_MAGIC_VALUE, IERC1271 } from "module-bases/interfaces/IERC1271.sol";
+import "forge-std/console2.sol";
 
 contract MockK1Validator is IValidator {
     bytes4 constant ERC1271_INVALID = 0xffffffff;
@@ -39,11 +40,9 @@ contract MockK1Validator is IValidator {
         returns (bytes4)
     {
         address owner = smartAccountOwners[msg.sender];
-        // MAYBE SHOULD PREPARE REPLAY RESISTANT HASH BY APPENDING MSG.SENDER
-        // SEE:
-        // https://github.com/bcnmy/scw-contracts/blob/3362262dab34fa0f57e2fbe0e57a4bdbd5318165/contracts/smart-account/modules/EcdsaOwnershipRegistryModule.sol#L122-L132
-        // OR USE EIP-712
-        return SignatureCheckerLib.isValidSignatureNowCalldata(owner, hash, signature)
+        //console2.log("expecting owner", owner);
+
+        return ECDSA.recover(MessageHashUtils.toEthSignedMessageHash(hash), signature) == smartAccountOwners[msg.sender]
             ? EIP1271_MAGIC_VALUE
             : ERC1271_INVALID;
     }
