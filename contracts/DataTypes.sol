@@ -23,24 +23,40 @@ struct ChainDigest {
     bytes32 sessionDigest;
 }
 
+/**
+ *
+ * Represents a Session structure with various attributes for managing user operations and policies.
+ *
+ * Attributes:
+ *     sessionValidator (ISessionValidator): The validator contract for signing user operations.
+ *         Every userOp must be signed by the session key "owner". The signature is validated
+ *         via a stateless external contract (ISessionValidator) that can implement different
+ *         means of validation.
+ *
+ *     sessionValidatorInitData (bytes): Initialization data for the ISessionValidator contract.
+ *         The ISessionValidator contract can be configured with different parameters that are
+ *         passed in this field.
+ *
+ *     salt (bytes32): A unique identifier to prevent collision between sessions.
+ *         A session key owner can have multiple sessions with the same parameters. To facilitate
+ *         this, a salt is necessary to avoid collision.
+ *
+ *     userOpPolicies (PolicyData[]): An array of policy data for user operations.
+ *         When every session can have multiple policies set.
+ *
+ *     erc7739Policies (ERC7739Data): ERC1271 Policies specific to the ERC7739 standard.
+ *
+ *     actions (ActionData[]): An array of action data for specifying function-specific policies.
+ *         A common use case of session keys is to scope access to a specific target and function
+ *         selector. SmartSession calls this "Action". With ActionData, we can specify policies
+ *         that are only run if a 7579 execution contains a specific action.
+ */
 struct Session {
-    // every userOp has to be signed by the session key "owner".
-    // the signature is validated via a stateless external contract: ISessionValidator, that can implement different
-    // means of
-    // validation.
     ISessionValidator sessionValidator;
-    // the ISessionValidator contract can be configured with different parameters, that are passed in the
-    // sessionValidatorInitData
     bytes sessionValidatorInitData;
-    // A session key owner can have multiple sessions, with the same parameters. To facilitate this, a salt is necessary
-    // to avoid collision
     bytes32 salt;
-    // When every session can have multiple policies set.
     PolicyData[] userOpPolicies;
     ERC7739Data erc7739Policies;
-    // A common usecase of session keys is to scope access to a speficic target and function selector. SmartSession
-    // calls this "Action".
-    // With ActionData we can specify policies that are only run, if a 7579 execution contains a specific action.
     ActionData[] actions;
 }
 
