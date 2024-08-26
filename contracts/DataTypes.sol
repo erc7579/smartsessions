@@ -100,7 +100,7 @@ enum SmartSessionMode {
 struct SignerConf {
     ISessionValidator sessionValidator;
     uint48 validUntil;
-    FlatBytesLib.Bytes config;
+    FlatBytesLib.Bytes config; // using FlatBytes to get around storage slot limitations
 }
 
 struct Policy {

@@ -8,6 +8,7 @@
   "dependencies": {
     "@rhinestone/modulekit": "^0.4.10",
     "freshcryptolib": "github:rdubois-crypto/FreshCryptoLib",
+    "solmate": "github:transmissions11/solmate",
     "@rhinestone/flatbytes": "github:rhinestonewtf/flatbytes"
   },
   "devDependencies": {

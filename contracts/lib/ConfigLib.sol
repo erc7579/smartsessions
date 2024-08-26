@@ -35,7 +35,7 @@ library ConfigLib {
             revert UnsupportedPolicy(policy);
         }
 
-        if (!IPolicy(policy).supportsInterface(type(IPolicy).interfaceId)) {
+        if (!IPolicy(policy).supportsInterface(requiredSelector)) {
             revert UnsupportedPolicy(policy);
         }
     }

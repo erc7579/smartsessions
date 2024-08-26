@@ -14,7 +14,6 @@ import { NonceManager } from "./NonceManager.sol";
 abstract contract SmartSessionBase is ISmartSession, NonceManager {
     using EnumerableSet for EnumerableSet.Bytes32Set;
     using EnumerableSet for EnumerableSet.AddressSet;
-    // using FlatBytesLib for *;
     using HashLib for Session;
     using PolicyLib for *;
     using ConfigLib for *;

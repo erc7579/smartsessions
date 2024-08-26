@@ -37,7 +37,7 @@ contract SmartSessionERC1271Test is BaseTest {
             salt: keccak256("salt"),
             sessionValidatorInitData: "mockInitData",
             userOpPolicies: _getEmptyPolicyDatas(address(yesPolicy)),
-            erc7739Policies: _getEmptyERC7739Data("Permit2(bytes32 stuff)", _getEmptyPolicyDatas(address(yesPolicy))),
+            erc7739Policies: _getEmptyERC7739Data("Permit(bytes32 stuff)", _getEmptyPolicyDatas(address(yesPolicy))),
             actions: new ActionData[](0)
         });
 
@@ -51,7 +51,7 @@ contract SmartSessionERC1271Test is BaseTest {
     function test_ERC1271() public {
         console2.log("using permissionId");
         console2.logBytes32(PermissionId.unwrap(permissionId));
-        _testIsValidSignature("Permit2(bytes32 stuff)", true);
+        _testIsValidSignature("Permit(bytes32 stuff)", true);
     }
 
     // By right, this should be a proper domain separator, but I'm lazy.

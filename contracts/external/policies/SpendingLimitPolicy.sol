@@ -13,9 +13,12 @@ uint256 constant VALIDATION_SUCCESS = 0;
 uint256 constant VALIDATION_FAILED = 1;
 
 contract SpendingLimitPolicy is IActionPolicy {
-    event TokenSpent(ConfigId id, address multiplexer, address token, address account, uint256 amount);
+    event TokenSpent(
+        ConfigId id, address multiplexer, address token, address account, uint256 amount, uint256 remaining
+    );
 
     error InvalidTokenAddress(address token);
+    error InvalidLimit(uint256 limit);
 
     struct TokenPolicyData {
         uint256 alreadySpent;
@@ -24,7 +27,9 @@ contract SpendingLimitPolicy is IActionPolicy {
 
     mapping(
         ConfigId id
-            => mapping(address msgSender => mapping(address token => mapping(address userOpSender => TokenPolicyData)))
+            => mapping(
+                address mulitplexer => mapping(address token => mapping(address userOpSender => TokenPolicyData))
+            )
     ) internal $policyData;
 
     function _getPolicy(
@@ -44,11 +49,25 @@ contract SpendingLimitPolicy is IActionPolicy {
         if (interfaceID == type(IActionPolicy).interfaceId) {
             return true;
         }
+        if (interfaceID == IActionPolicy.checkAction.selector) {
+            return true;
+        }
     }
 
     function onInstall(bytes calldata data) external override { }
 
-    function initializeWithMultiplexer(address account, ConfigId configId, bytes calldata initData) external { }
+    function initializeWithMultiplexer(address account, ConfigId configId, bytes calldata initData) external {
+        (address[] memory tokens, uint256[] memory limits) = abi.decode(initData, (address[], uint256[]));
+
+        for (uint256 i; i < tokens.length; i++) {
+            address token = tokens[i];
+            uint256 limit = limits[i];
+            if (token == address(0)) revert InvalidTokenAddress(token);
+            if (limit == 0) revert InvalidLimit(limit);
+            TokenPolicyData storage $ = _getPolicy({ id: configId, userOpSender: account, token: token });
+            $.spendingLimit = limit;
+        }
+    }
 
     function onUninstall(bytes calldata data) external override { }
 
@@ -77,9 +96,7 @@ contract SpendingLimitPolicy is IActionPolicy {
             (, amount) = abi.decode(callData[4:], (address, uint256));
             return (true, amount);
         } else if (functionSelector == IERC20.transferFrom.selector) {
-            address from;
-            (, from, amount) = abi.decode(callData[4:], (address, address, uint256));
-            if (from != account) revert();
+            (,, amount) = abi.decode(callData[4:], (address, address, uint256));
             return (true, amount);
         }
         return (false, 0);
@@ -111,6 +128,8 @@ contract SpendingLimitPolicy is IActionPolicy {
             return VALIDATION_FAILED;
         } else {
             $.alreadySpent = newAmount;
+
+            emit TokenSpent(id, msg.sender, target, account, amount, spendingLimit - newAmount);
             return VALIDATION_SUCCESS;
         }
     }
