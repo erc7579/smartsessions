@@ -126,7 +126,7 @@ contract SessionManagementTest is BaseTest {
         assertEq(target.value(), 1337);
     }
 
-    function test_add_policies_to_session( bytes32 salt ) public {
+    function test_add_policies_to_permission( bytes32 salt ) public {
         (PermissionId permissionId, EnableSession memory enableSessions) = test_enable_exec(salt);
 
         ConfigId configId = permissionId.toConfigId(instance.account);
@@ -167,7 +167,7 @@ contract SessionManagementTest is BaseTest {
         assertTrue(usageLimitPolicy.isInitialized(instance.account, address(smartSession), configId));
     }
 
-    function test_disableSession(bytes32 salt) public {
+    function test_disable_permission(bytes32 salt) public {
         (PermissionId permissionId, EnableSession memory enableSessions) = test_enable_exec(salt);
 
         vm.prank(instance.account);
@@ -192,6 +192,28 @@ contract SessionManagementTest is BaseTest {
         userOpData.userOp.signature = EncodeLib.encodeEnable(permissionId, hex"4141414142", enableSessions);
         instance.expect4337Revert();
         userOpData.execUserOps();
+    }
+
+    function test_is_permission_enabled(bytes32 salt) public {
+        (PermissionId permissionId, EnableSession memory enableSessions) = test_enable_exec(salt);
+        bool isEnabled = smartSession.isPermissionEnabled({
+            permissionId: permissionId,
+            account: instance.account,
+            userOpPolicies: enableSessions.sessionToEnable.userOpPolicies,
+            erc1271Policies: enableSessions.sessionToEnable.erc7739Policies.erc1271Policies,
+            actions: enableSessions.sessionToEnable.actions
+        });
+        assertTrue(isEnabled);
+        
+        test_disable_permission(salt);
+        isEnabled = smartSession.isPermissionEnabled({
+            permissionId: permissionId,
+            account: instance.account,
+            userOpPolicies: enableSessions.sessionToEnable.userOpPolicies,
+            erc1271Policies: enableSessions.sessionToEnable.erc7739Policies.erc1271Policies,
+            actions: enableSessions.sessionToEnable.actions
+        });
+        assertFalse(isEnabled);
     }
 
     function test_revoke_signed_enable(bytes32 salt) public {
