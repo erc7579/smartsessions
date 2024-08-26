@@ -11,13 +11,13 @@ import { HashLib } from "./HashLib.sol";
 import { EnumerableSet } from "../utils/EnumerableSet4337.sol";
 
 library ConfigLib {
-    using FlatBytesLib for *;
+    using FlatBytesLib for FlatBytesLib.Bytes;
     using EnumerableSet for EnumerableSet.AddressSet;
     using EnumerableSet for EnumerableSet.Bytes32Set;
-    using HashLib for *;
+    using HashLib for string;
+    using AssociatedArrayLib for AssociatedArrayLib.Bytes32Array;
+    using IdLib for PermissionId;
     using ConfigLib for *;
-    using AssociatedArrayLib for *;
-    using IdLib for *;
 
     error UnsupportedPolicy(address policy);
 

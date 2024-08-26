@@ -24,7 +24,7 @@ library ExecutionLib {
         }
     }
 
-    function getMode(bytes calldata userOpCallData) internal pure returns (ExecutionMode mode) {
+    function get7579ExecutionMode(bytes calldata userOpCallData) internal pure returns (ExecutionMode mode) {
         mode = ExecutionMode.wrap(bytes32(userOpCallData[4:36]));
     }
 

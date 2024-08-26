@@ -117,6 +117,10 @@ library PolicyLib {
             revert ISmartSession.InvalidSelfCall();
         }
 
+        // under no circumstances should the target be the smart session. This could allow session keys to elevate their
+        // privileges
+        if (target == address(this)) revert ISmartSession.InvalidCallTarget();
+
         // Generate the action ID based on the target and function selector
         ActionId actionId = target.toActionId(targetSig);
 

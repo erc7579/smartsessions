@@ -48,6 +48,7 @@ import { SmartSessionModeLib } from "./lib/SmartSessionModeLib.sol";
  */
 contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
     using EnumerableSet for EnumerableSet.Bytes32Set;
+    using SmartSessionModeLib for SmartSessionMode;
     using IdLib for *;
     using HashLib for *;
     using PolicyLib for *;
@@ -55,7 +56,6 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
     using ConfigLib for *;
     using ExecutionLib for *;
     using EncodeLib for *;
-    using SmartSessionModeLib for SmartSessionMode;
 
     /**
      * @notice Validates a user operation for ERC4337/ERC7579 compatibility
@@ -282,7 +282,7 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
         // action policies have to be checked
         if (selector == IERC7579Account.execute.selector) {
             // Decode ERC7579 execution mode
-            ExecutionMode mode = ExecutionMode.wrap(bytes32(userOp.callData[4:36]));
+            ExecutionMode mode = userOp.callData.get7579ExecutionMode();
             CallType callType;
             ExecType execType;
 
@@ -291,6 +291,7 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
                 callType := mode
                 execType := shl(8, mode)
             }
+            // ERC7579 allows for different execution types, but SmartSession only supports the default execution type
             if (ExecType.unwrap(execType) != ExecType.unwrap(EXECTYPE_DEFAULT)) {
                 revert UnsupportedExecutionType();
             }
@@ -314,7 +315,9 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
                     callData: callData,
                     minPolicies: 1 // minimum of one actionPolicy must be set.
                  });
-            } else {
+            }
+            // DelegateCalls are not supported by SmartSession
+            else {
                 revert UnsupportedExecutionType();
             }
         }

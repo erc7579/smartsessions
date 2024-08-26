@@ -34,6 +34,7 @@ interface ISmartSession {
         PermissionId permissionId, address sessionValidator, address account, bytes32 userOpHash
     );
     error InvalidPermissionId(PermissionId permissionId);
+    error InvalidCallTarget();
     error InvalidUserOpSender(address sender);
     error NoPoliciesSet(PermissionId permissionId);
     error PartlyEnabledActions();
