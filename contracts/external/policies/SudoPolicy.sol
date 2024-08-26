@@ -42,7 +42,7 @@ contract YesPolicy is IUserOpPolicy, IActionPolicy, I1271Policy {
     }
 
     function isModuleType(uint256 id) external pure returns (bool) {
-        return id == 7;
+        return id == ERC7579_MODULE_TYPE_POLICY;
     }
 
     function checkUserOpPolicy(

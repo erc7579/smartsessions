@@ -71,7 +71,9 @@ contract SpendingLimitPolicy is IActionPolicy {
 
     function onUninstall(bytes calldata data) external override { }
 
-    function isModuleType(uint256 moduleTypeId) external view override returns (bool) { }
+    function isModuleType(uint256 id) external pure returns (bool) {
+        return id == ERC7579_MODULE_TYPE_POLICY;
+    }
 
     function isInitialized(address smartAccount) external view override returns (bool) { }
 

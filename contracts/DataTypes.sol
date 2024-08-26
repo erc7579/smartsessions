@@ -156,6 +156,9 @@ uint256 constant ERC7579_MODULE_TYPE_EXECUTOR = 2;
 uint256 constant ERC7579_MODULE_TYPE_FALLBACK = 3;
 uint256 constant ERC7579_MODULE_TYPE_HOOK = 4;
 
+// the module type is tbd, but for now we use 7, until a new module type via ERC7579 extension process is defined
+uint256 constant ERC7579_MODULE_TYPE_POLICY = 7;
+
 using { permissionIdEq as == } for PermissionId global;
 using { permissionIdNeq as != } for PermissionId global;
 
