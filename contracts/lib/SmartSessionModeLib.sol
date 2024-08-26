@@ -12,9 +12,7 @@ library SmartSessionModeLib {
     }
 
     function isEnableMode(SmartSessionMode mode) internal pure returns (bool) {
-        if (
-            mode == SmartSessionMode.ENABLE || mode == SmartSessionMode.UNSAFE_ENABLE
-        ) {
+        if (mode == SmartSessionMode.ENABLE || mode == SmartSessionMode.UNSAFE_ENABLE) {
             return true;
         }
         return false;

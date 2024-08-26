@@ -126,7 +126,7 @@ contract SessionManagementTest is BaseTest {
         assertEq(target.value(), 1337);
     }
 
-    function test_add_policies_to_permission( bytes32 salt ) public {
+    function test_add_policies_to_permission(bytes32 salt) public {
         (PermissionId permissionId, EnableSession memory enableSessions) = test_enable_exec(salt);
 
         ConfigId configId = permissionId.toConfigId(instance.account);
@@ -154,8 +154,7 @@ contract SessionManagementTest is BaseTest {
             actions: new ActionData[](0)
         });
 
-        enableSessions =
-            _makeMultiChainEnableData(permissionId, session, instance, SmartSessionMode.UNSAFE_ENABLE);
+        enableSessions = _makeMultiChainEnableData(permissionId, session, instance, SmartSessionMode.UNSAFE_ENABLE);
         bytes32 hash = HashLib.multichainDigest(enableSessions.hashesAndChainIds);
         enableSessions.permissionEnableSig =
             abi.encodePacked(mockK1, sign(ECDSA.toEthSignedMessageHash(hash), owner.key));
@@ -204,7 +203,7 @@ contract SessionManagementTest is BaseTest {
             actions: enableSessions.sessionToEnable.actions
         });
         assertTrue(isEnabled);
-        
+
         test_disable_permission(salt);
         isEnabled = smartSession.isPermissionEnabled({
             permissionId: permissionId,

@@ -33,7 +33,7 @@ contract UniversalActionPolicyTest is BaseTest {
         bytes memory uniPolicyInitData = getMockUniPolicyInitData(actionId);
         actionPolicyDatas[0] = PolicyData({ policy: address(uniPolicy), initData: uniPolicyInitData });
         ActionData[] memory actionDatas = new ActionData[](1);
-        actionDatas[0] = ActionData({ actionId: actionId, actionPolicies: actionPolicyDatas});
+        actionDatas[0] = ActionData({ actionId: actionId, actionPolicies: actionPolicyDatas });
 
         Session memory session = Session({
             sessionValidator: ISessionValidator(address(yesSigner)),
@@ -103,7 +103,7 @@ contract UniversalActionPolicyTest is BaseTest {
     }
 }
 
- contract MockCallee {
+contract MockCallee {
     struct Balances {
         uint256 uintBalance;
         bytes32 bytes32Balance;

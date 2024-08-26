@@ -17,7 +17,9 @@ contract ERC7715FlowTest is BaseTest {
         userOpBuilder = new UserOperationBuilder(ep);
     }
 
-    function test_7715_flow(bytes32 salt)
+    function test_7715_flow(
+        bytes32 salt
+    )
         public
         returns (PermissionId permissionId, EnableSession memory enableSessions)
     {
@@ -39,13 +41,13 @@ contract ERC7715FlowTest is BaseTest {
         });
         // predict permissionId correlating to EnableSession
         permissionId = smartSession.getPermissionId(session);
-        
+
         // create enable sessions object
         enableSessions = _makeMultiChainEnableData(permissionId, session, instance, SmartSessionMode.UNSAFE_ENABLE);
         bytes32 hash = HashLib.multichainDigest(enableSessions.hashesAndChainIds);
         enableSessions.permissionEnableSig =
             abi.encodePacked(mockK1, sign(ECDSA.toEthSignedMessageHash(hash), owner.key));
-        
+
         uint192 nonceKey = uint192(uint160(address(smartSession))) << 32;
         bytes memory context = EncodeLib.encodeContext(
             nonceKey, //192 bits, 24 bytes
@@ -59,7 +61,7 @@ contract ERC7715FlowTest is BaseTest {
         Execution[] memory executions = new Execution[](1);
         executions[0] = Execution(address(target), 0, abi.encodeCall(MockTarget.setValue, (1337)));
         bytes memory callData = userOpBuilder.getCallData(instance.account, executions, context);
-        
+
         userOpData.userOp.nonce = nonce;
         userOpData.userOp.callData = callData;
         userOpData.userOp.signature = hex"4141414142";
@@ -90,6 +92,4 @@ contract ERC7715FlowTest is BaseTest {
 
         assertEq(target.value(), 1338);
     }
-
-    
 }

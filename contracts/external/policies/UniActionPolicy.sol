@@ -7,7 +7,7 @@ import "contracts/lib/SubModuleLib.sol";
 
 /**
  * @title UniActionPolicy: Universal Action Policy
- * @dev A policy that allows defining custom rules for actions based on function signatures. 
+ * @dev A policy that allows defining custom rules for actions based on function signatures.
  * Rules can be configured for function arguments with conditions.
  * So the argument is compared to a reference value against the the condition.
  * Also, rules feature usage limits for arguments.
@@ -15,12 +15,11 @@ import "contracts/lib/SubModuleLib.sol";
  * but also limit the total amount to be transferred within a permission.
  * Limit is uint256 so you can control any kind of numerable params.
  *
- * If you need to deal with dynamic-length arguments, such as bytes, please refer to 
- * https://docs.soliditylang.org/en/v0.8.24/abi-spec.html#function-selector-and-argument-encoding 
- * to learn more about how dynamic arguments are represented in the calldata 
+ * If you need to deal with dynamic-length arguments, such as bytes, please refer to
+ * https://docs.soliditylang.org/en/v0.8.24/abi-spec.html#function-selector-and-argument-encoding
+ * to learn more about how dynamic arguments are represented in the calldata
  * and which offsets should be used to access them.
  */
-
 struct ActionConfig {
     uint256 valueLimitPerUse;
     ParamRules paramRules;
@@ -68,9 +67,9 @@ contract UniActionPolicy is IActionPolicy {
     mapping(ConfigId id => mapping(address msgSender => mapping(address userOpSender => ActionConfig))) public
         actionConfigs;
 
-    /** 
+    /**
      * @dev Checks if the action is allowed based on the args rules defined in the policy.
-    */
+     */
     function checkAction(
         ConfigId id,
         address account,
@@ -146,7 +145,6 @@ contract UniActionPolicy is IActionPolicy {
 }
 
 library UniActionLib {
-
     /**
      * @dev parses the function arg from the calldata based on the offset
      * and compares it to the reference value based on the condition.
@@ -190,26 +188,25 @@ library UniActionLib {
 }
 
 /**
-  Further development:
-
-  - Add compound value limit. 
-    struct ActionConfig {
-        uint256 valueLimitPerUse;
-        uint256 totalValueLimit;
-        uint256 valueUsed;
-        ParamRules paramRules;
-    }
-
-    - Add param relations.
-
-    Add this to ActionConfig => Relation[] paramRelations;     
-        struct Relation {
-            address verifier;
-            bytes4 selector;
-            bytes1 argsAmount;
-            uint64[4] offsets;
-            bytes32 context;
-        }
-    Add checking for relations.
-
+ * Further development:
+ *
+ *   - Add compound value limit.
+ *     struct ActionConfig {
+ *         uint256 valueLimitPerUse;
+ *         uint256 totalValueLimit;
+ *         uint256 valueUsed;
+ *         ParamRules paramRules;
+ *     }
+ *
+ *     - Add param relations.
+ *
+ *     Add this to ActionConfig => Relation[] paramRelations;
+ *         struct Relation {
+ *             address verifier;
+ *             bytes4 selector;
+ *             bytes1 argsAmount;
+ *             uint64[4] offsets;
+ *             bytes32 context;
+ *         }
+ *     Add checking for relations.
  */
