@@ -183,7 +183,7 @@ library ConfigLib {
         // Check if the sessionValidator is valid and supports the required interface
         if (
             address(sessionValidator) == address(0)
-                || !sessionValidator.supportsInterface(type(ISessionValidator).interfaceId)
+                || !sessionValidator.supportsInterface(ISessionValidator.validateSignatureWithData.selector)
         ) {
             revert ISmartSession.InvalidISessionValidator(sessionValidator);
         }
