@@ -25,6 +25,14 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
     using ConfigLib for Policy;
     using ConfigLib for EnumerableActionPolicy;
 
+    /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
+    /*                    SmartSession Storage                    */
+    /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
+
+    /**
+     * In order to comply with ERC-4337 storage restrictions, every storage in smart session is using associated
+     * storage.
+     */
     Policy internal $userOpPolicies;
     Policy internal $erc1271Policies;
     EnumerableActionPolicy internal $actionPolicies;
@@ -270,7 +278,8 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
     }
 
     /**
-     * De-initialize the module with the given data
+     * De-initialize the module with the given data.
+     * All PermissionIds will be wiped from storage
      */
     function onUninstall(bytes calldata /*data*/ ) external override {
         uint256 configIdsCnt = $enabledSessions.length({ account: msg.sender });
