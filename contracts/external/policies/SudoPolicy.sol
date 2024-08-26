@@ -6,7 +6,7 @@ import "contracts/interfaces/IPolicy.sol";
 import "contracts/lib/SubModuleLib.sol";
 import "../../utils/EnumerableSet4337.sol";
 
-contract YesPolicy is IUserOpPolicy, IActionPolicy {
+contract YesPolicy is IUserOpPolicy, IActionPolicy, I1271Policy {
     using EnumerableSet for EnumerableSet.Bytes32Set;
 
     event SudoPolicyInstalledMultiplexer(address indexed account, address indexed multiplexer, ConfigId indexed id);
@@ -85,6 +85,20 @@ contract YesPolicy is IUserOpPolicy, IActionPolicy {
     }
 
     function supportsInterface(bytes4 /*interfaceID*/ ) external pure override returns (bool) {
+        return true;
+    }
+
+    function check1271SignedAction(
+        ConfigId id,
+        address requestSender,
+        address account,
+        bytes32 hash,
+        bytes calldata signature
+    )
+        external
+        view
+        returns (bool)
+    {
         return true;
     }
 }

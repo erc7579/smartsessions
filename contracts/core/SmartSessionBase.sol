@@ -31,8 +31,10 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
     Policy internal $erc1271Policies;
     EnumerableActionPolicy internal $actionPolicies;
     EnumerableSet.Bytes32Set internal $enabledSessions;
-    mapping(ConfigId configId => mapping(bytes32 contentHash => mapping(address account => bool enabled))) internal
-        $enabledERC7739Content;
+    // mapping(ConfigId configId => mapping(bytes32 contentHash => mapping(address account => bool enabled))) internal
+    //     $enabledERC7739Content;
+    //
+    mapping(PermissionId permissionId => EnumerableSet.Bytes32Set) internal $enabledERC7739Content;
     mapping(PermissionId permissionId => mapping(address smartAccount => SignerConf conf)) internal $sessionValidators;
 
     /**
@@ -116,17 +118,20 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
      * @param permissionId The unique identifier for the permission
      * @param erc1271Policies An array of PolicyData structures containing ERC1271 policy information
      */
-    function enableERC1271Policies(PermissionId permissionId, PolicyData[] memory erc1271Policies) public {
+    function enableERC1271Policies(PermissionId permissionId, ERC7739Data calldata erc1271Policies) public {
         // Check if the session is enabled for the caller and the given permission
         if ($enabledSessions.contains(msg.sender, PermissionId.unwrap(permissionId)) == false) {
             revert InvalidSession(permissionId);
         }
+
+        $enabledERC7739Content.enable(erc1271Policies.allowedERC7739Content, permissionId, msg.sender);
+
         // Enable the ERC1271 policies
         $erc1271Policies.enable({
             policyType: PolicyType.ERC1271,
             permissionId: permissionId,
             configId: permissionId.toErc1271PolicyId().toConfigId(),
-            policyDatas: erc1271Policies,
+            policyDatas: erc1271Policies.erc1271Policies,
             smartAccount: msg.sender,
             useRegistry: true
         });
@@ -142,6 +147,8 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
         if ($enabledSessions.contains(msg.sender, PermissionId.unwrap(permissionId)) == false) {
             revert InvalidSession(permissionId);
         }
+
+        $enabledERC7739Content[permissionId].removeAll(msg.sender);
 
         // Disable the specified ERC1271 policies
         $erc1271Policies.disable({
@@ -238,6 +245,7 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
                 smartAccount: msg.sender,
                 useRegistry: true
             });
+            $enabledERC7739Content.enable(session.erc7739Policies.allowedERC7739Content, permissionId, msg.sender);
 
             // Enable ERC1271 policies
             $actionPolicies.enable({
@@ -274,6 +282,7 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
 
         // Remove all ERC1271 policies for this session
         $enabledSessions.remove({ account: msg.sender, value: PermissionId.unwrap(permissionId) });
+        $enabledERC7739Content[permissionId].removeAll(msg.sender);
         emit SessionRemoved(permissionId, msg.sender);
     }
 

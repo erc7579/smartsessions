@@ -33,6 +33,8 @@ import { SmartSessionERC7739 } from "./core/SmartSessionERC7739.sol";
 import { IdLib } from "./lib/IdLib.sol";
 import { SmartSessionModeLib } from "./lib/SmartSessionModeLib.sol";
 
+import "forge-std/console2.sol";
+
 /**
  * @title SmartSession
  * @author Filipp Makarov (Biconomy) & zeroknots.eth (Rhinestone)
@@ -388,15 +390,14 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
         bytes32 contentHash = string(contents).hashERC7739Content();
         PermissionId permissionId = PermissionId.wrap(bytes32(signature[0:32]));
         signature = signature[32:];
-        ConfigId configId = permissionId.toErc1271PolicyId().toConfigId(msg.sender);
-        if (!$enabledERC7739Content[configId][contentHash][msg.sender]) return false;
+        if (!$enabledERC7739Content[permissionId].contains(msg.sender, contentHash)) return false;
         valid = $erc1271Policies.checkERC1271({
             account: msg.sender,
             requestSender: sender,
             hash: hash,
             signature: signature,
             permissionId: permissionId,
-            configId: configId,
+            configId: permissionId.toErc1271PolicyId().toConfigId(),
             minPoliciesToEnforce: 0
         });
 
