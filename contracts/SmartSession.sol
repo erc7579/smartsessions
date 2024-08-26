@@ -250,19 +250,6 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
         if (!$enabledSessions.contains({ account: account, value: PermissionId.unwrap(permissionId) })) {
             revert InvalidPermissionId(permissionId);
         }
-        /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
-        /*                 Check SessionKey ISessionValidator         */
-        /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
-
-        // Validate the session key signature
-        if (
-            !$sessionValidators.isValidISessionValidator({
-                hash: userOpHash,
-                account: account,
-                permissionId: permissionId,
-                signature: decompressedSignature
-            })
-        ) return ERC4337_VALIDATION_FAILED;
 
         /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
         /*                    Check UserOp Policies                   */
@@ -350,6 +337,18 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
                 minPolicies: 1
             });
         }
+
+        /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
+        /*                 Check SessionKey ISessionValidator         */
+        /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
+        if (
+            !$sessionValidators.isValidISessionValidator({
+                hash: userOpHash,
+                account: account,
+                permissionId: permissionId,
+                signature: decompressedSignature
+            })
+        ) return ERC4337_VALIDATION_FAILED;
     }
 
     function isValidSignatureWithSender(
