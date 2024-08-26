@@ -165,6 +165,8 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
             revert InvalidEnableSignature(account, hash);
         }
 
+        // Determine if registry should be used based on the mode
+        bool useRegistry = mode.useRegistry();
         /**
          * Enable mode can involve enabling ISessionValidator (new Permission)
          * or just adding policies (existing permission)
@@ -185,16 +187,14 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
             if (permissionId != enableData.sessionToEnable.toPermissionIdMemory()) {
                 revert InvalidPermissionId(permissionId);
             }
-            _enableISessionValidator(
-                permissionId,
-                account,
-                enableData.sessionToEnable.sessionValidator,
-                enableData.sessionToEnable.sessionValidatorInitData
-            );
+            $sessionValidators.enable({
+                permissionId: permissionId,
+                smartAccount: account,
+                sessionValidator: enableData.sessionToEnable.sessionValidator,
+                sessionValidatorConfig: enableData.sessionToEnable.sessionValidatorInitData,
+                useRegistry: true
+            });
         }
-
-        // Determine if registry should be used based on the mode
-        bool useRegistry = mode.useRegistry();
 
         // Enable UserOp policies
         $userOpPolicies.enable({

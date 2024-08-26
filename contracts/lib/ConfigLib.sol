@@ -11,6 +11,7 @@ import { HashLib } from "./HashLib.sol";
 import { EnumerableSet } from "../utils/EnumerableSet4337.sol";
 
 library ConfigLib {
+    using FlatBytesLib for *;
     using EnumerableSet for EnumerableSet.AddressSet;
     using EnumerableSet for EnumerableSet.Bytes32Set;
     using HashLib for *;
@@ -22,6 +23,7 @@ library ConfigLib {
 
     IRegistry internal constant registry = IRegistry(0x000000000069E2a187AEFFb852bF3cCdC95151B2);
     ModuleType internal constant POLICY_MODULE_TYPE = ModuleType.wrap(7);
+    ModuleType internal constant VALIDATOR_MODULE_TYPE = ModuleType.wrap(1);
 
     function requireSupportsInterface(address policy, PolicyType policyType) internal view {
         bytes4 requiredSelector;
@@ -161,6 +163,51 @@ library ConfigLib {
             bytes32 contentHash = contents[i].hashERC7739Content();
             $enabledERC7739Content[permissionId].add(smartAccount, contentHash);
         }
+    }
+
+    /**
+     * @notice Enable and configure an ISessionValidator for a specific permission and account
+     * @dev This function sets up the session validator and stores its configuration
+     * @param permissionId The unique identifier for the permission
+     * @param smartAccount The account address for which the validator is being set
+     * @param sessionValidator The ISessionValidator contract to be enabled
+     * @param sessionValidatorConfig The configuration data for the session validator
+     */
+    function enable(
+        mapping(PermissionId permissionId => mapping(address smartAccount => SignerConf conf)) storage
+            $sessionValidators,
+        PermissionId permissionId,
+        address smartAccount,
+        ISessionValidator sessionValidator,
+        bytes memory sessionValidatorConfig,
+        bool useRegistry
+    )
+        internal
+    {
+        // Check if the sessionValidator is valid and supports the required interface
+        if (
+            address(sessionValidator) == address(0)
+                || !sessionValidator.supportsInterface(type(ISessionValidator).interfaceId)
+        ) {
+            revert ISmartSession.InvalidISessionValidator(sessionValidator);
+        }
+
+        // this will revert if the policy is not attested to
+        if (useRegistry) {
+            registry.checkForAccount({
+                smartAccount: smartAccount,
+                module: address(sessionValidator),
+                moduleType: POLICY_MODULE_TYPE
+            });
+        }
+
+        // Get the storage reference for the signer configuration
+        SignerConf storage $conf = $sessionValidators[permissionId][smartAccount];
+        // Set the session validator
+        $conf.sessionValidator = sessionValidator;
+
+        // Store the signer configuration
+        $conf.config.store(sessionValidatorConfig);
     }
 
     /**

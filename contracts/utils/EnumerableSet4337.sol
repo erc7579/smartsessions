@@ -4,6 +4,10 @@ pragma solidity ^0.8.20;
 
 import "./AssociatedArrayLib.sol";
 
+/**
+ * Fork of OZ's EnumerableSet that makes all storage access ERC-4337 compliant via associated storage
+ * @author zeroknots.eth (rhinestone)
+ */
 library EnumerableSet {
     using AssociatedArrayLib for AssociatedArrayLib.Bytes32Array;
     // To implement this library for multiple types with as little code
