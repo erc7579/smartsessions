@@ -14,30 +14,6 @@ library SignerLib {
         PermissionId permissionId, ISessionValidator sessionValidator, address account, bytes32 userOpHash
     );
 
-    function requireValidISessionValidator(
-        mapping(PermissionId => mapping(address => SignerConf)) storage $sessionValidators,
-        bytes32 userOpHash,
-        address account,
-        PermissionId permissionId,
-        bytes memory signature
-    )
-        internal
-        view
-    {
-        ISessionValidator sessionValidator = $sessionValidators[permissionId][account].sessionValidator;
-        if (address(sessionValidator) == address(0)) revert SignerNotFound(permissionId, account);
-
-        // check signature of ISessionValidator first.
-        // policies only need to be processed if the signature is correct
-        if (
-            sessionValidator.validateSignatureWithData({
-                hash: userOpHash,
-                sig: signature,
-                data: $sessionValidators[permissionId][account].config.load()
-            }) == false
-        ) revert InvalidSessionKeySignature(permissionId, sessionValidator, account, userOpHash);
-    }
-
     function isValidISessionValidator(
         mapping(PermissionId => mapping(address => SignerConf)) storage $sessionValidators,
         bytes32 hash,
