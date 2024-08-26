@@ -3,14 +3,28 @@
 pragma solidity ^0.8.23;
 
 import "contracts/interfaces/IPolicy.sol";
-import "./SubLib.sol";
+import "contracts/lib/SubModuleLib.sol";
+
+/**
+ * @title UniActionPolicy: Universal Action Policy
+ * @dev A policy that allows defining custom rules for actions based on function signatures. 
+ * Rules can be configured for function arguments with conditions.
+ * So the argument is compared to a reference value against the the condition.
+ * Also, rules feature usage limits for arguments.
+ * For example, you can limit not just max amount for a transfer,
+ * but also limit the total amount to be transferred within a permission.
+ * Limit is uint256 so you can control any kind of numerable params.
+ *
+ * If you need to deal with dynamic-length arguments, such as bytes, please refer to 
+ * https://docs.soliditylang.org/en/v0.8.24/abi-spec.html#function-selector-and-argument-encoding 
+ * to learn more about how dynamic arguments are represented in the calldata 
+ * and which offsets should be used to access them.
+ */
 
 struct ActionConfig {
-    uint256 valueLimit;
-    // add valueUsed?
+    uint256 valueLimitPerUse;
     ParamRules paramRules;
 }
-// Relation[] paramRelations; // TODO:
 
 struct ParamRules {
     uint256 length;
@@ -39,16 +53,6 @@ enum ParamCondition {
     NOT_EQUAL
 }
 
-/*
-struct Relation {
-    address verifier;
-    bytes4 selector;
-    bytes1 argsAmount;
-    uint64[4] offsets;
-    bytes32 context;
-}
-*/
-
 contract UniActionPolicy is IActionPolicy {
     enum Status {
         NA,
@@ -56,7 +60,7 @@ contract UniActionPolicy is IActionPolicy {
         Deprecated
     }
 
-    using SubLib for bytes;
+    using SubModuleLib for bytes;
     using UniActionLib for *;
 
     mapping(address msgSender => mapping(address opSender => uint256)) public usedIds;
@@ -64,6 +68,9 @@ contract UniActionPolicy is IActionPolicy {
     mapping(ConfigId id => mapping(address msgSender => mapping(address userOpSender => ActionConfig))) public
         actionConfigs;
 
+    /** 
+     * @dev Checks if the action is allowed based on the args rules defined in the policy.
+    */
     function checkAction(
         ConfigId id,
         address account,
@@ -76,12 +83,10 @@ contract UniActionPolicy is IActionPolicy {
     {
         require(status[id][msg.sender][account] == Status.Live);
         ActionConfig storage config = actionConfigs[id][msg.sender][account];
-        require(value <= config.valueLimit);
-        ParamRule[16] memory rules = config.paramRules.rules;
+        require(value <= config.valueLimitPerUse);
         uint256 length = config.paramRules.length;
         for (uint256 i = 0; i < length; i++) {
-            ParamRule memory rule = rules[i];
-            if (!rule.check(data)) return VALIDATION_FAILED;
+            if (!config.paramRules.rules[i].check(data)) return VALIDATION_FAILED;
         }
 
         return VALIDATION_SUCCESS;
@@ -141,6 +146,12 @@ contract UniActionPolicy is IActionPolicy {
 }
 
 library UniActionLib {
+
+    /**
+     * @dev parses the function arg from the calldata based on the offset
+     * and compares it to the reference value based on the condition.
+     * Also checks if the limit is reached/exceeded.
+     */
     function check(ParamRule memory rule, bytes calldata data) internal view returns (bool) {
         bytes32 param = bytes32(data[4 + rule.offset:4 + rule.offset + 32]);
 
@@ -170,10 +181,35 @@ library UniActionLib {
     }
 
     function fill(ActionConfig storage $config, ActionConfig memory config) internal {
-        $config.valueLimit = config.valueLimit;
+        $config.valueLimitPerUse = config.valueLimitPerUse;
         $config.paramRules.length = config.paramRules.length;
         for (uint256 i; i < config.paramRules.length; i++) {
             $config.paramRules.rules[i] = config.paramRules.rules[i];
         }
     }
 }
+
+/**
+  Further development:
+
+  - Add compound value limit. 
+    struct ActionConfig {
+        uint256 valueLimitPerUse;
+        uint256 totalValueLimit;
+        uint256 valueUsed;
+        ParamRules paramRules;
+    }
+
+    - Add param relations.
+
+    Add this to ActionConfig => Relation[] paramRelations;     
+        struct Relation {
+            address verifier;
+            bytes4 selector;
+            bytes1 argsAmount;
+            uint64[4] offsets;
+            bytes32 context;
+        }
+    Add checking for relations.
+
+ */

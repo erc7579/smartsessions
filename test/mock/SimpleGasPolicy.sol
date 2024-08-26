@@ -3,10 +3,10 @@
 pragma solidity ^0.8.23;
 
 import "contracts/interfaces/IPolicy.sol";
-import "./SubLib.sol";
+import "contracts/lib/SubModuleLib.sol";
 
 contract SimpleGasPolicy is IUserOpPolicy {
-    using SubLib for bytes;
+    using SubModuleLib for bytes;
 
     struct GasLimitConfig {
         uint256 gasLimit;

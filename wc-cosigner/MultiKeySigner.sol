@@ -5,7 +5,7 @@ pragma solidity ^0.8.23;
 import { ECDSA } from "solady/utils/ECDSA.sol";
 import "./passkey.sol";
 import "contracts/interfaces/ISessionValidator.sol";
-import { SubLib } from "./SubLib.sol";
+import { SubModuleLib } from "./SubModuleLib.sol";
 import "forge-std/console2.sol";
 
 struct Config {
@@ -65,7 +65,7 @@ library SignerEncode {
 
 contract MultiKeySigner {
     using PasskeyHelper for *;
-    using SubLib for bytes;
+    using SubModuleLib for bytes;
     using SignerEncode for *;
 
     error InvalidPublicKey();

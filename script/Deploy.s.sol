@@ -5,7 +5,7 @@ import "forge-std/Script.sol";
 import "contracts/SmartSession.sol";
 
 import "test/mock/SimpleSigner.sol";
-import "test/mock/UniActionPolicy.sol";
+import "contracts/external/policies/UniActionPolicy.sol";
 import "test/mock/UsageLimitPolicy.sol";
 import "test/mock/TimeFramePolicy.sol";
 import "test/mock/SimpleGasPolicy.sol";
