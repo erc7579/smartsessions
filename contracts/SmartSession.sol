@@ -362,7 +362,7 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
         returns (bytes4 result)
     {
         // disallow that session can be authorized by other sessions
-        if (sender == address(this)) return 0xffffffff;
+        if (sender == address(this)) return EIP1271_FAILED;
 
         bool success = _erc1271IsValidSignatureViaNestedEIP712(sender, hash, _erc1271UnwrapSignature(signature));
         /// @solidity memory-safe-assembly
