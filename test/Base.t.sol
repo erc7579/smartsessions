@@ -102,12 +102,25 @@ contract BaseTest is RhinestoneModuleKit, Test {
         policyDatas[0] = _getEmptyPolicyData(policyContract);
     }
 
-    function _getEmptyActionData(ActionId actionId, address policyContract) internal pure returns (ActionData memory) {
-        return ActionData({ actionId: actionId, actionPolicies: _getEmptyPolicyDatas(policyContract) });
+    function _getEmptyActionData(
+        address actionTarget,
+        bytes4 actionSelector,
+        address policyContract
+    )
+        internal
+        pure
+        returns (ActionData memory)
+    {
+        return ActionData({
+            actionTargetSelector: actionSelector,
+            actionTarget: actionTarget,
+            actionPolicies: _getEmptyPolicyDatas(policyContract)
+        });
     }
 
     function _getEmptyActionDatas(
-        ActionId actionId,
+        address actionTarget,
+        bytes4 actionSelector,
         address policyContract
     )
         internal
@@ -115,7 +128,7 @@ contract BaseTest is RhinestoneModuleKit, Test {
         returns (ActionData[] memory actionDatas)
     {
         actionDatas = new ActionData[](1);
-        actionDatas[0] = _getEmptyActionData(actionId, policyContract);
+        actionDatas[0] = _getEmptyActionData(actionTarget, actionSelector, policyContract);
     }
 
     function _getEmptyERC7739Data(

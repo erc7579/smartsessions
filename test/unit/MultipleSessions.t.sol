@@ -16,7 +16,8 @@ contract MultipleSessionsTest is BaseTest {
     }
 
     function _makeSession(
-        ActionId actionId,
+        address target,
+        bytes4 selector,
         bytes32 salt,
         uint256 setValue
     )
@@ -31,7 +32,7 @@ contract MultipleSessionsTest is BaseTest {
             sessionValidatorInitData: "mockInitData",
             userOpPolicies: _getEmptyPolicyDatas(address(yesPolicy)),
             erc7739Policies: _getEmptyERC7739Data("mockContent", _getEmptyPolicyDatas(address(yesPolicy))),
-            actions: _getEmptyActionDatas(actionId, address(yesPolicy))
+            actions: _getEmptyActionDatas(target, selector, address(yesPolicy))
         });
 
         // predict permissionId correlating to EnableSession
@@ -58,11 +59,12 @@ contract MultipleSessionsTest is BaseTest {
     }
 
     function test_multiple_session() public {
-        ActionId actionId = address(target).toActionId(MockTarget.setValue.selector);
-        PermissionId permissionId1 = _makeSession(actionId, "salt1", 1);
-        PermissionId permissionId2 = _makeSession(actionId, "salt2", 2);
-        PermissionId permissionId3 = _makeSession(actionId, "salt3", 3);
-        PermissionId permissionId4 = _makeSession(actionId, "salt4", 4);
+        address _target = address(target);
+        bytes4 selector = MockTarget.setValue.selector;
+        PermissionId permissionId1 = _makeSession(_target, selector, "salt1", 1);
+        PermissionId permissionId2 = _makeSession(_target, selector, "salt2", 2);
+        PermissionId permissionId3 = _makeSession(_target, selector, "salt3", 3);
+        PermissionId permissionId4 = _makeSession(_target, selector, "salt4", 4);
 
         _exec_session(permissionId2, address(target), 0, abi.encodeCall(MockTarget.setValue, (2)));
         assertEq(target.value(), 2);
@@ -94,7 +96,7 @@ contract MultipleSessionsTest is BaseTest {
 
     function test_batched_exec() public {
         ActionId actionId = address(target).toActionId(MockTarget.setValue.selector);
-        PermissionId permissionId = _makeSession(actionId, "salt1", 1);
+        PermissionId permissionId = _makeSession(address(target), MockTarget.setValue.selector, "salt1", 1);
 
         Execution[] memory executions = new Execution[](3);
         executions[0] =
@@ -116,7 +118,8 @@ contract MultipleSessionsTest is BaseTest {
         // lets add another actionId to the permission
 
         ActionId actionId2 = address(target).toActionId(MockTarget.increaseValue.selector);
-        ActionData[] memory actionPolicies = _getEmptyActionDatas(actionId2, address(yesPolicy));
+        ActionData[] memory actionPolicies =
+            _getEmptyActionDatas(address(target), MockTarget.increaseValue.selector, address(yesPolicy));
 
         vm.prank(instance.account);
         smartSession.enableActionPolicies(permissionId, actionPolicies);
@@ -150,8 +153,7 @@ contract MultipleSessionsTest is BaseTest {
     }
 
     function test_batched_exec_notAuthorized__shouldFail() public {
-        ActionId actionId = address(target).toActionId(MockTarget.setValue.selector);
-        PermissionId permissionId = _makeSession(actionId, "salt1", 1);
+        PermissionId permissionId = _makeSession(address(target), MockTarget.setValue.selector, "salt1", 1);
 
         Execution[] memory executions = new Execution[](3);
         executions[0] =

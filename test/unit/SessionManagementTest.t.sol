@@ -24,7 +24,6 @@ contract SessionManagementTest is BaseTest {
         address _target = address(target);
         uint256 value = 0;
         bytes memory callData = abi.encodeCall(MockTarget.setValue, (1337));
-        ActionId actionId = _target.toActionId(MockTarget.setValue.selector);
 
         UserOpData memory userOpData = instance.getExecOps({
             target: _target,
@@ -39,7 +38,7 @@ contract SessionManagementTest is BaseTest {
             sessionValidatorInitData: "mockInitData",
             userOpPolicies: _getEmptyPolicyDatas(address(yesPolicy)),
             erc7739Policies: _getEmptyERC7739Data("mockContent", _getEmptyPolicyDatas(address(yesPolicy))),
-            actions: _getEmptyActionDatas(actionId, address(yesPolicy))
+            actions: _getEmptyActionDatas(_target, MockTarget.setValue.selector, address(yesPolicy))
         });
 
         // predict permissionId correlating to EnableSession
@@ -89,17 +88,14 @@ contract SessionManagementTest is BaseTest {
         address _target = address(target);
         uint256 value = 0;
         bytes memory callData = abi.encodeCall(MockTarget.setValue, (1337));
-        ActionId actionId = _target.toActionId(MockTarget.setValue.selector);
 
-        console2.log("test: actionId");
-        console2.logBytes32(ActionId.unwrap(actionId));
         Session memory session = Session({
             sessionValidator: ISessionValidator(address(yesSigner)),
             salt: salt,
             sessionValidatorInitData: "mockInitData",
             userOpPolicies: _getEmptyPolicyDatas(address(yesPolicy)),
             erc7739Policies: _getEmptyERC7739Data("mockContent", _getEmptyPolicyDatas(address(yesPolicy))),
-            actions: _getEmptyActionDatas(actionId, address(yesPolicy))
+            actions: _getEmptyActionDatas(_target, MockTarget.setValue.selector, address(yesPolicy))
         });
 
         permissionId = smartSession.getPermissionId(session);
@@ -233,7 +229,7 @@ contract SessionManagementTest is BaseTest {
             sessionValidatorInitData: "mockInitData",
             userOpPolicies: _getEmptyPolicyDatas(address(yesPolicy)),
             erc7739Policies: _getEmptyERC7739Data("mockContent", _getEmptyPolicyDatas(address(yesPolicy))),
-            actions: _getEmptyActionDatas(ActionId.wrap(bytes32(uint256(1))), address(yesPolicy))
+            actions: _getEmptyActionDatas(_target, MockTarget.setValue.selector, address(yesPolicy))
         });
 
         // predict permissionId correlating to EnableSession

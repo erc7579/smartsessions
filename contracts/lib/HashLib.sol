@@ -184,7 +184,12 @@ library HashLib {
 
     function hashActionData(ActionData memory actionData) internal pure returns (bytes32) {
         return keccak256(
-            abi.encode(ACTION_DATA_TYPEHASH, actionData.actionId, hashPolicyDataArray(actionData.actionPolicies))
+            abi.encode(
+                ACTION_DATA_TYPEHASH,
+                actionData.actionTargetSelector,
+                actionData.actionTarget,
+                hashPolicyDataArray(actionData.actionPolicies)
+            )
         );
     }
 
