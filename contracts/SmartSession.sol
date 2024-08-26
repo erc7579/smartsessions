@@ -33,8 +33,6 @@ import { SmartSessionERC7739 } from "./core/SmartSessionERC7739.sol";
 import { IdLib } from "./lib/IdLib.sol";
 import { SmartSessionModeLib } from "./lib/SmartSessionModeLib.sol";
 
-import "forge-std/console2.sol";
-
 /**
  * @title SmartSession
  * @author Filipp Makarov (Biconomy) & zeroknots.eth (Rhinestone)
