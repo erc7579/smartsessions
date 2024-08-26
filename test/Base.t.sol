@@ -35,8 +35,6 @@ import { TestHashLib } from "test/utils/TestHashLib.sol";
 
 import "forge-std/console2.sol";
 
-IRegistry constant registry = IRegistry(0x000000000069E2a187AEFFb852bF3cCdC95151B2);
-
 contract BaseTest is RhinestoneModuleKit, Test {
     using ModuleKitHelpers for *;
     using ModuleKitUserOp for *;

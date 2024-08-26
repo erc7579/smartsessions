@@ -2,6 +2,7 @@
 pragma solidity ^0.8.25;
 
 import "./utils/AssociatedArrayLib.sol";
+import { IRegistry, ModuleType } from "./interfaces/IRegistry.sol";
 import "./interfaces/ISessionValidator.sol";
 import { EnumerableSet } from "./utils/EnumerableSet4337.sol";
 import { FlatBytesLib } from "@rhinestone/flatbytes/src/BytesLib.sol";
@@ -145,6 +146,10 @@ ValidationData constant ERC4377_VALIDATION_SUCCESS = ValidationData.wrap(0);
 ValidationData constant ERC4337_VALIDATION_FAILED = ValidationData.wrap(1);
 bytes4 constant EIP1271_SUCCESS = 0x1626ba7e;
 bytes4 constant EIP1271_FAILED = 0xFFFFFFFF;
+
+IRegistry constant registry = IRegistry(0x000000000069E2a187AEFFb852bF3cCdC95151B2);
+ModuleType constant POLICY_MODULE_TYPE = ModuleType.wrap(7);
+ModuleType constant VALIDATOR_MODULE_TYPE = ModuleType.wrap(1);
 
 uint256 constant ERC7579_MODULE_TYPE_VALIDATOR = 1;
 uint256 constant ERC7579_MODULE_TYPE_EXECUTOR = 2;

@@ -21,10 +21,6 @@ library ConfigLib {
 
     error UnsupportedPolicy(address policy);
 
-    IRegistry internal constant registry = IRegistry(0x000000000069E2a187AEFFb852bF3cCdC95151B2);
-    ModuleType internal constant POLICY_MODULE_TYPE = ModuleType.wrap(7);
-    ModuleType internal constant VALIDATOR_MODULE_TYPE = ModuleType.wrap(1);
-
     function requireSupportsInterface(address policy, PolicyType policyType) internal view {
         bytes4 requiredSelector;
         if (policy == address(0)) {

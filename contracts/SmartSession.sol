@@ -192,7 +192,7 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
                 smartAccount: account,
                 sessionValidator: enableData.sessionToEnable.sessionValidator,
                 sessionValidatorConfig: enableData.sessionToEnable.sessionValidatorInitData,
-                useRegistry: true
+                useRegistry: useRegistry
             });
         }
 
