@@ -41,7 +41,11 @@ contract SpendingLimitTest is BaseTest {
         });
 
         ActionData[] memory actionDatas = new ActionData[](1);
-        actionDatas[0] = ActionData({ actionId: actionId, actionPolicies: policyDatas });
+        actionDatas[0] = ActionData({
+            actionTarget: _target,
+            actionTargetSelector: IERC20.transfer.selector,
+            actionPolicies: policyDatas
+        });
 
         Session memory session = Session({
             sessionValidator: ISessionValidator(address(yesSigner)),

@@ -78,7 +78,8 @@ struct PolicyData {
 
 // Action data is a struct that contains the actionId and the policies that are associated with this action.
 struct ActionData {
-    ActionId actionId;
+    bytes4 actionTargetSelector;
+    address actionTarget;
     PolicyData[] actionPolicies;
 }
 

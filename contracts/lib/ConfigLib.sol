@@ -16,7 +16,7 @@ library ConfigLib {
     using EnumerableSet for EnumerableSet.Bytes32Set;
     using HashLib for string;
     using AssociatedArrayLib for AssociatedArrayLib.Bytes32Array;
-    using IdLib for PermissionId;
+    using IdLib for *;
     using ConfigLib for *;
 
     error UnsupportedPolicy(address policy);
@@ -118,7 +118,13 @@ library ConfigLib {
         for (uint256 i; i < length; i++) {
             // record every enabled actionId
             ActionData memory actionPolicyData = actionPolicyDatas[i];
-            ActionId actionId = actionPolicyData.actionId;
+
+            // disallow actions to be set for address(0) or to the smartsession module itself
+            // sessionkeys that have access to smartsessions, may use this access to elevate their privileges
+            if (actionPolicyData.actionTarget == address(0) || actionPolicyData.actionTarget == address(this)) {
+                revert ISmartSession.InvalidActionId();
+            }
+            ActionId actionId = actionPolicyData.actionTarget.toActionId(actionPolicyData.actionTargetSelector);
             if (actionId == EMPTY_ACTIONID) revert ISmartSession.InvalidActionId();
 
             // Record the enabled action ID

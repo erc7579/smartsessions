@@ -117,10 +117,6 @@ library PolicyLib {
             revert ISmartSession.InvalidSelfCall();
         }
 
-        // under no circumstances should the target be the smart session. This could allow session keys to elevate their
-        // privileges
-        if (target == address(this)) revert ISmartSession.InvalidCallTarget();
-
         // Generate the action ID based on the target and function selector
         ActionId actionId = target.toActionId(targetSig);
 
@@ -311,7 +307,7 @@ library PolicyLib {
         uint256 actionsProperlyEnabled;
         for (uint256 i; i < length; i++) {
             ActionData memory actionPolicyData = actionPolicyDatas[i];
-            ActionId actionId = actionPolicyData.actionId;
+            ActionId actionId = actionPolicyData.actionTarget.toActionId(actionPolicyData.actionTargetSelector);
             ConfigId configId = permissionId.toConfigId(actionId, smartAccount);
             // Check if the action policy is enabled
             if (
