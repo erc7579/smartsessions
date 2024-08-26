@@ -7,7 +7,7 @@ import { MessageHashUtils } from "@openzeppelin/contracts/utils/cryptography/Mes
 
 // Typehashes
 string constant POLICY_DATA_NOTATION = "PolicyData(address policy,bytes initData)";
-string constant ACTION_DATA_NOTATION = "ActionData(bytes32 actionId,PolicyData[] actionPolicies)";
+string constant ACTION_DATA_NOTATION = "ActionData(address actionTarget, bytes4 actionTargetSelector,PolicyData[] actionPolicies)";
 string constant ERC7739_DATA_NOTATION = "ERC7739Data(string[] allowedERC7739Content,PolicyData[] erc1271Policies)";
 
 bytes32 constant POLICY_DATA_TYPEHASH = keccak256(bytes(POLICY_DATA_NOTATION));
@@ -184,7 +184,12 @@ library HashLib {
 
     function hashActionData(ActionData memory actionData) internal pure returns (bytes32) {
         return keccak256(
-            abi.encode(ACTION_DATA_TYPEHASH, actionData.actionId, hashPolicyDataArray(actionData.actionPolicies))
+            abi.encode(
+                ACTION_DATA_TYPEHASH,
+                actionData.actionTargetSelector,
+                actionData.actionTarget,
+                hashPolicyDataArray(actionData.actionPolicies)
+            )
         );
     }
 

@@ -2,12 +2,11 @@
 pragma solidity ^0.8.25;
 
 import "./DataTypes.sol";
-import { ISmartSession } from "./ISmartSession.sol";
 
+import { IERC7579Account } from "erc7579/interfaces/IERC7579Account.sol";
+import { IAccountExecute } from "modulekit/external/ERC4337.sol";
 import { PackedUserOperation } from "modulekit/external/ERC4337.sol";
 import { EIP1271_MAGIC_VALUE, IERC1271 } from "module-bases/interfaces/IERC1271.sol";
-
-import "./utils/EnumerableSet4337.sol";
 import {
     ModeCode as ExecutionMode,
     ExecType,
@@ -16,20 +15,19 @@ import {
     CALLTYPE_SINGLE,
     EXECTYPE_DEFAULT
 } from "erc7579/lib/ModeLib.sol";
+
+import { ISmartSession } from "./ISmartSession.sol";
+import { SmartSessionBase } from "./core/SmartSessionBase.sol";
+import { SmartSessionERC7739 } from "./core/SmartSessionERC7739.sol";
+
+import { EnumerableSet } from "./utils/EnumerableSet4337.sol";
 import { ExecutionLib as ExecutionLib } from "./lib/ExecutionLib.sol";
-
-import { IERC7579Account } from "erc7579/interfaces/IERC7579Account.sol";
-import { IAccountExecute } from "modulekit/external/ERC4337.sol";
-import { IUserOpPolicy, IActionPolicy } from "contracts/interfaces/IPolicy.sol";
-
+import { IUserOpPolicy, IActionPolicy } from "./interfaces/IPolicy.sol";
 import { PolicyLib } from "./lib/PolicyLib.sol";
 import { SignerLib } from "./lib/SignerLib.sol";
 import { ConfigLib } from "./lib/ConfigLib.sol";
 import { EncodeLib } from "./lib/EncodeLib.sol";
-
 import { HashLib } from "./lib/HashLib.sol";
-import { SmartSessionBase } from "./core/SmartSessionBase.sol";
-import { SmartSessionERC7739 } from "./core/SmartSessionERC7739.sol";
 import { IdLib } from "./lib/IdLib.sol";
 import { SmartSessionModeLib } from "./lib/SmartSessionModeLib.sol";
 
@@ -50,6 +48,7 @@ import { SmartSessionModeLib } from "./lib/SmartSessionModeLib.sol";
  */
 contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
     using EnumerableSet for EnumerableSet.Bytes32Set;
+    using SmartSessionModeLib for SmartSessionMode;
     using IdLib for *;
     using HashLib for *;
     using PolicyLib for *;
@@ -57,7 +56,6 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
     using ConfigLib for *;
     using ExecutionLib for *;
     using EncodeLib for *;
-    using SmartSessionModeLib for SmartSessionMode;
 
     /**
      * @notice Validates a user operation for ERC4337/ERC7579 compatibility
@@ -163,6 +161,8 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
             revert InvalidEnableSignature(account, hash);
         }
 
+        // Determine if registry should be used based on the mode
+        bool useRegistry = mode.useRegistry();
         /**
          * Enable mode can involve enabling ISessionValidator (new Permission)
          * or just adding policies (existing permission)
@@ -183,16 +183,14 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
             if (permissionId != enableData.sessionToEnable.toPermissionIdMemory()) {
                 revert InvalidPermissionId(permissionId);
             }
-            _enableISessionValidator(
-                permissionId,
-                account,
-                enableData.sessionToEnable.sessionValidator,
-                enableData.sessionToEnable.sessionValidatorInitData
-            );
+            $sessionValidators.enable({
+                permissionId: permissionId,
+                smartAccount: account,
+                sessionValidator: enableData.sessionToEnable.sessionValidator,
+                sessionValidatorConfig: enableData.sessionToEnable.sessionValidatorInitData,
+                useRegistry: useRegistry
+            });
         }
-
-        // Determine if registry should be used based on the mode
-        bool useRegistry = mode.useRegistry();
 
         // Enable UserOp policies
         $userOpPolicies.enable({
@@ -284,7 +282,7 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
         // action policies have to be checked
         if (selector == IERC7579Account.execute.selector) {
             // Decode ERC7579 execution mode
-            ExecutionMode mode = ExecutionMode.wrap(bytes32(userOp.callData[4:36]));
+            ExecutionMode mode = userOp.callData.get7579ExecutionMode();
             CallType callType;
             ExecType execType;
 
@@ -293,6 +291,7 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
                 callType := mode
                 execType := shl(8, mode)
             }
+            // ERC7579 allows for different execution types, but SmartSession only supports the default execution type
             if (ExecType.unwrap(execType) != ExecType.unwrap(EXECTYPE_DEFAULT)) {
                 revert UnsupportedExecutionType();
             }
@@ -316,7 +315,9 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
                     callData: callData,
                     minPolicies: 1 // minimum of one actionPolicy must be set.
                  });
-            } else {
+            }
+            // DelegateCalls are not supported by SmartSession
+            else {
                 revert UnsupportedExecutionType();
             }
         }
@@ -346,8 +347,8 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
                         userOp.callData // data
                     )
                 ),
-                minPolicies: 1
-            });
+                minPolicies: 1 // minimum of one actionPolicy must be set.
+             });
         }
     }
 
@@ -388,15 +389,14 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
         bytes32 contentHash = string(contents).hashERC7739Content();
         PermissionId permissionId = PermissionId.wrap(bytes32(signature[0:32]));
         signature = signature[32:];
-        ConfigId configId = permissionId.toErc1271PolicyId().toConfigId(msg.sender);
-        if (!$enabledERC7739Content[configId][contentHash][msg.sender]) return false;
+        if (!$enabledERC7739Content[permissionId].contains(msg.sender, contentHash)) return false;
         valid = $erc1271Policies.checkERC1271({
             account: msg.sender,
             requestSender: sender,
             hash: hash,
             signature: signature,
             permissionId: permissionId,
-            configId: configId,
+            configId: permissionId.toErc1271PolicyId().toConfigId(),
             minPoliciesToEnforce: 0
         });
 

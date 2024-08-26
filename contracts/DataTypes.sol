@@ -2,6 +2,7 @@
 pragma solidity ^0.8.25;
 
 import "./utils/AssociatedArrayLib.sol";
+import { IRegistry, ModuleType } from "./interfaces/IRegistry.sol";
 import "./interfaces/ISessionValidator.sol";
 import { EnumerableSet } from "./utils/EnumerableSet4337.sol";
 import { FlatBytesLib } from "@rhinestone/flatbytes/src/BytesLib.sol";
@@ -77,7 +78,8 @@ struct PolicyData {
 
 // Action data is a struct that contains the actionId and the policies that are associated with this action.
 struct ActionData {
-    ActionId actionId;
+    bytes4 actionTargetSelector;
+    address actionTarget;
     PolicyData[] actionPolicies;
 }
 
@@ -98,8 +100,7 @@ enum SmartSessionMode {
 
 struct SignerConf {
     ISessionValidator sessionValidator;
-    uint48 validUntil;
-    FlatBytesLib.Bytes config;
+    FlatBytesLib.Bytes config; // using FlatBytes to get around storage slot limitations
 }
 
 struct Policy {
@@ -146,10 +147,17 @@ ValidationData constant ERC4337_VALIDATION_FAILED = ValidationData.wrap(1);
 bytes4 constant EIP1271_SUCCESS = 0x1626ba7e;
 bytes4 constant EIP1271_FAILED = 0xFFFFFFFF;
 
+IRegistry constant registry = IRegistry(0x000000000069E2a187AEFFb852bF3cCdC95151B2);
+ModuleType constant POLICY_MODULE_TYPE = ModuleType.wrap(7);
+ModuleType constant VALIDATOR_MODULE_TYPE = ModuleType.wrap(1);
+
 uint256 constant ERC7579_MODULE_TYPE_VALIDATOR = 1;
 uint256 constant ERC7579_MODULE_TYPE_EXECUTOR = 2;
 uint256 constant ERC7579_MODULE_TYPE_FALLBACK = 3;
 uint256 constant ERC7579_MODULE_TYPE_HOOK = 4;
+
+// the module type is tbd, but for now we use 7, until a new module type via ERC7579 extension process is defined
+uint256 constant ERC7579_MODULE_TYPE_POLICY = 7;
 
 using { permissionIdEq as == } for PermissionId global;
 using { permissionIdNeq as != } for PermissionId global;

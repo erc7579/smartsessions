@@ -35,8 +35,6 @@ import { TestHashLib } from "test/utils/TestHashLib.sol";
 
 import "forge-std/console2.sol";
 
-IRegistry constant registry = IRegistry(0x000000000069E2a187AEFFb852bF3cCdC95151B2);
-
 contract BaseTest is RhinestoneModuleKit, Test {
     using ModuleKitHelpers for *;
     using ModuleKitUserOp for *;
@@ -104,12 +102,25 @@ contract BaseTest is RhinestoneModuleKit, Test {
         policyDatas[0] = _getEmptyPolicyData(policyContract);
     }
 
-    function _getEmptyActionData(ActionId actionId, address policyContract) internal pure returns (ActionData memory) {
-        return ActionData({ actionId: actionId, actionPolicies: _getEmptyPolicyDatas(policyContract) });
+    function _getEmptyActionData(
+        address actionTarget,
+        bytes4 actionSelector,
+        address policyContract
+    )
+        internal
+        pure
+        returns (ActionData memory)
+    {
+        return ActionData({
+            actionTargetSelector: actionSelector,
+            actionTarget: actionTarget,
+            actionPolicies: _getEmptyPolicyDatas(policyContract)
+        });
     }
 
     function _getEmptyActionDatas(
-        ActionId actionId,
+        address actionTarget,
+        bytes4 actionSelector,
         address policyContract
     )
         internal
@@ -117,7 +128,7 @@ contract BaseTest is RhinestoneModuleKit, Test {
         returns (ActionData[] memory actionDatas)
     {
         actionDatas = new ActionData[](1);
-        actionDatas[0] = _getEmptyActionData(actionId, policyContract);
+        actionDatas[0] = _getEmptyActionData(actionTarget, actionSelector, policyContract);
     }
 
     function _getEmptyERC7739Data(

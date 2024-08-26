@@ -307,7 +307,7 @@ library PolicyLib {
         uint256 actionsProperlyEnabled;
         for (uint256 i; i < length; i++) {
             ActionData memory actionPolicyData = actionPolicyDatas[i];
-            ActionId actionId = actionPolicyData.actionId;
+            ActionId actionId = actionPolicyData.actionTarget.toActionId(actionPolicyData.actionTargetSelector);
             ConfigId configId = permissionId.toConfigId(actionId, smartAccount);
             // Check if the action policy is enabled
             if (

@@ -2,7 +2,7 @@
 pragma solidity ^0.8.25;
 
 import "../DataTypes.sol";
-import { IPolicy } from "../interfaces/IPolicy.sol";
+import { IPolicy, IUserOpPolicy, IActionPolicy, I1271Policy } from "../interfaces/IPolicy.sol";
 import { ISmartSession } from "../ISmartSession.sol";
 import { AssociatedArrayLib } from "../utils/AssociatedArrayLib.sol";
 import { IRegistry, ModuleType } from "../interfaces/IRegistry.sol";
@@ -11,16 +11,34 @@ import { HashLib } from "./HashLib.sol";
 import { EnumerableSet } from "../utils/EnumerableSet4337.sol";
 
 library ConfigLib {
+    using FlatBytesLib for FlatBytesLib.Bytes;
     using EnumerableSet for EnumerableSet.AddressSet;
-    using HashLib for *;
-    using ConfigLib for *;
-    using AssociatedArrayLib for *;
+    using EnumerableSet for EnumerableSet.Bytes32Set;
+    using HashLib for string;
+    using AssociatedArrayLib for AssociatedArrayLib.Bytes32Array;
     using IdLib for *;
+    using ConfigLib for *;
 
     error UnsupportedPolicy(address policy);
 
-    IRegistry internal constant registry = IRegistry(0x000000000069E2a187AEFFb852bF3cCdC95151B2);
-    ModuleType internal constant POLICY_MODULE_TYPE = ModuleType.wrap(7);
+    function requireSupportsInterface(address policy, PolicyType policyType) internal view {
+        bytes4 requiredSelector;
+        if (policy == address(0)) {
+            revert UnsupportedPolicy(policy);
+        } else if (policyType == PolicyType.USER_OP) {
+            requiredSelector = IUserOpPolicy.checkUserOpPolicy.selector;
+        } else if (policyType == PolicyType.ACTION) {
+            requiredSelector = IActionPolicy.checkAction.selector;
+        } else if (policyType == PolicyType.ERC1271) {
+            requiredSelector = I1271Policy.check1271SignedAction.selector;
+        } else {
+            revert UnsupportedPolicy(policy);
+        }
+
+        if (!IPolicy(policy).supportsInterface(requiredSelector)) {
+            revert UnsupportedPolicy(policy);
+        }
+    }
 
     /**
      * Enables policies for a given permission ID.
@@ -53,10 +71,7 @@ library ConfigLib {
         for (uint256 i; i < lengthConfigs; i++) {
             address policy = policyDatas[i].policy;
 
-            // TODO: can we remove this check?
-            if (policy == address(0) || !IPolicy(policy).supportsInterface(type(IPolicy).interfaceId)) {
-                revert UnsupportedPolicy(policy);
-            }
+            policy.requireSupportsInterface(policyType);
 
             // this will revert if the policy is not attested to
             if (useRegistry) {
@@ -103,7 +118,13 @@ library ConfigLib {
         for (uint256 i; i < length; i++) {
             // record every enabled actionId
             ActionData memory actionPolicyData = actionPolicyDatas[i];
-            ActionId actionId = actionPolicyData.actionId;
+
+            // disallow actions to be set for address(0) or to the smartsession module itself
+            // sessionkeys that have access to smartsessions, may use this access to elevate their privileges
+            if (actionPolicyData.actionTarget == address(0) || actionPolicyData.actionTarget == address(this)) {
+                revert ISmartSession.InvalidActionId();
+            }
+            ActionId actionId = actionPolicyData.actionTarget.toActionId(actionPolicyData.actionTargetSelector);
             if (actionId == EMPTY_ACTIONID) revert ISmartSession.InvalidActionId();
 
             // Record the enabled action ID
@@ -128,13 +149,13 @@ library ConfigLib {
      *
      * @param $enabledERC7739Content The storage mapping for enabled ERC7739 content.
      * @param contents An array of strings representing the content to be enabled.
-     * @param configId The configuration ID associated with the content.
+     * @param permissionId The configuration ID associated with the content.
      * @param smartAccount The address of the smart account for which the content is being enabled.
      */
     function enable(
-        mapping(ConfigId => mapping(bytes32 => mapping(address => bool))) storage $enabledERC7739Content,
+        mapping(PermissionId permissionId => EnumerableSet.Bytes32Set) storage $enabledERC7739Content,
         string[] memory contents,
-        ConfigId configId,
+        PermissionId permissionId,
         address smartAccount
     )
         internal
@@ -142,8 +163,53 @@ library ConfigLib {
         uint256 length = contents.length;
         for (uint256 i; i < length; i++) {
             bytes32 contentHash = contents[i].hashERC7739Content();
-            $enabledERC7739Content[configId][contentHash][smartAccount] = true;
+            $enabledERC7739Content[permissionId].add(smartAccount, contentHash);
         }
+    }
+
+    /**
+     * @notice Enable and configure an ISessionValidator for a specific permission and account
+     * @dev This function sets up the session validator and stores its configuration
+     * @param permissionId The unique identifier for the permission
+     * @param smartAccount The account address for which the validator is being set
+     * @param sessionValidator The ISessionValidator contract to be enabled
+     * @param sessionValidatorConfig The configuration data for the session validator
+     */
+    function enable(
+        mapping(PermissionId permissionId => mapping(address smartAccount => SignerConf conf)) storage
+            $sessionValidators,
+        PermissionId permissionId,
+        address smartAccount,
+        ISessionValidator sessionValidator,
+        bytes memory sessionValidatorConfig,
+        bool useRegistry
+    )
+        internal
+    {
+        // Check if the sessionValidator is valid and supports the required interface
+        if (
+            address(sessionValidator) == address(0)
+                || !sessionValidator.supportsInterface(ISessionValidator.validateSignatureWithData.selector)
+        ) {
+            revert ISmartSession.InvalidISessionValidator(sessionValidator);
+        }
+
+        // this will revert if the policy is not attested to
+        if (useRegistry) {
+            registry.checkForAccount({
+                smartAccount: smartAccount,
+                module: address(sessionValidator),
+                moduleType: POLICY_MODULE_TYPE
+            });
+        }
+
+        // Get the storage reference for the signer configuration
+        SignerConf storage $conf = $sessionValidators[permissionId][smartAccount];
+        // Set the session validator
+        $conf.sessionValidator = sessionValidator;
+
+        // Store the signer configuration
+        $conf.config.store(sessionValidatorConfig);
     }
 
     /**

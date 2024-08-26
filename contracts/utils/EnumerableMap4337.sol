@@ -7,6 +7,8 @@ pragma solidity ^0.8.20;
 import { EnumerableSet } from "./EnumerableSet4337.sol";
 
 /**
+ * Fork of OZ's EnumerableSet that makes all storage access ERC-4337 compliant via associated storage
+ * @author zeroknots.eth (rhinestone)
  * @dev Library for managing an enumerable variant of Solidity's
  * https://solidity.readthedocs.io/en/latest/types.html#mapping-types[`mapping`]
  * type.

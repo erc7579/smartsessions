@@ -80,7 +80,7 @@ contract MultiKeySigner {
     function onUninstall(bytes calldata data) external { }
 
     function isModuleType(uint256 id) external pure returns (bool) {
-        return id == 111;
+        return id == ERC7579_MODULE_TYPE_VALIDATOR;
     }
 
     function supportsInterface(bytes4 sig) external view returns (bool) {

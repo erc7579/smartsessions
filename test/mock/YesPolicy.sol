@@ -7,7 +7,7 @@ import { _packValidationData } from "@ERC4337/account-abstraction/contracts/core
 import "contracts/lib/SubModuleLib.sol";
 import "forge-std/console2.sol";
 
-contract YesPolicy is IUserOpPolicy, IActionPolicy {
+contract YesPolicy is IUserOpPolicy, IActionPolicy, I1271Policy {
     using SubModuleLib for bytes;
 
     mapping(ConfigId id => mapping(address msgSender => mapping(address userOpSender => uint256 calls))) public
@@ -64,6 +64,20 @@ contract YesPolicy is IUserOpPolicy, IActionPolicy {
     function isInitialized(address account) external view override returns (bool) { }
 
     function supportsInterface(bytes4 interfaceID) external view override returns (bool) {
+        return true;
+    }
+
+    function check1271SignedAction(
+        ConfigId id,
+        address requestSender,
+        address account,
+        bytes32 hash,
+        bytes calldata signature
+    )
+        external
+        view
+        returns (bool)
+    {
         return true;
     }
 }

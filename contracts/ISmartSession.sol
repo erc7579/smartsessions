@@ -34,6 +34,7 @@ interface ISmartSession {
         PermissionId permissionId, address sessionValidator, address account, bytes32 userOpHash
     );
     error InvalidPermissionId(PermissionId permissionId);
+    error InvalidCallTarget();
     error InvalidUserOpSender(address sender);
     error NoPoliciesSet(PermissionId permissionId);
     error PartlyEnabledActions();
@@ -105,7 +106,7 @@ interface ISmartSession {
     /*                      Manage Sessions                       */
     /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
     function enableActionPolicies(PermissionId permissionId, ActionData[] memory actionPolicies) external;
-    function enableERC1271Policies(PermissionId permissionId, PolicyData[] memory erc1271Policies) external;
+    function enableERC1271Policies(PermissionId permissionId, ERC7739Data calldata erc1271Policies) external;
     function enableSessions(Session[] memory sessions) external returns (PermissionId[] memory permissionIds);
     function enableUserOpPolicies(PermissionId permissionId, PolicyData[] memory userOpPolicies) external;
     function disableActionPolicies(PermissionId permissionId, ActionId actionId, address[] memory policies) external;
