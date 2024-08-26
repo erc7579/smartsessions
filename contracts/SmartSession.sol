@@ -255,13 +255,14 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
         /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
 
         // Validate the session key signature
-        // this call reverts if the ISessionValidator is not set or signature is invalid
-        $sessionValidators.requireValidISessionValidator({
-            userOpHash: userOpHash,
-            account: account,
-            permissionId: permissionId,
-            signature: decompressedSignature
-        });
+        if (
+            !$sessionValidators.isValidISessionValidator({
+                hash: userOpHash,
+                account: account,
+                permissionId: permissionId,
+                signature: decompressedSignature
+            })
+        ) return ERC4337_VALIDATION_FAILED;
 
         /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
         /*                    Check UserOp Policies                   */
