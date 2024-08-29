@@ -70,13 +70,13 @@ library PolicyLib {
         for (uint256 i; i < length; i++) {
             // Call the policy contract with the provided calldata
             uint256 validationDataFromPolicy = uint256(bytes32(policies[i].safeCall({ callData: callOnIPolicy })));
-            vd = ValidationData.wrap(validationDataFromPolicy);
+            ValidationData _vd = ValidationData.wrap(validationDataFromPolicy);
 
             // Revert if the policy check fails
-            if (vd.isFailed()) revert ISmartSession.PolicyViolation(permissionId, policies[i]);
+            if (_vd.isFailed()) revert ISmartSession.PolicyViolation(permissionId, policies[i]);
 
             // Intersect the validation data from this policy with the accumulated result
-            vd = vd.intersectValidationData(vd);
+            vd = vd.intersectValidationData(_vd);
         }
     }
 
