@@ -248,6 +248,8 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
             $actionPolicies.actionPolicies[actionId].policyList[permissionId].removeAll(msg.sender);
         }
 
+        $sessionValidators.disable({ permissionId: permissionId, smartAccount: msg.sender });
+
         // Remove all ERC1271 policies for this session
         $enabledSessions.remove({ account: msg.sender, value: PermissionId.unwrap(permissionId) });
         $enabledERC7739Content[permissionId].removeAll(msg.sender);
