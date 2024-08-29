@@ -60,7 +60,7 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
     /**
      * @notice Validates a user operation for ERC4337/ERC7579 compatibility
      * @dev This function is the entry point for validating user operations in SmartSession
-     * @dev This function will disect the userop.singature field, and parse out the provided PermissionId, which
+     * @dev This function will dissect the userop.signature field, and parse out the provided PermissionId, which
      * identifies a
      * unique ID of a dapp for a specific user. n Policies and one Signer contract are mapped to this Id and will be
      * checked. Only UserOps that pass policies and signer checks, are considered valid.
@@ -88,7 +88,7 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
         // unpacking data packed in userOp.signature
         (SmartSessionMode mode, PermissionId permissionId, bytes calldata packedSig) = userOp.signature.unpackMode();
 
-        // If the SmartSession.USE mode was selected, no futher policies have to be enabled.
+        // If the SmartSession.USE mode was selected, no further policies have to be enabled.
         // We can go straight to userOp validation
         // This condition is the average case, so should be handled as the first condition
         if (mode.isUseMode()) {
@@ -155,7 +155,7 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
 
         // require signature on account
         // this is critical as it is the only way to ensure that the user is aware of the policies and signer
-        // NOTE: although SmartSession implements a ERC1271 feature, it CAN NOT be used as a valid ERC1271 validator for
+        // NOTE: although SmartSession implements a ERC-1271 feature, it CAN NOT be used as a valid ERC-1271 validator for
         // this step. SmartSessions ERC1271 function must prevent this
         if (IERC1271(account).isValidSignature(hash, enableData.permissionEnableSig) != EIP1271_MAGIC_VALUE) {
             revert InvalidEnableSignature(account, hash);
@@ -175,7 +175,7 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
             // Verify that the provided permissionId matches the computed one
             // Only need to verify this if enabling new ISessionValidator
             // as the permissionId is calculated from the ISessionValidator address
-            // and its init data
+            // and it's init data
             // If we're just adding policies, do not need to recalculate the permissionId
             // as we're not touching ISessionValidator config  => we can provide empty
             // ISessionValidator address and init data in the session object
