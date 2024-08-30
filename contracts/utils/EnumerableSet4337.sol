@@ -3,6 +3,7 @@
 pragma solidity ^0.8.20;
 
 import "./AssociatedArrayLib.sol";
+import "forge-std/console2.sol";
 
 /**
  * Fork of OZ's EnumerableSet that makes all storage access ERC-4337 compliant via associated storage
@@ -86,9 +87,12 @@ library EnumerableSet {
     }
 
     function _removeAll(Set storage set, address account) internal {
+        // get length of the array
         uint256 len = _length(set, account);
-        for (uint256 i; i < len; i++) {
-            _remove(set, account, _at(set, account, i));
+        for (uint256 i = 1; i <= len; i++) {
+            // get last value
+            bytes32 value = _at(set, account, len - i);
+            _remove(set, account, value);
         }
     }
 
