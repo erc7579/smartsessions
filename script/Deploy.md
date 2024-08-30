@@ -1,6 +1,6 @@
 ## Deploy with Foundry Script
 
-1. compile the cosigner
+1. compile the cosigner with a FOUNDRY_PROFILE that uses via-ir
 
 ```bash
 FOUNDRY_PROFILE=cosigner forge build
