@@ -85,7 +85,8 @@ contract MultiKeySigner {
     }
 
     function supportsInterface(bytes4 sig) external view returns (bool) {
-        return sig == type(ISessionValidator).interfaceId;
+        if (sig == type(ISessionValidator).interfaceId) return true;
+        if (sig == ISessionValidator.validateSignatureWithData.selector) return true;
     }
 
     function _deinitForAccount(address account, ConfigId id) internal { }
@@ -105,20 +106,20 @@ contract MultiKeySigner {
         uint256 length = signers.length;
         if (sigs.length != length) revert InvalidSignatureLength();
 
-        for (uint256 i = 0; i < length; i++) {
+        for (uint256 i; i < length; i++) {
             if (signers[i].signerType == SignerType.EOA) {
                 address eoa = signers[i].decodeEOA();
                 address recovered = ECDSA.recover(ethHash, sigs[i]);
-                if (recovered != eoa) return false;
+                if (recovered == eoa) validSig = true;
             } else if (signers[i].signerType == SignerType.PASSKEY) {
                 WebAuthnValidatorData memory passkey = signers[i].decodePasskey();
                 bool passkeyValid = passkey.verifyPasskey(ethHash, sigs[i]);
-                if (!passkeyValid) return false;
+                if (passkeyValid) validSig = true;
             } else {
                 revert InvalidSignatureType();
             }
         }
-        return true;
+        return validSig;
     }
 
     function encodeSigners(Signer[] memory signers) external pure returns (bytes memory encoded) {
