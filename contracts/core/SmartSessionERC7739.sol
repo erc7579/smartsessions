@@ -29,16 +29,6 @@ abstract contract SmartSessionERC7739 is ISmartSession, EIP712 {
         result = bytes4(0xd620c85a);
     }
 
-    /// @dev Returns whether the `msg.sender` is considered safe, such
-    /// that we don't need to use the nested EIP-712 workflow.
-    /// Override to return true for more callers.
-    /// See: https://mirror.xyz/curiousapple.eth/pFqAdW2LiJ-6S4sg_u1z08k4vK6BCJ33LcyXpnNb8yU
-    function _erc1271CallerIsSafe() internal view virtual returns (bool) {
-        // The canonical `MulticallerWithSigner` at 0x000000000000D9ECebf3C23529de49815Dac1c4c
-        // is known to include the account in the hash to be signed.
-        return msg.sender == 0x000000000000D9ECebf3C23529de49815Dac1c4c;
-    }
-
     /// @dev Returns whether the `hash` and `signature` are valid.
     /// Override if you need non-ECDSA logic.
     function _erc1271IsValidSignatureNowCalldata(
@@ -206,7 +196,7 @@ abstract contract SmartSessionERC7739 is ISmartSession, EIP712 {
             }
             mstore(0x40, m) // Restore the free memory pointer.
         }
-        if (t == bytes32(0)) hash = _hashTypedData(hash); // `PersonalSign` workflow.
+        if (t == bytes32(0)) return false; // `PersonalSign` workflow is not supported.
         result = _erc1271IsValidSignatureNowCalldata(sender, hash, signature, contents);
     }
 
