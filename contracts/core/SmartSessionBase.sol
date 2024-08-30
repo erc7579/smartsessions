@@ -91,9 +91,12 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
             revert InvalidSession(permissionId);
         }
 
-        $enabledERC7739Content.enable(erc1271Policies.allowedERC7739Content, permissionId, msg.sender);
-
         // Enable the ERC1271 policies
+        $enabledERC7739Content.enable({
+            contents: erc1271Policies.allowedERC7739Content,
+            permissionId: permissionId,
+            smartAccount: msg.sender
+        });
         $erc1271Policies.enable({
             policyType: PolicyType.ERC1271,
             permissionId: permissionId,
