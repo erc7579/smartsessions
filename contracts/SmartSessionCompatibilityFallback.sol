@@ -14,7 +14,7 @@ contract SmartSessionCompatibilityFallback is ERC7579FallbackBase {
         SMART_SESSION_IMPL = smartSessionImpl;
     }
 
-    function onInstall(bytes calldata data) external override {
+    function onInstall(bytes calldata /*data*/ ) external override {
         isInitialized[msg.sender] = true;
     }
 
@@ -53,6 +53,12 @@ contract SmartSessionCompatibilityFallback is ERC7579FallbackBase {
             uint256[] memory extensions
         )
     {
-        return EIP712(SMART_SESSION_IMPL).eip712Domain();
+        //@dev The way that the nested EIP712 logic is supposed to include the address of the account in the
+        // hash is through the verifyingContract field.
+
+        (fields, name, version, chainId,, salt, extensions) = EIP712(SMART_SESSION_IMPL).eip712Domain();
+
+        // forcefully overwrite the verifyingContract field with the account address
+        verifyingContract = msg.sender;
     }
 }
