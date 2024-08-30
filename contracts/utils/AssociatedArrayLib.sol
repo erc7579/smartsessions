@@ -19,6 +19,7 @@ library AssociatedArrayLib {
     }
 
     function _get(Array storage s, address account, uint256 index) private view returns (bytes32 value) {
+        if (index >= _length(s, account)) revert AssociatedArray_OutOfBounds(index);
         assembly {
             mstore(0x00, account)
             mstore(0x20, s.slot)
