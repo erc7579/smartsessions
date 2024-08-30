@@ -1,6 +1,8 @@
 import "../Base.t.sol";
 import { ISmartSession } from "contracts/ISmartSession.sol";
 
+import { SmartSessionCompatibilityFallback } from "contracts/SmartSessionCompatibilityFallback.sol";
+
 import { EIP712 } from "solady/utils/EIP712.sol";
 import { LibString } from "solady/utils/LibString.sol";
 import { MODULE_TYPE_FALLBACK } from "modulekit/external/ERC7579.sol";
@@ -25,12 +27,15 @@ contract SmartSessionERC1271Test is BaseTest {
     }
 
     PermissionId permissionId;
+    SmartSessionCompatibilityFallback fallbackModule;
 
     function setUp() public virtual override {
         super.setUp();
 
+        fallbackModule = new SmartSessionCompatibilityFallback(address(smartSession));
+
         bytes memory _fallback = abi.encode(EIP712.eip712Domain.selector, CALLTYPE_SINGLE, "");
-        instance.installModule({ moduleTypeId: MODULE_TYPE_FALLBACK, module: address(smartSession), data: _fallback });
+        instance.installModule({ moduleTypeId: MODULE_TYPE_FALLBACK, module: address(fallbackModule), data: _fallback });
 
         Session memory session = Session({
             sessionValidator: ISessionValidator(address(yesSigner)),
