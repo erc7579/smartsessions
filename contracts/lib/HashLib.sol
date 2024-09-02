@@ -7,7 +7,7 @@ import { MessageHashUtils } from "@openzeppelin/contracts/utils/cryptography/Mes
 
 // Typehashes
 string constant POLICY_DATA_NOTATION = "PolicyData(address policy,bytes initData)";
-string constant ACTION_DATA_NOTATION = "ActionData(address actionTarget, bytes4 actionTargetSelector,PolicyData[] actionPolicies)";
+string constant ACTION_DATA_NOTATION = "ActionData(address actionTarget,bytes4 actionTargetSelector,PolicyData[] actionPolicies)";
 string constant ERC7739_DATA_NOTATION = "ERC7739Data(string[] allowedERC7739Content,PolicyData[] erc1271Policies)";
 
 bytes32 constant POLICY_DATA_TYPEHASH = keccak256(bytes(POLICY_DATA_NOTATION));
@@ -46,21 +46,23 @@ bytes32 constant MULTICHAIN_SESSION_TYPEHASH = keccak256(
     )
 );
 
-/// @dev `keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)")`.
-bytes32 constant _DOMAIN_TYPEHASH = 0x8b73c3c69bb8fe3d512ecc4cf759cc79239f7b179b0ffacaa9a75d522b39400f;
+//0x8b73c3c69bb8fe3d512ecc4cf759cc79239f7b179b0ffacaa9a75d522b39400f
+bytes32 constant _DOMAIN_TYPEHASH = keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
 
 // keccak256(abi.encode(_DOMAIN_TYPEHASH, keccak256("SmartSession"), keccak256(""), 0, address(0)));
-// One should use the same domain separator where possible
+// One should use the domain separator below where possible
 // or provide the following EIP712Domain struct to the signTypedData() function
 // Name: "SmartSession" (string)
 // Version: "" (string)
 // ChainId: 0 (uint256)
 // VerifyingContract: address(0) (address)
 // it is introduced for compatibility with signTypedData()
-// all the critical data such as chainId and verifyingContract are included
-// in session hashes
-// https://docs.metamask.io/wallet/reference/eth_signtypeddata_v4
-bytes32 constant _DOMAIN_SEPARATOR = 0xa82dd76056d04dc31e30c73f86aa4966336112e8b5e9924bb194526b08c250c1;
+// all the critical data such as chainId and verifyingContract is included
+// in session hashes, so here the mock data compatible accross chains is used
+// see https://docs.metamask.io/wallet/reference/eth_signtypeddata_v4 for details
+
+// 0xa82dd76056d04dc31e30c73f86aa4966336112e8b5e9924bb194526b08c250c1
+bytes32 constant _DOMAIN_SEPARATOR = keccak256(abi.encode(_DOMAIN_TYPEHASH, keccak256("SmartSession"), keccak256(""), 0, address(0)));
 
 library HashLib {
     error ChainIdMismatch(uint64 providedChainId);
@@ -79,7 +81,7 @@ library HashLib {
      * 5. Add multichain domain separator
      * This method doest same, just w/o 1. as it is already provided to us as a digest
      */
-    function multichainDigest(ChainDigest[] memory hashesAndChainIds) internal view returns (bytes32) {
+    function multichainDigest(ChainDigest[] memory hashesAndChainIds) internal pure returns (bytes32) {
         bytes32 structHash =
             keccak256(abi.encode(MULTICHAIN_SESSION_TYPEHASH, hashesAndChainIds.hashChainDigestArray()));
 
