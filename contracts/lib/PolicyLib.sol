@@ -17,6 +17,7 @@ import { IdLib } from "./IdLib.sol";
 
 import { IERC7579Account } from "erc7579/interfaces/IERC7579Account.sol";
 import { EnumerableSet } from "../utils/EnumerableSet4337.sol";
+import { ExcessivelySafeCall } from "excessively-safe-call/src/ExcessivelySafeCall.sol";
 
 library PolicyLib {
     using EnumerableSet for EnumerableSet.AddressSet;
@@ -25,6 +26,7 @@ library PolicyLib {
     using PolicyLib for *;
     using AssociatedArrayLib for *;
     using ValidationDataLib for ValidationData;
+    using ExcessivelySafeCall for address;
 
     function isFailed(ValidationData packedData) internal pure returns (bool sigFailed) {
         sigFailed = (ValidationData.unwrap(packedData) & 1) == 1;
@@ -69,9 +71,13 @@ library PolicyLib {
         // Iterate over all policies and intersect the validation data
         for (uint256 i; i < length; i++) {
             // Call the policy contract with the provided calldata
-            uint256 validationDataFromPolicy = uint256(bytes32(policies[i].safeCall({ callData: callOnIPolicy })));
+            (bool success, bytes memory returnDataFromPolicy) = policies[i].excessivelySafeCall({_gas: gasleft(), _value: 0, _maxCopy: 32, _calldata: callOnIPolicy });
+            if (!success) revert();
+            uint256 validationDataFromPolicy;
+            assembly {
+                validationDataFromPolicy := mload(add(returnDataFromPolicy, 0x20))
+            }
             vd = ValidationData.wrap(validationDataFromPolicy);
-
             // Revert if the policy check fails
             if (vd.isFailed()) revert ISmartSession.PolicyViolation(permissionId, policies[i]);
 
@@ -176,12 +182,6 @@ library PolicyLib {
                 })
             );
         }
-    }
-
-    function safeCall(address target, bytes memory callData) internal returns (bytes memory returnData) {
-        bool success;
-        (success, returnData) = target.call(callData);
-        if (!success) revert();
     }
 
     /**
