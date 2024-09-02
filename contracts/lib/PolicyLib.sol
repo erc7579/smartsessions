@@ -76,7 +76,7 @@ library PolicyLib {
             if (_vd.isFailed()) revert ISmartSession.PolicyViolation(permissionId, policies[i]);
 
             // Intersect the validation data from this policy with the accumulated result
-            vd = vd.intersectValidationData(_vd);
+            vd = vd.intersect(_vd);
         }
     }
 
@@ -164,17 +164,17 @@ library PolicyLib {
             Execution calldata execution = executions[i];
 
             // Check policies for the current execution and intersect the result with previous checks
-            vd = vd.intersectValidationData(
-                checkSingle7579Exec({
-                    $policies: $policies,
-                    userOp: userOp,
-                    permissionId: permissionId,
-                    target: execution.target,
-                    value: execution.value,
-                    callData: execution.callData,
-                    minPolicies: minPolicies
-                })
-            );
+            ValidationData _vd = checkSingle7579Exec({
+                $policies: $policies,
+                userOp: userOp,
+                permissionId: permissionId,
+                target: execution.target,
+                value: execution.value,
+                callData: execution.callData,
+                minPolicies: minPolicies
+            });
+
+            vd = vd.intersect(_vd);
         }
     }
 
