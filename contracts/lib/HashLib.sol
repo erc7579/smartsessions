@@ -7,7 +7,9 @@ import { MessageHashUtils } from "@openzeppelin/contracts/utils/cryptography/Mes
 
 // Typehashes
 string constant POLICY_DATA_NOTATION = "PolicyData(address policy,bytes initData)";
-string constant ACTION_DATA_NOTATION = "ActionData(address actionTarget,bytes4 actionTargetSelector,PolicyData[] actionPolicies)";
+string constant ACTION_DATA_NOTATION =
+    "ActionData(address actionTarget,bytes4 actionTargetSelector,PolicyData[] actionPolicies)";
+
 string constant ERC7739_DATA_NOTATION = "ERC7739Data(string[] allowedERC7739Content,PolicyData[] erc1271Policies)";
 
 bytes32 constant POLICY_DATA_TYPEHASH = keccak256(bytes(POLICY_DATA_NOTATION));
@@ -72,7 +74,7 @@ library HashLib {
     using HashLib for *;
 
     /**
-     * Mimics SignTypedData() behaviour
+     * Mimics SignTypedData() behavior
      * 1. hashStruct(Session)
      * 2. hashStruct(ChainSession)
      * 3. abi.encodePacked hashStruct's for 2) together
@@ -102,7 +104,7 @@ library HashLib {
 
     /**
      * We have session digests, not full Session structs
-     * However to mimic signTypedData() behaviour, we need to use CHAIN_SESSION_TYPEHASH
+     * However to mimic signTypedData() behavior, we need to use CHAIN_SESSION_TYPEHASH
      * not CHAIN_DIGEST_TYPEHASH. We just use the ready session digest instead of rebuilding it
      */
     function hashChainDigestMimicRPC(ChainDigest memory chainDigest) internal pure returns (bytes32) {
