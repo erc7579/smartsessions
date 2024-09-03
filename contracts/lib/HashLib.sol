@@ -7,7 +7,8 @@ import { MessageHashUtils } from "@openzeppelin/contracts/utils/cryptography/Mes
 
 // Typehashes
 string constant POLICY_DATA_NOTATION = "PolicyData(address policy,bytes initData)";
-string constant ACTION_DATA_NOTATION = "ActionData(address actionTarget, bytes4 actionTargetSelector,PolicyData[] actionPolicies)";
+string constant ACTION_DATA_NOTATION =
+    "ActionData(address actionTarget,bytes4 actionTargetSelector,PolicyData[] actionPolicies)";
 string constant ERC7739_DATA_NOTATION = "ERC7739Data(string[] allowedERC7739Content,PolicyData[] erc1271Policies)";
 
 bytes32 constant POLICY_DATA_TYPEHASH = keccak256(bytes(POLICY_DATA_NOTATION));
@@ -15,7 +16,7 @@ bytes32 constant ACTION_DATA_TYPEHASH = keccak256(bytes(ACTION_DATA_NOTATION));
 bytes32 constant ERC7739_DATA_TYPEHASH = keccak256(bytes(ERC7739_DATA_NOTATION));
 
 string constant SESSION_NOTATION =
-    "Session(address account,address smartSession,uint8 mode,address sessionValidator,bytes32 salt,bytes sessionValidatorInitData,PolicyData[] userOpPolicies,ERC7739Data erc7739Policies,ActionData[] actions)";
+    "Session(address account,address smartSession,uint8 mode,address sessionValidator,bytes32 salt,bytes sessionValidatorInitData,PolicyData[] userOpPolicies,ERC7739Data erc7739Policies,ActionData[] actions,uint256 nonce)";
 string constant CHAIN_SESSION_NOTATION = "ChainSession(uint64 chainId,Session session)";
 string constant MULTI_CHAIN_SESSION_NOTATION = "MultiChainSession(ChainSession[] sessionsAndChainIds)";
 
