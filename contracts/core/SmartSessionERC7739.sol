@@ -148,9 +148,6 @@ abstract contract SmartSessionERC7739 is ISmartSession, EIP712 {
                 // `appendedData.length > signature.length || contentsType.length == 0`.
                 if or(xor(keccak256(0x1e, 0x42), hash), or(lt(signature.length, l), iszero(c))) {
                     t := 0 // Set `t` to 0, denoting that we need to `hash = _hashTypedData(hash)`.
-                    mstore(t, _PERSONAL_SIGN_TYPEHASH)
-                    mstore(0x20, hash) // Store the `prefixed`.
-                    hash := keccak256(t, 0x40) // Compute the `PersonalSign` struct hash.
                     break
                 }
                 // Else, use the `TypedDataSign` workflow.
