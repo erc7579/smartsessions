@@ -105,7 +105,14 @@ library AssociatedArrayLib {
             }
         }
         _set(slot, index, _get(s, account, __length - 1));
+        
         assembly {
+            // clear the last slot
+            // this is the 'unchecked' version of _set(slot, __length - 1, 0) 
+            // as we use length-1 as index, so the check is excessive.
+            // also removes extra -1 and +1 operations
+            sstore(add(slot, mul(0x20, __length)), 0)
+            // store new length
             sstore(slot, sub(__length, 1))
         }
     }
