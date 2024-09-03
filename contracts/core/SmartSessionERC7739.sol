@@ -61,8 +61,10 @@ abstract contract SmartSessionERC7739 is ISmartSession, EIP712 {
     }
 
     /// @dev ERC1271 signature validation (Nested EIP-712 workflow).
-    ///
-    /// This uses ECDSA recovery by default (see: `_erc1271IsValidSignatureNowCalldata`).
+    /// @dev Currently known as ERC-7739 
+    /// https://ethereum-magicians.org/t/erc-7739-readable-typed-signatures-for-smart-accounts/20513
+    /// This forwards signature verification to an appropriate ISessionValidator 
+    /// see: `_erc1271IsValidSignatureNowCalldata`.
     /// It also uses a nested EIP-712 approach to prevent signature replays when a single EOA
     /// owns multiple smart contract accounts,
     /// while still enabling wallet UIs (e.g. Metamask) to show the EIP-712 values.
@@ -104,19 +106,7 @@ abstract contract SmartSessionERC7739 is ISmartSession, EIP712 {
     /// The `APP_DOMAIN_SEPARATOR` and `contents` will be used to verify if `hash` is indeed correct.
     /// __________________________________________________________________________________________
     ///
-    /// For the `PersonalSign` workflow, the final hash will be:
-    /// ```
-    ///     keccak256(\x19\x01 ‖ ACCOUNT_DOMAIN_SEPARATOR ‖
-    ///         hashStruct(PersonalSign({
-    ///             prefixed: keccak256(bytes(\x19Ethereum Signed Message:\n ‖
-    ///                 base10(bytes(someString).length) ‖ someString))
-    ///         }))
-    ///     )
-    /// ```
-    /// where `‖` denotes the concatenation operator for bytes.
-    ///
-    /// The `PersonalSign` type hash will be `keccak256("PersonalSign(bytes prefixed)")`.
-    /// The signature will be `r ‖ s ‖ v`.
+    /// `PersonalSign` is not supported.
     /// __________________________________________________________________________________________
     ///
     /// For demo and typescript code, see:
@@ -191,7 +181,6 @@ abstract contract SmartSessionERC7739 is ISmartSession, EIP712 {
                 // Compute the final hash, corrupted if `contentsName` is invalid.
                 hash := keccak256(0x1e, add(0x42, and(1, d)))
                 signature.length := sub(signature.length, l) // Truncate the signature.
-
                 break
             }
             mstore(0x40, m) // Restore the free memory pointer.
