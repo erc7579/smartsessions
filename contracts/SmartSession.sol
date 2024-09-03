@@ -33,7 +33,7 @@ import { SmartSessionModeLib } from "./lib/SmartSessionModeLib.sol";
 
 /**
  * @title SmartSession
- * @author Filipp Makarov (Biconomy) & zeroknots.eth (Rhinestone)
+ * @author [alphabetically]: Filipp Makarov (Biconomy) & zeroknots.eth (Rhinestone)
  * @dev A collaborative effort between Rhinestone and Biconomy to create a powerful
  *      and flexible session key management system for ERC-4337 and ERC-7579 accounts.
  * SmartSession is an advanced module for ERC-4337 and ERC-7579 compatible smart contract wallets, enabling granular

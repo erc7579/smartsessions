@@ -187,8 +187,8 @@ library HashLib {
         return keccak256(
             abi.encode(
                 ACTION_DATA_TYPEHASH,
-                actionData.actionTargetSelector,
                 actionData.actionTarget,
+                actionData.actionTargetSelector,
                 hashPolicyDataArray(actionData.actionPolicies)
             )
         );
