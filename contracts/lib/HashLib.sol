@@ -48,23 +48,20 @@ bytes32 constant MULTICHAIN_SESSION_TYPEHASH = keccak256(
     )
 );
 
-//0x8b73c3c69bb8fe3d512ecc4cf759cc79239f7b179b0ffacaa9a75d522b39400f
-bytes32 constant _DOMAIN_TYPEHASH = keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
+//0xb2178a58fb1eefb359ecfdd57bb19c0bdd0f4e6eed8547f46600e500ed111af3
+bytes32 constant _DOMAIN_TYPEHASH = keccak256("EIP712Domain(string name)");
 
-// keccak256(abi.encode(_DOMAIN_TYPEHASH, keccak256("SmartSession"), keccak256(""), 0, address(0)));
 // One should use the domain separator below where possible
 // or provide the following EIP712Domain struct to the signTypedData() function
-// Name: "SmartSession" (string)
-// Version: "" (string)
-// ChainId: 0 (uint256)
-// VerifyingContract: address(0) (address)
+// { Name: "SmartSession" (string) }
+// Empty fields: version, chainId, verifyingContract are omitted as per EIP-712
 // it is introduced for compatibility with signTypedData()
 // all the critical data such as chainId and verifyingContract is included
 // in session hashes, so here the mock data compatible accross chains is used
 // see https://docs.metamask.io/wallet/reference/eth_signtypeddata_v4 for details
 
-// 0xa82dd76056d04dc31e30c73f86aa4966336112e8b5e9924bb194526b08c250c1
-bytes32 constant _DOMAIN_SEPARATOR = keccak256(abi.encode(_DOMAIN_TYPEHASH, keccak256("SmartSession"), keccak256(""), 0, address(0)));
+// 0xd3d6531a17d66fe8298e2739fa25e1518863e78860c2af43925f8c41f44734e6
+bytes32 constant _DOMAIN_SEPARATOR = keccak256(abi.encode(_DOMAIN_TYPEHASH, keccak256("SmartSession")));
 
 library HashLib {
     error ChainIdMismatch(uint64 providedChainId);
