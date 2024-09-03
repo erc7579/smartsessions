@@ -22,28 +22,28 @@ string constant MULTI_CHAIN_SESSION_NOTATION = "MultiChainSession(ChainSession[]
 
 bytes32 constant SESSION_TYPEHASH = keccak256(
     abi.encodePacked(
-        bytes(SESSION_NOTATION), bytes(POLICY_DATA_NOTATION), bytes(ACTION_DATA_NOTATION), bytes(ERC7739_DATA_NOTATION)
+        bytes(SESSION_NOTATION), bytes(ACTION_DATA_NOTATION), bytes(ERC7739_DATA_NOTATION), bytes(POLICY_DATA_NOTATION)
     )
 );
 
 bytes32 constant CHAIN_SESSION_TYPEHASH = keccak256(
     abi.encodePacked(
         bytes(CHAIN_SESSION_NOTATION),
-        bytes(SESSION_NOTATION),
-        bytes(POLICY_DATA_NOTATION),
         bytes(ACTION_DATA_NOTATION),
-        bytes(ERC7739_DATA_NOTATION)
+        bytes(ERC7739_DATA_NOTATION),
+        bytes(POLICY_DATA_NOTATION),
+        bytes(SESSION_NOTATION)
     )
 );
 
 bytes32 constant MULTICHAIN_SESSION_TYPEHASH = keccak256(
     abi.encodePacked(
         bytes(MULTI_CHAIN_SESSION_NOTATION),
-        bytes(CHAIN_SESSION_NOTATION),
-        bytes(SESSION_NOTATION),
-        bytes(POLICY_DATA_NOTATION),
         bytes(ACTION_DATA_NOTATION),
-        bytes(ERC7739_DATA_NOTATION)
+        bytes(CHAIN_SESSION_NOTATION),
+        bytes(ERC7739_DATA_NOTATION),
+        bytes(POLICY_DATA_NOTATION),
+        bytes(SESSION_NOTATION)
     )
 );
 
