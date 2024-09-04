@@ -217,10 +217,11 @@ abstract contract SmartSessionERC7739 is ISmartSession, EIP712 {
             string memory name,
             string memory version,
             uint256 chainId,
-            address verifyingContract,
+            /* address verifyingContract*/,
             bytes32 salt,
             uint256[] memory extensions
         ) = eip712Domain();
+        address verifyingContract = msg.sender;
         /// @solidity memory-safe-assembly
         assembly {
             m := mload(0x40) // Grab the free memory pointer.
