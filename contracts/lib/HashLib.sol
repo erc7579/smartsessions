@@ -12,8 +12,16 @@ string constant ACTION_DATA_NOTATION =
 string constant ERC7739_DATA_NOTATION = "ERC7739Data(string[] allowedERC7739Content,PolicyData[] erc1271Policies)";
 
 bytes32 constant POLICY_DATA_TYPEHASH = keccak256(bytes(POLICY_DATA_NOTATION));
-bytes32 constant ACTION_DATA_TYPEHASH = keccak256(bytes(ACTION_DATA_NOTATION));
-bytes32 constant ERC7739_DATA_TYPEHASH = keccak256(bytes(ERC7739_DATA_NOTATION));
+bytes32 constant ACTION_DATA_TYPEHASH = keccak256(
+    abi.encodePacked(
+        bytes(ACTION_DATA_NOTATION), bytes(POLICY_DATA_NOTATION)
+    )
+);
+bytes32 constant ERC7739_DATA_TYPEHASH = keccak256(
+    abi.encodePacked(
+        bytes(ERC7739_DATA_NOTATION), bytes(POLICY_DATA_NOTATION)
+    )
+);
 
 string constant SESSION_NOTATION =
     "Session(address account,address smartSession,uint8 mode,address sessionValidator,bytes32 salt,bytes sessionValidatorInitData,PolicyData[] userOpPolicies,ERC7739Data erc7739Policies,ActionData[] actions,uint256 nonce)";
