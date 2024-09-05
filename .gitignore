@@ -5,6 +5,8 @@ cache_forge/
 cache_forge/*
 cache_forge/solidity-files-cache.json
 
+target/
+
 # Ignores development broadcast logs
 !/broadcast
 /broadcast/*/31337/
@@ -19,7 +21,3 @@ docs/
 
 #Deps
 node_modules/
-
-# Added by cargo
-
-/target
