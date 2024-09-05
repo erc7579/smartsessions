@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity ^0.8.25;
 
-import "contracts/DataTypes.sol";
+import "../DataTypes.sol";
 
 library SubModuleLib {
     error DataTooShort(uint256 length);

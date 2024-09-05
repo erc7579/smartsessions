@@ -5,7 +5,7 @@ import "./utils/AssociatedArrayLib.sol";
 import { IRegistry, ModuleType } from "./interfaces/IRegistry.sol";
 import "./interfaces/ISessionValidator.sol";
 import { EnumerableSet } from "./utils/EnumerableSet4337.sol";
-import { FlatBytesLib } from "@rhinestone/flatbytes/BytesLib.sol";
+import { FlatBytesLib } from "flatbytes/BytesLib.sol";
 
 /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
 /*                       Parameters                           */
