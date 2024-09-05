@@ -108,6 +108,7 @@ fn get_policy() {
 
     println!("policy type: {:?}", data.eip712_type_hash());
     println!("policy data: {:?}", data.eip712_hash_struct());
+
 }
 
 fn get_action() {
@@ -177,6 +178,11 @@ fn get_session() {
     get_action();
     get_erc7739();
     get_session();
+
+
+    println!("{:?}", SessionEIP712::eip712_root_type());
+    println!("{:?}", SessionEIP712::eip712_components());
+    println!("encode data: {:?}", SessionEIP712::eip712_encode_type());
 
 }
 
