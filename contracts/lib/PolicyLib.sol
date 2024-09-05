@@ -11,7 +11,7 @@ import { Execution, ExecutionLib as ExecutionLib } from "./ExecutionLib.sol";
 import { CallType, CALLTYPE_DELEGATECALL, EXECTYPE_DEFAULT, EXECTYPE_TRY } from "erc7579/lib/ModeLib.sol";
 
 import { ERC7579ValidatorBase } from "modulekit/Modules.sol";
-import { ValidationDataLib } from "contracts/lib/ValidationDataLib.sol";
+import { ValidationDataLib } from "../lib/ValidationDataLib.sol";
 import { IActionPolicy, I1271Policy } from "../interfaces/IPolicy.sol";
 import { IdLib } from "./IdLib.sol";
 
