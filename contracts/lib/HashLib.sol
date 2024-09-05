@@ -171,15 +171,12 @@ library HashLib {
         EnableSession memory enableData,
         address account,
         SmartSessionMode mode,
-        uint256 nonce,
         address smartSessions
     )
         internal
         pure
         returns (bytes32 digest)
     {
-        console2.log("hashMultiChainSession");
-        console2.log("nonce", nonce);
         // derive EIP712 digest of the enable data and ALL the chains where this session is valid
         digest = keccak256(
             abi.encode(
@@ -210,6 +207,6 @@ library HashLib {
             revert ChainIdMismatch(uint64(block.chainid));
         }
 
-        digest = hashMultiChainSession(enableData, account, mode, nonce, address(this));
+        digest = hashMultiChainSession(enableData, account, mode, address(this));
     }
 }

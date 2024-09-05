@@ -51,7 +51,7 @@ contract SessionManagementTest is BaseTest {
         enableSessions = _makeMultiChainEnableData(permissionId, session, instance);
 
         bytes32 hash = HashLib.hashMultiChainSession(
-            enableSessions, instance.account, SmartSessionMode.UNSAFE_ENABLE, nonceBefore, address(smartSession)
+            enableSessions, instance.account, SmartSessionMode.UNSAFE_ENABLE, address(smartSession)
         );
 
         console2.log("hasah");
@@ -159,7 +159,7 @@ contract SessionManagementTest is BaseTest {
         uint256 nonceBefore = smartSession.getNonce(permissionId, instance.account);
 
         bytes32 hash = HashLib.hashMultiChainSession(
-            enableSessions, instance.account, SmartSessionMode.UNSAFE_ENABLE, nonceBefore, address(smartSession)
+            enableSessions, instance.account, SmartSessionMode.UNSAFE_ENABLE, address(smartSession)
         );
         enableSessions.permissionEnableSig =
             abi.encodePacked(mockK1, sign(ECDSA.toEthSignedMessageHash(hash), owner.key));
@@ -251,7 +251,7 @@ contract SessionManagementTest is BaseTest {
         EnableSession memory enableSessions = _makeMultiChainEnableData(permissionId, session, instance);
 
         bytes32 hash = HashLib.hashMultiChainSession(
-            enableSessions, instance.account, SmartSessionMode.UNSAFE_ENABLE, nonceBefore, address(smartSession)
+            enableSessions, instance.account, SmartSessionMode.UNSAFE_ENABLE, address(smartSession)
         );
 
         // user signs the enable hash with wallet
