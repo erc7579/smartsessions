@@ -5,45 +5,40 @@ import "../DataTypes.sol";
 import { EfficientHashLib } from "solady/utils/EfficientHashLib.sol";
 import { MessageHashUtils } from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
-// Typehashes
 string constant POLICY_DATA_NOTATION = "PolicyData(address policy,bytes initData)";
-string constant ACTION_DATA_NOTATION =
-    "ActionData(address actionTarget,bytes4 actionTargetSelector,PolicyData[] actionPolicies)";
-string constant ERC7739_DATA_NOTATION = "ERC7739Data(string[] allowedERC7739Content,PolicyData[] erc1271Policies)";
+bytes32 constant POLICY_DATA_TYPEHASH = keccak256(abi.encodePacked(POLICY_DATA_NOTATION));
+string constant ACTION_DATA_NOTATION_RAW =
+    "ActionData(bytes4 actionTargetSelector,address actionTarget,PolicyData[] actionPolicies)";
+bytes32 constant ACTION_DATA_TYPEHASH = keccak256(abi.encodePacked(ACTION_DATA_NOTATION_RAW, POLICY_DATA_NOTATION));
 
-bytes32 constant POLICY_DATA_TYPEHASH = keccak256(bytes(POLICY_DATA_NOTATION));
-bytes32 constant ACTION_DATA_TYPEHASH = keccak256(bytes(ACTION_DATA_NOTATION));
-bytes32 constant ERC7739_DATA_TYPEHASH = keccak256(bytes(ERC7739_DATA_NOTATION));
+string constant ERC7739_DATA_NOTATION_RAW = "ERC7739Data(string[] allowedERC7739Content,PolicyData[] erc1271Policies)";
+bytes32 constant ERC7739_DATA_TYPEHASH = keccak256(abi.encodePacked(ERC7739_DATA_NOTATION_RAW, POLICY_DATA_NOTATION));
 
-string constant SESSION_NOTATION =
-    "Session(address account,address smartSession,uint8 mode,address sessionValidator,bytes32 salt,bytes sessionValidatorInitData,PolicyData[] userOpPolicies,ERC7739Data erc7739Policies,ActionData[] actions,uint256 nonce)";
-string constant CHAIN_SESSION_NOTATION = "ChainSession(uint64 chainId,Session session)";
-string constant MULTI_CHAIN_SESSION_NOTATION = "MultiChainSession(ChainSession[] sessionsAndChainIds)";
-
+string constant SESSION_NOTATION_RAW =
+    "SessionEIP712(address account,address smartSession,uint8 mode,address sessionValidator,bytes32 salt,bytes sessionValidatorInitData,PolicyData[] userOpPolicies,ERC7739Data erc7739Policies,ActionData[] actions,uint256 nonce)";
 bytes32 constant SESSION_TYPEHASH = keccak256(
-    abi.encodePacked(
-        bytes(SESSION_NOTATION), bytes(POLICY_DATA_NOTATION), bytes(ACTION_DATA_NOTATION), bytes(ERC7739_DATA_NOTATION)
-    )
+    abi.encodePacked(SESSION_NOTATION_RAW, ACTION_DATA_NOTATION_RAW, ERC7739_DATA_NOTATION_RAW, POLICY_DATA_NOTATION)
 );
-
+string constant CHAIN_SESSION_NOTATION_RAW = "ChainSessionEIP712(uint64 chainId,SessionEIP712 session)";
 bytes32 constant CHAIN_SESSION_TYPEHASH = keccak256(
     abi.encodePacked(
-        bytes(CHAIN_SESSION_NOTATION),
-        bytes(SESSION_NOTATION),
-        bytes(POLICY_DATA_NOTATION),
-        bytes(ACTION_DATA_NOTATION),
-        bytes(ERC7739_DATA_NOTATION)
+        CHAIN_SESSION_NOTATION_RAW,
+        ACTION_DATA_NOTATION_RAW,
+        ERC7739_DATA_NOTATION_RAW,
+        POLICY_DATA_NOTATION,
+        SESSION_NOTATION_RAW
     )
 );
+string constant MULTICHAIN_SESSION_NOTATION_RAW = "MultiChainSessionEIP712(ChainSessionEIP712[] sessionsAndChainIds)";
 
 bytes32 constant MULTICHAIN_SESSION_TYPEHASH = keccak256(
     abi.encodePacked(
-        bytes(MULTI_CHAIN_SESSION_NOTATION),
-        bytes(CHAIN_SESSION_NOTATION),
-        bytes(SESSION_NOTATION),
-        bytes(POLICY_DATA_NOTATION),
-        bytes(ACTION_DATA_NOTATION),
-        bytes(ERC7739_DATA_NOTATION)
+        MULTICHAIN_SESSION_NOTATION_RAW,
+        ACTION_DATA_NOTATION_RAW,
+        CHAIN_SESSION_NOTATION_RAW,
+        ERC7739_DATA_NOTATION_RAW,
+        POLICY_DATA_NOTATION,
+        SESSION_NOTATION_RAW
     )
 );
 
