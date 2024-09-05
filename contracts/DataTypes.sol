@@ -13,15 +13,16 @@ import { FlatBytesLib } from "@rhinestone/flatbytes/src/BytesLib.sol";
 
 struct EnableSession {
     uint8 chainDigestIndex;
-    ChainDigest[] hashesAndChainIds;
+    ChainSpecific[] chains;
+    // ChainDigest[] hashesAndChainIds;
     Session sessionToEnable;
     // in order to enable a session, the smart account has to sign a digest. The signature for this is stored here.
     bytes permissionEnableSig;
 }
 
-struct ChainDigest {
+struct ChainSpecific {
     uint64 chainId;
-    bytes32 sessionDigest;
+    uint256 nonce;
 }
 
 /**

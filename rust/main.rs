@@ -78,21 +78,22 @@ sol! {
         PolicyData[] userOpPolicies;
         ERC7739Data erc7739Policies;
         ActionData[] actions;
+    }
+
+    #[allow(missing_docs)]
+    #[derive(Serialize)]
+    struct ChainSpecificEIP712 {
+        uint64 chainId;
         uint256 nonce;
     }
 
     #[allow(missing_docs)]
     #[derive(Serialize)]
-    struct ChainSessionEIP712 {
-        uint64 chainId;
+    struct MultiChainSession {
+        ChainSpecificEIP712[] chainSpecifics;
         SessionEIP712 session;
     }
 
-    #[allow(missing_docs)]
-    #[derive(Serialize)]
-    struct MultiChainSessionEIP712 {
-        ChainSessionEIP712[] sessionsAndChainIds;
-    }
 
 }
 
@@ -156,7 +157,6 @@ fn get_session() {
         }],
         account: address!("6605F8785E09a245DD558e55F9A0f4A508434503"),
         mode: 1,
-        nonce: U256::from(0),
         smartSession: address!("6605F8785E09a245DD558e55F9A0f4A508434503"),
     };
 
@@ -180,11 +180,23 @@ fn get_session() {
     get_session();
 
 
-    println!("{:?}", SessionEIP712::eip712_root_type());
-    println!("{:?}", SessionEIP712::eip712_components());
     println!("encode data: {:?}", SessionEIP712::eip712_encode_type());
+    println!("\n");
+    //
+    //
+    // println!("{:?}", ChainSessionEIP712::eip712_root_type());
+    // println!("{:?}", ChainSessionEIP712SessionEIP712::eip712_components());
+    // println!("encode data: {:?}", ChainSessionEIP712::eip712_encode_type());
 
-}
+    println!("{:?}", MultiChainSession::eip712_root_type());
+    println!("\n");
+    println!("{:?}", MultiChainSession::eip712_components());
+    println!("\n");
+    println!("encode data: {:?}", MultiChainSession::eip712_encode_type());
+
+
+
+} 
 
 
 

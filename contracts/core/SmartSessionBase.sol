@@ -318,7 +318,7 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
         returns (bytes32)
     {
         uint256 nonce = $signerNonce[permissionId][account];
-        return data.sessionDigest({ account: account, mode: mode, nonce: nonce });
+        return data._sessionDigest({ account: account, mode: mode, smartSession: address(this) });
     }
 
     function getPermissionId(Session calldata session) public pure returns (PermissionId permissionId) {

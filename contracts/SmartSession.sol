@@ -151,7 +151,7 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
 
         // Increment nonce to prevent replay attacks
         uint256 nonce = $signerNonce[permissionId][account]++;
-        bytes32 hash = enableData.getAndVerifyDigest(account, nonce, mode);
+        bytes32 hash = enableData.getEnableDigest(account, nonce, mode);
 
         // require signature on account
         // this is critical as it is the only way to ensure that the user is aware of the policies and signer

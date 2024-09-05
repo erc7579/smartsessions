@@ -2,8 +2,11 @@
 pragma solidity ^0.8.25;
 
 import "../DataTypes.sol";
+import { ECDSA } from "solady/utils/ECDSA.sol";
 import { EfficientHashLib } from "solady/utils/EfficientHashLib.sol";
 import { MessageHashUtils } from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
+
+import "forge-std/console2.sol";
 
 string constant POLICY_DATA_NOTATION = "PolicyData(address policy,bytes initData)";
 bytes32 constant POLICY_DATA_TYPEHASH = keccak256(abi.encodePacked(POLICY_DATA_NOTATION));
@@ -15,27 +18,21 @@ string constant ERC7739_DATA_NOTATION_RAW = "ERC7739Data(string[] allowedERC7739
 bytes32 constant ERC7739_DATA_TYPEHASH = keccak256(abi.encodePacked(ERC7739_DATA_NOTATION_RAW, POLICY_DATA_NOTATION));
 
 string constant SESSION_NOTATION_RAW =
-    "SessionEIP712(address account,address smartSession,uint8 mode,address sessionValidator,bytes32 salt,bytes sessionValidatorInitData,PolicyData[] userOpPolicies,ERC7739Data erc7739Policies,ActionData[] actions,uint256 nonce)";
+    "SessionEIP712(address account,address smartSession,uint8 mode,address sessionValidator,bytes32 salt,bytes sessionValidatorInitData,PolicyData[] userOpPolicies,ERC7739Data erc7739Policies,ActionData[] actions)";
 bytes32 constant SESSION_TYPEHASH = keccak256(
     abi.encodePacked(SESSION_NOTATION_RAW, ACTION_DATA_NOTATION_RAW, ERC7739_DATA_NOTATION_RAW, POLICY_DATA_NOTATION)
 );
-string constant CHAIN_SESSION_NOTATION_RAW = "ChainSessionEIP712(uint64 chainId,SessionEIP712 session)";
-bytes32 constant CHAIN_SESSION_TYPEHASH = keccak256(
-    abi.encodePacked(
-        CHAIN_SESSION_NOTATION_RAW,
-        ACTION_DATA_NOTATION_RAW,
-        ERC7739_DATA_NOTATION_RAW,
-        POLICY_DATA_NOTATION,
-        SESSION_NOTATION_RAW
-    )
-);
-string constant MULTICHAIN_SESSION_NOTATION_RAW = "MultiChainSessionEIP712(ChainSessionEIP712[] sessionsAndChainIds)";
+
+string constant CHAIN_TUPLE_NOTATION = "ChainSpecificEIP712(uint64 chainId,uint256 nonce)";
+bytes32 constant CHAIN_TUPLE_TYPEHASH = keccak256(abi.encodePacked(CHAIN_TUPLE_NOTATION));
+string constant MULTICHAIN_SESSION_NOTATION =
+    "MultiChainSession(ChainSpecificEIP712[] chainSpecifics,SessionEIP712 session)";
 
 bytes32 constant MULTICHAIN_SESSION_TYPEHASH = keccak256(
     abi.encodePacked(
-        MULTICHAIN_SESSION_NOTATION_RAW,
+        MULTICHAIN_SESSION_NOTATION,
         ACTION_DATA_NOTATION_RAW,
-        CHAIN_SESSION_NOTATION_RAW,
+        CHAIN_TUPLE_NOTATION,
         ERC7739_DATA_NOTATION_RAW,
         POLICY_DATA_NOTATION,
         SESSION_NOTATION_RAW
@@ -66,68 +63,6 @@ library HashLib {
     using HashLib for *;
 
     /**
-     * Mimics SignTypedData() behaviour
-     * 1. hashStruct(Session)
-     * 2. hashStruct(ChainSession)
-     * 3. abi.encodePacked hashStruct's for 2) together
-     * 4. Hash it together with MULTI_CHAIN_SESSION_TYPEHASH
-     * as it was MultiChainSession struct
-     * 5. Add multichain domain separator
-     * This method doest same, just w/o 1. as it is already provided to us as a digest
-     */
-    function multichainDigest(ChainDigest[] memory hashesAndChainIds) internal view returns (bytes32) {
-        bytes32 structHash =
-            keccak256(abi.encode(MULTICHAIN_SESSION_TYPEHASH, hashesAndChainIds.hashChainDigestArray()));
-
-        return MessageHashUtils.toTypedDataHash(_DOMAIN_SEPARATOR, structHash);
-    }
-
-    /**
-     * Hash array of ChainDigest structs
-     */
-    function hashChainDigestArray(ChainDigest[] memory chainDigestArray) internal pure returns (bytes32) {
-        uint256 length = chainDigestArray.length;
-        bytes32[] memory hashes = new bytes32[](length);
-        for (uint256 i; i < length; i++) {
-            hashes[i] = chainDigestArray[i].hashChainDigestMimicRPC();
-        }
-        return keccak256(abi.encodePacked(hashes));
-    }
-
-    /**
-     * We have session digests, not full Session structs
-     * However to mimic signTypedData() behaviour, we need to use CHAIN_SESSION_TYPEHASH
-     * not CHAIN_DIGEST_TYPEHASH. We just use the ready session digest instead of rebuilding it
-     */
-    function hashChainDigestMimicRPC(ChainDigest memory chainDigest) internal pure returns (bytes32) {
-        return keccak256(
-            abi.encode(
-                CHAIN_SESSION_TYPEHASH,
-                chainDigest.chainId,
-                chainDigest.sessionDigest // this is the digest obtained using sessionDigest()
-                    // we just do not rebuild it here for all sessions, but receive it from off-chain
-            )
-        );
-    }
-
-    /**
-     * Hashes the data from the Session struct with some security critical data
-     * such as nonce, account address, smart session address, and mode
-     */
-    function sessionDigest(
-        Session memory session,
-        address account,
-        SmartSessionMode mode,
-        uint256 nonce
-    )
-        internal
-        view
-        returns (bytes32)
-    {
-        return _sessionDigest(session, account, address(this), mode, nonce);
-    }
-
-    /**
      * Should never be used directly on-chain, only via sessionDigest()
      * Only for external use - to be able to pass smartSession when
      * testing for different chains which may have different addresses for
@@ -140,8 +75,7 @@ library HashLib {
         Session memory session,
         address account,
         address smartSession, // for testing purposes
-        SmartSessionMode mode,
-        uint256 nonce
+        SmartSessionMode mode
     )
         internal
         pure
@@ -159,8 +93,7 @@ library HashLib {
                 keccak256(session.sessionValidatorInitData),
                 session.userOpPolicies.hashPolicyDataArray(),
                 session.erc7739Policies.hashERC7739Data(),
-                session.actions.hashActionDataArray(),
-                nonce
+                session.actions.hashActionDataArray()
             )
         );
     }
@@ -221,7 +154,43 @@ library HashLib {
         return keccak256(abi.encodePacked(content));
     }
 
-    function getAndVerifyDigest(
+    function hashChainSpecific(ChainSpecific memory chain) internal pure returns (bytes32) {
+        return keccak256(abi.encode(CHAIN_TUPLE_TYPEHASH, chain.chainId, chain.nonce));
+    }
+
+    function hashChainSpecificArray(ChainSpecific[] memory chains) internal pure returns (bytes32) {
+        uint256 length = chains.length;
+        bytes32[] memory hashes = new bytes32[](length);
+        for (uint256 i; i < length; i++) {
+            hashes[i] = hashChainSpecific(chains[i]);
+        }
+        return keccak256(abi.encodePacked(hashes));
+    }
+
+    function hashMultiChainSession(
+        EnableSession memory enableData,
+        address account,
+        SmartSessionMode mode,
+        uint256 nonce,
+        address smartSessions
+    )
+        internal
+        pure
+        returns (bytes32 digest)
+    {
+        console2.log("hashMultiChainSession");
+        console2.log("nonce", nonce);
+        // derive EIP712 digest of the enable data and ALL the chains where this session is valid
+        digest = keccak256(
+            abi.encode(
+                MULTICHAIN_SESSION_TYPEHASH,
+                hashChainSpecificArray(enableData.chains),
+                _sessionDigest(enableData.sessionToEnable, account, address(smartSessions), mode)
+            )
+        );
+    }
+
+    function getEnableDigest(
         EnableSession memory enableData,
         address account,
         uint256 nonce,
@@ -231,21 +200,16 @@ library HashLib {
         view
         returns (bytes32 digest)
     {
-        bytes32 computedHash = enableData.sessionToEnable.sessionDigest(account, mode, nonce);
-
-        uint64 providedChainId = enableData.hashesAndChainIds[enableData.chainDigestIndex].chainId;
-        bytes32 providedHash = enableData.hashesAndChainIds[enableData.chainDigestIndex].sessionDigest;
-
-        if (providedChainId != block.chainid) {
-            revert ChainIdMismatch(providedChainId);
+        // ensure that the current chainid is part of the digest
+        if (block.chainid != enableData.chains[enableData.chainDigestIndex].chainId) {
+            revert ChainIdMismatch(uint64(block.chainid));
         }
 
-        // ensure digest we've built from the sessionToEnable is included into
-        // the list of digests that were signed
-        if (providedHash != computedHash) {
-            revert HashMismatch(providedHash, computedHash);
+        // ensure that the nonce for this chainId is the current nonce
+        if (nonce != enableData.chains[enableData.chainDigestIndex].nonce) {
+            revert ChainIdMismatch(uint64(block.chainid));
         }
 
-        digest = enableData.hashesAndChainIds.multichainDigest();
+        digest = hashMultiChainSession(enableData, account, mode, nonce, address(this));
     }
 }

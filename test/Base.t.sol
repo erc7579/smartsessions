@@ -31,7 +31,7 @@ import { MockK1Validator } from "test/mock/MockK1Validator.sol";
 import { UserOperationBuilder } from "test/mock/erc7679/UserOpBuilder.sol";
 import { ModeLib, ModeCode as ExecutionMode } from "erc7579/lib/ModeLib.sol";
 import { HashLib } from "contracts/lib/HashLib.sol";
-import { TestHashLib } from "test/utils/TestHashLib.sol";
+// import { TestHashLib } from "test/utils/TestHashLib.sol";
 
 import "forge-std/console2.sol";
 
@@ -146,30 +146,20 @@ contract BaseTest is RhinestoneModuleKit, Test {
     function _makeMultiChainEnableData(
         PermissionId permissionId,
         Session memory session,
-        AccountInstance memory instance,
-        SmartSessionMode mode
+        AccountInstance memory instance
     )
         internal
         view
         returns (EnableSession memory enableData)
     {
-        bytes32 sessionDigest = smartSession.getSessionDigest({
-            permissionId: permissionId,
-            account: instance.account,
-            data: session,
-            mode: mode
+        ChainSpecific[] memory chains = new ChainSpecific[](2);
+        chains[0] = ChainSpecific({
+            chainId: uint64(block.chainid),
+            nonce: smartSession.getNonce(permissionId, instance.account)
         });
+        chains[1] = ChainSpecific({ chainId: uint64(1234), nonce: 0 });
 
-        ChainDigest[] memory chainDigests = EncodeLib.encodeHashesAndChainIds(
-            Solarray.uint64s(181_818, uint64(block.chainid), 777),
-            Solarray.bytes32s(sessionDigest, sessionDigest, sessionDigest)
-        );
-
-        enableData = EnableSession({
-            chainDigestIndex: 1,
-            hashesAndChainIds: chainDigests,
-            sessionToEnable: session,
-            permissionEnableSig: ""
-        });
+        enableData =
+            EnableSession({ chainDigestIndex: 0, chains: chains, sessionToEnable: session, permissionEnableSig: "" });
     }
 }

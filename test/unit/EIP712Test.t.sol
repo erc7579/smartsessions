@@ -5,11 +5,11 @@ import "contracts/DataTypes.sol";
 contract Helper {
     using HashLib for *;
 
-    function hash(Session memory session) public returns (bytes32 hash) {
-        hash = session.sessionDigest({
+    function hash(Session memory session, address smartSession) public returns (bytes32 hash) {
+        hash = session._sessionDigest({
             account: address(0x6605F8785E09a245DD558e55F9A0f4A508434503),
             mode: SmartSessionMode.ENABLE,
-            nonce: 0
+            smartSession: smartSession
         });
     }
 }
@@ -27,20 +27,11 @@ contract EIP712Test is Test {
     }
 
     function test_type_notation() public {
-        // test multichain hash
-        string memory expectedMultiChainSessionTypeHash =
-            "MultiChainSessionEIP712(ChainSessionEIP712[] sessionsAndChainIds)ActionData(bytes4 actionTargetSelector,address actionTarget,PolicyData[] actionPolicies)ChainSessionEIP712(uint64 chainId,SessionEIP712 session)ERC7739Data(string[] allowedERC7739Content,PolicyData[] erc1271Policies)PolicyData(address policy,bytes initData)SessionEIP712(address account,address smartSession,uint8 mode,address sessionValidator,bytes32 salt,bytes sessionValidatorInitData,PolicyData[] userOpPolicies,ERC7739Data erc7739Policies,ActionData[] actions,uint256 nonce)";
-        bytes32 hash = keccak256(abi.encodePacked(expectedMultiChainSessionTypeHash));
-        assertEq(hash, MULTICHAIN_SESSION_TYPEHASH);
-
-        string memory expectedChainSession =
-            "ChainSessionEIP712(uint64 chainId,SessionEIP712 session)ActionData(bytes4 actionTargetSelector,address actionTarget,PolicyData[] actionPolicies)ERC7739Data(string[] allowedERC7739Content,PolicyData[] erc1271Policies)PolicyData(address policy,bytes initData)SessionEIP712(address account,address smartSession,uint8 mode,address sessionValidator,bytes32 salt,bytes sessionValidatorInitData,PolicyData[] userOpPolicies,ERC7739Data erc7739Policies,ActionData[] actions,uint256 nonce)";
-        hash = keccak256(abi.encodePacked(expectedChainSession));
-        assertEq(hash, CHAIN_SESSION_TYPEHASH);
+        // bytes32 hash;
 
         string memory expectedSession =
-            "SessionEIP712(address account,address smartSession,uint8 mode,address sessionValidator,bytes32 salt,bytes sessionValidatorInitData,PolicyData[] userOpPolicies,ERC7739Data erc7739Policies,ActionData[] actions,uint256 nonce)ActionData(bytes4 actionTargetSelector,address actionTarget,PolicyData[] actionPolicies)ERC7739Data(string[] allowedERC7739Content,PolicyData[] erc1271Policies)PolicyData(address policy,bytes initData)";
-        hash = keccak256(abi.encodePacked(expectedSession));
+            "SessionEIP712(address account,address smartSession,uint8 mode,address sessionValidator,bytes32 salt,bytes sessionValidatorInitData,PolicyData[] userOpPolicies,ERC7739Data erc7739Policies,ActionData[] actions)ActionData(bytes4 actionTargetSelector,address actionTarget,PolicyData[] actionPolicies)ERC7739Data(string[] allowedERC7739Content,PolicyData[] erc1271Policies)PolicyData(address policy,bytes initData)";
+        bytes32 hash = keccak256(abi.encodePacked(expectedSession));
         assertEq(hash, SESSION_TYPEHASH);
     }
 
@@ -75,7 +66,7 @@ contract EIP712Test is Test {
 
         assertEq(hash, expected_hash);
     }
- 
+
     function test_erc7739_hash() public {
         bytes32 expected_typehash = 0xdd8bf2f9b88fa557b2cb00ffd37dc4a3b8f3ff1d0d9e03c6f7c183f38869e91d;
         assertEq(expected_typehash, ERC7739_DATA_TYPEHASH);
@@ -108,11 +99,12 @@ contract EIP712Test is Test {
             actions: actions
         });
 
-        bytes32 expected_typehash = 0x45f5f60cec99c2d0a0198ec513b02d6926b8ec63dfaf7e9afba954108dd97ebd;
-        assertEq(expected_typehash, SESSION_TYPEHASH);
+        bytes32 expected_typehash = 0x284c8dba379f7e914afbc9f8af8cab0b36caa213e4633bf850e7ebbd1f31a438;
+        assertEq(expected_typehash, SESSION_TYPEHASH, "typehash");
 
-        bytes32 hash = helper.hash(session);
-        bytes32 expected_hash = 0x34d50dad7b10ff2a2d69fdf4e07806ab4e6f444e8902b02c859c4e0ebdc63b3e;
+        bytes32 hash = helper.hash(session, address(0x6605F8785E09a245DD558e55F9A0f4A508434503));
+
+        bytes32 expected_hash = 0x2ddf735a24b4b2a5866919f3de993e3b0e5481f67c08d98b8358f9bf9f749300;
         assertEq(hash, expected_hash, "hash fn borked");
     }
 }

@@ -66,5 +66,4 @@ contract Multichain712DigestTest is BaseTest {
 
         assertEq(fullHash, mimicHash);
     }
-
 }

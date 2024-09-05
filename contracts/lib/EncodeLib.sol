@@ -81,23 +81,23 @@ library EncodeLib {
         context = abi.encodePacked(nonceKey, mode, permissionId, abi.encode(enableData));
     }
 
-    function encodeHashesAndChainIds(
-        uint64[] memory chainIds,
-        bytes32[] memory hashes
-    )
-        internal
-        pure
-        returns (ChainDigest[] memory)
-    {
-        uint256 length = chainIds.length;
-        if (length != hashes.length) {
-            revert ChainIdAndHashesLengthMismatch(length, hashes.length);
-        }
-
-        ChainDigest[] memory hashesAndChainIds = new ChainDigest[](length);
-        for (uint256 i; i < length; i++) {
-            hashesAndChainIds[i] = ChainDigest({ chainId: chainIds[i], sessionDigest: hashes[i] });
-        }
-        return hashesAndChainIds;
-    }
+    // function encodeHashesAndChainIds(
+    //     uint64[] memory chainIds,
+    //     bytes32[] memory hashes
+    // )
+    //     internal
+    //     pure
+    //     returns (ChainDigest[] memory)
+    // {
+    //     uint256 length = chainIds.length;
+    //     if (length != hashes.length) {
+    //         revert ChainIdAndHashesLengthMismatch(length, hashes.length);
+    //     }
+    //
+    //     ChainDigest[] memory hashesAndChainIds = new ChainDigest[](length);
+    //     for (uint256 i; i < length; i++) {
+    //         hashesAndChainIds[i] = ChainDigest({ chainId: chainIds[i], sessionDigest: hashes[i] });
+    //     }
+    //     return hashesAndChainIds;
+    // }
 }
