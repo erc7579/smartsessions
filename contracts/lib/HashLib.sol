@@ -59,7 +59,7 @@ library HashLib {
     error ChainIdMismatch(uint64 providedChainId);
     error HashMismatch(bytes32 providedHash, bytes32 computedHash);
 
-    using EfficientHashLib for bytes32;
+    using EfficientHashLib for *;
     using HashLib for *;
 
     /**
@@ -98,17 +98,17 @@ library HashLib {
         );
     }
 
-    function hashPolicyData(PolicyData memory policyData) internal pure returns (bytes32) {
+    function hashPolicyData(PolicyData memory policyData) internal pure returns (bytes32 hash) {
         return keccak256(abi.encode(POLICY_DATA_TYPEHASH, policyData.policy, keccak256(policyData.initData)));
     }
 
     function hashPolicyDataArray(PolicyData[] memory policyDataArray) internal pure returns (bytes32) {
         uint256 length = policyDataArray.length;
-        bytes32[] memory hashes = new bytes32[](length);
+        bytes32[] memory a = EfficientHashLib.malloc(length);
         for (uint256 i; i < length; i++) {
-            hashes[i] = policyDataArray[i].hashPolicyData();
+            a.set(i, policyDataArray[i].hashPolicyData());
         }
-        return keccak256(abi.encodePacked(hashes));
+        return a.hash();
     }
 
     function hashActionData(ActionData memory actionData) internal pure returns (bytes32) {
@@ -124,30 +124,28 @@ library HashLib {
 
     function hashActionDataArray(ActionData[] memory actionDataArray) internal pure returns (bytes32) {
         uint256 length = actionDataArray.length;
-        bytes32[] memory hashes = new bytes32[](length);
+        bytes32[] memory a = EfficientHashLib.malloc(length);
         for (uint256 i; i < length; i++) {
-            hashes[i] = actionDataArray[i].hashActionData();
+            a.set(i, actionDataArray[i].hashActionData());
         }
-        return keccak256(abi.encodePacked(hashes));
+        return a.hash();
     }
 
-    function hashERC7739Data(ERC7739Data memory erc7739Data) internal pure returns (bytes32) {
-        return keccak256(
-            abi.encode(
-                ERC7739_DATA_TYPEHASH,
-                erc7739Data.allowedERC7739Content.hashStringArray(),
-                erc7739Data.erc1271Policies.hashPolicyDataArray()
-            )
-        );
+    function hashERC7739Data(ERC7739Data memory erc7739Data) internal pure returns (bytes32 hash) {
+        bytes32[] memory a = EfficientHashLib.malloc(3);
+        a.set(0, ERC7739_DATA_TYPEHASH);
+        a.set(1, erc7739Data.allowedERC7739Content.hashStringArray());
+        a.set(2, erc7739Data.erc1271Policies.hashPolicyDataArray());
+        hash = a.hash();
     }
 
-    function hashStringArray(string[] memory stringArray) internal pure returns (bytes32) {
+    function hashStringArray(string[] memory stringArray) internal pure returns (bytes32 hash) {
         uint256 length = stringArray.length;
-        bytes32[] memory hashes = new bytes32[](length);
+        bytes32[] memory a = EfficientHashLib.malloc(length);
         for (uint256 i; i < length; i++) {
-            hashes[i] = keccak256(abi.encodePacked(stringArray[i]));
+            a.set(i, keccak256(abi.encodePacked(stringArray[i])));
         }
-        return keccak256(abi.encodePacked(hashes));
+        hash = a.hash();
     }
 
     function hashERC7739Content(string memory content) internal pure returns (bytes32) {
@@ -158,13 +156,13 @@ library HashLib {
         return keccak256(abi.encode(CHAIN_TUPLE_TYPEHASH, chain.chainId, chain.nonce));
     }
 
-    function hashChainSpecificArray(ChainSpecific[] memory chains) internal pure returns (bytes32) {
+    function hashChainSpecificArray(ChainSpecific[] memory chains) internal pure returns (bytes32 hash) {
         uint256 length = chains.length;
-        bytes32[] memory hashes = new bytes32[](length);
+        bytes32[] memory a = EfficientHashLib.malloc(length);
         for (uint256 i; i < length; i++) {
-            hashes[i] = hashChainSpecific(chains[i]);
+            a.set(i, hashChainSpecific(chains[i]));
         }
-        return keccak256(abi.encodePacked(hashes));
+        hash = a.hash();
     }
 
     function hashMultiChainSession(
@@ -177,14 +175,11 @@ library HashLib {
         pure
         returns (bytes32 digest)
     {
-        // derive EIP712 digest of the enable data and ALL the chains where this session is valid
-        digest = keccak256(
-            abi.encode(
-                MULTICHAIN_SESSION_TYPEHASH,
-                hashChainSpecificArray(enableData.chains),
-                _sessionDigest(enableData.sessionToEnable, account, address(smartSessions), mode)
-            )
-        );
+        bytes32[] memory a = EfficientHashLib.malloc(3);
+        a.set(0, MULTICHAIN_SESSION_TYPEHASH);
+        a.set(1, hashChainSpecificArray(enableData.chains));
+        a.set(2, _sessionDigest(enableData.sessionToEnable, account, smartSessions, mode));
+        digest = a.hash();
     }
 
     function getEnableDigest(
