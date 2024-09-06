@@ -283,7 +283,8 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
         uint256 configIdsCnt = $enabledSessions.length({ account: msg.sender });
 
         for (uint256 i; i < configIdsCnt; i++) {
-            PermissionId configId = PermissionId.wrap($enabledSessions.at({ account: msg.sender, index: i }));
+            // always remove index 0 since the array is shifted down when the first item is removed
+            PermissionId configId = PermissionId.wrap($enabledSessions.at({ account: msg.sender, index: 0 }));
             removeSession(configId);
         }
     }
