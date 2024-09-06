@@ -8,13 +8,13 @@ import { ConfigLib } from "../lib/ConfigLib.sol";
 import { EncodeLib } from "../lib/EncodeLib.sol";
 import { PolicyLib } from "../lib/PolicyLib.sol";
 import { IdLib } from "../lib/IdLib.sol";
-import { HashLib } from "../lib/HashLib.sol";
+import { TypeHashLib } from "../lib/HashLib.sol";
 import { NonceManager } from "./NonceManager.sol";
 
 abstract contract SmartSessionBase is ISmartSession, NonceManager {
     using EnumerableSet for EnumerableSet.Bytes32Set;
     using EnumerableSet for EnumerableSet.AddressSet;
-    using HashLib for Session;
+    using TypeHashLib for Session;
     using PolicyLib for *;
     using ConfigLib for *;
     using EncodeLib for *;
@@ -318,7 +318,7 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
         returns (bytes32)
     {
         uint256 nonce = $signerNonce[permissionId][account];
-        return data._sessionDigest({ account: account, mode: mode, smartSession: address(this) });
+        return data.hash({ account: account, mode: mode, smartSession: address(this) });
     }
 
     function getPermissionId(Session calldata session) public pure returns (PermissionId permissionId) {

@@ -4,9 +4,10 @@ import "contracts/DataTypes.sol";
 
 contract Helper {
     using HashLib for *;
+    using TypeHashLib for *;
 
     function hash(Session memory session, address smartSession) public returns (bytes32 hash) {
-        hash = session._sessionDigest({
+        hash = session.hash({
             account: address(0x6605F8785E09a245DD558e55F9A0f4A508434503),
             mode: SmartSessionMode.ENABLE,
             smartSession: smartSession
@@ -16,6 +17,7 @@ contract Helper {
 
 contract EIP712Test is Test {
     using HashLib for *;
+    using TypeHashLib for *;
 
     Helper helper;
 
@@ -42,7 +44,7 @@ contract EIP712Test is Test {
         PolicyData memory policyData =
             PolicyData({ policy: address(0xf022051bEB9E8848e99f47D3eD1397CEEfBF3d4F), initData: "" });
 
-        bytes32 hash = policyData.hashPolicyData();
+        bytes32 hash = policyData.hash();
         bytes32 expected_hash = 0x531c8f7eafebd3a565ad77225700ee7551c4c552b8e8a8417710ec2aa7990e9d;
         assertEq(hash, expected_hash);
 
@@ -61,7 +63,7 @@ contract EIP712Test is Test {
 
         bytes32 expected_typehash = 0x35809859dccf8877c407a59527c2f00fb81ca9c198ebcb0c832c3deaa38d3502;
         assertEq(expected_typehash, ACTION_DATA_TYPEHASH);
-        bytes32 hash = actionData.hashActionData();
+        bytes32 hash = actionData.hash();
         bytes32 expected_hash = 0xe7fd3595c8793c559219f8cfb42f912d7e5f196fdc8db29bbdb718127fbed2e4;
 
         assertEq(hash, expected_hash);
@@ -74,7 +76,7 @@ contract EIP712Test is Test {
         ERC7739Data memory erc7739Data =
             ERC7739Data({ allowedERC7739Content: new string[](0), erc1271Policies: new PolicyData[](0) });
 
-        bytes32 hash = erc7739Data.hashERC7739Data();
+        bytes32 hash = erc7739Data.hash();
         bytes32 expected_hash = 0x8c545c4d32b39dca5fd67d3d0e06888953f56f2061b24a1abd1b918ec92377d2;
         assertEq(hash, expected_hash);
     }

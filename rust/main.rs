@@ -90,6 +90,7 @@ sol! {
     #[allow(missing_docs)]
     #[derive(Serialize)]
     struct MultiChainSession {
+        bytes32 permissionId;
         ChainSpecificEIP712[] chainSpecifics;
         SessionEIP712 session;
     }

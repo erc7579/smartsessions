@@ -27,7 +27,7 @@ import { PolicyLib } from "./lib/PolicyLib.sol";
 import { SignerLib } from "./lib/SignerLib.sol";
 import { ConfigLib } from "./lib/ConfigLib.sol";
 import { EncodeLib } from "./lib/EncodeLib.sol";
-import { HashLib } from "./lib/HashLib.sol";
+import { HashLib, TypeHashLib } from "./lib/HashLib.sol";
 import { IdLib } from "./lib/IdLib.sol";
 import { SmartSessionModeLib } from "./lib/SmartSessionModeLib.sol";
 
@@ -50,7 +50,8 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
     using EnumerableSet for EnumerableSet.Bytes32Set;
     using SmartSessionModeLib for SmartSessionMode;
     using IdLib for *;
-    using HashLib for *;
+    using HashLib for EnableSession;
+    using TypeHashLib for string;
     using PolicyLib for *;
     using SignerLib for *;
     using ConfigLib for *;
@@ -151,7 +152,8 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
 
         // Increment nonce to prevent replay attacks
         uint256 nonce = $signerNonce[permissionId][account]++;
-        bytes32 hash = enableData.getEnableDigest(account, nonce, mode);
+        bytes32 hash =
+            enableData.getEnableDigest({ permissionId: permissionId, account: account, nonce: nonce, mode: mode });
 
         // require signature on account
         // this is critical as it is the only way to ensure that the user is aware of the policies and signer
@@ -386,7 +388,7 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
         override
         returns (bool valid)
     {
-        bytes32 contentHash = string(contents).hashERC7739Content();
+        bytes32 contentHash = string(contents).hash();
         PermissionId permissionId = PermissionId.wrap(bytes32(signature[0:32]));
         signature = signature[32:];
         if (!$enabledERC7739Content[permissionId].contains(msg.sender, contentHash)) return false;

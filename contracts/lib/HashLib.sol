@@ -6,37 +6,26 @@ import { ECDSA } from "solady/utils/ECDSA.sol";
 import { EfficientHashLib } from "solady/utils/EfficientHashLib.sol";
 import { MessageHashUtils } from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
-import "forge-std/console2.sol";
+string constant POLICY_DATA = "PolicyData(address policy,bytes initData)";
+bytes32 constant POLICY_DATA_TYPEHASH = keccak256(abi.encodePacked(POLICY_DATA));
 
-string constant POLICY_DATA_NOTATION = "PolicyData(address policy,bytes initData)";
-bytes32 constant POLICY_DATA_TYPEHASH = keccak256(abi.encodePacked(POLICY_DATA_NOTATION));
-string constant ACTION_DATA_NOTATION_RAW =
-    "ActionData(bytes4 actionTargetSelector,address actionTarget,PolicyData[] actionPolicies)";
-bytes32 constant ACTION_DATA_TYPEHASH = keccak256(abi.encodePacked(ACTION_DATA_NOTATION_RAW, POLICY_DATA_NOTATION));
+string constant ACTION_DATA = "ActionData(bytes4 actionTargetSelector,address actionTarget,PolicyData[] actionPolicies)";
+bytes32 constant ACTION_DATA_TYPEHASH = keccak256(abi.encodePacked(ACTION_DATA, POLICY_DATA));
 
-string constant ERC7739_DATA_NOTATION_RAW = "ERC7739Data(string[] allowedERC7739Content,PolicyData[] erc1271Policies)";
-bytes32 constant ERC7739_DATA_TYPEHASH = keccak256(abi.encodePacked(ERC7739_DATA_NOTATION_RAW, POLICY_DATA_NOTATION));
+string constant ERC7739_DATA = "ERC7739Data(string[] allowedERC7739Content,PolicyData[] erc1271Policies)";
+bytes32 constant ERC7739_DATA_TYPEHASH = keccak256(abi.encodePacked(ERC7739_DATA, POLICY_DATA));
 
-string constant SESSION_NOTATION_RAW =
+string constant SESSION_DATA =
     "SessionEIP712(address account,address smartSession,uint8 mode,address sessionValidator,bytes32 salt,bytes sessionValidatorInitData,PolicyData[] userOpPolicies,ERC7739Data erc7739Policies,ActionData[] actions)";
-bytes32 constant SESSION_TYPEHASH = keccak256(
-    abi.encodePacked(SESSION_NOTATION_RAW, ACTION_DATA_NOTATION_RAW, ERC7739_DATA_NOTATION_RAW, POLICY_DATA_NOTATION)
-);
+bytes32 constant SESSION_TYPEHASH = keccak256(abi.encodePacked(SESSION_DATA, ACTION_DATA, ERC7739_DATA, POLICY_DATA));
 
-string constant CHAIN_TUPLE_NOTATION = "ChainSpecificEIP712(uint64 chainId,uint256 nonce)";
-bytes32 constant CHAIN_TUPLE_TYPEHASH = keccak256(abi.encodePacked(CHAIN_TUPLE_NOTATION));
-string constant MULTICHAIN_SESSION_NOTATION =
-    "MultiChainSession(ChainSpecificEIP712[] chainSpecifics,SessionEIP712 session)";
+string constant CHAIN_EIP712_TUPLE = "ChainSpecificEIP712(uint64 chainId,uint256 nonce)";
+bytes32 constant CHAIN_TUPLE_TYPEHASH = keccak256(abi.encodePacked(CHAIN_EIP712_TUPLE));
+string constant MULTI_CHAIN_SESSION =
+    "MultiChainSession(bytes32 permissionId,ChainSpecificEIP712[] chainSpecifics,SessionEIP712 session)";
 
 bytes32 constant MULTICHAIN_SESSION_TYPEHASH = keccak256(
-    abi.encodePacked(
-        MULTICHAIN_SESSION_NOTATION,
-        ACTION_DATA_NOTATION_RAW,
-        CHAIN_TUPLE_NOTATION,
-        ERC7739_DATA_NOTATION_RAW,
-        POLICY_DATA_NOTATION,
-        SESSION_NOTATION_RAW
-    )
+    abi.encodePacked(MULTI_CHAIN_SESSION, ACTION_DATA, CHAIN_EIP712_TUPLE, ERC7739_DATA, POLICY_DATA, SESSION_DATA)
 );
 
 /// @dev `keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)")`.
@@ -54,6 +43,54 @@ bytes32 constant _DOMAIN_TYPEHASH = 0x8b73c3c69bb8fe3d512ecc4cf759cc79239f7b179b
 // in session hashes
 // https://docs.metamask.io/wallet/reference/eth_signtypeddata_v4
 bytes32 constant _DOMAIN_SEPARATOR = 0xa82dd76056d04dc31e30c73f86aa4966336112e8b5e9924bb194526b08c250c1;
+/**
+ *
+ * +------------------------+
+ * | MultiChainSession      |
+ * +------------------------+
+ * | bytes32 permissionId   |        one MultiChainSession can be valid on multiple chains
+ * | ChainSpecificEIP712[]  |--------------------------------------+------------------------+
+ * | SessionEIP712          |--+                                   | ChainSpecificEIP712    |
+ * +------------------------+  |                                   +------------------------+
+ *                             |                                   | uint64 chainId         |
+ *   +-------------------------+                                   | uint256 nonce          |
+ *   |                                                             +------------------------+
+ *   v
+ * +------------------------+
+ * | SessionEIP712          |
+ * +------------------------+
+ * | address account         |
+ * | address smartSession    |
+ * | uint8 mode              |
+ * | address sessionValidator|
+ * | bytes32 salt            |
+ * | bytes initData          |
+ * | PolicyData[] userOp     |--------------------------------------+------------------------+
+ * | ERC7739Data             |---------+                            | PolicyData             |
+ * | ActionData[]            |--+      |                            +------------------------+
+ * +------------------------+   |      |                            | address policy         |
+ *                              |      |                            | bytes initData         |
+ *   +-------------------------+       |                            +------------------------+
+ *   |                                 |                              ^
+ *   v                                 |                              |
+ * +------------------------+          |                              |
+ * | ActionData             |          |                              |
+ * +------------------------+          |                              |
+ * | bytes4 selector        |          |                              |
+ * | address target         |          |                              |
+ * | PolicyData[]           |-----------------------------------------+
+ * +------------------------+          |                              |
+ *                                     |                              |
+ *   +------------------------------- +                               |
+ *   |                                                                |
+ *   v                                                                |
+ * +------------------------+                                         |
+ * | ERC7739Data            |                                         |
+ * +------------------------+                                         |
+ * | string[] allowed       |                                         |
+ * | PolicyData[]           |-----------------------------------------+
+ * +------------------------+
+ */
 
 library HashLib {
     error ChainIdMismatch(uint64 providedChainId);
@@ -61,17 +98,58 @@ library HashLib {
 
     using EfficientHashLib for *;
     using HashLib for *;
+    using TypeHashLib for *;
 
-    /**
-     * Should never be used directly on-chain, only via sessionDigest()
-     * Only for external use - to be able to pass smartSession when
-     * testing for different chains which may have different addresses for
-     * the Smart Session contract
-     * It is exactly how signTypedData will hash such an object
-     * when this object is an inner struct
-     * It won't use eip712 domain for it as it is inner struct
-     */
-    function _sessionDigest(
+    function hash(
+        EnableSession memory enableData,
+        PermissionId permissionId,
+        address account,
+        SmartSessionMode mode,
+        address smartSession
+    )
+        internal
+        pure
+        returns (bytes32 digest)
+    {
+        bytes32[] memory a = EfficientHashLib.malloc(4);
+        a.set(0, MULTICHAIN_SESSION_TYPEHASH);
+        a.set(1, PermissionId.unwrap(permissionId));
+        a.set(2, enableData.chains.hash());
+        a.set(3, enableData.sessionToEnable.hash(account, smartSession, mode));
+        digest = a.hash();
+    }
+
+    function getEnableDigest(
+        EnableSession memory enableData,
+        PermissionId permissionId,
+        address account,
+        uint256 nonce,
+        SmartSessionMode mode
+    )
+        internal
+        view
+        returns (bytes32 digest)
+    {
+        // ensure that the current chainid is part of the digest
+        if (block.chainid != enableData.chains[enableData.chainDigestIndex].chainId) {
+            revert ChainIdMismatch(uint64(block.chainid));
+        }
+
+        // ensure that the nonce for this chainId is the current nonce
+        if (nonce != enableData.chains[enableData.chainDigestIndex].nonce) {
+            revert ChainIdMismatch(uint64(block.chainid));
+        }
+
+        digest =
+            enableData.hash({ permissionId: permissionId, account: account, mode: mode, smartSession: address(this) });
+    }
+}
+
+library TypeHashLib {
+    using TypeHashLib for *;
+    using EfficientHashLib for *;
+
+    function hash(
         Session memory session,
         address account,
         address smartSession, // for testing purposes
@@ -91,117 +169,77 @@ library HashLib {
                 address(session.sessionValidator),
                 session.salt,
                 keccak256(session.sessionValidatorInitData),
-                session.userOpPolicies.hashPolicyDataArray(),
-                session.erc7739Policies.hashERC7739Data(),
-                session.actions.hashActionDataArray()
+                session.userOpPolicies.hash(),
+                session.erc7739Policies.hash(),
+                session.actions.hash()
             )
         );
     }
 
-    function hashPolicyData(PolicyData memory policyData) internal pure returns (bytes32 hash) {
+    function hash(PolicyData memory policyData) internal pure returns (bytes32 _hash) {
         return keccak256(abi.encode(POLICY_DATA_TYPEHASH, policyData.policy, keccak256(policyData.initData)));
     }
 
-    function hashPolicyDataArray(PolicyData[] memory policyDataArray) internal pure returns (bytes32) {
+    function hash(PolicyData[] memory policyDataArray) internal pure returns (bytes32) {
         uint256 length = policyDataArray.length;
         bytes32[] memory a = EfficientHashLib.malloc(length);
         for (uint256 i; i < length; i++) {
-            a.set(i, policyDataArray[i].hashPolicyData());
+            a.set(i, policyDataArray[i].hash());
         }
         return a.hash();
     }
 
-    function hashActionData(ActionData memory actionData) internal pure returns (bytes32) {
+    function hash(ActionData memory actionData) internal pure returns (bytes32) {
         return keccak256(
             abi.encode(
                 ACTION_DATA_TYPEHASH,
                 actionData.actionTargetSelector,
                 actionData.actionTarget,
-                hashPolicyDataArray(actionData.actionPolicies)
+                actionData.actionPolicies.hash()
             )
         );
     }
 
-    function hashActionDataArray(ActionData[] memory actionDataArray) internal pure returns (bytes32) {
+    function hash(ActionData[] memory actionDataArray) internal pure returns (bytes32) {
         uint256 length = actionDataArray.length;
         bytes32[] memory a = EfficientHashLib.malloc(length);
         for (uint256 i; i < length; i++) {
-            a.set(i, actionDataArray[i].hashActionData());
+            a.set(i, actionDataArray[i].hash());
         }
         return a.hash();
     }
 
-    function hashERC7739Data(ERC7739Data memory erc7739Data) internal pure returns (bytes32 hash) {
+    function hash(ERC7739Data memory erc7739Data) internal pure returns (bytes32 _hash) {
         bytes32[] memory a = EfficientHashLib.malloc(3);
         a.set(0, ERC7739_DATA_TYPEHASH);
-        a.set(1, erc7739Data.allowedERC7739Content.hashStringArray());
-        a.set(2, erc7739Data.erc1271Policies.hashPolicyDataArray());
-        hash = a.hash();
+        a.set(1, erc7739Data.allowedERC7739Content.hash());
+        a.set(2, erc7739Data.erc1271Policies.hash());
+        _hash = a.hash();
     }
 
-    function hashStringArray(string[] memory stringArray) internal pure returns (bytes32 hash) {
+    function hash(string[] memory stringArray) internal pure returns (bytes32 _hash) {
         uint256 length = stringArray.length;
         bytes32[] memory a = EfficientHashLib.malloc(length);
         for (uint256 i; i < length; i++) {
             a.set(i, keccak256(abi.encodePacked(stringArray[i])));
         }
-        hash = a.hash();
+        _hash = a.hash();
     }
 
-    function hashERC7739Content(string memory content) internal pure returns (bytes32) {
+    function hash(string memory content) internal pure returns (bytes32) {
         return keccak256(abi.encodePacked(content));
     }
 
-    function hashChainSpecific(ChainSpecific memory chain) internal pure returns (bytes32) {
+    function hash(ChainSpecific memory chain) internal pure returns (bytes32) {
         return keccak256(abi.encode(CHAIN_TUPLE_TYPEHASH, chain.chainId, chain.nonce));
     }
 
-    function hashChainSpecificArray(ChainSpecific[] memory chains) internal pure returns (bytes32 hash) {
+    function hash(ChainSpecific[] memory chains) internal pure returns (bytes32 _hash) {
         uint256 length = chains.length;
         bytes32[] memory a = EfficientHashLib.malloc(length);
         for (uint256 i; i < length; i++) {
-            a.set(i, hashChainSpecific(chains[i]));
+            a.set(i, chains[i].hash());
         }
-        hash = a.hash();
-    }
-
-    function hashMultiChainSession(
-        EnableSession memory enableData,
-        address account,
-        SmartSessionMode mode,
-        address smartSessions
-    )
-        internal
-        pure
-        returns (bytes32 digest)
-    {
-        bytes32[] memory a = EfficientHashLib.malloc(3);
-        a.set(0, MULTICHAIN_SESSION_TYPEHASH);
-        a.set(1, hashChainSpecificArray(enableData.chains));
-        a.set(2, _sessionDigest(enableData.sessionToEnable, account, smartSessions, mode));
-        digest = a.hash();
-    }
-
-    function getEnableDigest(
-        EnableSession memory enableData,
-        address account,
-        uint256 nonce,
-        SmartSessionMode mode
-    )
-        internal
-        view
-        returns (bytes32 digest)
-    {
-        // ensure that the current chainid is part of the digest
-        if (block.chainid != enableData.chains[enableData.chainDigestIndex].chainId) {
-            revert ChainIdMismatch(uint64(block.chainid));
-        }
-
-        // ensure that the nonce for this chainId is the current nonce
-        if (nonce != enableData.chains[enableData.chainDigestIndex].nonce) {
-            revert ChainIdMismatch(uint64(block.chainid));
-        }
-
-        digest = hashMultiChainSession(enableData, account, mode, address(this));
+        _hash = a.hash();
     }
 }
