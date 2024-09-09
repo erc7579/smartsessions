@@ -24,13 +24,33 @@ contract Multichain712DigestTest is BaseTest {
             actions: _getEmptyActionDatas(makeAddr("target"), bytes4(0x41414141), address(yesPolicy))
         });
 
+        //console2.log(makeAddr("target"));
+        //console2.logBytes4(bytes4(0x41414141));
+
+        //console2.log(address(session.sessionValidator));
+        //console2.logBytes32(session.salt);
+        //console2.logBytes(session.sessionValidatorInitData);
+
+        //console2.log(address(yesPolicy));
+
+
         // Make sessionsAndChainIds
         uint64[] memory chainIds = new uint64[](3);
         chainIds[0] = 1855;
         chainIds[1] = uint64(block.chainid);
+
+        //console2.log(chainIds[1]);
+
         chainIds[2] = 181_818;
         uint256[] memory nonces = new uint256[](3);
         nonces[0] = smartSession.getNonce(smartSession.getPermissionId(session), instance.account);
+
+        //console2.log(nonces[0]);
+        //console2.log(uint(SmartSessionMode.UNSAFE_ENABLE));
+        //console2.log(instance.account);
+        //console2.log(address(smartSession));
+
+
         nonces[1] = nonces[0];
         nonces[2] = nonces[0];
         SmartSessionMode[] memory modes = new SmartSessionMode[](3);
@@ -64,6 +84,8 @@ contract Multichain712DigestTest is BaseTest {
         bytes32 fullHash = multiChainSession.multichainDigest(accounts, smartSessions, modes, nonces);
         bytes32 mimicHash = hashesAndChainIds.multichainDigest();
 
+        console2.logBytes32(fullHash);
+        console2.logBytes32(mimicHash);
         assertEq(fullHash, mimicHash);
     }
 
