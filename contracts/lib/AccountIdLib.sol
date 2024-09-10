@@ -13,12 +13,10 @@ library AccountIdLib {
     function parseAccountId(string memory id) internal pure returns (string memory name, string memory version) {
         strings.slice memory id = id.toSlice();
         strings.slice memory delim = ".".toSlice();
-        string[] memory parts = new string[](id.count(delim) + 1); 
-        for(uint i = 0; i < parts.length; i++) {
-            parts[i] = id.split(delim).toString();
-        }
-        name = string(abi.encodePacked(parts[0], " ", parts[1]));
-        version = parts[2];
+        string memory vendor = id.split(delim).toString();
+        string memory account = id.split(delim).toString();
+        name = string(abi.encodePacked(vendor, " ", account));
+        version = id.toString();
         console2.log("name: ", name);
         console2.log("version: ", version);
     }
