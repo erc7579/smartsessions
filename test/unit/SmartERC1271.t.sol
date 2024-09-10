@@ -125,6 +125,8 @@ contract SmartSessionERC1271Test is BaseTest {
         (t.fields, t.name, t.version, t.chainId, t.verifyingContract, t.salt, t.extensions) =
             EIP712(account).eip712Domain();
 
+        console2.log("name in test " , t.name);
+
         return abi.encode(
             t.fields,
             keccak256(bytes(t.name)),

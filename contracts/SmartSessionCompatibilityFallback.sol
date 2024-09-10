@@ -67,6 +67,5 @@ contract SmartSessionCompatibilityFallback is ERC7579FallbackBase {
         (name, version) = accountId.parseAccountId();
 
         chainId = block.chainid;
-
     }
 }
