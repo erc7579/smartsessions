@@ -2,8 +2,6 @@
 pragma solidity ^0.8.25;
 import { strings } from "stringutils/strings.sol";
 
-import "forge-std/console2.sol";
-
 library AccountIdLib {
 
     using strings for *;
@@ -13,11 +11,7 @@ library AccountIdLib {
     function parseAccountId(string memory id) internal pure returns (string memory name, string memory version) {
         strings.slice memory id = id.toSlice();
         strings.slice memory delim = ".".toSlice();
-        string memory vendor = id.split(delim).toString();
-        string memory account = id.split(delim).toString();
-        name = string(abi.encodePacked(vendor, " ", account));
+        name = string(abi.encodePacked(id.split(delim).toString(), " ", id.split(delim).toString()));
         version = id.toString();
-        console2.log("name: ", name);
-        console2.log("version: ", version);
     }
 }
