@@ -4,8 +4,12 @@ pragma solidity ^0.8.25;
 import "./DataTypes.sol";
 import { EIP712 } from "solady/utils/EIP712.sol";
 import { ERC7579FallbackBase } from "@rhinestone/module-bases/src/ERC7579FallbackBase.sol";
+import { IERC7579Account } from "erc7579/interfaces/IERC7579Account.sol";
+import { AccountIdLib } from "./lib/AccountIdLib.sol";
 
 contract SmartSessionCompatibilityFallback is ERC7579FallbackBase {
+    using AccountIdLib for string;
+
     mapping(address smartAccount => bool isInitialized) public isInitialized;
 
     address internal immutable SMART_SESSION_IMPL;
@@ -53,12 +57,16 @@ contract SmartSessionCompatibilityFallback is ERC7579FallbackBase {
             uint256[] memory extensions
         )
     {
-        //@dev The way that the nested EIP712 logic is supposed to include the address of the account in the
-        // hash is through the verifyingContract field.
-
-        (fields, name, version, chainId,, salt, extensions) = EIP712(SMART_SESSION_IMPL).eip712Domain();
-
-        // forcefully overwrite the verifyingContract field with the account address
+        
         verifyingContract = msg.sender;
+
+        // follows "vendorname.accountname.semver" structure as per ERC-7579
+        string memory accountId = IERC7579Account(msg.sender).accountId();
+        
+        //parse name from accountId
+        (name, version) = accountId.parseAccountId();
+
+        chainId = block.chainid;
+
     }
 }
