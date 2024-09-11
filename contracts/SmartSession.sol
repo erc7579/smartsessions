@@ -107,11 +107,14 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
         // If the signature is valid, the policies and signer will be enabled
         // after enabling the session, the policies will be enforced on the userOp similarly to the SmartSession.USE
         else if (mode.isEnableMode()) {
-            // _enablePolicies slices out the data required to enable a session from userOp.signature and returns the
-            // data required to use the actual session
+            
+            EnableSession memory enableData;
+            bytes memory usePermissionSig;
+            (enableData, usePermissionSig) = packedSig.decodeEnable();
+            PermissionId permissionId = enableData.sessionToEnable.toPermissionIdMemory();
+
             // ENABLE mode: Enable new policies and then enforce them
-            bytes memory usePermissionSig =
-                _enablePolicies({ permissionId: permissionId, packedSig: packedSig, account: account, mode: mode });
+            _enablePolicies({ enableData: enableData, permissionId: permissionId, account: account, mode: mode });
 
             vd = _enforcePolicies({
                 permissionId: permissionId,
@@ -130,24 +133,23 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
     /**
      * @notice Enables policies for a session during user operation validation
      * @dev This function handles the enabling of new policies and session validators
+     * @param enableData The EnableSession data containing the session to enable
      * @param permissionId The unique identifier for the permission set
-     * @param packedSig Packed signature data containing enable information
      * @param account The account for which policies are being enabled
      * @param mode The SmartSession mode being used
-     * @return permissionUseSig The signature to be used for the actual session
      */
     function _enablePolicies(
+        //bytes calldata packedSig,
+        EnableSession memory enableData,
         PermissionId permissionId,
-        bytes calldata packedSig,
         address account,
         SmartSessionMode mode
     )
         internal
-        returns (bytes memory permissionUseSig)
+        
     {
         // Decode the enable data from the packed signature
-        EnableSession memory enableData;
-        (enableData, permissionUseSig) = packedSig.decodeEnable();
+       
 
         // Increment nonce to prevent replay attacks
         uint256 nonce = $signerNonce[permissionId][account]++;
@@ -159,11 +161,6 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
         // this step. SmartSessions ERC1271 function must prevent this
         if (IERC1271(account).isValidSignature(hash, enableData.permissionEnableSig) != EIP1271_MAGIC_VALUE) {
             revert InvalidEnableSignature(account, hash);
-        }
-
-        // Verify that the provided permissionId matches the computed one
-        if (permissionId != enableData.sessionToEnable.toPermissionIdMemory()) {
-                revert InvalidPermissionId(permissionId);
         }
 
         // Determine if registry should be used based on the mode
