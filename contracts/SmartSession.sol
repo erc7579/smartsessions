@@ -161,28 +161,21 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
             revert InvalidEnableSignature(account, hash);
         }
 
+        // Verify that the provided permissionId matches the computed one
+        if (permissionId != enableData.sessionToEnable.toPermissionIdMemory()) {
+                revert InvalidPermissionId(permissionId);
+        }
+
         // Determine if registry should be used based on the mode
         bool useRegistry = mode.useRegistry();
-        /**
-         * Enable mode can involve enabling ISessionValidator (new Permission)
-         * or just adding policies (existing permission)
-         * a) ISessionValidator is not set => enable ISessionValidator
-         * b) ISessionValidator is set => just add policies
-         * Attention: if the same policy that has already been configured is added again,
-         * the policy will be overwritten with the new configuration
-         */
+
+        // Enable mode can involve enabling ISessionValidator (new Permission)
+        // or just adding policies (existing permission)
+        // a) ISessionValidator is not set => enable ISessionValidator
+        // b) ISessionValidator is set => just add policies
+        // Attention: if the same policy that has already been configured is added again,
+        // the policy will be overwritten with the new configuration
         if (!_isISessionValidatorSet(permissionId, account)) {
-            // Verify that the provided permissionId matches the computed one
-            // Only need to verify this if enabling new ISessionValidator
-            // as the permissionId is calculated from the ISessionValidator address
-            // and its init data
-            // If we're just adding policies, do not need to recalculate the permissionId
-            // as we're not touching ISessionValidator config  => we can provide empty
-            // ISessionValidator address and init data in the session object
-            // and thus save on calldata
-            if (permissionId != enableData.sessionToEnable.toPermissionIdMemory()) {
-                revert InvalidPermissionId(permissionId);
-            }
             $sessionValidators.enable({
                 permissionId: permissionId,
                 smartAccount: account,
