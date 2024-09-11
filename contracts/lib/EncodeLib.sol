@@ -30,8 +30,7 @@ library EncodeLib {
     }
 
     function encodeUse(PermissionId permissionId, bytes memory sig) internal pure returns (bytes memory userOpSig) {
-        bytes memory d = abi.encode(sig).flzCompress();
-        userOpSig = abi.encodePacked(SmartSessionMode.USE, permissionId, d);
+        userOpSig = abi.encodePacked(SmartSessionMode.USE, permissionId, abi.encode(sig).flzCompress());
     }
 
     function decodeUse(bytes memory packedSig) internal pure returns (bytes memory signature) {
@@ -46,9 +45,7 @@ library EncodeLib {
         pure
         returns (bytes memory packedSig)
     {
-        bytes memory data = abi.encode(enableData, sig);
-        data = data.flzCompress();
-        packedSig = abi.encodePacked(SmartSessionMode.UNSAFE_ENABLE, data);
+        packedSig = abi.encodePacked(SmartSessionMode.UNSAFE_ENABLE, abi.encode(enableData, sig).flzCompress());
     }
 
     function decodeEnable(
