@@ -108,6 +108,8 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
         // after enabling the session, the policies will be enforced on the userOp similarly to the SmartSession.USE
         else if (mode.isEnableMode()) {
             
+            // unpack the EnableSession data and signature
+            // calculate the permissionId from the Session data
             EnableSession memory enableData;
             bytes memory usePermissionSig;
             (enableData, usePermissionSig) = packedSig.decodeEnable();
@@ -139,7 +141,6 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
      * @param mode The SmartSession mode being used
      */
     function _enablePolicies(
-        //bytes calldata packedSig,
         EnableSession memory enableData,
         PermissionId permissionId,
         address account,
@@ -148,9 +149,6 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
         internal
         
     {
-        // Decode the enable data from the packed signature
-       
-
         // Increment nonce to prevent replay attacks
         uint256 nonce = $signerNonce[permissionId][account]++;
         bytes32 hash = enableData.getAndVerifyDigest(account, nonce, mode);

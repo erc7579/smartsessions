@@ -13,22 +13,6 @@ library EncodeLib {
 
     error ChainIdAndHashesLengthMismatch(uint256 chainIdsLength, uint256 hashesLength);
 
-    /* function packMode(
-        bytes memory data,
-        SmartSessionMode mode,
-        PermissionId permissionId
-    )
-        internal
-        pure
-        returns (bytes memory packed)
-    {
-        if (mode.isEnableMode()) {
-            packed = abi.encodePacked(mode, data);
-        } else {
-            packed = abi.encodePacked(mode, permissionId, data);
-        }
-    }
- */
     function unpackMode(
         bytes calldata packed
     )
@@ -48,7 +32,6 @@ library EncodeLib {
     function encodeUse(PermissionId permissionId, bytes memory sig) internal pure returns (bytes memory userOpSig) {
         bytes memory d = abi.encode(sig).flzCompress();
         userOpSig = abi.encodePacked(SmartSessionMode.USE, permissionId, d);
-        //d.packMode(SmartSessionMode.USE, permissionId);
     }
 
     function decodeUse(bytes memory packedSig) internal pure returns (bytes memory signature) {
@@ -56,7 +39,6 @@ library EncodeLib {
     }
 
     function encodeUnsafeEnable(
-        //PermissionId permissionId,
         bytes memory sig,
         EnableSession memory enableData
     )
@@ -67,7 +49,6 @@ library EncodeLib {
         bytes memory data = abi.encode(enableData, sig);
         data = data.flzCompress();
         packedSig = abi.encodePacked(SmartSessionMode.UNSAFE_ENABLE, data);
-        //data.packMode(SmartSessionMode.UNSAFE_ENABLE, bytes32(0));
     }
 
     function decodeEnable(
