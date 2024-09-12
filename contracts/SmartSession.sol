@@ -28,6 +28,7 @@ import { SignerLib } from "./lib/SignerLib.sol";
 import { ConfigLib } from "./lib/ConfigLib.sol";
 import { EncodeLib } from "./lib/EncodeLib.sol";
 import { HashLib } from "./lib/HashLib.sol";
+import { ValidationDataLib } from "./lib/ValidationDataLib.sol";
 import { IdLib } from "./lib/IdLib.sol";
 import { SmartSessionModeLib } from "./lib/SmartSessionModeLib.sol";
 
@@ -50,6 +51,7 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
     using EnumerableSet for EnumerableSet.Bytes32Set;
     using SmartSessionModeLib for SmartSessionMode;
     using IdLib for *;
+    using ValidationDataLib for ValidationData;
     using HashLib for *;
     using PolicyLib for *;
     using SignerLib for *;
@@ -155,7 +157,8 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
 
         // require signature on account
         // this is critical as it is the only way to ensure that the user is aware of the policies and signer
-        // NOTE: although SmartSession implements a ERC1271 feature, it CAN NOT be used as a valid ERC1271 validator for
+        // NOTE: although SmartSession implements a ERC1271 feature,
+        // it CAN NOT be used as a valid ERC1271 validator for
         // this step. SmartSessions ERC1271 function must prevent this
         if (IERC1271(account).isValidSignature(hash, enableData.permissionEnableSig) != EIP1271_MAGIC_VALUE) {
             revert InvalidEnableSignature(account, hash);
@@ -259,39 +262,35 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
         // action policies have to be checked
         if (selector == IERC7579Account.execute.selector) {
             // Decode ERC7579 execution mode
-            ExecutionMode mode = userOp.callData.get7579ExecutionMode();
-            CallType callType;
-            ExecType execType;
-
-            // solhint-disable-next-line no-inline-assembly
-            assembly {
-                callType := mode
-                execType := shl(8, mode)
-            }
+            (CallType callType, ExecType execType) = userOp.callData.get7579ExecutionTypes();
             // ERC7579 allows for different execution types, but SmartSession only supports the default execution type
             if (ExecType.unwrap(execType) != ExecType.unwrap(EXECTYPE_DEFAULT)) {
                 revert UnsupportedExecutionType();
             }
             // DEFAULT EXEC & BATCH CALL
             else if (callType == CALLTYPE_BATCH) {
-                vd = $actionPolicies.actionPolicies.checkBatch7579Exec({
-                    userOp: userOp,
-                    permissionId: permissionId,
-                    minPolicies: 1 // minimum of one actionPolicy must be set.
-                 });
+                vd = vd.intersect(
+                    $actionPolicies.actionPolicies.checkBatch7579Exec({
+                        userOp: userOp,
+                        permissionId: permissionId,
+                        minPolicies: 1 // minimum of one actionPolicy must be set.
+                     })
+                );
             }
             // DEFAULT EXEC & SINGLE CALL
             else if (callType == CALLTYPE_SINGLE) {
                 (address target, uint256 value, bytes calldata callData) =
                     userOp.callData.decodeUserOpCallData().decodeSingle();
-                vd = $actionPolicies.actionPolicies.checkSingle7579Exec({
-                    userOp: userOp,
-                    permissionId: permissionId,
-                    target: target,
-                    value: value,
-                    callData: callData,
-                    minPolicies: 1 // minimum of one actionPolicy must be set.
-                 });
+                vd = vd.intersect(
+                    $actionPolicies.actionPolicies.checkSingle7579Exec({
+                        userOp: userOp,
+                        permissionId: permissionId,
+                        target: target,
+                        value: value,
+                        callData: callData,
+                        minPolicies: 1 // minimum of one actionPolicy must be set.
+                     })
+                );
             }
             // DelegateCalls are not supported by SmartSession
             else {
@@ -311,34 +310,35 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
         else {
             ActionId actionId = account.toActionId(bytes4(userOp.callData[:4]));
 
-            vd = $actionPolicies.actionPolicies[actionId].check({
-                userOp: userOp,
-                permissionId: permissionId,
-                callOnIPolicy: abi.encodeCall(
-                    IActionPolicy.checkAction,
-                    (
-                        permissionId.toConfigId(actionId),
-                        account, // account
-                        account, // target
-                        0, // value
-                        userOp.callData // data
-                    )
-                ),
-                minPolicies: 1 // minimum of one actionPolicy must be set.
-             });
+            vd = vd.intersect(
+                $actionPolicies.actionPolicies[actionId].check({
+                    userOp: userOp,
+                    permissionId: permissionId,
+                    callOnIPolicy: abi.encodeCall(
+                        IActionPolicy.checkAction,
+                        (
+                            permissionId.toConfigId(actionId),
+                            account, // account
+                            account, // target
+                            0, // value
+                            userOp.callData // data
+                        )
+                    ),
+                    minPolicies: 1 // minimum of one actionPolicy must be set.
+                 })
+            );
         }
 
         /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
         /*                 Check SessionKey ISessionValidator         */
         /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
-        if (
-            !$sessionValidators.isValidISessionValidator({
-                hash: userOpHash,
-                account: account,
-                permissionId: permissionId,
-                signature: decompressedSignature
-            })
-        ) return ERC4337_VALIDATION_FAILED;
+        bool validSig = $sessionValidators.isValidISessionValidator({
+            hash: userOpHash,
+            account: account,
+            permissionId: permissionId,
+            signature: decompressedSignature
+        });
+        vd = vd.setSig({ sigFailed: !validSig });
     }
 
     function isValidSignatureWithSender(

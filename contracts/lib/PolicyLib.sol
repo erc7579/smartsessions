@@ -70,13 +70,13 @@ library PolicyLib {
         for (uint256 i; i < length; i++) {
             // Call the policy contract with the provided calldata
             uint256 validationDataFromPolicy = uint256(bytes32(policies[i].safeCall({ callData: callOnIPolicy })));
-            vd = ValidationData.wrap(validationDataFromPolicy);
+            ValidationData _vd = ValidationData.wrap(validationDataFromPolicy);
 
             // Revert if the policy check fails
-            if (vd.isFailed()) revert ISmartSession.PolicyViolation(permissionId, policies[i]);
+            if (_vd.isFailed()) revert ISmartSession.PolicyViolation(permissionId, policies[i]);
 
             // Intersect the validation data from this policy with the accumulated result
-            vd = vd.intersectValidationData(vd);
+            vd = vd.intersect(_vd);
         }
     }
 
@@ -164,17 +164,17 @@ library PolicyLib {
             Execution calldata execution = executions[i];
 
             // Check policies for the current execution and intersect the result with previous checks
-            vd = vd.intersectValidationData(
-                checkSingle7579Exec({
-                    $policies: $policies,
-                    userOp: userOp,
-                    permissionId: permissionId,
-                    target: execution.target,
-                    value: execution.value,
-                    callData: execution.callData,
-                    minPolicies: minPolicies
-                })
-            );
+            ValidationData _vd = checkSingle7579Exec({
+                $policies: $policies,
+                userOp: userOp,
+                permissionId: permissionId,
+                target: execution.target,
+                value: execution.value,
+                callData: execution.callData,
+                minPolicies: minPolicies
+            });
+
+            vd = vd.intersect(_vd);
         }
     }
 
