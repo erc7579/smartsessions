@@ -19,3 +19,7 @@ docs/
 
 #Deps
 node_modules/
+
+# Added by cargo
+
+/target

@@ -239,4 +239,21 @@ library ConfigLib {
             emit ISmartSession.PolicyDisabled(permissionId, policyType, address(policy), smartAccount);
         }
     }
+
+    function disable(
+        mapping(PermissionId permissionId => mapping(address smartAccount => SignerConf conf)) storage
+            $sessionValidators,
+        PermissionId permissionId,
+        address smartAccount
+    )
+        internal
+    {
+        // Get the storage reference for the signer configuration
+        SignerConf storage $conf = $sessionValidators[permissionId][smartAccount];
+        // Clear the session validator
+        delete $conf.sessionValidator;
+
+        // clear the signer configuration
+        $conf.config.clear();
+    }
 }
