@@ -1,7 +1,13 @@
 import "../Base.t.sol";
+import "../mock/MockPolicy.sol";
 import "contracts/core/SmartSessionBase.sol";
 import "solady/utils/ECDSA.sol";
 import "contracts/lib/IdLib.sol";
+import {
+    ValidationData as ValidationDataStruct,
+    _packValidationData,
+    _parseValidationData
+} from "@ERC4337/account-abstraction/contracts/core/Helpers.sol";
 
 contract SessionManagementTest is BaseTest {
     using IdLib for *;
@@ -9,8 +15,19 @@ contract SessionManagementTest is BaseTest {
     using ModuleKitUserOp for *;
     using EncodeLib for PermissionId;
 
+    MockPolicy policy1;
+    MockPolicy policy2;
+    MockPolicy policy3;
+
     function setUp() public virtual override {
         super.setUp();
+
+        policy1 = new MockPolicy();
+        vm.label(address(policy1), "policy1");
+        policy2 = new MockPolicy();
+        vm.label(address(policy2), "policy2");
+        policy3 = new MockPolicy();
+        vm.label(address(policy3), "policy3");
     }
 
     function test_enable_exec(
@@ -56,7 +73,7 @@ contract SessionManagementTest is BaseTest {
             abi.encodePacked(mockK1, sign(ECDSA.toEthSignedMessageHash(hash), owner.key));
 
         // session key signs the userOP
-        userOpData.userOp.signature = EncodeLib.encodeEnable(permissionId, hex"4141414142", enableSessions);
+        userOpData.userOp.signature = EncodeLib.encodeUnsafeEnable(hex"4141414142", enableSessions);
 
         // execute userOp with modulekit
         userOpData.execUserOps();
@@ -154,7 +171,7 @@ contract SessionManagementTest is BaseTest {
         bytes32 hash = HashLib.multichainDigest(enableSessions.hashesAndChainIds);
         enableSessions.permissionEnableSig =
             abi.encodePacked(mockK1, sign(ECDSA.toEthSignedMessageHash(hash), owner.key));
-        userOpData.userOp.signature = EncodeLib.encodeEnable(permissionId, hex"4141414142", enableSessions);
+        userOpData.userOp.signature = EncodeLib.encodeUnsafeEnable(hex"4141414142", enableSessions);
 
         userOpData.execUserOps();
 
@@ -184,7 +201,7 @@ contract SessionManagementTest is BaseTest {
         userOpData.execUserOps();
 
         // lets try to replay the same session. THIS MUST FAIL, otherwise session keys can just reenable themselves
-        userOpData.userOp.signature = EncodeLib.encodeEnable(permissionId, hex"4141414142", enableSessions);
+        userOpData.userOp.signature = EncodeLib.encodeUnsafeEnable(hex"4141414142", enableSessions);
         instance.expect4337Revert();
         userOpData.execUserOps();
     }
@@ -250,10 +267,83 @@ contract SessionManagementTest is BaseTest {
         vm.prank(instance.account);
         smartSession.revokeEnableSignature(permissionId);
         // session key signs the userOP
-        userOpData.userOp.signature = EncodeLib.encodeEnable(permissionId, hex"4141414142", enableSessions);
+        userOpData.userOp.signature = EncodeLib.encodeUnsafeEnable(hex"4141414142", enableSessions);
 
         // execute userOp with modulekit
         instance.expect4337Revert();
         userOpData.execUserOps();
+    }
+
+    function test_validationData() public {
+        address _target = address(target);
+        uint256 value = 0;
+        bytes memory callData = abi.encodeCall(MockTarget.setValue, (1337));
+
+        ActionData[] memory actionData = new ActionData[](3);
+        actionData[0] = _getEmptyActionData(_target, MockTarget.setValue.selector, address(policy1));
+        actionData[1] = _getEmptyActionData(_target, MockTarget.setValue.selector, address(policy2));
+        actionData[2] = _getEmptyActionData(_target, MockTarget.setValue.selector, address(policy3));
+
+        Session memory session = Session({
+            sessionValidator: ISessionValidator(address(yesSigner)),
+            salt: bytes32("salt"),
+            sessionValidatorInitData: "mockInitData",
+            userOpPolicies: new PolicyData[](0),
+            erc7739Policies: _getEmptyERC7739Data("mockContent", _getEmptyPolicyDatas(address(yesPolicy))),
+            actions: actionData
+        });
+
+        PermissionId multiActionPermissionId = smartSession.getPermissionId(session);
+
+        Session[] memory enableSessionsArray = new Session[](1);
+        enableSessionsArray[0] = session;
+
+        vm.prank(instance.account);
+        smartSession.enableSessions(enableSessionsArray);
+
+        UserOpData memory userOpData = instance.getExecOps({
+            target: _target,
+            value: value,
+            callData: callData,
+            txValidator: address(smartSession)
+        });
+
+        userOpData.userOp.signature =
+            EncodeLib.encodeUse({ permissionId: multiActionPermissionId, sig: hex"4141414141" });
+
+        uint256 now = block.timestamp;
+        policy1.setValidationData(
+            _packValidationData({
+                sigFailed: false,
+                validAfter: uint48(now - 1),
+                validUntil: uint48(type(uint48).max - 1)
+            })
+        );
+
+        policy2.setValidationData(
+            _packValidationData({
+                sigFailed: false,
+                validAfter: uint48(now + 101),
+                validUntil: uint48(type(uint48).max - 3)
+            })
+        );
+
+        policy3.setValidationData(
+            _packValidationData({
+                sigFailed: false,
+                validAfter: uint48(now + 100),
+                validUntil: uint48(type(uint48).max - 1)
+            })
+        );
+
+        vm.prank(instance.account);
+        ValidationData ret = smartSession.validateUserOp(userOpData.userOp, keccak256(abi.encode(userOpData.userOp)));
+        console2.log("ret", ValidationData.unwrap(ret));
+
+        ValidationDataStruct memory vd = _parseValidationData(ValidationData.unwrap(ret));
+        console2.log("vd validAfter:  %s validUntil:  %s", vd.validAfter, vd.validUntil);
+
+        assertEq(vd.validAfter, uint48(now + 101), "after");
+        assertEq(vd.validUntil, type(uint48).max - 3, "until");
     }
 }

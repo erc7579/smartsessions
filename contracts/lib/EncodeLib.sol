@@ -4,24 +4,14 @@ pragma solidity ^0.8.25;
 import "../DataTypes.sol";
 import { LibZip } from "solady/utils/LibZip.sol";
 import { ModeCode as ExecutionMode } from "erc7579/lib/ModeLib.sol";
+import { SmartSessionModeLib } from "./SmartSessionModeLib.sol";
 
 library EncodeLib {
     using LibZip for bytes;
     using EncodeLib for *;
+    using SmartSessionModeLib for SmartSessionMode;
 
     error ChainIdAndHashesLengthMismatch(uint256 chainIdsLength, uint256 hashesLength);
-
-    function packMode(
-        bytes memory data,
-        SmartSessionMode mode,
-        PermissionId permissionId
-    )
-        internal
-        pure
-        returns (bytes memory packed)
-    {
-        packed = abi.encodePacked(mode, permissionId, data);
-    }
 
     function unpackMode(
         bytes calldata packed
@@ -31,21 +21,23 @@ library EncodeLib {
         returns (SmartSessionMode mode, PermissionId permissionId, bytes calldata data)
     {
         mode = SmartSessionMode(uint8(bytes1(packed[:1])));
-        permissionId = PermissionId.wrap(bytes32(packed[1:33]));
-        data = packed[33:];
+        if (mode.isEnableMode()) {
+            data = packed[1:];
+        } else {
+            permissionId = PermissionId.wrap(bytes32(packed[1:33]));
+            data = packed[33:];
+        }
     }
 
     function encodeUse(PermissionId permissionId, bytes memory sig) internal pure returns (bytes memory userOpSig) {
-        bytes memory d = abi.encode(sig).flzCompress();
-        userOpSig = d.packMode(SmartSessionMode.USE, permissionId);
+        userOpSig = abi.encodePacked(SmartSessionMode.USE, permissionId, abi.encode(sig).flzCompress());
     }
 
     function decodeUse(bytes memory packedSig) internal pure returns (bytes memory signature) {
         (signature) = abi.decode(packedSig.flzDecompress(), (bytes));
     }
 
-    function encodeEnable(
-        PermissionId permissionId,
+    function encodeUnsafeEnable(
         bytes memory sig,
         EnableSession memory enableData
     )
@@ -53,9 +45,7 @@ library EncodeLib {
         pure
         returns (bytes memory packedSig)
     {
-        bytes memory data = abi.encode(enableData, sig);
-        data = data.flzCompress();
-        packedSig = data.packMode(SmartSessionMode.UNSAFE_ENABLE, permissionId);
+        packedSig = abi.encodePacked(SmartSessionMode.UNSAFE_ENABLE, abi.encode(enableData, sig).flzCompress());
     }
 
     function decodeEnable(
