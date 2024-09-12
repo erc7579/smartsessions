@@ -2,8 +2,8 @@
 
 pragma solidity ^0.8.23;
 
-import "contracts/DataTypes.sol";
-import { IActionPolicy } from "contracts/interfaces/IPolicy.sol";
+import "../../DataTypes.sol";
+import { IActionPolicy } from "../../interfaces/IPolicy.sol";
 
 import { IERC20 } from "forge-std/interfaces/IERC20.sol";
 

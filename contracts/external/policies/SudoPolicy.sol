@@ -2,8 +2,8 @@
 
 pragma solidity ^0.8.23;
 
-import "contracts/interfaces/IPolicy.sol";
-import "contracts/lib/SubModuleLib.sol";
+import "../../interfaces/IPolicy.sol";
+import "../../lib/SubModuleLib.sol";
 import "../../utils/EnumerableSet4337.sol";
 
 contract YesPolicy is IUserOpPolicy, IActionPolicy, I1271Policy {
