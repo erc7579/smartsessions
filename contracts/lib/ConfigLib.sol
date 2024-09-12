@@ -82,6 +82,7 @@ library ConfigLib {
             $policy.policyList[permissionId].add({ account: smartAccount, value: policy });
 
             // Initialize the policy with the provided configuration
+            // overwrites the config
             IPolicy(policy).initializeWithMultiplexer({
                 account: smartAccount,
                 configId: configId,
@@ -216,6 +217,8 @@ library ConfigLib {
      * Disables specified policies for a given permission ID and smart account.
      *
      * @dev This function removes the specified policies from the policy list and emits events for each disabled policy.
+     * @notice Cleaning state on policies is not required as on enable, initializeWithMultiplexer is called which MUST 
+     *       overwrite the current state.
      *
      * @param $policy The storage reference to the Policy struct.
      * @param policyType The type of policy being disabled (e.g., USER_OP, ACTION, ERC1271).

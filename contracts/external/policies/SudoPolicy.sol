@@ -12,10 +12,12 @@ contract YesPolicy is IUserOpPolicy, IActionPolicy, I1271Policy {
     event SudoPolicyInstalledMultiplexer(address indexed account, address indexed multiplexer, ConfigId indexed id);
     event SudoPolicyUninstalledAllAccount(address indexed account);
     event SudoPolicySet(address indexed account, address indexed multiplexer, ConfigId indexed id);
+    event SudoPolicyRemoved(address indexed account, address indexed multiplexer, ConfigId indexed id);
 
     mapping(address account => bool isInitialized) internal $initialized;
     mapping(address multiplexer => EnumerableSet.Bytes32Set configIds) internal $enabledConfigs;
 
+    // to be used if policy installed directly on SA
     function onInstall(bytes calldata data) external {
         bool _isInitialized = isInitialized(msg.sender);
         if (_isInitialized) revert AlreadyInitialized(msg.sender);
@@ -29,16 +31,29 @@ contract YesPolicy is IUserOpPolicy, IActionPolicy, I1271Policy {
         }
     }
 
+    // to be used if policy installed through multiplexer such as Smart Sessions Module
     function initializeWithMultiplexer(address account, ConfigId configId, bytes calldata /*initData*/ ) external {
         $enabledConfigs[msg.sender].add(account, ConfigId.unwrap(configId));
         emit SudoPolicySet(msg.sender, account, configId);
     }
 
-    function onUninstall(bytes calldata /*data*/ ) external {
-        EnumerableSet.Bytes32Set storage configIds = $enabledConfigs[msg.sender];
-        configIds.removeAll(msg.sender);
-        $initialized[msg.sender] = false;
-        emit SudoPolicyUninstalledAllAccount(msg.sender);
+    // to be used if policy installed directly on SA
+    function onUninstall(bytes calldata data ) external {
+        if (data.length == 0) {
+            //remove all configs for account
+            EnumerableSet.Bytes32Set storage configIds = $enabledConfigs[msg.sender];
+            configIds.removeAll(msg.sender);
+            $initialized[msg.sender] = false;
+            emit SudoPolicyUninstalledAllAccount(msg.sender);
+        } else {
+            // extract configIds from data
+            ConfigId[] memory configs = abi.decode(data, (ConfigId[]));
+            uint256 length = configs.length;
+            for (uint256 i; i < length; i++) {
+                $enabledConfigs[msg.sender].remove(msg.sender, ConfigId.unwrap(configs[i]));
+                emit SudoPolicyRemoved(msg.sender, msg.sender, configs[i]);
+            }
+        }
     }
 
     function isModuleType(uint256 id) external pure returns (bool) {

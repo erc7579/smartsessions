@@ -5,6 +5,7 @@ pragma solidity ^0.8.23;
 import "contracts/interfaces/IPolicy.sol";
 import { _packValidationData } from "@ERC4337/account-abstraction/contracts/core/Helpers.sol";
 import "contracts/lib/SubModuleLib.sol";
+import "contracts/DataTypes.sol";
 import "forge-std/console2.sol";
 
 contract MockPolicy is IUserOpPolicy, IActionPolicy, I1271Policy {
@@ -23,8 +24,8 @@ contract MockPolicy is IUserOpPolicy, IActionPolicy, I1271Policy {
     }
 
     function onInstall(bytes calldata data) external {
-        (ConfigId id, address opSender, bytes calldata _data) = data.parseInstallData();
-        userOpState[id][msg.sender][opSender] = 1;
+        (ConfigId id, bytes calldata _data) = data.parseInstallData();
+        userOpState[id][msg.sender][msg.sender] = 1;
     }
 
     function initializeWithMultiplexer(address account, ConfigId configId, bytes calldata initData) external {
@@ -32,12 +33,12 @@ contract MockPolicy is IUserOpPolicy, IActionPolicy, I1271Policy {
     }
 
     function onUninstall(bytes calldata data) external {
-        (ConfigId id, address opSender, bytes calldata _data) = data.parseInstallData();
-        userOpState[id][msg.sender][opSender] = 0;
+        (ConfigId id, bytes calldata _data) = data.parseInstallData();
+        userOpState[id][msg.sender][msg.sender] = 0;
     }
 
     function isModuleType(uint256 id) external pure returns (bool) {
-        return id == 7;
+        return id == 7 || id == 8 || id == 9;
     }
 
     function checkUserOpPolicy(ConfigId id, PackedUserOperation calldata userOp) external override returns (uint256) {
