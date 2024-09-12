@@ -73,7 +73,7 @@ contract SessionManagementTest is BaseTest {
             abi.encodePacked(mockK1, sign(ECDSA.toEthSignedMessageHash(hash), owner.key));
 
         // session key signs the userOP
-        userOpData.userOp.signature = EncodeLib.encodeEnable(permissionId, hex"4141414142", enableSessions);
+        userOpData.userOp.signature = EncodeLib.encodeUnsafeEnable(hex"4141414142", enableSessions);
 
         // execute userOp with modulekit
         userOpData.execUserOps();
@@ -171,7 +171,7 @@ contract SessionManagementTest is BaseTest {
         bytes32 hash = HashLib.multichainDigest(enableSessions.hashesAndChainIds);
         enableSessions.permissionEnableSig =
             abi.encodePacked(mockK1, sign(ECDSA.toEthSignedMessageHash(hash), owner.key));
-        userOpData.userOp.signature = EncodeLib.encodeEnable(permissionId, hex"4141414142", enableSessions);
+        userOpData.userOp.signature = EncodeLib.encodeUnsafeEnable(hex"4141414142", enableSessions);
 
         userOpData.execUserOps();
 
@@ -201,7 +201,7 @@ contract SessionManagementTest is BaseTest {
         userOpData.execUserOps();
 
         // lets try to replay the same session. THIS MUST FAIL, otherwise session keys can just reenable themselves
-        userOpData.userOp.signature = EncodeLib.encodeEnable(permissionId, hex"4141414142", enableSessions);
+        userOpData.userOp.signature = EncodeLib.encodeUnsafeEnable(hex"4141414142", enableSessions);
         instance.expect4337Revert();
         userOpData.execUserOps();
     }
@@ -267,7 +267,7 @@ contract SessionManagementTest is BaseTest {
         vm.prank(instance.account);
         smartSession.revokeEnableSignature(permissionId);
         // session key signs the userOP
-        userOpData.userOp.signature = EncodeLib.encodeEnable(permissionId, hex"4141414142", enableSessions);
+        userOpData.userOp.signature = EncodeLib.encodeUnsafeEnable(hex"4141414142", enableSessions);
 
         // execute userOp with modulekit
         instance.expect4337Revert();
