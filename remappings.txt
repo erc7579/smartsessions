@@ -22,4 +22,4 @@ freshcryptolib/=node_modules/freshcryptolib/solidity/src/
 kernel/=node_modules/@zerodev/kernel/src/
 ExcessivelySafeCall/=node_modules/excessively-safe-call/src/
 flatbytes/=node_modules/@rhinestone/flatbytes/src/
-
+stringutils/=node_modules/stringutils/src/

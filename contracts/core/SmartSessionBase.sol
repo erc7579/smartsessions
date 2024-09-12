@@ -50,7 +50,7 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
             revert InvalidSession(permissionId);
         }
 
-        // Check if the session is enabled for the caller and the given permission
+        // Enable the specified user operation policies
         $userOpPolicies.enable({
             policyType: PolicyType.USER_OP,
             permissionId: permissionId,
@@ -91,9 +91,12 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
             revert InvalidSession(permissionId);
         }
 
-        $enabledERC7739Content.enable(erc1271Policies.allowedERC7739Content, permissionId, msg.sender);
-
         // Enable the ERC1271 policies
+        $enabledERC7739Content.enable({
+            contents: erc1271Policies.allowedERC7739Content,
+            permissionId: permissionId,
+            smartAccount: msg.sender
+        });
         $erc1271Policies.enable({
             policyType: PolicyType.ERC1271,
             permissionId: permissionId,
@@ -215,7 +218,7 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
             });
             $enabledERC7739Content.enable(session.erc7739Policies.allowedERC7739Content, permissionId, msg.sender);
 
-            // Enable ERC1271 policies
+            // Enable Action policies
             $actionPolicies.enable({
                 permissionId: permissionId,
                 actionPolicyDatas: session.actions,
@@ -248,6 +251,13 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
             $actionPolicies.actionPolicies[actionId].policyList[permissionId].removeAll(msg.sender);
         }
 
+        // removing all stored actionIds
+        for (uint256 i; i < actionLength; i++) {
+            $actionPolicies.enabledActionIds[permissionId].pop(msg.sender);
+        }
+
+        $sessionValidators.disable({ permissionId: permissionId, smartAccount: msg.sender });
+
         // Remove all ERC1271 policies for this session
         $enabledSessions.remove({ account: msg.sender, value: PermissionId.unwrap(permissionId) });
         $enabledERC7739Content[permissionId].removeAll(msg.sender);
@@ -260,6 +270,16 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
      * @param data The data to initialize the module with
      */
     function onInstall(bytes calldata data) external override {
+        // Its possible that the module was installed before and when uninstalling the module, the smart session storage
+        // for that smart account was not zero'ed correctly. In such cases, we need to check if the smart account has
+        // still some enabled permissions / sessions set.
+        // re-enabling these sessions will cause the smart account to be in the same state as before, potentially
+        // activating sessions that the user thought were terminated. This MUST be avoided.
+        // if this case happens, it's not possible for the account to install the module again, unless the account calls
+        // into the removreSession functions to disable all dangling permissions
+        if ($enabledSessions.length({ account: msg.sender }) > 0) {
+            revert SmartSessionModuleAlreadyInstalled(msg.sender);
+        }
         // It's allowed to install smartsessions on a ERC7579 account without any params
         if (data.length == 0) return;
 
@@ -283,7 +303,8 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
         uint256 configIdsCnt = $enabledSessions.length({ account: msg.sender });
 
         for (uint256 i; i < configIdsCnt; i++) {
-            PermissionId configId = PermissionId.wrap($enabledSessions.at({ account: msg.sender, index: i }));
+            // always remove index 0 since the array is shifted down when the first item is removed
+            PermissionId configId = PermissionId.wrap($enabledSessions.at({ account: msg.sender, index: 0 }));
             removeSession(configId);
         }
     }
@@ -299,12 +320,6 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
 
     function isModuleType(uint256 typeID) external pure override returns (bool) {
         if (typeID == ERC7579_MODULE_TYPE_VALIDATOR) return true;
-
-        // if SmartSessions is to be used as a ERC1271/ERC7739 validator module, the account has to implement  function
-        // supportsNestedTypedDataSign() public view virtual returns (bytes32 result)
-        // this can be achieved by adding this function selector in your 7579 account as a fallback handler
-        // YOU MUST NOT add any of the write functions via 7579 fallback selector
-        if (typeID == ERC7579_MODULE_TYPE_FALLBACK) return true;
     }
 
     function getSessionDigest(
