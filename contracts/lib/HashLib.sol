@@ -9,6 +9,7 @@ import { MessageHashUtils } from "@openzeppelin/contracts/utils/cryptography/Mes
 string constant POLICY_DATA_NOTATION = "PolicyData(address policy,bytes initData)";
 string constant ACTION_DATA_NOTATION =
     "ActionData(address actionTarget,bytes4 actionTargetSelector,PolicyData[] actionPolicies)";
+
 string constant ERC7739_DATA_NOTATION = "ERC7739Data(string[] allowedERC7739Content,PolicyData[] erc1271Policies)";
 
 bytes32 constant POLICY_DATA_TYPEHASH = keccak256(bytes(POLICY_DATA_NOTATION));
@@ -47,21 +48,22 @@ bytes32 constant MULTICHAIN_SESSION_TYPEHASH = keccak256(
     )
 );
 
-/// @dev `keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)")`.
-bytes32 constant _DOMAIN_TYPEHASH = 0x8b73c3c69bb8fe3d512ecc4cf759cc79239f7b179b0ffacaa9a75d522b39400f;
+//0xb03948446334eb9b2196d5eb166f69b9d49403eb4a12f36de8d3f9f3cb8e15c3
+bytes32 constant _MULTICHAIN_DOMAIN_TYPEHASH = keccak256("EIP712Domain(string name,string version)");
 
-// keccak256(abi.encode(_DOMAIN_TYPEHASH, keccak256("SmartSession"), keccak256(""), 0, address(0)));
-// One should use the same domain separator where possible
+// One should use the domain separator below where possible
 // or provide the following EIP712Domain struct to the signTypedData() function
-// Name: "SmartSession" (string)
-// Version: "" (string)
-// ChainId: 0 (uint256)
-// VerifyingContract: address(0) (address)
+// { Name: "SmartSession" (string), 
+//   Version: "1" (string) }
+// Name and version are consistent with what is returned by _domainNameAndVersion()
+// Empty fields: version, chainId, verifyingContract are omitted as per EIP-712
 // it is introduced for compatibility with signTypedData()
-// all the critical data such as chainId and verifyingContract are included
-// in session hashes
-// https://docs.metamask.io/wallet/reference/eth_signtypeddata_v4
-bytes32 constant _DOMAIN_SEPARATOR = 0xa82dd76056d04dc31e30c73f86aa4966336112e8b5e9924bb194526b08c250c1;
+// all the critical data such as chainId and verifyingContract is included
+// in session hashes, so here the mock data compatible accross chains is used
+// see https://docs.metamask.io/wallet/reference/eth_signtypeddata_v4 for details
+
+// 0x057501e891776d1482927e5f094ae44049a4d893ba2d7b334dd7db8d38d3a0e1
+bytes32 constant _MULTICHAIN_DOMAIN_SEPARATOR = keccak256(abi.encode(_MULTICHAIN_DOMAIN_TYPEHASH, keccak256("SmartSession"), keccak256("1")));
 
 library HashLib {
     error ChainIdMismatch(uint64 providedChainId);
@@ -71,7 +73,7 @@ library HashLib {
     using HashLib for *;
 
     /**
-     * Mimics SignTypedData() behaviour
+     * Mimics SignTypedData() behavior
      * 1. hashStruct(Session)
      * 2. hashStruct(ChainSession)
      * 3. abi.encodePacked hashStruct's for 2) together
@@ -84,7 +86,7 @@ library HashLib {
         bytes32 structHash =
             keccak256(abi.encode(MULTICHAIN_SESSION_TYPEHASH, hashesAndChainIds.hashChainDigestArray()));
 
-        return MessageHashUtils.toTypedDataHash(_DOMAIN_SEPARATOR, structHash);
+        return MessageHashUtils.toTypedDataHash(_MULTICHAIN_DOMAIN_SEPARATOR, structHash);
     }
 
     /**
