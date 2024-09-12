@@ -147,10 +147,6 @@ ValidationData constant ERC4337_VALIDATION_FAILED = ValidationData.wrap(1);
 bytes4 constant EIP1271_SUCCESS = 0x1626ba7e;
 bytes4 constant EIP1271_FAILED = 0xFFFFFFFF;
 
-IRegistry constant registry = IRegistry(0x000000000069E2a187AEFFb852bF3cCdC95151B2);
-ModuleType constant POLICY_MODULE_TYPE = ModuleType.wrap(7);
-ModuleType constant VALIDATOR_MODULE_TYPE = ModuleType.wrap(1);
-
 uint256 constant ERC7579_MODULE_TYPE_VALIDATOR = 1;
 uint256 constant ERC7579_MODULE_TYPE_EXECUTOR = 2;
 uint256 constant ERC7579_MODULE_TYPE_FALLBACK = 3;
@@ -161,6 +157,10 @@ uint256 constant ERC7579_MODULE_TYPE_USEROP_POLICY = 7;
 uint256 constant ERC7579_MODULE_TYPE_ACTION_POLICY = 8;
 uint256 constant ERC7579_MODULE_TYPE_ERC1271_POLICY = 9;
 uint256 constant ERC7579_MODULE_TYPE_STATELESS_VALIDATOR = 10;
+
+
+IRegistry constant registry = IRegistry(0x000000000069E2a187AEFFb852bF3cCdC95151B2);
+ModuleType constant VALIDATOR_MODULE_TYPE = ModuleType.wrap(ERC7579_MODULE_TYPE_VALIDATOR);
 
 using { permissionIdEq as == } for PermissionId global;
 using { permissionIdNeq as != } for PermissionId global;
