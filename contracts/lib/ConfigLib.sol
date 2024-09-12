@@ -4,7 +4,7 @@ pragma solidity ^0.8.25;
 import "../DataTypes.sol";
 import { IPolicy, IUserOpPolicy, IActionPolicy, I1271Policy } from "../interfaces/IPolicy.sol";
 import { ISmartSession } from "../ISmartSession.sol";
-import { AssociatedArrayLib } from "../utils/AssociatedArrayLib.sol";
+//import { AssociatedArrayLib } from "../utils/AssociatedArrayLib.sol";
 import { IRegistry, ModuleType } from "../interfaces/IRegistry.sol";
 import { IdLib } from "./IdLib.sol";
 import { HashLib } from "./HashLib.sol";
@@ -15,7 +15,7 @@ library ConfigLib {
     using EnumerableSet for EnumerableSet.AddressSet;
     using EnumerableSet for EnumerableSet.Bytes32Set;
     using HashLib for string;
-    using AssociatedArrayLib for AssociatedArrayLib.Bytes32Array;
+    //using AssociatedArrayLib for AssociatedArrayLib.Bytes32Array;
     using IdLib for *;
     using ConfigLib for *;
 
@@ -128,7 +128,9 @@ library ConfigLib {
             if (actionId == EMPTY_ACTIONID) revert ISmartSession.InvalidActionId();
 
             // Record the enabled action ID
-            $self.enabledActionIds[permissionId].push(smartAccount, ActionId.unwrap(actionId));
+            $self.enabledActionIds[permissionId].add(smartAccount, ActionId.unwrap(actionId));
+            
+            //$self.enabledActionIds[permissionId].push(smartAccount, ActionId.unwrap(actionId));
 
             // Record the enabled action ID
             $self.actionPolicies[actionId].enable({

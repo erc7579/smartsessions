@@ -166,9 +166,6 @@ contract SessionManagementTest is BaseTest {
             sessionValidatorInitData: "mockInitData",
             userOpPolicies: userOpPolicyData,
             erc7739Policies: _getEmptyERC7739Data("0", new PolicyData[](0)),
-            // add policy to the same action id
-            // this will lead to the same action id pushed into enabledActionIds twice
-            // following test will check that the session can still be safely removed
             actions: _getEmptyActionDatas(address(target), MockTarget.setValue.selector, address(yesPolicy2)) 
         });
 

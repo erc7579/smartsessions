@@ -247,14 +247,12 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
         // Remove all Action policies for this session
         uint256 actionLength = $actionPolicies.enabledActionIds[permissionId].length(msg.sender);
         for (uint256 i; i < actionLength; i++) {
-            ActionId actionId = ActionId.wrap($actionPolicies.enabledActionIds[permissionId].get(msg.sender, i));
+            ActionId actionId = ActionId.wrap($actionPolicies.enabledActionIds[permissionId].at(msg.sender, i));
             $actionPolicies.actionPolicies[actionId].policyList[permissionId].removeAll(msg.sender);
         }
 
         // removing all stored actionIds
-        for (uint256 i; i < actionLength; i++) {
-            $actionPolicies.enabledActionIds[permissionId].pop(msg.sender);
-        }
+        $actionPolicies.enabledActionIds[permissionId].removeAll(msg.sender);
 
         $sessionValidators.disable({ permissionId: permissionId, smartAccount: msg.sender });
 
