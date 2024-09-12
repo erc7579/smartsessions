@@ -104,6 +104,12 @@ contract UniActionPolicy is IActionPolicy {
         usedIds[mxer][opSender]--;
     }
 
+    // to be used use when the policy is installed via the multiplexer, i.e. Smart Sessions
+    // overwrites state
+    function initializeWithMultiplexer(address account, ConfigId configId, bytes calldata initData) external {
+        _initPolicy(configId, msg.sender, account, initData);
+    }
+
     // to be used use when the policy is installed directly to the SA
     // requires state is fresh clean
     // even cleaning with onUninstall is not enough, as it sets Status.deprecated, not Status.NA
@@ -112,12 +118,6 @@ contract UniActionPolicy is IActionPolicy {
         (ConfigId id, bytes calldata _data) = data.parseInstallData();
         require(status[id][msg.sender][msg.sender] == Status.NA);
         _initPolicy(id, msg.sender, msg.sender, _data);
-    }
-
-    // to be used use when the policy is installed directly to the SA
-    // overwrites state
-    function initializeWithMultiplexer(address account, ConfigId configId, bytes calldata initData) external {
-        _initPolicy(configId, msg.sender, account, initData);
     }
 
     // to be used use when the policy is installed directly to the SA
