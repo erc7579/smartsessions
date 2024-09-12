@@ -19,7 +19,6 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
     using ConfigLib for *;
     using EncodeLib for *;
     using IdLib for *;
-    using AssociatedArrayLib for *;
     using ConfigLib for Policy;
     using ConfigLib for EnumerableActionPolicy;
 
