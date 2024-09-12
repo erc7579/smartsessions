@@ -189,7 +189,7 @@ library ConfigLib {
         // Check if the sessionValidator is valid and supports the required interface
         if (
             address(sessionValidator) == address(0)
-                || !sessionValidator.supportsInterface(ISessionValidator.validateSignatureWithData.selector)
+                || !sessionValidator.isModuleType(ERC7579_MODULE_TYPE_STATELESS_VALIDATOR)
         ) {
             revert ISmartSession.InvalidISessionValidator(sessionValidator);
         }
