@@ -1,6 +1,7 @@
 import "../Base.t.sol";
 import "contracts/core/SmartSessionBase.sol";
 import "solady/utils/ECDSA.sol";
+import "contracts/lib/HashLib.sol";
 
 contract Multichain712DigestTest is BaseTest {
     using ModuleKitHelpers for *;
@@ -65,4 +66,5 @@ contract Multichain712DigestTest is BaseTest {
 
         assertEq(fullHash, mimicHash);
     }
+
 }

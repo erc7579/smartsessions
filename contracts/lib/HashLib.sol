@@ -4,47 +4,42 @@ pragma solidity ^0.8.25;
 import "../DataTypes.sol";
 import { EfficientHashLib } from "solady/utils/EfficientHashLib.sol";
 import { MessageHashUtils } from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
+import { EfficientHashLib } from "solady/utils/EfficientHashLib.sol";
 
-// Typehashes
 string constant POLICY_DATA_NOTATION = "PolicyData(address policy,bytes initData)";
-string constant ACTION_DATA_NOTATION =
-    "ActionData(address actionTarget,bytes4 actionTargetSelector,PolicyData[] actionPolicies)";
+bytes32 constant POLICY_DATA_TYPEHASH = keccak256(abi.encodePacked(POLICY_DATA_NOTATION));
+string constant ACTION_DATA_NOTATION_RAW =
+    "ActionData(bytes4 actionTargetSelector,address actionTarget,PolicyData[] actionPolicies)";
+bytes32 constant ACTION_DATA_TYPEHASH = keccak256(abi.encodePacked(ACTION_DATA_NOTATION_RAW, POLICY_DATA_NOTATION));
 
-string constant ERC7739_DATA_NOTATION = "ERC7739Data(string[] allowedERC7739Content,PolicyData[] erc1271Policies)";
+string constant ERC7739_DATA_NOTATION_RAW = "ERC7739Data(string[] allowedERC7739Content,PolicyData[] erc1271Policies)";
+bytes32 constant ERC7739_DATA_TYPEHASH = keccak256(abi.encodePacked(ERC7739_DATA_NOTATION_RAW, POLICY_DATA_NOTATION));
 
-bytes32 constant POLICY_DATA_TYPEHASH = keccak256(bytes(POLICY_DATA_NOTATION));
-bytes32 constant ACTION_DATA_TYPEHASH = keccak256(bytes(ACTION_DATA_NOTATION));
-bytes32 constant ERC7739_DATA_TYPEHASH = keccak256(bytes(ERC7739_DATA_NOTATION));
-
-string constant SESSION_NOTATION =
-    "Session(address account,address smartSession,uint8 mode,address sessionValidator,bytes32 salt,bytes sessionValidatorInitData,PolicyData[] userOpPolicies,ERC7739Data erc7739Policies,ActionData[] actions)";
-string constant CHAIN_SESSION_NOTATION = "ChainSession(uint64 chainId,Session session)";
-string constant MULTI_CHAIN_SESSION_NOTATION = "MultiChainSession(ChainSession[] sessionsAndChainIds)";
-
+string constant SESSION_NOTATION_RAW =
+    "SessionEIP712(address account,address smartSession,uint8 mode,address sessionValidator,bytes32 salt,bytes sessionValidatorInitData,PolicyData[] userOpPolicies,ERC7739Data erc7739Policies,ActionData[] actions,uint256 nonce)";
 bytes32 constant SESSION_TYPEHASH = keccak256(
-    abi.encodePacked(
-        bytes(SESSION_NOTATION), bytes(POLICY_DATA_NOTATION), bytes(ACTION_DATA_NOTATION), bytes(ERC7739_DATA_NOTATION)
-    )
+    abi.encodePacked(SESSION_NOTATION_RAW, ACTION_DATA_NOTATION_RAW, ERC7739_DATA_NOTATION_RAW, POLICY_DATA_NOTATION)
 );
-
+string constant CHAIN_SESSION_NOTATION_RAW = "ChainSessionEIP712(uint64 chainId,SessionEIP712 session)";
 bytes32 constant CHAIN_SESSION_TYPEHASH = keccak256(
     abi.encodePacked(
-        bytes(CHAIN_SESSION_NOTATION),
-        bytes(SESSION_NOTATION),
-        bytes(POLICY_DATA_NOTATION),
-        bytes(ACTION_DATA_NOTATION),
-        bytes(ERC7739_DATA_NOTATION)
+        CHAIN_SESSION_NOTATION_RAW,
+        ACTION_DATA_NOTATION_RAW,
+        ERC7739_DATA_NOTATION_RAW,
+        POLICY_DATA_NOTATION,
+        SESSION_NOTATION_RAW
     )
 );
+string constant MULTICHAIN_SESSION_NOTATION_RAW = "MultiChainSessionEIP712(ChainSessionEIP712[] sessionsAndChainIds)";
 
 bytes32 constant MULTICHAIN_SESSION_TYPEHASH = keccak256(
     abi.encodePacked(
-        bytes(MULTI_CHAIN_SESSION_NOTATION),
-        bytes(CHAIN_SESSION_NOTATION),
-        bytes(SESSION_NOTATION),
-        bytes(POLICY_DATA_NOTATION),
-        bytes(ACTION_DATA_NOTATION),
-        bytes(ERC7739_DATA_NOTATION)
+        MULTICHAIN_SESSION_NOTATION_RAW,
+        ACTION_DATA_NOTATION_RAW,
+        CHAIN_SESSION_NOTATION_RAW,
+        ERC7739_DATA_NOTATION_RAW,
+        POLICY_DATA_NOTATION,
+        SESSION_NOTATION_RAW
     )
 );
 
@@ -71,6 +66,7 @@ library HashLib {
 
     using EfficientHashLib for bytes32;
     using HashLib for *;
+    using EfficientHashLib for *;
 
     /**
      * Mimics SignTypedData() behavior
@@ -94,11 +90,12 @@ library HashLib {
      */
     function hashChainDigestArray(ChainDigest[] memory chainDigestArray) internal pure returns (bytes32) {
         uint256 length = chainDigestArray.length;
-        bytes32[] memory hashes = new bytes32[](length);
+
+        bytes32[] memory a = EfficientHashLib.malloc(length);
         for (uint256 i; i < length; i++) {
-            hashes[i] = chainDigestArray[i].hashChainDigestMimicRPC();
+            a.set(i, chainDigestArray[i].hashChainDigestMimicRPC());
         }
-        return keccak256(abi.encodePacked(hashes));
+        return a.hash();
     }
 
     /**
@@ -178,11 +175,12 @@ library HashLib {
 
     function hashPolicyDataArray(PolicyData[] memory policyDataArray) internal pure returns (bytes32) {
         uint256 length = policyDataArray.length;
-        bytes32[] memory hashes = new bytes32[](length);
+        
+        bytes32[] memory a = EfficientHashLib.malloc(length);
         for (uint256 i; i < length; i++) {
-            hashes[i] = policyDataArray[i].hashPolicyData();
+            a.set(i, policyDataArray[i].hashPolicyData());
         }
-        return keccak256(abi.encodePacked(hashes));
+        return a.hash();
     }
 
     function hashActionData(ActionData memory actionData) internal pure returns (bytes32) {
@@ -198,30 +196,29 @@ library HashLib {
 
     function hashActionDataArray(ActionData[] memory actionDataArray) internal pure returns (bytes32) {
         uint256 length = actionDataArray.length;
-        bytes32[] memory hashes = new bytes32[](length);
+        bytes32[] memory a = EfficientHashLib.malloc(length);
+
         for (uint256 i; i < length; i++) {
-            hashes[i] = actionDataArray[i].hashActionData();
+            a.set(i, actionDataArray[i].hashActionData());
         }
-        return keccak256(abi.encodePacked(hashes));
+        return a.hash();
     }
 
     function hashERC7739Data(ERC7739Data memory erc7739Data) internal pure returns (bytes32) {
-        return keccak256(
-            abi.encode(
-                ERC7739_DATA_TYPEHASH,
-                erc7739Data.allowedERC7739Content.hashStringArray(),
-                erc7739Data.erc1271Policies.hashPolicyDataArray()
-            )
-        );
+        bytes32[] memory a = EfficientHashLib.malloc(3);
+        a.set(0, ERC7739_DATA_TYPEHASH);
+        a.set(1, erc7739Data.allowedERC7739Content.hashStringArray());
+        a.set(2, erc7739Data.erc1271Policies.hashPolicyDataArray());
+        return a.hash();
     }
 
     function hashStringArray(string[] memory stringArray) internal pure returns (bytes32) {
         uint256 length = stringArray.length;
-        bytes32[] memory hashes = new bytes32[](length);
+        bytes32[] memory a = EfficientHashLib.malloc(length);
         for (uint256 i; i < length; i++) {
-            hashes[i] = keccak256(abi.encodePacked(stringArray[i]));
+            a.set(i, keccak256(abi.encodePacked(stringArray[i])));
         }
-        return keccak256(abi.encodePacked(hashes));
+        return a.hash();
     }
 
     function hashERC7739Content(string memory content) internal pure returns (bytes32) {

@@ -215,7 +215,7 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
             });
             $enabledERC7739Content.enable(session.erc7739Policies.allowedERC7739Content, permissionId, msg.sender);
 
-            // Enable ERC1271 policies
+            // Enable Action policies
             $actionPolicies.enable({
                 permissionId: permissionId,
                 actionPolicyDatas: session.actions,
@@ -248,6 +248,13 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
             $actionPolicies.actionPolicies[actionId].policyList[permissionId].removeAll(msg.sender);
         }
 
+        // removing all stored actionIds
+        for (uint256 i; i < actionLength; i++) {
+            $actionPolicies.enabledActionIds[permissionId].pop(msg.sender);
+        }
+
+        $sessionValidators.disable({ permissionId: permissionId, smartAccount: msg.sender });
+
         // Remove all ERC1271 policies for this session
         $enabledSessions.remove({ account: msg.sender, value: PermissionId.unwrap(permissionId) });
         $enabledERC7739Content[permissionId].removeAll(msg.sender);
@@ -260,6 +267,16 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
      * @param data The data to initialize the module with
      */
     function onInstall(bytes calldata data) external override {
+        // Its possible that the module was installed before and when uninstalling the module, the smart session storage
+        // for that smart account was not zero'ed correctly. In such cases, we need to check if the smart account has
+        // still some enabled permissions / sessions set.
+        // re-enabling these sessions will cause the smart account to be in the same state as before, potentially
+        // activating sessions that the user thought were terminated. This MUST be avoided.
+        // if this case happens, it's not possible for the account to install the module again, unless the account calls
+        // into the removreSession functions to disable all dangling permissions
+        if ($enabledSessions.length({ account: msg.sender }) > 0) {
+            revert SmartSessionModuleAlreadyInstalled(msg.sender);
+        }
         // It's allowed to install smartsessions on a ERC7579 account without any params
         if (data.length == 0) return;
 
