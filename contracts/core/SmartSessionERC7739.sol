@@ -6,7 +6,7 @@ import { ISmartSession } from "../ISmartSession.sol";
 
 /// @notice ERC1271 mixin with nested EIP-712 approach.
 /// @author Solady (https://github.com/vectorized/solady/blob/main/src/accounts/ERC1271.sol)
-abstract contract SmartSessionERC7739 is ISmartSession, EIP712 {
+abstract contract SmartSessionERC7739 is ISmartSession {
     /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
     /*                         CONSTANTS                          */
     /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
@@ -196,7 +196,7 @@ abstract contract SmartSessionERC7739 is ISmartSession, EIP712 {
             address verifyingContract,
             bytes32 salt,
             uint256[] memory extensions
-        ) = eip712Domain();
+        ) = EIP712(msg.sender).eip712Domain();
         /// @solidity memory-safe-assembly
         assembly {
             m := mload(0x40) // Grab the free memory pointer.
@@ -212,7 +212,4 @@ abstract contract SmartSessionERC7739 is ISmartSession, EIP712 {
         }
     }
 
-    function _domainNameAndVersion() internal pure override returns (string memory, string memory) {
-        return ("SmartSession", "1");
-    }
 }

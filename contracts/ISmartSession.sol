@@ -144,5 +144,4 @@ interface ISmartSession {
         view
         returns (bool isEnabled);
     function isSessionEnabled(PermissionId permissionId, address account) external view returns (bool);
-    function supportsNestedTypedDataSign() external view returns (bytes32 result);
 }
