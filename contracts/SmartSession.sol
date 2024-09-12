@@ -194,6 +194,11 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
         });
 
         // Enable ERC1271 policies
+        $enabledERC7739Content.enable({
+            contents: enableData.sessionToEnable.erc7739Policies.allowedERC7739Content,
+            permissionId: permissionId,
+            smartAccount: account
+        });
         $erc1271Policies.enable({
             policyType: PolicyType.ERC1271,
             permissionId: permissionId,
