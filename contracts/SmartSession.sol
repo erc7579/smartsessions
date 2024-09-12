@@ -33,7 +33,7 @@ import { SmartSessionModeLib } from "./lib/SmartSessionModeLib.sol";
 
 /**
  * @title SmartSession
- * @author Filipp Makarov (Biconomy) & zeroknots.eth (Rhinestone)
+ * @author [alphabetically] Filipp Makarov (Biconomy) & zeroknots.eth (Rhinestone)
  * @dev A collaborative effort between Rhinestone and Biconomy to create a powerful
  *      and flexible session key management system for ERC-4337 and ERC-7579 accounts.
  * SmartSession is an advanced module for ERC-4337 and ERC-7579 compatible smart contract wallets, enabling granular
@@ -107,11 +107,16 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
         // If the signature is valid, the policies and signer will be enabled
         // after enabling the session, the policies will be enforced on the userOp similarly to the SmartSession.USE
         else if (mode.isEnableMode()) {
-            // _enablePolicies slices out the data required to enable a session from userOp.signature and returns the
-            // data required to use the actual session
+            
+            // unpack the EnableSession data and signature
+            // calculate the permissionId from the Session data
+            EnableSession memory enableData;
+            bytes memory usePermissionSig;
+            (enableData, usePermissionSig) = packedSig.decodeEnable();
+            PermissionId permissionId = enableData.sessionToEnable.toPermissionIdMemory();
+
             // ENABLE mode: Enable new policies and then enforce them
-            bytes memory usePermissionSig =
-                _enablePolicies({ permissionId: permissionId, packedSig: packedSig, account: account, mode: mode });
+            _enablePolicies({ enableData: enableData, permissionId: permissionId, account: account, mode: mode });
 
             vd = _enforcePolicies({
                 permissionId: permissionId,
@@ -130,25 +135,20 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
     /**
      * @notice Enables policies for a session during user operation validation
      * @dev This function handles the enabling of new policies and session validators
+     * @param enableData The EnableSession data containing the session to enable
      * @param permissionId The unique identifier for the permission set
-     * @param packedSig Packed signature data containing enable information
      * @param account The account for which policies are being enabled
      * @param mode The SmartSession mode being used
-     * @return permissionUseSig The signature to be used for the actual session
      */
     function _enablePolicies(
+        EnableSession memory enableData,
         PermissionId permissionId,
-        bytes calldata packedSig,
         address account,
         SmartSessionMode mode
     )
         internal
-        returns (bytes memory permissionUseSig)
+        
     {
-        // Decode the enable data from the packed signature
-        EnableSession memory enableData;
-        (enableData, permissionUseSig) = packedSig.decodeEnable();
-
         // Increment nonce to prevent replay attacks
         uint256 nonce = $signerNonce[permissionId][account]++;
         bytes32 hash = enableData.getAndVerifyDigest(account, nonce, mode);
@@ -163,26 +163,14 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
 
         // Determine if registry should be used based on the mode
         bool useRegistry = mode.useRegistry();
-        /**
-         * Enable mode can involve enabling ISessionValidator (new Permission)
-         * or just adding policies (existing permission)
-         * a) ISessionValidator is not set => enable ISessionValidator
-         * b) ISessionValidator is set => just add policies
-         * Attention: if the same policy that has already been configured is added again,
-         * the policy will be overwritten with the new configuration
-         */
+
+        // Enable mode can involve enabling ISessionValidator (new Permission)
+        // or just adding policies (existing permission)
+        // a) ISessionValidator is not set => enable ISessionValidator
+        // b) ISessionValidator is set => just add policies
+        // Attention: if the same policy that has already been configured is added again,
+        // the policy will be overwritten with the new configuration
         if (!_isISessionValidatorSet(permissionId, account)) {
-            // Verify that the provided permissionId matches the computed one
-            // Only need to verify this if enabling new ISessionValidator
-            // as the permissionId is calculated from the ISessionValidator address
-            // and its init data
-            // If we're just adding policies, do not need to recalculate the permissionId
-            // as we're not touching ISessionValidator config  => we can provide empty
-            // ISessionValidator address and init data in the session object
-            // and thus save on calldata
-            if (permissionId != enableData.sessionToEnable.toPermissionIdMemory()) {
-                revert InvalidPermissionId(permissionId);
-            }
             $sessionValidators.enable({
                 permissionId: permissionId,
                 smartAccount: account,
