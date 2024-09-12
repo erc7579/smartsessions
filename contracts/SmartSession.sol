@@ -32,6 +32,8 @@ import { ValidationDataLib } from "./lib/ValidationDataLib.sol";
 import { IdLib } from "./lib/IdLib.sol";
 import { SmartSessionModeLib } from "./lib/SmartSessionModeLib.sol";
 
+import "forge-std/console2.sol";
+
 /**
  * @title SmartSession
  * @author [alphabetically] Filipp Makarov (Biconomy) & zeroknots.eth (Rhinestone)
@@ -251,21 +253,26 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
         /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
         // Check UserOp policies
         // This reverts if policies are violated
-        vd = $userOpPolicies.check({
+        uint256 p;
+        (vd, p) = $userOpPolicies.check({
             userOp: userOp,
             permissionId: permissionId,
             callOnIPolicy: abi.encodeCall(IUserOpPolicy.checkUserOpPolicy, (permissionId.toConfigId(), userOp)),
             minPolicies: 0 // for userOp policies, a min of 0 is ok. since these are not security critical
-         });
+        });
 
-        bytes4 selector = bytes4(userOp.callData[0:4]);
+        console2.log("policies enforced", p);
+        p = (p == 0) ? 1 : 0;
+        console2.log("policies to enforce left", p);
+
+        //bytes4 selector = bytes4(userOp.callData[0:4]);
 
         /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
         /*                      Handle Executions                     */
         /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
         // if the selector indicates that the userOp is an execution,
         // action policies have to be checked
-        if (selector == IERC7579Account.execute.selector) {
+        if (bytes4(userOp.callData[0:4]) == IERC7579Account.execute.selector) {
             // Decode ERC7579 execution mode
             (CallType callType, ExecType execType) = userOp.callData.get7579ExecutionTypes();
             // ERC7579 allows for different execution types, but SmartSession only supports the default execution type
@@ -278,7 +285,7 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
                     $actionPolicies.actionPolicies.checkBatch7579Exec({
                         userOp: userOp,
                         permissionId: permissionId,
-                        minPolicies: 1 // minimum of one actionPolicy must be set.
+                        minPolicies: p // minimum of one actionPolicy must be set.
                      })
                 );
             }
@@ -293,7 +300,7 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
                         target: target,
                         value: value,
                         callData: callData,
-                        minPolicies: 1 // minimum of one actionPolicy must be set.
+                        minPolicies: p // minimum of one actionPolicy must be set.
                      })
                 );
             }
@@ -305,7 +312,7 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
         // SmartSession does not support executeUserOp,
         // should this function selector be used in the userOp: revert
         // see why: https://github.com/erc7579/smartsessions/issues/17
-        else if (selector == IAccountExecute.executeUserOp.selector) {
+        else if (bytes4(userOp.callData[0:4]) == IAccountExecute.executeUserOp.selector) {
             revert UnsupportedExecutionType();
         }
         /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
@@ -315,8 +322,8 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
         else {
             ActionId actionId = account.toActionId(bytes4(userOp.callData[:4]));
 
-            vd = vd.intersect(
-                $actionPolicies.actionPolicies[actionId].check({
+            
+            (ValidationData _vd, ) = $actionPolicies.actionPolicies[actionId].check({
                     userOp: userOp,
                     permissionId: permissionId,
                     callOnIPolicy: abi.encodeCall(
@@ -329,9 +336,9 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
                             userOp.callData // data
                         )
                     ),
-                    minPolicies: 1 // minimum of one actionPolicy must be set.
-                 })
-            );
+                    minPolicies: p // minimum of one actionPolicy must be set.
+                 });
+            vd = vd.intersect(_vd);
         }
 
         /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/

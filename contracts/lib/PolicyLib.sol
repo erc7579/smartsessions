@@ -57,13 +57,13 @@ library PolicyLib {
         uint256 minPolicies
     )
         internal
-        returns (ValidationData vd)
+        returns (ValidationData vd, uint256 length)
     {
         address account = userOp.sender;
 
         // Get the list of policies for the given permissionId and account
         address[] memory policies = $self.policyList[permissionId].values({ account: account });
-        uint256 length = policies.length;
+        length = policies.length;
 
         // Ensure the minimum number of policies is met
         if (minPolicies > length) revert ISmartSession.NoPoliciesSet(permissionId);
@@ -127,7 +127,7 @@ library PolicyLib {
         ActionId actionId = target.toActionId(targetSig);
 
         // Check the relevant action policy
-        vd = $policies[actionId].check({
+        (vd, ) = $policies[actionId].check({
             userOp: userOp,
             permissionId: permissionId,
             callOnIPolicy: abi.encodeCall(
