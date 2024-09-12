@@ -50,6 +50,8 @@ interface ISmartSession {
     event NonceIterated(PermissionId permissionId, address account, uint256 newValue);
     event PolicyDisabled(PermissionId permissionId, PolicyType policyType, address policy, address smartAccount);
     event PolicyEnabled(PermissionId permissionId, PolicyType policyType, address policy, address smartAccount);
+    event SessionValidatorEnabled(PermissionId permissionId, address sessionValidator, address smartAccount);
+    event SessionValidatorDisabled(PermissionId permissionId, address sessionValidator, address smartAccount);
     event SessionCreated(PermissionId permissionId, address account);
     event SessionRemoved(PermissionId permissionId, address smartAccount);
 

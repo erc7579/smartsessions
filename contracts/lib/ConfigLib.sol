@@ -210,6 +210,7 @@ library ConfigLib {
 
         // Store the signer configuration
         $conf.config.store(sessionValidatorConfig);
+        emit ISmartSession.SessionValidatorEnabled(permissionId, address(sessionValidator), smartAccount);
     }
 
     /**
@@ -250,6 +251,10 @@ library ConfigLib {
     {
         // Get the storage reference for the signer configuration
         SignerConf storage $conf = $sessionValidators[permissionId][smartAccount];
+
+        //emit event 
+        emit ISmartSession.SessionValidatorDisabled(permissionId, address($conf.sessionValidator), smartAccount);
+
         // Clear the session validator
         delete $conf.sessionValidator;
 
