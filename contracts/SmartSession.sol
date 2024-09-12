@@ -211,6 +211,7 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
             smartAccount: account,
             useRegistry: useRegistry
         });
+        $enabledERC7739Content.enable(enableData.sessionToEnable.erc7739Policies.allowedERC7739Content, permissionId, account);
 
         // Enable action policies
         $actionPolicies.enable({

@@ -304,6 +304,7 @@ library PolicyLib {
         returns (bool)
     {
         uint256 length = actionPolicyDatas.length;
+        if (length == 0) return true; // 0 actions are always enabled
         uint256 actionsProperlyEnabled;
         for (uint256 i; i < length; i++) {
             ActionData memory actionPolicyData = actionPolicyDatas[i];

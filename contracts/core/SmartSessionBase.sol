@@ -215,7 +215,7 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
             });
             $enabledERC7739Content.enable(session.erc7739Policies.allowedERC7739Content, permissionId, msg.sender);
 
-            // Enable ERC1271 policies
+            // Enable Action policies
             $actionPolicies.enable({
                 permissionId: permissionId,
                 actionPolicyDatas: session.actions,
