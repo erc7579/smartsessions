@@ -50,7 +50,7 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
             revert InvalidSession(permissionId);
         }
 
-        // Check if the session is enabled for the caller and the given permission
+        // Enable the specified user operation policies
         $userOpPolicies.enable({
             policyType: PolicyType.USER_OP,
             permissionId: permissionId,

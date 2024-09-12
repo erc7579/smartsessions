@@ -62,7 +62,7 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
     /**
      * @notice Validates a user operation for ERC4337/ERC7579 compatibility
      * @dev This function is the entry point for validating user operations in SmartSession
-     * @dev This function will disect the userop.singature field, and parse out the provided PermissionId, which
+     * @dev This function will dissect the userop.signature field, and parse out the provided PermissionId, which
      * identifies a
      * unique ID of a dapp for a specific user. n Policies and one Signer contract are mapped to this Id and will be
      * checked. Only UserOps that pass policies and signer checks, are considered valid.
@@ -90,7 +90,7 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
         // unpacking data packed in userOp.signature
         (SmartSessionMode mode, PermissionId permissionId, bytes calldata packedSig) = userOp.signature.unpackMode();
 
-        // If the SmartSession.USE mode was selected, no futher policies have to be enabled.
+        // If the SmartSession.USE mode was selected, no further policies have to be enabled.
         // We can go straight to userOp validation
         // This condition is the average case, so should be handled as the first condition
         if (mode.isUseMode()) {
