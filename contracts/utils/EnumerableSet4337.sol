@@ -3,7 +3,6 @@
 pragma solidity ^0.8.20;
 
 import "./AssociatedArrayLib.sol";
-import "forge-std/console2.sol";
 
 /**
  * Fork of OZ's EnumerableSet that makes all storage access ERC-4337 compliant via associated storage
