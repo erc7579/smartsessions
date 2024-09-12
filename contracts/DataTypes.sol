@@ -115,11 +115,6 @@ struct EnumerableActionPolicy {
 /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
 /*                 Custom Types & Constants                   */
 /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
-enum PolicyType {
-    USER_OP,
-    ACTION,
-    ERC1271
-}
 
 type PermissionId is bytes32;
 
