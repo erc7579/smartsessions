@@ -1,3 +1,5 @@
+> **This a minimal fork of the [erc7579/smartsessions repo](https://github.com/erc7579/smartsessions) used by Stackup's application layer. For the complete diff, [see here](https://github.com/erc7579/smartsessions/compare/main...stackup-wallet:smartsessions:accessctl).**
+
 # SmartSession
 
 SmartSession is an advanced module for ERC-7579 compatible smart accounts, enabling granular control over session keys. It allows users to create and manage temporary, limited-permission access to their accounts through configurable policies.
