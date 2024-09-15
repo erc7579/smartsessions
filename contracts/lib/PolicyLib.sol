@@ -81,6 +81,53 @@ library PolicyLib {
     }
 
     /**
+     * Same as check but will not revert if minimum number of policies is not met.
+     * This allows a second check with the FALLBACK_ACTIONID.
+     *
+     * @param $self The Policy storage struct containing the list of policies.
+     * @param userOp The PackedUserOperation to be validated.
+     * @param permissionId The identifier for the permission being checked.
+     * @param callOnIPolicy The encoded function call data to be executed on each policy contract.
+     * @param minPolicies The minimum number of policies that must be present and checked.
+     *
+     * @return vd The intersected ValidationData result from all policy checks.
+     */
+    function tryCheck(
+        Policy storage $self,
+        PackedUserOperation calldata userOp,
+        PermissionId permissionId,
+        bytes memory callOnIPolicy,
+        uint256 minPolicies
+    )
+        internal
+        returns (ValidationData vd)
+    {
+        address account = userOp.sender;
+
+        // Get the list of policies for the given permissionId and account
+        address[] memory policies = $self.policyList[permissionId].values({ account: account });
+        uint256 length = policies.length;
+
+        // Ensure the minimum number of policies is met
+        if (minPolicies > length) {
+            return RETRY_WITH_FALLBACK;
+        }
+
+        // Iterate over all policies and intersect the validation data
+        for (uint256 i; i < length; i++) {
+            // Call the policy contract with the provided calldata
+            uint256 validationDataFromPolicy = uint256(bytes32(policies[i].safeCall({ callData: callOnIPolicy })));
+            vd = ValidationData.wrap(validationDataFromPolicy);
+
+            // Revert if the policy check fails
+            if (vd.isFailed()) revert ISmartSession.PolicyViolation(permissionId, policies[i]);
+
+            // Intersect the validation data from this policy with the accumulated result
+            vd = vd.intersectValidationData(vd);
+        }
+    }
+
+    /**
      * Checks policies for a single ERC7579 execution within a user operation.
      * This function validates the execution against relevant action policies.
      *
@@ -121,7 +168,7 @@ library PolicyLib {
         ActionId actionId = target.toActionId(targetSig);
 
         // Check the relevant action policy
-        vd = $policies[actionId].check({
+        vd = $policies[actionId].tryCheck({
             userOp: userOp,
             permissionId: permissionId,
             callOnIPolicy: abi.encodeCall(
@@ -129,6 +176,17 @@ library PolicyLib {
             ),
             minPolicies: minPolicies
         });
+        if (vd == RETRY_WITH_FALLBACK) {
+            vd = $policies[FALLBACK_ACTIONID].check({
+                userOp: userOp,
+                permissionId: permissionId,
+                callOnIPolicy: abi.encodeCall(
+                    IActionPolicy.checkAction, (permissionId.toConfigId(actionId), userOp.sender, target, value, callData)
+                ),
+                minPolicies: minPolicies
+            });
+        }
+        return vd;
     }
 
     /**

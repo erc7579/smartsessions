@@ -9,7 +9,11 @@ library IdLib {
     }
 
     function toActionId(address target, bytes4 functionSelector) internal pure returns (ActionId actionId) {
-        actionId = ActionId.wrap(keccak256(abi.encodePacked(target, functionSelector)));
+        if (target == FALLBACK_TARGET_FLAG && functionSelector == FALLBACK_TARGET_SELECTOR_FLAG) {
+            actionId = FALLBACK_ACTIONID;
+        } else {
+            actionId = ActionId.wrap(keccak256(abi.encodePacked(target, functionSelector)));
+        }
     }
 
     function toActionPolicyId(

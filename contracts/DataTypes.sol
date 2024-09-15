@@ -159,6 +159,28 @@ uint256 constant ERC7579_MODULE_TYPE_HOOK = 4;
 // the module type is tbd, but for now we use 7, until a new module type via ERC7579 extension process is defined
 uint256 constant ERC7579_MODULE_TYPE_POLICY = 7;
 
+// ActionId for a fallback action policy. This id will be used if both action
+// target and selector are set to 1. During validation if the current target and
+// selector does not have a set action policy, then the fallback will be used if
+// enabled.
+ActionId constant FALLBACK_ACTIONID = ActionId.wrap(bytes32(uint256(1)));
+address constant FALLBACK_TARGET_FLAG = address(1);
+bytes4 constant FALLBACK_TARGET_SELECTOR_FLAG = 0x00000001;
+
+// A unique ValidationData value to retry a policy check with the FALLBACK_ACTIONID.
+ValidationData constant RETRY_WITH_FALLBACK = ValidationData.wrap(uint256(0x50FFBAAD));
+
+using { validationDataEq as == } for ValidationData global;
+using { validationDataNeq as != } for ValidationData global;
+
+function validationDataEq(ValidationData uid1, ValidationData uid2) pure returns (bool) {
+    return ValidationData.unwrap(uid1) == ValidationData.unwrap(uid2);
+}
+
+function validationDataNeq(ValidationData uid1, ValidationData uid2) pure returns (bool) {
+    return ValidationData.unwrap(uid1) != ValidationData.unwrap(uid2);
+}
+
 using { permissionIdEq as == } for PermissionId global;
 using { permissionIdNeq as != } for PermissionId global;
 
