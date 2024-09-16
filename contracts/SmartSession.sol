@@ -253,19 +253,34 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
         /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
         // Check UserOp policies
         // This reverts if policies are violated
-        uint256 remainingPoliciesToCheck;
-        (vd, remainingPoliciesToCheck) = $userOpPolicies.check({
+        uint256 numberOfPolicies;
+        (vd, numberOfPolicies) = $userOpPolicies.check({
             userOp: userOp,
             permissionId: permissionId,
             callOnIPolicy: abi.encodeCall(IUserOpPolicy.checkUserOpPolicy, (permissionId.toConfigId(), userOp)),
             minPolicies: 0 // for userOp policies, a min of 0 is ok. since these are not security critical
          });
 
-        console2.log("policies enforced", remainingPoliciesToCheck);
-        // if no userOp policies were checked above,
-        // we must enforce, that at least one action policy is set for this PermissionId
-        remainingPoliciesToCheck = (remainingPoliciesToCheck == 0) ? 1 : 0;
-        console2.log("policies to enforce left", remainingPoliciesToCheck);
+        console2.log("policies enforced", numberOfPolicies);
+        if (numberOfPolicies == 0) {
+            // if no userOp policies were checked above,
+            // we must enforce, that at least one action policy is set for this PermissionId
+            numberOfPolicies == 1;
+        } else {
+            // if some userOp policies were checked above there are two options
+            if ($actionPolicies.enabledActionIds[permissionId].length(account) == 0) {
+                // if there are no action ids configures for a given permissionId,
+                // this is an open permission => no action policies are required
+                // it means all actions are allowed
+                numberOfPolicies == 0;
+            } else {
+                // if there are action ids configured for a given permissionId,
+                // at least one action policy per action id must be set
+                // it means only configured actions are allowed
+                numberOfPolicies == 1;
+            }
+        }
+        console2.log("policies to enforce left", numberOfPolicies);
 
         //bytes4 selector = bytes4(userOp.callData[0:4]);
 
@@ -287,7 +302,7 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
                     $actionPolicies.actionPolicies.checkBatch7579Exec({
                         userOp: userOp,
                         permissionId: permissionId,
-                        minPolicies: remainingPoliciesToCheck // minimum of one actionPolicy must be set.
+                        minPolicies: numberOfPolicies // minimum of one actionPolicy must be set.
                      })
                 );
             }
@@ -302,7 +317,7 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
                         target: target,
                         value: value,
                         callData: callData,
-                        minPolicies: remainingPoliciesToCheck // minimum of one actionPolicy must be set.
+                        minPolicies: numberOfPolicies // minimum of one actionPolicy must be set.
                      })
                 );
             }
@@ -337,7 +352,7 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
                         userOp.callData // data
                     )
                 ),
-                minPolicies: remainingPoliciesToCheck // minimum of one actionPolicy must be set.
+                minPolicies: numberOfPolicies // minimum of one actionPolicy must be set.
              });
             vd = vd.intersect(_vd);
         }
