@@ -52,7 +52,7 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
 
         // Enable the specified user operation policies
         $userOpPolicies.enable({
-            policyType: PolicyType.USER_OP,
+            moduleType: ERC7579_MODULE_TYPE_USEROP_POLICY,
             permissionId: permissionId,
             configId: permissionId.toUserOpPolicyId().toConfigId(),
             policyDatas: userOpPolicies,
@@ -73,7 +73,7 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
         }
         // Disable the specified user operation policies
         $userOpPolicies.disable({
-            policyType: PolicyType.USER_OP,
+            moduleType: ERC7579_MODULE_TYPE_USEROP_POLICY,
             smartAccount: msg.sender,
             permissionId: permissionId,
             policies: policies
@@ -98,7 +98,7 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
             smartAccount: msg.sender
         });
         $erc1271Policies.enable({
-            policyType: PolicyType.ERC1271,
+            moduleType: ERC7579_MODULE_TYPE_ERC1271_POLICY,
             permissionId: permissionId,
             configId: permissionId.toErc1271PolicyId().toConfigId(),
             policyDatas: erc1271Policies.erc1271Policies,
@@ -122,7 +122,7 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
 
         // Disable the specified ERC1271 policies
         $erc1271Policies.disable({
-            policyType: PolicyType.ERC1271,
+            moduleType: ERC7579_MODULE_TYPE_ERC1271_POLICY,
             smartAccount: msg.sender,
             permissionId: permissionId,
             policies: policies
@@ -163,7 +163,7 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
 
         // Disable the specified action policies for the given action ID
         $actionPolicies.actionPolicies[actionId].disable({
-            policyType: PolicyType.ACTION,
+            moduleType: ERC7579_MODULE_TYPE_ACTION_POLICY,
             smartAccount: msg.sender,
             permissionId: permissionId,
             policies: policies
@@ -199,7 +199,7 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
 
             // Enable UserOp policies
             $userOpPolicies.enable({
-                policyType: PolicyType.USER_OP,
+                moduleType: ERC7579_MODULE_TYPE_USEROP_POLICY,
                 permissionId: permissionId,
                 configId: permissionId.toUserOpPolicyId().toConfigId(),
                 policyDatas: session.userOpPolicies,
@@ -209,7 +209,7 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
 
             // Enable ERC1271 policies
             $erc1271Policies.enable({
-                policyType: PolicyType.ERC1271,
+                moduleType: ERC7579_MODULE_TYPE_ERC1271_POLICY,
                 permissionId: permissionId,
                 configId: permissionId.toErc1271PolicyId().toConfigId(),
                 policyDatas: session.erc7739Policies.erc1271Policies,

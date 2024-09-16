@@ -136,11 +136,16 @@ contract UniActionPolicy is IActionPolicy {
     }
 
     function isModuleType(uint256 id) external pure returns (bool) {
-        return id == ERC7579_MODULE_TYPE_POLICY;
+        return id == ERC7579_MODULE_TYPE_ACTION_POLICY;
     }
 
     function supportsInterface(bytes4 interfaceID) external pure override returns (bool) {
-        return true;
+        if (interfaceID == type(IActionPolicy).interfaceId) {
+            return true;
+        }
+        if (interfaceID == IActionPolicy.checkAction.selector) {
+            return true;
+        }
     }
 }
 
