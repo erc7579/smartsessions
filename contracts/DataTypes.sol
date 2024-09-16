@@ -167,6 +167,14 @@ ActionId constant FALLBACK_ACTIONID = ActionId.wrap(bytes32(uint256(1)));
 address constant FALLBACK_TARGET_FLAG = address(1);
 bytes4 constant FALLBACK_TARGET_SELECTOR_FLAG = 0x00000001;
 
+// If call data is null then default to using this value for the selector during
+// actionId generation. Note that users should verify the target does not have any
+// functions which could colide with this selector. If so, the session could send
+// NULL data to the target and call these functions with one policy. To prevent
+// this the policy should also have the appropriate call data checks in place.
+// Known collsions: https://www.4byte.directory/signatures/?bytes4_signature=0x00000002
+bytes4 constant NULL_DATA_TARGET_SELECTOR_FLAG = 0x00000002;
+
 // A unique ValidationData value to retry a policy check with the FALLBACK_ACTIONID.
 ValidationData constant RETRY_WITH_FALLBACK = ValidationData.wrap(uint256(0x50FFBAAD));
 
