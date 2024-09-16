@@ -48,7 +48,7 @@ bytes32 constant _MULTICHAIN_DOMAIN_TYPEHASH = keccak256("EIP712Domain(string na
 
 // One should use the domain separator below where possible
 // or provide the following EIP712Domain struct to the signTypedData() function
-// { Name: "SmartSession" (string), 
+// { Name: "SmartSession" (string),
 //   Version: "1" (string) }
 // Name and version are consistent with what is returned by _domainNameAndVersion()
 // Empty fields: version, chainId, verifyingContract are omitted as per EIP-712
@@ -58,7 +58,8 @@ bytes32 constant _MULTICHAIN_DOMAIN_TYPEHASH = keccak256("EIP712Domain(string na
 // see https://docs.metamask.io/wallet/reference/eth_signtypeddata_v4 for details
 
 // 0x057501e891776d1482927e5f094ae44049a4d893ba2d7b334dd7db8d38d3a0e1
-bytes32 constant _MULTICHAIN_DOMAIN_SEPARATOR = keccak256(abi.encode(_MULTICHAIN_DOMAIN_TYPEHASH, keccak256("SmartSession"), keccak256("1")));
+bytes32 constant _MULTICHAIN_DOMAIN_SEPARATOR =
+    keccak256(abi.encode(_MULTICHAIN_DOMAIN_TYPEHASH, keccak256("SmartSession"), keccak256("1")));
 
 library HashLib {
     error ChainIdMismatch(uint64 providedChainId);
@@ -175,7 +176,7 @@ library HashLib {
 
     function hashPolicyDataArray(PolicyData[] memory policyDataArray) internal pure returns (bytes32) {
         uint256 length = policyDataArray.length;
-        
+
         bytes32[] memory a = EfficientHashLib.malloc(length);
         for (uint256 i; i < length; i++) {
             a.set(i, policyDataArray[i].hashPolicyData());

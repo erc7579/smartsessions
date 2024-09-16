@@ -57,12 +57,12 @@ contract SmartSessionCompatibilityFallback is ERC7579FallbackBase {
             uint256[] memory extensions
         )
     {
-        fields = hex"0f"; // 01111  
+        fields = hex"0f"; // 01111
         verifyingContract = msg.sender;
 
         // follows "vendorname.accountname.semver" structure as per ERC-7579
         string memory accountId = IERC7579Account(msg.sender).accountId();
-        
+
         //parse name from accountId
         (name, version) = accountId.parseAccountId();
 

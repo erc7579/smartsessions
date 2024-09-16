@@ -57,21 +57,22 @@ library PolicyLib {
         uint256 minPolicies
     )
         internal
-        returns (ValidationData vd, uint256 length)
+        returns (ValidationData vd, uint256 policiesChecked)
     {
         address account = userOp.sender;
 
         // Get the list of policies for the given permissionId and account
         address[] memory policies = $self.policyList[permissionId].values({ account: account });
-        length = policies.length;
+        policiesChecked = policies.length;
 
         // Ensure the minimum number of policies is met
-        if (minPolicies > length) revert ISmartSession.NoPoliciesSet(permissionId);
+        if (minPolicies > policiesChecked) revert ISmartSession.NoPoliciesSet(permissionId);
 
         // Iterate over all policies and intersect the validation data
-        for (uint256 i; i < length; i++) {
+        for (uint256 i; i < policiesChecked; i++) {
             // Call the policy contract with the provided calldata
-            (bool success, bytes memory returnDataFromPolicy) = policies[i].excessivelySafeCall({_gas: gasleft(), _value: 0, _maxCopy: 32, _calldata: callOnIPolicy });
+            (bool success, bytes memory returnDataFromPolicy) =
+                policies[i].excessivelySafeCall({ _gas: gasleft(), _value: 0, _maxCopy: 32, _calldata: callOnIPolicy });
             if (!success) revert();
             uint256 validationDataFromPolicy;
             assembly {
@@ -127,7 +128,7 @@ library PolicyLib {
         ActionId actionId = target.toActionId(targetSig);
 
         // Check the relevant action policy
-        (vd, ) = $policies[actionId].check({
+        (vd,) = $policies[actionId].check({
             userOp: userOp,
             permissionId: permissionId,
             callOnIPolicy: abi.encodeCall(

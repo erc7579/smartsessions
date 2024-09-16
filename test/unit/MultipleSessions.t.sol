@@ -138,5 +138,4 @@ contract MultipleSessionsTest is BaseTest {
 
         assertEq(target.value(), 2);
     }
-
 }

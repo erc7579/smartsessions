@@ -111,7 +111,6 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
         // If the signature is valid, the policies and signer will be enabled
         // after enabling the session, the policies will be enforced on the userOp similarly to the SmartSession.USE
         else if (mode.isEnableMode()) {
-            
             // unpack the EnableSession data and signature
             // calculate the permissionId from the Session data
             EnableSession memory enableData;
@@ -151,7 +150,6 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
         SmartSessionMode mode
     )
         internal
-        
     {
         // Increment nonce to prevent replay attacks
         uint256 nonce = $signerNonce[permissionId][account]++;
@@ -209,7 +207,9 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
             smartAccount: account,
             useRegistry: useRegistry
         });
-        $enabledERC7739Content.enable(enableData.sessionToEnable.erc7739Policies.allowedERC7739Content, permissionId, account);
+        $enabledERC7739Content.enable(
+            enableData.sessionToEnable.erc7739Policies.allowedERC7739Content, permissionId, account
+        );
 
         // Enable action policies
         $actionPolicies.enable({
@@ -253,17 +253,19 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
         /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
         // Check UserOp policies
         // This reverts if policies are violated
-        uint256 p;
-        (vd, p) = $userOpPolicies.check({
+        uint256 remainingPoliciesToCheck;
+        (vd, remainingPoliciesToCheck) = $userOpPolicies.check({
             userOp: userOp,
             permissionId: permissionId,
             callOnIPolicy: abi.encodeCall(IUserOpPolicy.checkUserOpPolicy, (permissionId.toConfigId(), userOp)),
             minPolicies: 0 // for userOp policies, a min of 0 is ok. since these are not security critical
-        });
+         });
 
-        console2.log("policies enforced", p);
-        p = (p == 0) ? 1 : 0;
-        console2.log("policies to enforce left", p);
+        console2.log("policies enforced", remainingPoliciesToCheck);
+        // if no userOp policies were checked above,
+        // we must enforce, that at least one action policy is set for this PermissionId
+        remainingPoliciesToCheck = (remainingPoliciesToCheck == 0) ? 1 : 0;
+        console2.log("policies to enforce left", remainingPoliciesToCheck);
 
         //bytes4 selector = bytes4(userOp.callData[0:4]);
 
@@ -285,7 +287,7 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
                     $actionPolicies.actionPolicies.checkBatch7579Exec({
                         userOp: userOp,
                         permissionId: permissionId,
-                        minPolicies: p // minimum of one actionPolicy must be set.
+                        minPolicies: remainingPoliciesToCheck // minimum of one actionPolicy must be set.
                      })
                 );
             }
@@ -300,7 +302,7 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
                         target: target,
                         value: value,
                         callData: callData,
-                        minPolicies: p // minimum of one actionPolicy must be set.
+                        minPolicies: remainingPoliciesToCheck // minimum of one actionPolicy must be set.
                      })
                 );
             }
@@ -322,22 +324,21 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
         else {
             ActionId actionId = account.toActionId(bytes4(userOp.callData[:4]));
 
-            
-            (ValidationData _vd, ) = $actionPolicies.actionPolicies[actionId].check({
-                    userOp: userOp,
-                    permissionId: permissionId,
-                    callOnIPolicy: abi.encodeCall(
-                        IActionPolicy.checkAction,
-                        (
-                            permissionId.toConfigId(actionId),
-                            account, // account
-                            account, // target
-                            0, // value
-                            userOp.callData // data
-                        )
-                    ),
-                    minPolicies: p // minimum of one actionPolicy must be set.
-                 });
+            (ValidationData _vd,) = $actionPolicies.actionPolicies[actionId].check({
+                userOp: userOp,
+                permissionId: permissionId,
+                callOnIPolicy: abi.encodeCall(
+                    IActionPolicy.checkAction,
+                    (
+                        permissionId.toConfigId(actionId),
+                        account, // account
+                        account, // target
+                        0, // value
+                        userOp.callData // data
+                    )
+                ),
+                minPolicies: remainingPoliciesToCheck // minimum of one actionPolicy must be set.
+             });
             vd = vd.intersect(_vd);
         }
 

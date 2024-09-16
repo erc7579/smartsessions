@@ -36,7 +36,7 @@ library AssociatedArrayLib {
                 mstore(0, 0x8277484f) // `AssociatedArray_OutOfBounds(uint256)`
                 mstore(4, index)
                 revert(0x1c, 0x24)
-            }    
+            }
             value := sload(add(slot, mul(0x20, add(index, 1))))
         }
     }
@@ -64,7 +64,7 @@ library AssociatedArrayLib {
                 mstore(0, 0x8277484f) // `AssociatedArray_OutOfBounds(uint256)`
                 mstore(0x20, index)
                 revert(0x1c, 0x24)
-            }    
+            }
             sstore(add(slot, mul(0x20, add(index, 1))), value)
         }
     }
@@ -105,10 +105,10 @@ library AssociatedArrayLib {
             }
         }
         _set(slot, index, _get(s, account, __length - 1));
-        
+
         assembly {
             // clear the last slot
-            // this is the 'unchecked' version of _set(slot, __length - 1, 0) 
+            // this is the 'unchecked' version of _set(slot, __length - 1, 0)
             // as we use length-1 as index, so the check is excessive.
             // also removes extra -1 and +1 operations
             sstore(add(slot, mul(0x20, __length)), 0)

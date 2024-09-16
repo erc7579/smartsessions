@@ -61,9 +61,9 @@ abstract contract SmartSessionERC7739 is ISmartSession {
     }
 
     /// @dev ERC1271 signature validation (Nested EIP-712 workflow).
-    /// @dev Currently known as ERC-7739 
+    /// @dev Currently known as ERC-7739
     /// https://ethereum-magicians.org/t/erc-7739-readable-typed-signatures-for-smart-accounts/20513
-    /// This forwards signature verification to an appropriate ISessionValidator 
+    /// This forwards signature verification to an appropriate ISessionValidator
     /// see: `_erc1271IsValidSignatureNowCalldata`.
     /// It also uses a nested EIP-712 approach to prevent signature replays when a single EOA
     /// owns multiple smart contract accounts,
@@ -211,5 +211,4 @@ abstract contract SmartSessionERC7739 is ISmartSession {
             mstore(add(m, 0x100), keccak256(add(extensions, 0x20), shl(5, mload(extensions))))
         }
     }
-
 }
