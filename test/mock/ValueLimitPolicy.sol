@@ -52,34 +52,34 @@ contract ValueLimitPolicy is IActionPolicy {
         return VALIDATION_SUCCESS;
     }
 
-    function _onInstallPolicy(ConfigId id, address opSender, bytes calldata _data) internal {
-        require(valueLimitConfigs[id][msg.sender][opSender].valueLimit == 0);
-        usedIds[msg.sender][opSender]++;
-        valueLimitConfigs[id][msg.sender][opSender].valueLimit = uint256(bytes32(_data[0:32]));
+    function _onInstallPolicy(ConfigId id, address mxer, address opSender, bytes calldata _data) internal {
+        usedIds[mxer][opSender]++;
+        valueLimitConfigs[id][mxer][opSender].valueLimit = uint256(bytes32(_data[0:32]));
     }
 
-    function _onUninstallPolicy(ConfigId id, address opSender, bytes calldata) internal {
-        require(valueLimitConfigs[id][msg.sender][opSender].valueLimit != 0);
-        delete valueLimitConfigs[id][msg.sender][opSender];
-        usedIds[msg.sender][opSender]--;
+    function _onUninstallPolicy(ConfigId id, address mxer, address opSender, bytes calldata) internal {
+        delete valueLimitConfigs[id][mxer][opSender];
+        usedIds[mxer][opSender]--;
     }
 
     function onInstall(bytes calldata data) external {
-        (ConfigId id, address opSender, bytes calldata _data) = data.parseInstallData();
-        _onInstallPolicy(id, opSender, _data);
+        (ConfigId id, bytes calldata _data) = data.parseInstallData();
+        require(valueLimitConfigs[id][msg.sender][msg.sender].valueLimit == 0);
+        _onInstallPolicy(id, msg.sender, msg.sender, _data);
     }
 
     function initializeWithMultiplexer(address account, ConfigId configId, bytes calldata initData) external {
-        _onInstallPolicy(configId, account, initData);
+        _onInstallPolicy(configId, msg.sender, account, initData);
     }
 
     function onUninstall(bytes calldata data) external {
-        (ConfigId id, address opSender, bytes calldata _data) = data.parseInstallData();
-        _onUninstallPolicy(id, opSender, _data);
+        (ConfigId id, bytes calldata _data) = data.parseInstallData();
+        require(valueLimitConfigs[id][msg.sender][msg.sender].valueLimit != 0);
+        _onUninstallPolicy(id, msg.sender, msg.sender, _data);
     }
 
     function isModuleType(uint256 id) external pure returns (bool) {
-        return id == 7;
+        return id == 8;
     }
 
     function isInitialized(address account, ConfigId id) external view override returns (bool) {

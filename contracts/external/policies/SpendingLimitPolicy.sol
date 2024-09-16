@@ -2,9 +2,8 @@
 
 pragma solidity ^0.8.23;
 
-import "contracts/DataTypes.sol";
-import { IActionPolicy } from "contracts/interfaces/IPolicy.sol";
-
+import "../../DataTypes.sol";
+import { IActionPolicy } from "../../interfaces/IPolicy.sol";
 import { IERC20 } from "forge-std/interfaces/IERC20.sol";
 
 address constant NATIVE_TOKEN = address(0);
@@ -72,7 +71,7 @@ contract SpendingLimitPolicy is IActionPolicy {
     function onUninstall(bytes calldata data) external override { }
 
     function isModuleType(uint256 id) external pure returns (bool) {
-        return id == ERC7579_MODULE_TYPE_POLICY;
+        return id == ERC7579_MODULE_TYPE_ACTION_POLICY;
     }
 
     function isInitialized(address smartAccount) external view override returns (bool) { }

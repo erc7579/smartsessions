@@ -5,7 +5,7 @@ import "./utils/AssociatedArrayLib.sol";
 import { IRegistry, ModuleType } from "./interfaces/IRegistry.sol";
 import "./interfaces/ISessionValidator.sol";
 import { EnumerableSet } from "./utils/EnumerableSet4337.sol";
-import { FlatBytesLib } from "@rhinestone/flatbytes/src/BytesLib.sol";
+import { FlatBytesLib } from "flatbytes/BytesLib.sol";
 
 /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
 /*                       Parameters                           */
@@ -109,17 +109,12 @@ struct Policy {
 
 struct EnumerableActionPolicy {
     mapping(ActionId => Policy) actionPolicies;
-    mapping(PermissionId => AssociatedArrayLib.Bytes32Array) enabledActionIds;
+    mapping(PermissionId => EnumerableSet.Bytes32Set) enabledActionIds;
 }
 
 /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
 /*                 Custom Types & Constants                   */
 /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
-enum PolicyType {
-    USER_OP,
-    ACTION,
-    ERC1271
-}
 
 type PermissionId is bytes32;
 
@@ -147,17 +142,20 @@ ValidationData constant ERC4337_VALIDATION_FAILED = ValidationData.wrap(1);
 bytes4 constant EIP1271_SUCCESS = 0x1626ba7e;
 bytes4 constant EIP1271_FAILED = 0xFFFFFFFF;
 
-IRegistry constant registry = IRegistry(0x000000000069E2a187AEFFb852bF3cCdC95151B2);
-ModuleType constant POLICY_MODULE_TYPE = ModuleType.wrap(7);
-ModuleType constant VALIDATOR_MODULE_TYPE = ModuleType.wrap(1);
-
 uint256 constant ERC7579_MODULE_TYPE_VALIDATOR = 1;
 uint256 constant ERC7579_MODULE_TYPE_EXECUTOR = 2;
 uint256 constant ERC7579_MODULE_TYPE_FALLBACK = 3;
 uint256 constant ERC7579_MODULE_TYPE_HOOK = 4;
 
-// the module type is tbd, but for now we use 7, until a new module type via ERC7579 extension process is defined
-uint256 constant ERC7579_MODULE_TYPE_POLICY = 7;
+// the module types are tbd, but for now we use 7,8,9 and 10 until new module types via ERC7579 extension process are defined
+uint256 constant ERC7579_MODULE_TYPE_USEROP_POLICY = 7;
+uint256 constant ERC7579_MODULE_TYPE_ACTION_POLICY = 8;
+uint256 constant ERC7579_MODULE_TYPE_ERC1271_POLICY = 9;
+uint256 constant ERC7579_MODULE_TYPE_STATELESS_VALIDATOR = 10;
+
+
+IRegistry constant registry = IRegistry(0x000000000069E2a187AEFFb852bF3cCdC95151B2);
+ModuleType constant VALIDATOR_MODULE_TYPE = ModuleType.wrap(ERC7579_MODULE_TYPE_VALIDATOR);
 
 using { permissionIdEq as == } for PermissionId global;
 using { permissionIdNeq as != } for PermissionId global;
