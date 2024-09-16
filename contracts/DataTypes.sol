@@ -109,7 +109,7 @@ struct Policy {
 
 struct EnumerableActionPolicy {
     mapping(ActionId => Policy) actionPolicies;
-    mapping(PermissionId => AssociatedArrayLib.Bytes32Array) enabledActionIds;
+    mapping(PermissionId => EnumerableSet.Bytes32Set) enabledActionIds;
 }
 
 /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/

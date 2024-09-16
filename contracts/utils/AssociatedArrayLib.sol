@@ -53,6 +53,23 @@ library AssociatedArrayLib {
         }
     }
 
+    // inefficient. complexity = O(n)
+    // use with caution
+    // in case of large arrays, consider using EnumerableSet4337 instead
+    function _contains(Array storage s, address account, bytes32 value) private view returns (bool) {
+        bytes32 slot = _slot(s, account);
+        uint256 __length;
+        assembly {
+            __length := sload(slot)
+        }
+        for (uint256 i; i < __length; i++) {
+            if (_get(slot, i) == value) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     function _set(Array storage s, address account, uint256 index, bytes32 value) private {
         _set(_slot(s, account), index, value);
     }
@@ -133,6 +150,15 @@ library AssociatedArrayLib {
         return _getAll(s._inner, account);
     }
 
+    function contains(Bytes32Array storage s, address account, bytes32 value) internal view returns (bool) {
+        return _contains(s._inner, account, value);
+    }
+
+    function add(Bytes32Array storage s, address account, bytes32 value) internal {
+        if(!_contains(s._inner, account, value)) 
+            _push(s._inner, account, value);
+    }
+
     function set(Bytes32Array storage s, address account, uint256 index, bytes32 value) internal {
         _set(s._inner, account, index, value);
     }
@@ -172,6 +198,16 @@ library AssociatedArrayLib {
         return addressArray;
     }
 
+    function contains(AddressArray storage s, address account, address value) internal view returns (bool) {
+        return _contains(s._inner, account, bytes32(uint256(uint160(value))));
+    }
+
+    function add(AddressArray storage s, address account, address value) internal {
+        if(!_contains(s._inner, account, bytes32(uint256(uint160(value))))){
+            _push(s._inner, account, bytes32(uint256(uint160(value))));
+        }
+    }
+
     function set(AddressArray storage s, address account, uint256 index, address value) internal {
         _set(s._inner, account, index, bytes32(uint256(uint160(value))));
     }
@@ -209,6 +245,16 @@ library AssociatedArrayLib {
             uintArray := bytes32Array
         }
         return uintArray;
+    }
+
+    function contains(UintArray storage s, address account, uint256 value) internal view returns (bool) {
+        return _contains(s._inner, account, bytes32(value));
+    }
+
+    function add(UintArray storage s, address account, uint256 value) internal {
+        if(!_contains(s._inner, account, bytes32(value))){
+            _push(s._inner, account, bytes32(value));
+        }
     }
 
     function set(UintArray storage s, address account, uint256 index, uint256 value) internal {
