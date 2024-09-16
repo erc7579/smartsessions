@@ -185,7 +185,7 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
 
         // Enable UserOp policies
         $userOpPolicies.enable({
-            policyType: PolicyType.USER_OP,
+            moduleType: ERC7579_MODULE_TYPE_USEROP_POLICY,
             permissionId: permissionId,
             configId: permissionId.toUserOpPolicyId().toConfigId(),
             policyDatas: enableData.sessionToEnable.userOpPolicies,
@@ -200,7 +200,7 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
             smartAccount: account
         });
         $erc1271Policies.enable({
-            policyType: PolicyType.ERC1271,
+            moduleType: ERC7579_MODULE_TYPE_ERC1271_POLICY,
             permissionId: permissionId,
             configId: permissionId.toErc1271PolicyId().toConfigId(),
             policyDatas: enableData.sessionToEnable.erc7739Policies.erc1271Policies,

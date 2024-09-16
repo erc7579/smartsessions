@@ -21,21 +21,8 @@ library ConfigLib {
 
     error UnsupportedPolicy(address policy);
 
-    function requireSupportsInterface(address policy, PolicyType policyType) internal view {
-        bytes4 requiredSelector;
-        if (policy == address(0)) {
-            revert UnsupportedPolicy(policy);
-        } else if (policyType == PolicyType.USER_OP) {
-            requiredSelector = IUserOpPolicy.checkUserOpPolicy.selector;
-        } else if (policyType == PolicyType.ACTION) {
-            requiredSelector = IActionPolicy.checkAction.selector;
-        } else if (policyType == PolicyType.ERC1271) {
-            requiredSelector = I1271Policy.check1271SignedAction.selector;
-        } else {
-            revert UnsupportedPolicy(policy);
-        }
-
-        if (!IPolicy(policy).supportsInterface(requiredSelector)) {
+    function requireModuleType(address policy, uint256 moduleType) internal view {
+        if (!IPolicy(policy).isModuleType(moduleType)) {
             revert UnsupportedPolicy(policy);
         }
     }
@@ -48,7 +35,7 @@ library ConfigLib {
      *      adds it to the policy list, initializes it, and emits an event.
      *
      * @param $policy The storage reference to the Policy struct.
-     * @param policyType The type of policy being enabled (e.g., USER_OP, ACTION, ERC1271).
+     * @param moduleType The type of policy being enabled defined as erc-7579 module type
      * @param permissionId The identifier of the permission for which policies are being enabled.
      * @param configId The configuration ID associated with the permission and policy type.
      * @param policyDatas An array of PolicyData structs containing policy addresses and initialization data.
@@ -57,7 +44,7 @@ library ConfigLib {
      */
     function enable(
         Policy storage $policy,
-        PolicyType policyType,
+        uint256 moduleType,
         PermissionId permissionId,
         ConfigId configId,
         PolicyData[] memory policyDatas,
@@ -71,11 +58,11 @@ library ConfigLib {
         for (uint256 i; i < lengthConfigs; i++) {
             address policy = policyDatas[i].policy;
 
-            policy.requireSupportsInterface(policyType);
+            policy.requireModuleType(moduleType);
 
             // this will revert if the policy is not attested to
             if (useRegistry) {
-                registry.checkForAccount({ smartAccount: smartAccount, module: policy, moduleType: POLICY_MODULE_TYPE });
+                registry.checkForAccount({ smartAccount: smartAccount, module: policy, moduleType: ModuleType.wrap(moduleType) });
             }
 
             // Add the policy to the list for the given permission and smart account
@@ -88,7 +75,7 @@ library ConfigLib {
                 initData: policyDatas[i].initData
             });
 
-            emit ISmartSession.PolicyEnabled(permissionId, policyType, policy, smartAccount);
+            emit ISmartSession.PolicyEnabled(permissionId, moduleType, policy, smartAccount);
         }
     }
 
@@ -132,7 +119,7 @@ library ConfigLib {
 
             // Record the enabled action ID
             $self.actionPolicies[actionId].enable({
-                policyType: PolicyType.ACTION,
+                moduleType: ERC7579_MODULE_TYPE_ACTION_POLICY,
                 permissionId: permissionId,
                 configId: permissionId.toConfigId(actionId),
                 policyDatas: actionPolicyData.actionPolicies,
@@ -199,7 +186,7 @@ library ConfigLib {
             registry.checkForAccount({
                 smartAccount: smartAccount,
                 module: address(sessionValidator),
-                moduleType: POLICY_MODULE_TYPE
+                moduleType: ModuleType.wrap(ERC7579_MODULE_TYPE_STATELESS_VALIDATOR)
             });
         }
 
@@ -218,14 +205,14 @@ library ConfigLib {
      * @dev This function removes the specified policies from the policy list and emits events for each disabled policy.
      *
      * @param $policy The storage reference to the Policy struct.
-     * @param policyType The type of policy being disabled (e.g., USER_OP, ACTION, ERC1271).
+     * @param moduleType The type of policy being disabled defined as ERC-7579 module type
      * @param smartAccount The address of the smart account for which policies are being disabled.
      * @param permissionId The identifier of the permission for which policies are being disabled.
      * @param policies An array of policy addresses to be disabled.
      */
     function disable(
         Policy storage $policy,
-        PolicyType policyType,
+        uint256 moduleType,
         address smartAccount,
         PermissionId permissionId,
         address[] calldata policies
@@ -236,7 +223,7 @@ library ConfigLib {
         for (uint256 i; i < length; i++) {
             address policy = policies[i];
             $policy.policyList[permissionId].remove(smartAccount, policy);
-            emit ISmartSession.PolicyDisabled(permissionId, policyType, address(policy), smartAccount);
+            emit ISmartSession.PolicyDisabled(permissionId, moduleType, address(policy), smartAccount);
         }
     }
 
