@@ -265,19 +265,19 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
         if (numberOfPolicies == 0) {
             // if no userOp policies were checked above,
             // we must enforce, that at least one action policy is set for this PermissionId
-            numberOfPolicies == 1;
+            numberOfPolicies = 1;
         } else {
             // if some userOp policies were checked above there are two options
             if ($actionPolicies.enabledActionIds[permissionId].length(account) == 0) {
                 // if there are no action ids configures for a given permissionId,
                 // this is an open permission => no action policies are required
                 // it means all actions are allowed
-                numberOfPolicies == 0;
+                numberOfPolicies = 0;
             } else {
                 // if there are action ids configured for a given permissionId,
                 // at least one action policy per action id must be set
                 // it means only configured actions are allowed
-                numberOfPolicies == 1;
+                numberOfPolicies = 1;
             }
         }
         console2.log("policies to enforce left", numberOfPolicies);
