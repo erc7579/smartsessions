@@ -6,8 +6,8 @@ import "../DataTypes.sol";
 library SubModuleLib {
     error DataTooShort(uint256 length);
 
-    function parseInstallData(bytes calldata data) internal pure returns (ConfigId, address, bytes calldata) {
-        if (data.length < 52) revert DataTooShort(data.length);
-        return (ConfigId.wrap(bytes32(data[0:32])), address(bytes20(data[32:52])), data[52:]);
+    function parseInstallData(bytes calldata data) internal pure returns (ConfigId, bytes calldata) {
+        if (data.length < 32) revert DataTooShort(data.length);
+        return (ConfigId.wrap(bytes32(data[0:32])), data[52:]);
     }
 }

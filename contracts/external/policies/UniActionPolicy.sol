@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.23;
+pragma solidity ^0.8.27;
 
 import "../../interfaces/IPolicy.sol";
 import "../../lib/SubModuleLib.sol";
@@ -49,7 +49,8 @@ enum ParamCondition {
     LESS_THAN,
     GREATER_THAN_OR_EQUAL,
     LESS_THAN_OR_EQUAL,
-    NOT_EQUAL
+    NOT_EQUAL,
+    IN_RANGE
 }
 
 contract UniActionPolicy is IActionPolicy {
@@ -91,32 +92,39 @@ contract UniActionPolicy is IActionPolicy {
         return VALIDATION_SUCCESS;
     }
 
-    function _onInstallPolicy(ConfigId id, address opSender, bytes calldata _data) internal {
-        require(status[id][msg.sender][opSender] == Status.NA);
-        usedIds[msg.sender][opSender]++;
-        status[id][msg.sender][opSender] = Status.Live;
+    function _initPolicy(ConfigId id, address mxer, address opSender, bytes calldata _data) internal {
+        usedIds[mxer][opSender]++;
+        status[id][mxer][opSender] = Status.Live;
         ActionConfig memory config = abi.decode(_data, (ActionConfig));
-        actionConfigs[id][msg.sender][opSender].fill(config);
+        actionConfigs[id][mxer][opSender].fill(config);
     }
 
-    function _onUninstallPolicy(ConfigId id, address opSender, bytes calldata) internal {
-        require(status[id][msg.sender][opSender] == Status.Live);
-        status[id][msg.sender][opSender] = Status.Deprecated;
-        usedIds[msg.sender][opSender]--;
+    function _deinitPolicy(ConfigId id, address mxer, address opSender, bytes calldata) internal {
+        status[id][mxer][opSender] = Status.Deprecated;
+        usedIds[mxer][opSender]--;
     }
 
-    function onInstall(bytes calldata data) external {
-        (ConfigId id, address opSender, bytes calldata _data) = data.parseInstallData();
-        _onInstallPolicy(id, opSender, _data);
-    }
-
+    // to be used use when the policy is installed via the multiplexer, i.e. Smart Sessions
+    // overwrites state
     function initializeWithMultiplexer(address account, ConfigId configId, bytes calldata initData) external {
-        _onInstallPolicy(configId, account, initData);
+        _initPolicy(configId, msg.sender, account, initData);
     }
 
+    // to be used use when the policy is installed directly to the SA
+    // requires state is fresh clean
+    // even cleaning with onUninstall is not enough, as it sets Status.deprecated, not Status.NA
+    // recommended to use fresh id in this case
+    function onInstall(bytes calldata data) external {
+        (ConfigId id, bytes calldata _data) = data.parseInstallData();
+        require(status[id][msg.sender][msg.sender] == Status.NA);
+        _initPolicy(id, msg.sender, msg.sender, _data);
+    }
+
+    // to be used use when the policy is installed directly to the SA
     function onUninstall(bytes calldata data) external {
-        (ConfigId id, address opSender, bytes calldata _data) = data.parseInstallData();
-        _onUninstallPolicy(id, opSender, _data);
+        (ConfigId id, bytes calldata _data) = data.parseInstallData();
+        require(status[id][msg.sender][msg.sender] == Status.Live);
+        _deinitPolicy(id, msg.sender, msg.sender, _data);
     }
 
     function isInitialized(address account) external view returns (bool) {
@@ -171,6 +179,11 @@ library UniActionLib {
             return false;
         } else if (rule.condition == ParamCondition.NOT_EQUAL && param == rule.ref) {
             return false;
+        } else if (rule.condition == ParamCondition.IN_RANGE) {
+            // in this case rule.ref is abi.encodePacked(uint128(min), uint128(max))
+            if (param < (rule.ref >> 128) || param > (rule.ref & 0x00000000000000000000000000000000ffffffffffffffffffffffffffffffff)) {
+                return false;
+            }
         }
 
         // CHECK PARAM LIMIT

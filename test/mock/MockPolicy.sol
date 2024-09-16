@@ -24,8 +24,8 @@ contract MockPolicy is IUserOpPolicy, IActionPolicy, I1271Policy {
     }
 
     function onInstall(bytes calldata data) external {
-        (ConfigId id, address opSender, bytes calldata _data) = data.parseInstallData();
-        userOpState[id][msg.sender][opSender] = 1;
+        (ConfigId id, bytes calldata _data) = data.parseInstallData();
+        userOpState[id][msg.sender][msg.sender] = 1;
     }
 
     function initializeWithMultiplexer(address account, ConfigId configId, bytes calldata initData) external {
@@ -33,8 +33,8 @@ contract MockPolicy is IUserOpPolicy, IActionPolicy, I1271Policy {
     }
 
     function onUninstall(bytes calldata data) external {
-        (ConfigId id, address opSender, bytes calldata _data) = data.parseInstallData();
-        userOpState[id][msg.sender][opSender] = 0;
+        (ConfigId id, bytes calldata _data) = data.parseInstallData();
+        userOpState[id][msg.sender][msg.sender] = 0;
     }
 
     function isModuleType(uint256 id) external pure returns (bool) {
