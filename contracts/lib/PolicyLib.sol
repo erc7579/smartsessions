@@ -3,20 +3,17 @@ pragma solidity ^0.8.25;
 
 import "../DataTypes.sol";
 import { ISmartSession } from "../ISmartSession.sol";
-import { IPolicy } from "../interfaces/IPolicy.sol";
-import { PackedUserOperation } from "modulekit/external/ERC4337.sol";
-import { AssociatedArrayLib } from "../utils/AssociatedArrayLib.sol";
+import { IPolicy, IActionPolicy, I1271Policy } from "../interfaces/IPolicy.sol";
 
 import { Execution, ExecutionLib as ExecutionLib } from "./ExecutionLib.sol";
-import { CallType, CALLTYPE_DELEGATECALL, EXECTYPE_DEFAULT, EXECTYPE_TRY } from "erc7579/lib/ModeLib.sol";
+import { ValidationDataLib } from "./ValidationDataLib.sol";
+import { IdLib } from "./IdLib.sol";
+import { EnumerableSet } from "../utils/EnumerableSet4337.sol";
 
 import { ERC7579ValidatorBase } from "modulekit/Modules.sol";
-import { ValidationDataLib } from "../lib/ValidationDataLib.sol";
-import { IActionPolicy, I1271Policy } from "../interfaces/IPolicy.sol";
-import { IdLib } from "./IdLib.sol";
-
+import { PackedUserOperation } from "modulekit/external/ERC4337.sol";
+import { CallType, CALLTYPE_DELEGATECALL, EXECTYPE_DEFAULT, EXECTYPE_TRY } from "erc7579/lib/ModeLib.sol";
 import { IERC7579Account } from "erc7579/interfaces/IERC7579Account.sol";
-import { EnumerableSet } from "../utils/EnumerableSet4337.sol";
 import { ExcessivelySafeCall } from "excessively-safe-call/src/ExcessivelySafeCall.sol";
 
 library PolicyLib {
@@ -24,7 +21,6 @@ library PolicyLib {
     using ExecutionLib for *;
     using IdLib for *;
     using PolicyLib for *;
-    using AssociatedArrayLib for *;
     using ValidationDataLib for ValidationData;
     using ExcessivelySafeCall for address;
 

@@ -50,7 +50,7 @@ contract SessionManagementTest is BaseTest {
         });
 
         Session memory session = Session({
-            sessionValidator: ISessionValidator(address(yesSigner)),
+            sessionValidator: ISessionValidator(address(yesSessionValidator)),
             salt: salt,
             sessionValidatorInitData: "mockInitData",
             userOpPolicies: _getEmptyPolicyDatas(address(yesPolicy)),
@@ -107,7 +107,7 @@ contract SessionManagementTest is BaseTest {
         bytes memory callData = abi.encodeCall(MockTarget.setValue, (1337));
 
         Session memory session = Session({
-            sessionValidator: ISessionValidator(address(yesSigner)),
+            sessionValidator: ISessionValidator(address(yesSessionValidator)),
             salt: salt,
             sessionValidatorInitData: "mockInitData",
             userOpPolicies: _getEmptyPolicyDatas(address(yesPolicy)),
@@ -139,9 +139,11 @@ contract SessionManagementTest is BaseTest {
         assertEq(target.value(), 1337);
     }
 
-    function test_add_policies_to_permission(bytes32 salt) public {
-        (PermissionId permissionId, EnableSession memory enableSessions) = test_enable_exec(salt);
+    function test_add_policies_to_permission(bytes32 salt) public returns (PermissionId permissionId, EnableSession memory enableSessions) {
+        (permissionId, enableSessions) = test_enable_exec(salt);
 
+        YesPolicy yesPolicy2 = new YesPolicy();
+        
         ConfigId configId = permissionId.toConfigId(instance.account);
 
         assertFalse(usageLimitPolicy.isInitialized(instance.account, address(smartSession), configId));
@@ -159,12 +161,12 @@ contract SessionManagementTest is BaseTest {
 
         // session to add one userOp policy
         Session memory session = Session({
-            sessionValidator: ISessionValidator(address(yesSigner)),
+            sessionValidator: ISessionValidator(address(yesSessionValidator)),
             salt: salt,
             sessionValidatorInitData: "mockInitData",
             userOpPolicies: userOpPolicyData,
             erc7739Policies: _getEmptyERC7739Data("0", new PolicyData[](0)),
-            actions: new ActionData[](0)
+            actions: _getEmptyActionDatas(address(target), MockTarget.setValue.selector, address(yesPolicy2)) 
         });
 
         enableSessions = _makeMultiChainEnableData(permissionId, session, instance, SmartSessionMode.UNSAFE_ENABLE);
@@ -180,7 +182,7 @@ contract SessionManagementTest is BaseTest {
     }
 
     function test_disable_permission(bytes32 salt) public {
-        (PermissionId permissionId, EnableSession memory enableSessions) = test_enable_exec(salt);
+        (PermissionId permissionId, EnableSession memory enableSessions) = test_add_policies_to_permission(salt);
 
         vm.prank(instance.account);
 
@@ -241,7 +243,7 @@ contract SessionManagementTest is BaseTest {
         });
 
         Session memory session = Session({
-            sessionValidator: ISessionValidator(address(yesSigner)),
+            sessionValidator: ISessionValidator(address(yesSessionValidator)),
             salt: salt,
             sessionValidatorInitData: "mockInitData",
             userOpPolicies: _getEmptyPolicyDatas(address(yesPolicy)),
@@ -285,7 +287,7 @@ contract SessionManagementTest is BaseTest {
         actionData[2] = _getEmptyActionData(_target, MockTarget.setValue.selector, address(policy3));
 
         Session memory session = Session({
-            sessionValidator: ISessionValidator(address(yesSigner)),
+            sessionValidator: ISessionValidator(address(yesSessionValidator)),
             salt: bytes32("salt"),
             sessionValidatorInitData: "mockInitData",
             userOpPolicies: new PolicyData[](0),

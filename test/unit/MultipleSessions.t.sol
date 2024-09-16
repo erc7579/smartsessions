@@ -27,7 +27,7 @@ contract MultipleSessionsTest is BaseTest {
         // get userOp from ModuleKit
 
         Session memory session = Session({
-            sessionValidator: ISessionValidator(address(yesSigner)),
+            sessionValidator: ISessionValidator(address(yesSessionValidator)),
             salt: salt,
             sessionValidatorInitData: "mockInitData",
             userOpPolicies: _getEmptyPolicyDatas(address(yesPolicy)),
