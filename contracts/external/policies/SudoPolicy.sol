@@ -6,7 +6,7 @@ import "../../interfaces/IPolicy.sol";
 import "../../lib/SubModuleLib.sol";
 import "../../utils/EnumerableSet4337.sol";
 
-contract YesPolicy is IUserOpPolicy, IActionPolicy, I1271Policy {
+contract YesPolicy is IActionPolicy, I1271Policy {
     using EnumerableSet for EnumerableSet.Bytes32Set;
 
     event SudoPolicyInstalledMultiplexer(address indexed account, address indexed multiplexer, ConfigId indexed id);
@@ -42,19 +42,7 @@ contract YesPolicy is IUserOpPolicy, IActionPolicy, I1271Policy {
     }
 
     function isModuleType(uint256 id) external pure returns (bool) {
-        return id == ERC7579_MODULE_TYPE_POLICY;
-    }
-
-    function checkUserOpPolicy(
-        ConfigId, /*id*/
-        PackedUserOperation calldata /*userOp*/
-    )
-        external
-        pure
-        override
-        returns (uint256)
-    {
-        return 0;
+        return id == ERC7579_MODULE_TYPE_ACTION_POLICY || id == ERC7579_MODULE_TYPE_ERC1271_POLICY;
     }
 
     function checkAction(
@@ -84,10 +72,6 @@ contract YesPolicy is IUserOpPolicy, IActionPolicy, I1271Policy {
         return $initialized[account];
     }
 
-    function supportsInterface(bytes4 /*interfaceID*/ ) external pure override returns (bool) {
-        return true;
-    }
-
     function check1271SignedAction(
         ConfigId id,
         address requestSender,
@@ -100,5 +84,9 @@ contract YesPolicy is IUserOpPolicy, IActionPolicy, I1271Policy {
         returns (bool)
     {
         return true;
+    }
+
+    function supportsInterface(bytes4 interfaceID ) external pure override returns (bool) {
+        return interfaceID == type(IActionPolicy).interfaceId || interfaceID == type(I1271Policy).interfaceId || interfaceID == IActionPolicy.checkAction.selector || interfaceID == I1271Policy.check1271SignedAction.selector;
     }
 }

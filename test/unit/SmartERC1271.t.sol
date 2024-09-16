@@ -38,7 +38,7 @@ contract SmartSessionERC1271Test is BaseTest {
         instance.installModule({ moduleTypeId: MODULE_TYPE_FALLBACK, module: address(fallbackModule), data: _fallback });
 
         Session memory session = Session({
-            sessionValidator: ISessionValidator(address(simpleSigner)),
+            sessionValidator: ISessionValidator(address(simpleSessionValidator)),
             salt: keccak256("salt"),
             sessionValidatorInitData: abi.encodePacked(sessionSigner1.addr),
             userOpPolicies: _getEmptyPolicyDatas(address(yesPolicy)),

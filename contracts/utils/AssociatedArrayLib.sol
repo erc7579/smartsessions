@@ -34,7 +34,7 @@ library AssociatedArrayLib {
             //if (index >= _length(s, account)) revert AssociatedArray_OutOfBounds(index);
             if iszero(lt(index, sload(slot))) {
                 mstore(0, 0x8277484f) // `AssociatedArray_OutOfBounds(uint256)`
-                mstore(4, index)
+                mstore(0x20, index)
                 revert(0x1c, 0x24)
             }    
             value := sload(add(slot, mul(0x20, add(index, 1))))
@@ -100,7 +100,7 @@ library AssociatedArrayLib {
             __length := sload(slot)
             if iszero(lt(index, __length)) {
                 mstore(0, 0x8277484f) // `AssociatedArray_OutOfBounds(uint256)`
-                mstore(4, index)
+                mstore(0x20, index)
                 revert(0x1c, 0x24)
             }
         }
