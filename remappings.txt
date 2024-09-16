@@ -24,3 +24,4 @@ ExcessivelySafeCall/=node_modules/excessively-safe-call/src/
 flatbytes/=node_modules/@rhinestone/flatbytes/src/
 
 @openzeppelin/contracts/=node_modules/@openzeppelin/contracts
+stringutils/=node_modules/stringutils/src/
