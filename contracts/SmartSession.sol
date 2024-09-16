@@ -115,7 +115,7 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
             EnableSession memory enableData;
             bytes memory usePermissionSig;
             (enableData, usePermissionSig) = packedSig.decodeEnable();
-            PermissionId permissionId = enableData.sessionToEnable.toPermissionIdMemory();
+            permissionId = enableData.sessionToEnable.toPermissionIdMemory();
 
             // ENABLE mode: Enable new policies and then enforce them
             _enablePolicies({ enableData: enableData, permissionId: permissionId, account: account, mode: mode });
