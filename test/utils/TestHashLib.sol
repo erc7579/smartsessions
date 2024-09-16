@@ -3,7 +3,6 @@ pragma solidity ^0.8.25;
 
 import "contracts/DataTypes.sol";
 import { EfficientHashLib } from "solady/utils/EfficientHashLib.sol";
-import { MessageHashUtils } from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import "contracts/lib/HashLib.sol";
 
 library TestHashLib {
