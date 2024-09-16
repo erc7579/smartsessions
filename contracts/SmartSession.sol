@@ -219,6 +219,12 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
 
         // Mark the session as enabled
         $enabledSessions.add(msg.sender, PermissionId.unwrap(permissionId));
+
+        // Set min policies config
+        if (enableData.sessionToEnable.minPoliciesConfig.minUserOpPolicies == 0 && enableData.sessionToEnable.minPoliciesConfig.minActionPolicies == 0) {
+            revert UnsafeMinPoliciesConfig();
+        } 
+        $minPoliciesConfigs[permissionId][account] = enableData.sessionToEnable.minPoliciesConfig;
     }
 
     /**
@@ -246,6 +252,8 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
             revert InvalidPermissionId(permissionId);
         }
 
+        MinPoliciesConfig memory minPoliciesConfig = $minPoliciesConfigs[permissionId][account];
+
         /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
         /*                    Check UserOp Policies                   */
         /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
@@ -255,17 +263,15 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
             userOp: userOp,
             permissionId: permissionId,
             callOnIPolicy: abi.encodeCall(IUserOpPolicy.checkUserOpPolicy, (permissionId.toConfigId(), userOp)),
-            minPolicies: 0 // for userOp policies, a min of 0 is ok. since these are not security critical
+            minPolicies: minPoliciesConfig.minUserOpPolicies
          });
-
-        bytes4 selector = bytes4(userOp.callData[0:4]);
 
         /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
         /*                      Handle Executions                     */
         /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
         // if the selector indicates that the userOp is an execution,
         // action policies have to be checked
-        if (selector == IERC7579Account.execute.selector) {
+        if (bytes4(userOp.callData[0:4]) == IERC7579Account.execute.selector) {
             // Decode ERC7579 execution mode
             (CallType callType, ExecType execType) = userOp.callData.get7579ExecutionTypes();
             // ERC7579 allows for different execution types, but SmartSession only supports the default execution type
@@ -278,7 +284,7 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
                     $actionPolicies.actionPolicies.checkBatch7579Exec({
                         userOp: userOp,
                         permissionId: permissionId,
-                        minPolicies: 1 // minimum of one actionPolicy must be set.
+                        minPolicies: minPoliciesConfig.minActionPolicies
                      })
                 );
             }
@@ -293,7 +299,7 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
                         target: target,
                         value: value,
                         callData: callData,
-                        minPolicies: 1 // minimum of one actionPolicy must be set.
+                        minPolicies: minPoliciesConfig.minActionPolicies // minimum of one actionPolicy must be set.
                      })
                 );
             }
@@ -305,7 +311,7 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
         // SmartSession does not support executeUserOp,
         // should this function selector be used in the userOp: revert
         // see why: https://github.com/erc7579/smartsessions/issues/17
-        else if (selector == IAccountExecute.executeUserOp.selector) {
+        else if (bytes4(userOp.callData[0:4]) == IAccountExecute.executeUserOp.selector) {
             revert UnsupportedExecutionType();
         }
         /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
@@ -329,7 +335,7 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
                             userOp.callData // data
                         )
                     ),
-                    minPolicies: 1 // minimum of one actionPolicy must be set.
+                    minPolicies: minPoliciesConfig.minActionPolicies
                  })
             );
         }

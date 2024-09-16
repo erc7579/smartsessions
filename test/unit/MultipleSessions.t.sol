@@ -32,7 +32,8 @@ contract MultipleSessionsTest is BaseTest {
             sessionValidatorInitData: "mockInitData",
             userOpPolicies: _getEmptyPolicyDatas(address(yesPolicy)),
             erc7739Policies: _getEmptyERC7739Data("mockContent", _getEmptyPolicyDatas(address(yesPolicy))),
-            actions: _getEmptyActionDatas(target, selector, address(yesPolicy))
+            actions: _getEmptyActionDatas(target, selector, address(yesPolicy)),
+            minPoliciesConfig: MinPoliciesConfig({ minUserOpPolicies: 1, minActionPolicies: 1 })
         });
 
         // predict permissionId correlating to EnableSession

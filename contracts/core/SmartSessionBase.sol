@@ -36,6 +36,7 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
     EnumerableSet.Bytes32Set internal $enabledSessions;
     mapping(PermissionId permissionId => EnumerableSet.Bytes32Set enabledContentHashes) internal $enabledERC7739Content;
     mapping(PermissionId permissionId => mapping(address smartAccount => SignerConf conf)) internal $sessionValidators;
+    mapping(PermissionId permissionId => mapping(address smartAccount => MinPoliciesConfig conf)) internal $minPoliciesConfigs;
 
     /**
      * @notice Enable user operation policies for a specific permission
@@ -224,6 +225,9 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
                 smartAccount: msg.sender,
                 useRegistry: true
             });
+
+            // Set the minimum policy configuration for this session
+            $minPoliciesConfigs[permissionId][msg.sender] = session.minPoliciesConfig;
 
             permissionIds[i] = permissionId;
             emit SessionCreated(permissionId, msg.sender);

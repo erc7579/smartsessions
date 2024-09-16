@@ -53,7 +53,8 @@ contract SpendingLimitTest is BaseTest {
             sessionValidatorInitData: "mockInitData",
             userOpPolicies: _getEmptyPolicyDatas(address(yesPolicy)),
             erc7739Policies: _getEmptyERC7739Data("mockContent", _getEmptyPolicyDatas(address(yesPolicy))),
-            actions: actionDatas
+            actions: actionDatas,
+            minPoliciesConfig: MinPoliciesConfig({ minUserOpPolicies: 1, minActionPolicies: 1 })
         });
 
         permissionId = smartSession.getPermissionId(session);

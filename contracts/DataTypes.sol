@@ -59,6 +59,7 @@ struct Session {
     PolicyData[] userOpPolicies;
     ERC7739Data erc7739Policies;
     ActionData[] actions;
+    MinPoliciesConfig minPoliciesConfig;
 }
 
 struct MultiChainSession {
@@ -86,6 +87,11 @@ struct ActionData {
 struct ERC7739Data {
     string[] allowedERC7739Content;
     PolicyData[] erc1271Policies;
+}
+
+struct MinPoliciesConfig {
+    uint128 minUserOpPolicies;
+    uint128 minActionPolicies;
 }
 
 enum SmartSessionMode {

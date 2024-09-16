@@ -55,7 +55,8 @@ contract SessionManagementTest is BaseTest {
             sessionValidatorInitData: "mockInitData",
             userOpPolicies: _getEmptyPolicyDatas(address(yesPolicy)),
             erc7739Policies: _getEmptyERC7739Data("mockContent", _getEmptyPolicyDatas(address(yesPolicy))),
-            actions: _getEmptyActionDatas(_target, MockTarget.setValue.selector, address(yesPolicy))
+            actions: _getEmptyActionDatas(_target, MockTarget.setValue.selector, address(yesPolicy)),
+            minPoliciesConfig: MinPoliciesConfig({ minUserOpPolicies: 1, minActionPolicies: 1 })
         });
 
         // predict permissionId correlating to EnableSession
@@ -112,7 +113,8 @@ contract SessionManagementTest is BaseTest {
             sessionValidatorInitData: "mockInitData",
             userOpPolicies: _getEmptyPolicyDatas(address(yesPolicy)),
             erc7739Policies: _getEmptyERC7739Data("mockContent", _getEmptyPolicyDatas(address(yesPolicy))),
-            actions: _getEmptyActionDatas(_target, MockTarget.setValue.selector, address(yesPolicy))
+            actions: _getEmptyActionDatas(_target, MockTarget.setValue.selector, address(yesPolicy)),
+            minPoliciesConfig: MinPoliciesConfig({ minUserOpPolicies: 1, minActionPolicies: 1 })
         });
 
         permissionId = smartSession.getPermissionId(session);
@@ -166,7 +168,8 @@ contract SessionManagementTest is BaseTest {
             sessionValidatorInitData: "mockInitData",
             userOpPolicies: userOpPolicyData,
             erc7739Policies: _getEmptyERC7739Data("0", new PolicyData[](0)),
-            actions: _getEmptyActionDatas(address(target), MockTarget.setValue.selector, address(yesPolicy2)) 
+            actions: _getEmptyActionDatas(address(target), MockTarget.setValue.selector, address(yesPolicy2)),
+            minPoliciesConfig: MinPoliciesConfig({ minUserOpPolicies: 1, minActionPolicies: 1 })
         });
 
         enableSessions = _makeMultiChainEnableData(permissionId, session, instance, SmartSessionMode.UNSAFE_ENABLE);
@@ -248,7 +251,8 @@ contract SessionManagementTest is BaseTest {
             sessionValidatorInitData: "mockInitData",
             userOpPolicies: _getEmptyPolicyDatas(address(yesPolicy)),
             erc7739Policies: _getEmptyERC7739Data("mockContent", _getEmptyPolicyDatas(address(yesPolicy))),
-            actions: _getEmptyActionDatas(_target, MockTarget.setValue.selector, address(yesPolicy))
+            actions: _getEmptyActionDatas(_target, MockTarget.setValue.selector, address(yesPolicy)),
+            minPoliciesConfig: MinPoliciesConfig({ minUserOpPolicies: 1, minActionPolicies: 1 })
         });
 
         // predict permissionId correlating to EnableSession
@@ -292,7 +296,8 @@ contract SessionManagementTest is BaseTest {
             sessionValidatorInitData: "mockInitData",
             userOpPolicies: new PolicyData[](0),
             erc7739Policies: _getEmptyERC7739Data("mockContent", _getEmptyPolicyDatas(address(yesPolicy))),
-            actions: actionData
+            actions: actionData,
+            minPoliciesConfig: MinPoliciesConfig({ minUserOpPolicies: 0, minActionPolicies: 1 })
         });
 
         PermissionId multiActionPermissionId = smartSession.getPermissionId(session);

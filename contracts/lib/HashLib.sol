@@ -16,7 +16,7 @@ string constant ERC7739_DATA_NOTATION_RAW = "ERC7739Data(string[] allowedERC7739
 bytes32 constant ERC7739_DATA_TYPEHASH = keccak256(abi.encodePacked(ERC7739_DATA_NOTATION_RAW, POLICY_DATA_NOTATION));
 
 string constant SESSION_NOTATION_RAW =
-    "SessionEIP712(address account,address smartSession,uint8 mode,address sessionValidator,bytes32 salt,bytes sessionValidatorInitData,PolicyData[] userOpPolicies,ERC7739Data erc7739Policies,ActionData[] actions,uint256 nonce)";
+    "SessionEIP712(address account,address smartSession,uint8 mode,address sessionValidator,bytes32 salt,bytes sessionValidatorInitData,PolicyData[] userOpPolicies,ERC7739Data erc7739Policies,ActionData[] actions,uint128 minUserOpPolicies,uint128 minActionPolicies,uint256 nonce)";
 bytes32 constant SESSION_TYPEHASH = keccak256(
     abi.encodePacked(SESSION_NOTATION_RAW, ACTION_DATA_NOTATION_RAW, ERC7739_DATA_NOTATION_RAW, POLICY_DATA_NOTATION)
 );
@@ -153,18 +153,26 @@ library HashLib {
     {
         // chainId is not needed as it is in the ChainSession
         _hash = keccak256(
-            abi.encode(
-                SESSION_TYPEHASH,
-                account,
-                smartSession,
-                uint8(mode), // Include mode as uint8
-                address(session.sessionValidator),
-                session.salt,
-                keccak256(session.sessionValidatorInitData),
-                session.userOpPolicies.hashPolicyDataArray(),
-                session.erc7739Policies.hashERC7739Data(),
-                session.actions.hashActionDataArray(),
-                nonce
+            bytes.concat(
+                abi.encode(
+                    SESSION_TYPEHASH,
+                    account,
+                    smartSession,
+                    uint8(mode), // Include mode as uint8
+                    address(session.sessionValidator)
+                ),
+                abi.encodePacked(
+                    session.salt,
+                    keccak256(session.sessionValidatorInitData),
+                    session.userOpPolicies.hashPolicyDataArray(),
+                    session.erc7739Policies.hashERC7739Data(),
+                    session.actions.hashActionDataArray()
+                ),
+                abi.encode(
+                    session.minPoliciesConfig.minUserOpPolicies,
+                    session.minPoliciesConfig.minActionPolicies,
+                    nonce
+                )
             )
         );
     }

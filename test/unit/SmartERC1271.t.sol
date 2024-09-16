@@ -43,7 +43,8 @@ contract SmartSessionERC1271Test is BaseTest {
             sessionValidatorInitData: abi.encodePacked(sessionSigner1.addr),
             userOpPolicies: _getEmptyPolicyDatas(address(yesPolicy)),
             erc7739Policies: _getEmptyERC7739Data("Permit(bytes32 stuff)", _getEmptyPolicyDatas(address(yesPolicy))),
-            actions: new ActionData[](0)
+            actions: new ActionData[](0),
+            minPoliciesConfig: MinPoliciesConfig({ minUserOpPolicies: 1, minActionPolicies: 1 })
         });
 
         Session[] memory sessions = new Session[](1);
