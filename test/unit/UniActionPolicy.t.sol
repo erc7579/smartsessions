@@ -104,7 +104,7 @@ contract UniversalActionPolicyTest is BaseTest {
         });
 
         Session memory session = Session({
-            sessionValidator: ISessionValidator(address(yesSigner)),
+            sessionValidator: ISessionValidator(address(yesSessionValidator)),
             salt: salt,
             sessionValidatorInitData: "mockInitData",
             userOpPolicies: new PolicyData[](0),

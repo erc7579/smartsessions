@@ -5,6 +5,7 @@ pragma solidity ^0.8.23;
 import "contracts/interfaces/IPolicy.sol";
 import { _packValidationData } from "@ERC4337/account-abstraction/contracts/core/Helpers.sol";
 import "contracts/lib/SubModuleLib.sol";
+import "contracts/DataTypes.sol";
 import "forge-std/console2.sol";
 
 contract YesPolicy is IUserOpPolicy, IActionPolicy, I1271Policy {
@@ -31,7 +32,7 @@ contract YesPolicy is IUserOpPolicy, IActionPolicy, I1271Policy {
     }
 
     function isModuleType(uint256 id) external pure returns (bool) {
-        return id == 7 || id == 8 || id == 9;
+        return id == ERC7579_MODULE_TYPE_USEROP_POLICY || id == ERC7579_MODULE_TYPE_ACTION_POLICY || id == ERC7579_MODULE_TYPE_ERC1271_POLICY;
     }
 
     function checkUserOpPolicy(ConfigId id, PackedUserOperation calldata userOp) external override returns (uint256) {
