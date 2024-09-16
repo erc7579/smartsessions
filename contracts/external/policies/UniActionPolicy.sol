@@ -150,7 +150,7 @@ library UniActionLib {
      * and compares it to the reference value based on the condition.
      * Also checks if the limit is reached/exceeded.
      */
-    function check(ParamRule memory rule, bytes calldata data) internal view returns (bool) {
+    function check(ParamRule storage rule, bytes calldata data) internal returns (bool) {
         bytes32 param = bytes32(data[4 + rule.offset:4 + rule.offset + 32]);
 
         // CHECK ParamCondition
