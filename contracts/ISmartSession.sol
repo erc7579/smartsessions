@@ -48,6 +48,8 @@ interface ISmartSession {
     error UnsupportedSmartSessionMode(SmartSessionMode mode);
 
     event NonceIterated(PermissionId permissionId, address account, uint256 newValue);
+    event SessionValidatorEnabled(PermissionId permissionId, address sessionValidator, address smartAccount);
+    event SessionValidatorDisabled(PermissionId permissionId, address sessionValidator, address smartAccount);
     event PolicyDisabled(PermissionId permissionId, uint256 moduleType, address policy, address smartAccount);
     event PolicyEnabled(PermissionId permissionId, uint256 moduleType, address policy, address smartAccount);
     event SessionCreated(PermissionId permissionId, address account);
