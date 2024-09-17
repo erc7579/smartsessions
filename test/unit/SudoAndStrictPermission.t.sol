@@ -3,6 +3,7 @@ pragma solidity ^0.8.25;
 
 import "../Base.t.sol";
 import "contracts/ISmartSession.sol";
+import { NoPolicy } from "../mock/NoPolicy.sol";
 
 import "solmate/test/utils/mocks/MockERC20.sol";
 import "forge-std/interfaces/IERC20.sol";
@@ -15,6 +16,9 @@ contract SudoAndStrictPermissionTest is BaseTest {
     MockERC20 token2;
     PermissionId permissionId_sudo;
     PermissionId permissionId_strict;
+    PermissionId permissionId_strict2;
+
+    NoPolicy noPolicy;
 
     function setUp() public virtual override {
         super.setUp();
@@ -25,6 +29,7 @@ contract SudoAndStrictPermissionTest is BaseTest {
         token1.mint(instance.account, 100 ether);
         token2.mint(instance.account, 100 ether);
 
+        noPolicy = new NoPolicy();
 
         // Prepare Sudo Permission
         PolicyData[] memory policyDatas = new PolicyData[](1);
@@ -55,15 +60,7 @@ contract SudoAndStrictPermissionTest is BaseTest {
         smartSession.enableSessions(enableSessionsArray);
 
 
-        // Prepare strict permission
-        /* policyDatas[0] = PolicyData({ policy: address(noPolicy), initData: "" });
-
-        actionDatas[0] = ActionData({
-            actionTarget: FALLBACK_TARGET_FLAG,
-            actionTargetSelector: FALLBACK_TARGET_SELECTOR_FLAG,
-            actionPolicies: policyDatas
-        }); */
-            
+        // Prepare strict permission implicit            
         session = Session({
             sessionValidator: ISessionValidator(address(yesSigner)),
             salt: keccak256("salt and pepper"),
@@ -75,6 +72,30 @@ contract SudoAndStrictPermissionTest is BaseTest {
         });
 
         permissionId_strict = smartSession.getPermissionId(session);
+        enableSessionsArray[0] = session;
+
+        vm.prank(instance.account);
+        smartSession.enableSessions(enableSessionsArray);
+
+        // prepare strict permission explicit
+        policyDatas[0] = PolicyData({ policy: address(noPolicy), initData: "" });
+
+        actionDatas[0] = ActionData({
+            actionTarget: FALLBACK_TARGET_FLAG,
+            actionTargetSelector: FALLBACK_TARGET_SELECTOR_FLAG,
+            actionPolicies: policyDatas
+        });
+
+        session = Session({
+            sessionValidator: ISessionValidator(address(yesSigner)),
+            salt: keccak256("salt and pepper explicit"),
+            sessionValidatorInitData: "mockInitData",
+            userOpPolicies: _getEmptyPolicyDatas(address(yesPolicy)),
+            erc7739Policies: _getEmptyERC7739Data("0", new PolicyData[](0)),
+            actions: actionDatas
+        });
+
+        permissionId_strict2 = smartSession.getPermissionId(session);
         enableSessionsArray[0] = session;
 
         vm.prank(instance.account);
@@ -132,7 +153,7 @@ contract SudoAndStrictPermissionTest is BaseTest {
         userOpData.execUserOps();
         assertEq(token1.balanceOf(recipient), 0);
 
-        // Token 2 fail
+        // Token 2 fail with other strict permission
         userOpData = instance.getExecOps({
             target: address(token2),
             value: 0,
@@ -140,7 +161,13 @@ contract SudoAndStrictPermissionTest is BaseTest {
             txValidator: address(smartSession)
         });
 
-        userOpData.userOp.signature = EncodeLib.encodeUse({ permissionId: permissionId_strict, sig: hex"4141414141" });
+        userOpData.userOp.signature = EncodeLib.encodeUse({ permissionId: permissionId_strict2, sig: hex"4141414141" });
+        expectedRevertReason = abi.encodeWithSelector(
+            IEntryPoint.FailedOpWithRevert.selector, 
+            0, 
+            "AA23 reverted",
+            abi.encodeWithSelector(ISmartSession.PolicyViolation.selector, permissionId_strict2, address(noPolicy))
+        );
         vm.expectRevert(expectedRevertReason);
         userOpData.execUserOps();
         assertEq(token2.balanceOf(recipient), 0);
