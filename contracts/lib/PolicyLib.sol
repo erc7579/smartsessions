@@ -130,6 +130,9 @@ library PolicyLib {
 
             // Intersect the validation data from this policy with the accumulated result
             vd = vd.intersect(_vd);
+
+            // Make sure policies can't alter the control flow
+            if (vd == RETRY_WITH_FALLBACK) revert();
         }
     }
 
