@@ -21,5 +21,8 @@ docs/
 node_modules/
 
 # Added by cargo
-
 /target
+
+#ds store
+.DS_Store
+
