@@ -16,7 +16,7 @@ import "forge-std/interfaces/IERC165.sol";
  */
 interface IPolicy is IERC165, IERC7579Module {
     function isInitialized(address account, ConfigId configId) external view returns (bool);
-    function isInitialized(address account, address mulitplexer, ConfigId configId) external view returns (bool);
+    function isInitialized(address account, address multiplexer, ConfigId configId) external view returns (bool);
 
     /**
      * This function may be called by the multiplexer (SmartSessions) without deinitializing first.

@@ -4,8 +4,15 @@ pragma solidity ^0.8.25;
 import "../DataTypes.sol";
 
 library IdLib {
+    bytes4 internal constant VALUE_SELECTOR = 0xFFFFFFFF;
+
     function toUserOpPolicyId(PermissionId permissionId) internal pure returns (UserOpPolicyId userOpPolicyId) {
         userOpPolicyId = UserOpPolicyId.wrap(PermissionId.unwrap(permissionId));
+    }
+
+    function toActionId(address target, bytes calldata callData) internal pure returns (ActionId actionId) {
+        if (callData.length < 4) return toActionId(target, VALUE_SELECTOR);
+        else return toActionId(target, callData[:4]);
     }
 
     function toActionId(address target, bytes4 functionSelector) internal pure returns (ActionId actionId) {

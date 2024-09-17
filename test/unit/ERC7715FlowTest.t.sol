@@ -32,7 +32,7 @@ contract ERC7715FlowTest is BaseTest {
             instance.getExecOps({ target: address(0), value: 0, callData: "", txValidator: address(0) });
 
         Session memory session = Session({
-            sessionValidator: ISessionValidator(address(yesSigner)),
+            sessionValidator: ISessionValidator(address(yesSessionValidator)),
             salt: salt,
             sessionValidatorInitData: "mockInitData",
             userOpPolicies: _getEmptyPolicyDatas(address(yesPolicy)),

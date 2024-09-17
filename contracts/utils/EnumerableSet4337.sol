@@ -86,9 +86,12 @@ library EnumerableSet {
     }
 
     function _removeAll(Set storage set, address account) internal {
+        // get length of the array
         uint256 len = _length(set, account);
-        for (uint256 i; i < len; i++) {
-            _remove(set, account, _at(set, account, i));
+        for (uint256 i = 1; i <= len; i++) {
+            // get last value
+            bytes32 value = _at(set, account, len - i);
+            _remove(set, account, value);
         }
     }
 

@@ -116,7 +116,7 @@ contract UserOperationBuilder is IUserOperationBuilder {
             if (isEnabled) {
                 return EncodeLib.encodeUse(permissionId, userOperation.signature);
             } else {
-                return EncodeLib.encodeEnable(permissionId, userOperation.signature, enableData);
+                return EncodeLib.encodeUnsafeEnable(userOperation.signature, enableData);
             }
         } catch (bytes memory error) {
             revert InvalidPermission(error);

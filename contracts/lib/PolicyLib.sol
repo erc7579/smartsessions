@@ -3,28 +3,26 @@ pragma solidity ^0.8.25;
 
 import "../DataTypes.sol";
 import { ISmartSession } from "../ISmartSession.sol";
-import { IPolicy } from "../interfaces/IPolicy.sol";
-import { PackedUserOperation } from "modulekit/external/ERC4337.sol";
-import { AssociatedArrayLib } from "../utils/AssociatedArrayLib.sol";
+import { IPolicy, IActionPolicy, I1271Policy } from "../interfaces/IPolicy.sol";
 
 import { Execution, ExecutionLib as ExecutionLib } from "./ExecutionLib.sol";
-import { CallType, CALLTYPE_DELEGATECALL, EXECTYPE_DEFAULT, EXECTYPE_TRY } from "erc7579/lib/ModeLib.sol";
+import { ValidationDataLib } from "./ValidationDataLib.sol";
+import { IdLib } from "./IdLib.sol";
+import { EnumerableSet } from "../utils/EnumerableSet4337.sol";
 
 import { ERC7579ValidatorBase } from "modulekit/Modules.sol";
-import { ValidationDataLib } from "contracts/lib/ValidationDataLib.sol";
-import { IActionPolicy, I1271Policy } from "../interfaces/IPolicy.sol";
-import { IdLib } from "./IdLib.sol";
-
+import { PackedUserOperation } from "modulekit/external/ERC4337.sol";
+import { CallType, CALLTYPE_DELEGATECALL, EXECTYPE_DEFAULT, EXECTYPE_TRY } from "erc7579/lib/ModeLib.sol";
 import { IERC7579Account } from "erc7579/interfaces/IERC7579Account.sol";
-import { EnumerableSet } from "../utils/EnumerableSet4337.sol";
+import { ExcessivelySafeCall } from "excessively-safe-call/src/ExcessivelySafeCall.sol";
 
 library PolicyLib {
     using EnumerableSet for EnumerableSet.AddressSet;
     using ExecutionLib for *;
     using IdLib for *;
     using PolicyLib for *;
-    using AssociatedArrayLib for *;
     using ValidationDataLib for ValidationData;
+    using ExcessivelySafeCall for address;
 
     function isFailed(ValidationData packedData) internal pure returns (bool sigFailed) {
         sigFailed = (ValidationData.unwrap(packedData) & 1) == 1;
@@ -69,14 +67,18 @@ library PolicyLib {
         // Iterate over all policies and intersect the validation data
         for (uint256 i; i < length; i++) {
             // Call the policy contract with the provided calldata
-            uint256 validationDataFromPolicy = uint256(bytes32(policies[i].safeCall({ callData: callOnIPolicy })));
-            vd = ValidationData.wrap(validationDataFromPolicy);
-
+            (bool success, bytes memory returnDataFromPolicy) = policies[i].excessivelySafeCall({_gas: gasleft(), _value: 0, _maxCopy: 32, _calldata: callOnIPolicy });
+            if (!success) revert();
+            uint256 validationDataFromPolicy;
+            assembly {
+                validationDataFromPolicy := mload(add(returnDataFromPolicy, 0x20))
+            }
+            ValidationData _vd = ValidationData.wrap(validationDataFromPolicy);
             // Revert if the policy check fails
-            if (vd.isFailed()) revert ISmartSession.PolicyViolation(permissionId, policies[i]);
+            if (_vd.isFailed()) revert ISmartSession.PolicyViolation(permissionId, policies[i]);
 
             // Intersect the validation data from this policy with the accumulated result
-            vd = vd.intersectValidationData(vd);
+            vd = vd.intersect(_vd);
         }
     }
 
@@ -156,7 +158,13 @@ library PolicyLib {
         internal
         returns (ValidationData vd)
     {
-        bytes4 targetSig = bytes4(callData[0:4]);
+        // Extract the function selector from the call data
+        bytes4 targetSig;
+        if (callData.length < 4) {
+            targetSig = IdLib.VALUE_SELECTOR;
+        } else {
+            targetSig = bytes4(callData[0:4]);
+        }
 
         // Prevent potential bypass of policy checks through nested self executions
         if (targetSig == IERC7579Account.execute.selector && target == userOp.sender) {
@@ -221,24 +229,18 @@ library PolicyLib {
             Execution calldata execution = executions[i];
 
             // Check policies for the current execution and intersect the result with previous checks
-            vd = vd.intersectValidationData(
-                checkSingle7579Exec({
-                    $policies: $policies,
-                    userOp: userOp,
-                    permissionId: permissionId,
-                    target: execution.target,
-                    value: execution.value,
-                    callData: execution.callData,
-                    minPolicies: minPolicies
-                })
-            );
-        }
-    }
+            ValidationData _vd = checkSingle7579Exec({
+                $policies: $policies,
+                userOp: userOp,
+                permissionId: permissionId,
+                target: execution.target,
+                value: execution.value,
+                callData: execution.callData,
+                minPolicies: minPolicies
+            });
 
-    function safeCall(address target, bytes memory callData) internal returns (bytes memory returnData) {
-        bool success;
-        (success, returnData) = target.call(callData);
-        if (!success) revert();
+            vd = vd.intersect(_vd);
+        }
     }
 
     /**
@@ -361,6 +363,7 @@ library PolicyLib {
         returns (bool)
     {
         uint256 length = actionPolicyDatas.length;
+        if (length == 0) return true; // 0 actions are always enabled
         uint256 actionsProperlyEnabled;
         for (uint256 i; i < length; i++) {
             ActionData memory actionPolicyData = actionPolicyDatas[i];
