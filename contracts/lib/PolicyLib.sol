@@ -55,10 +55,8 @@ library PolicyLib {
         internal
         returns (ValidationData vd)
     {
-        address account = userOp.sender;
-
         // Get the list of policies for the given permissionId and account
-        address[] memory policies = $self.policyList[permissionId].values({ account: account });
+        address[] memory policies = $self.policyList[permissionId].values({ account: userOp.sender });
         uint256 length = policies.length;
 
         // Ensure the minimum number of policies is met
@@ -66,19 +64,8 @@ library PolicyLib {
 
         // Iterate over all policies and intersect the validation data
         for (uint256 i; i < length; i++) {
-            // Call the policy contract with the provided calldata
-            (bool success, bytes memory returnDataFromPolicy) = policies[i].excessivelySafeCall({_gas: gasleft(), _value: 0, _maxCopy: 32, _calldata: callOnIPolicy });
-            if (!success) revert();
-            uint256 validationDataFromPolicy;
-            assembly {
-                validationDataFromPolicy := mload(add(returnDataFromPolicy, 0x20))
-            }
-            ValidationData _vd = ValidationData.wrap(validationDataFromPolicy);
-            // Revert if the policy check fails
-            if (_vd.isFailed()) revert ISmartSession.PolicyViolation(permissionId, policies[i]);
-
             // Intersect the validation data from this policy with the accumulated result
-            vd = vd.intersect(_vd);
+            vd = vd.intersect(policies[i]._checkPolicy(permissionId, callOnIPolicy));
         }
     }
 
@@ -104,10 +91,8 @@ library PolicyLib {
         internal
         returns (ValidationData vd)
     {
-        address account = userOp.sender;
-
         // Get the list of policies for the given permissionId and account
-        address[] memory policies = $self.policyList[permissionId].values({ account: account });
+        address[] memory policies = $self.policyList[permissionId].values({ account: userOp.sender });
         uint256 length = policies.length;
 
         // Ensure the minimum number of policies is met
@@ -117,24 +102,35 @@ library PolicyLib {
 
         // Iterate over all policies and intersect the validation data
         for (uint256 i; i < length; i++) {
-            // Call the policy contract with the provided calldata
-            (bool success, bytes memory returnDataFromPolicy) = policies[i].excessivelySafeCall({_gas: gasleft(), _value: 0, _maxCopy: 32, _calldata: callOnIPolicy });
-            if (!success) revert();
-            uint256 validationDataFromPolicy;
-            assembly {
-                validationDataFromPolicy := mload(add(returnDataFromPolicy, 0x20))
-            }
-            ValidationData _vd = ValidationData.wrap(validationDataFromPolicy);
-            // Revert if the policy check fails
-            if (_vd.isFailed()) revert ISmartSession.PolicyViolation(permissionId, policies[i]);
-
             // Intersect the validation data from this policy with the accumulated result
-            vd = vd.intersect(_vd);
-
-            // Make sure policies can't alter the control flow
-            if (vd == RETRY_WITH_FALLBACK) revert();
+            vd = vd.intersect(policies[i]._checkPolicy(permissionId, callOnIPolicy));
         }
+        
+        // Make sure policies can't alter the control flow
+        if (vd == RETRY_WITH_FALLBACK) revert();
     }
+
+    function _checkPolicy(
+        address policy, 
+        PermissionId permissionId,
+        bytes memory callOnIPolicy
+    )
+        internal
+        returns (ValidationData _vd)
+    {
+        
+        // Call the policy contract with the provided calldata
+        (bool success, bytes memory returnDataFromPolicy) = policy.excessivelySafeCall({_gas: gasleft(), _value: 0, _maxCopy: 32, _calldata: callOnIPolicy });
+        if (!success) revert();
+        uint256 validationDataFromPolicy;
+        assembly {
+            validationDataFromPolicy := mload(add(returnDataFromPolicy, 0x20))
+        }
+        _vd = ValidationData.wrap(validationDataFromPolicy);
+        // Revert if the policy check fails
+        if (_vd.isFailed()) revert ISmartSession.PolicyViolation(permissionId, policy);
+    }
+
 
     /**
      * Checks policies for a single ERC7579 execution within a user operation.
