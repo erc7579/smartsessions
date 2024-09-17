@@ -112,7 +112,12 @@ library PolicyLib {
         returns (ValidationData vd)
     {
         // Extract the function selector from the call data
-        bytes4 targetSig = bytes4(callData[0:4]);
+        bytes4 targetSig;
+        if (callData.length < 4) {
+            targetSig = IdLib.VALUE_SELECTOR;
+        } else {
+            targetSig = bytes4(callData[0:4]);
+        }
 
         // Prevent potential bypass of policy checks through nested self executions
         if (targetSig == IERC7579Account.execute.selector && target == userOp.sender) {
