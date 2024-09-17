@@ -17,7 +17,7 @@ import { IdLib } from "./IdLib.sol";
 
 import { IERC7579Account } from "erc7579/interfaces/IERC7579Account.sol";
 import { EnumerableSet } from "../utils/EnumerableSet4337.sol";
-import { ExcessivelySafeCall } from "excessively-safe-call/src/ExcessivelySafeCall.sol";
+import { ExcessivelySafeCall } from "excessively-safe-call/ExcessivelySafeCall.sol";
 
 library PolicyLib {
     using EnumerableSet for EnumerableSet.AddressSet;
