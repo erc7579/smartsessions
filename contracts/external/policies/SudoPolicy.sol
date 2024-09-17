@@ -34,7 +34,7 @@ contract YesPolicy is IActionPolicy, I1271Policy {
     // to be used if policy installed through multiplexer such as Smart Sessions Module
     function initializeWithMultiplexer(address account, ConfigId configId, bytes calldata /*initData*/ ) external {
         $enabledConfigs[msg.sender].add(account, ConfigId.unwrap(configId));
-        emit SudoPolicySet(msg.sender, account, configId);
+        emit SudoPolicySet(account, msg.sender, configId);
     }
 
     // to be used if policy installed directly on SA
