@@ -33,7 +33,7 @@ contract SudoAndStrictPermissionTest is BaseTest {
 
         // Prepare Sudo Permission
         PolicyData[] memory policyDatas = new PolicyData[](1);
-        policyDatas[0] = PolicyData({ policy: address(yesPolicy), initData: "" });
+        policyDatas[0] = PolicyData({ policy: address(sudoPolicy), initData: "" });
 
         ActionData[] memory actionDatas = new ActionData[](1);
         actionDatas[0] = ActionData({
@@ -43,7 +43,7 @@ contract SudoAndStrictPermissionTest is BaseTest {
         });
 
         Session memory session = Session({
-            sessionValidator: ISessionValidator(address(yesSigner)),
+            sessionValidator: ISessionValidator(address(yesSessionValidator)),
             salt: keccak256("salt"),
             sessionValidatorInitData: "mockInitData",
             userOpPolicies: new PolicyData[](0),
@@ -62,7 +62,7 @@ contract SudoAndStrictPermissionTest is BaseTest {
 
         // Prepare strict permission implicit            
         session = Session({
-            sessionValidator: ISessionValidator(address(yesSigner)),
+            sessionValidator: ISessionValidator(address(yesSessionValidator)),
             salt: keccak256("salt and pepper"),
             sessionValidatorInitData: "mockInitData",
             userOpPolicies: _getEmptyPolicyDatas(address(yesPolicy)),
@@ -87,7 +87,7 @@ contract SudoAndStrictPermissionTest is BaseTest {
         });
 
         session = Session({
-            sessionValidator: ISessionValidator(address(yesSigner)),
+            sessionValidator: ISessionValidator(address(yesSessionValidator)),
             salt: keccak256("salt and pepper explicit"),
             sessionValidatorInitData: "mockInitData",
             userOpPolicies: _getEmptyPolicyDatas(address(yesPolicy)),

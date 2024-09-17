@@ -316,7 +316,7 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
             ActionId actionId = account.toActionId(bytes4(userOp.callData[:4]));
 
             vd = vd.intersect(
-                $actionPolicies.actionPolicies[actionId].check({
+                $actionPolicies.actionPolicies[actionId].tryCheck({
                     userOp: userOp,
                     permissionId: permissionId,
                     callOnIPolicy: abi.encodeCall(

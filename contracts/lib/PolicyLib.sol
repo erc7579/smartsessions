@@ -118,14 +118,18 @@ library PolicyLib {
         // Iterate over all policies and intersect the validation data
         for (uint256 i; i < length; i++) {
             // Call the policy contract with the provided calldata
-            uint256 validationDataFromPolicy = uint256(bytes32(policies[i].safeCall({ callData: callOnIPolicy })));
-            vd = ValidationData.wrap(validationDataFromPolicy);
-
+            (bool success, bytes memory returnDataFromPolicy) = policies[i].excessivelySafeCall({_gas: gasleft(), _value: 0, _maxCopy: 32, _calldata: callOnIPolicy });
+            if (!success) revert();
+            uint256 validationDataFromPolicy;
+            assembly {
+                validationDataFromPolicy := mload(add(returnDataFromPolicy, 0x20))
+            }
+            ValidationData _vd = ValidationData.wrap(validationDataFromPolicy);
             // Revert if the policy check fails
-            if (vd.isFailed()) revert ISmartSession.PolicyViolation(permissionId, policies[i]);
+            if (_vd.isFailed()) revert ISmartSession.PolicyViolation(permissionId, policies[i]);
 
             // Intersect the validation data from this policy with the accumulated result
-            vd = vd.intersectValidationData(vd);
+            vd = vd.intersect(_vd);
         }
     }
 

@@ -13,8 +13,8 @@ contract NoPolicy is IActionPolicy {
         actionState;
 
     function onInstall(bytes calldata data) external {
-        (ConfigId id, address opSender, bytes calldata _data) = data.parseInstallData();
-        actionState[id][msg.sender][opSender] = 1;
+        (ConfigId id, bytes calldata _data) = data.parseInstallData();
+        actionState[id][msg.sender][msg.sender] = 1;
     }
 
     function initializeWithMultiplexer(address account, ConfigId configId, bytes calldata initData) external {
@@ -22,12 +22,12 @@ contract NoPolicy is IActionPolicy {
     }
 
     function onUninstall(bytes calldata data) external {
-        (ConfigId id, address opSender, bytes calldata _data) = data.parseInstallData();
-        actionState[id][msg.sender][opSender] = 0;
+        (ConfigId id, bytes calldata _data) = data.parseInstallData();
+        actionState[id][msg.sender][msg.sender] = 0;
     }
 
     function isModuleType(uint256 id) external pure returns (bool) {
-        return id == 8; // action policy
+        return id == ERC7579_MODULE_TYPE_ACTION_POLICY;
     }
 
     function checkAction(
