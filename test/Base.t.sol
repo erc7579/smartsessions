@@ -17,11 +17,11 @@ import { ISessionValidator } from "contracts/interfaces/ISessionValidator.sol";
 import { IRegistry } from "contracts/interfaces/IRegistry.sol";
 import "contracts/DataTypes.sol";
 import { EncodeLib } from "contracts/lib/EncodeLib.sol";
-import { YesSigner } from "./mock/YesSigner.sol";
+import { YesSessionValidator } from "./mock/YesSessionValidator.sol";
 import { MockTarget } from "./mock/MockTarget.sol";
 import { YesPolicy } from "contracts/external/policies/SudoPolicy.sol";
 import { MockRegistry } from "./mock/MockRegistry.sol";
-import { SimpleSigner } from "./mock/SimpleSigner.sol";
+import { SimpleSessionValidator } from "./mock/SimpleSessionValidator.sol";
 import { SimpleGasPolicy } from "./mock/SimpleGasPolicy.sol";
 import { TimeFramePolicy } from "./mock/TimeFramePolicy.sol";
 import { ValueLimitPolicy } from "./mock/ValueLimitPolicy.sol";
@@ -46,8 +46,8 @@ contract BaseTest is RhinestoneModuleKit, Test {
     AccountInstance internal instance;
     SmartSession internal smartSession;
     YesPolicy internal yesPolicy;
-    YesSigner internal yesSigner;
-    SimpleSigner internal simpleSigner;
+    YesSessionValidator internal yesSessionValidator;
+    SimpleSessionValidator internal simpleSessionValidator;
     SimpleGasPolicy internal simpleGasPolicy;
     TimeFramePolicy internal timeFramePolicy;
     ValueLimitPolicy internal valueLimitPolicy;
@@ -71,9 +71,9 @@ contract BaseTest is RhinestoneModuleKit, Test {
 
         smartSession = new SmartSession();
         target = new MockTarget();
-        yesSigner = new YesSigner();
+        yesSessionValidator = new YesSessionValidator();
         yesPolicy = new YesPolicy();
-        simpleSigner = new SimpleSigner();
+        simpleSessionValidator = new SimpleSessionValidator();
         simpleGasPolicy = new SimpleGasPolicy();
         timeFramePolicy = new TimeFramePolicy();
         valueLimitPolicy = new ValueLimitPolicy();

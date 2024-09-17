@@ -27,7 +27,7 @@ contract MultipleSessionsTest is BaseTest {
         // get userOp from ModuleKit
 
         Session memory session = Session({
-            sessionValidator: ISessionValidator(address(yesSigner)),
+            sessionValidator: ISessionValidator(address(yesSessionValidator)),
             salt: salt,
             sessionValidatorInitData: "mockInitData",
             userOpPolicies: _getEmptyPolicyDatas(address(yesPolicy)),
@@ -169,6 +169,36 @@ contract MultipleSessionsTest is BaseTest {
 
         userOpData.userOp.signature = EncodeLib.encodeUse({ permissionId: permissionId, sig: hex"4141414141" });
         instance.expect4337Revert();
+        userOpData.execUserOps();
+    }
+
+    function test_send_value() public {
+        address receiver = makeAddr("receiver");
+        PermissionId permissionId = _makeSession(receiver, IdLib.VALUE_SELECTOR, "salt1", 1);
+
+        Execution[] memory executions = new Execution[](1);
+        executions[0] = Execution({ target: receiver, value: 100, callData: "" });
+
+        // get userOp from ModuleKit
+        UserOpData memory userOpData =
+            instance.getExecOps({ executions: executions, txValidator: address(smartSession) });
+
+        userOpData.userOp.signature = EncodeLib.encodeUse({ permissionId: permissionId, sig: hex"4141414141" });
+        userOpData.execUserOps();
+    }
+
+    function test_payableFunction() public {
+        PermissionId permissionId = _makeSession(address(target), MockTarget.setValue.selector, "salt1", 1);
+
+        Execution[] memory executions = new Execution[](1);
+        executions[0] =
+            Execution({ target: address(target), value: 100, callData: abi.encodeCall(MockTarget.setValue, (1234)) });
+
+        // get userOp from ModuleKit
+        UserOpData memory userOpData =
+            instance.getExecOps({ executions: executions, txValidator: address(smartSession) });
+
+        userOpData.userOp.signature = EncodeLib.encodeUse({ permissionId: permissionId, sig: hex"4141414141" });
         userOpData.execUserOps();
     }
 }

@@ -33,6 +33,7 @@ interface ISmartSession {
     error InvalidSessionKeySignature(
         PermissionId permissionId, address sessionValidator, address account, bytes32 userOpHash
     );
+    error SmartSessionModuleAlreadyInstalled(address account);
     error InvalidPermissionId(PermissionId permissionId);
     error InvalidCallTarget();
     error InvalidUserOpSender(address sender);
@@ -47,8 +48,10 @@ interface ISmartSession {
     error UnsupportedSmartSessionMode(SmartSessionMode mode);
 
     event NonceIterated(PermissionId permissionId, address account, uint256 newValue);
-    event PolicyDisabled(PermissionId permissionId, PolicyType policyType, address policy, address smartAccount);
-    event PolicyEnabled(PermissionId permissionId, PolicyType policyType, address policy, address smartAccount);
+    event SessionValidatorEnabled(PermissionId permissionId, address sessionValidator, address smartAccount);
+    event SessionValidatorDisabled(PermissionId permissionId, address sessionValidator, address smartAccount);
+    event PolicyDisabled(PermissionId permissionId, uint256 moduleType, address policy, address smartAccount);
+    event PolicyEnabled(PermissionId permissionId, uint256 moduleType, address policy, address smartAccount);
     event SessionCreated(PermissionId permissionId, address account);
     event SessionRemoved(PermissionId permissionId, address smartAccount);
 
@@ -58,8 +61,8 @@ interface ISmartSession {
 
     /**
      * ERC4337/ERC7579 validation function
-     * the primiary purpose of this function, is to validate if a userOp forwarded by a 7579 account is valid.
-     * This function will disect the userop.singature field, and parse out the provided PermissionId, which identifies a
+     * the primary purpose of this function, is to validate if a userOp forwarded by a 7579 account is valid.
+     * This function will dissect the userop.signature field, and parse out the provided PermissionId, which identifies a
      * unique ID of a dapp for a specific user. n Policies and one Signer contract are mapped to this Id and will be
      * checked. Only UserOps that pass policies and signer checks, are considered valid.
      * Enable Flow:
@@ -75,7 +78,7 @@ interface ISmartSession {
         returns (ValidationData vd);
     /**
      * ERC7579 compliant onInstall function.
-     * extected to abi.encode(Session[])  for the enable data
+     * expected to abi.encode(Session[]) for the enable data
      *
      * Note: It's possible to install the smartsession module with data = ""
      */
@@ -143,5 +146,4 @@ interface ISmartSession {
         view
         returns (bool isEnabled);
     function isSessionEnabled(PermissionId permissionId, address account) external view returns (bool);
-    function supportsNestedTypedDataSign() external view returns (bytes32 result);
 }
