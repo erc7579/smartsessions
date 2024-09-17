@@ -163,9 +163,10 @@ uint256 constant ERC7579_MODULE_TYPE_POLICY = 7;
 // target and selector are set to 1. During validation if the current target and
 // selector does not have a set action policy, then the fallback will be used if
 // enabled.
-ActionId constant FALLBACK_ACTIONID = ActionId.wrap(bytes32(uint256(1)));
 address constant FALLBACK_TARGET_FLAG = address(1);
 bytes4 constant FALLBACK_TARGET_SELECTOR_FLAG = 0x00000001;
+// 0xd884b6afa19f8ace90a388daca691e4e28f20cdac5aeefd46ad8bd1c074d28cf
+ActionId constant FALLBACK_ACTIONID = ActionId.wrap(keccak256(abi.encodePacked(FALLBACK_TARGET_FLAG, FALLBACK_TARGET_SELECTOR_FLAG)));
 
 // If call data is null then default to using this value for the selector during
 // actionId generation. Note that users should verify the target does not have any
