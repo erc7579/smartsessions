@@ -56,7 +56,7 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
             configId: permissionId.toUserOpPolicyId().toConfigId(),
             policyDatas: userOpPolicies,
             smartAccount: msg.sender,
-            useRegistry: false
+            useRegistry: true
         });
     }
 
@@ -102,7 +102,7 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
             configId: permissionId.toErc1271PolicyId().toConfigId(),
             policyDatas: erc1271Policies.erc1271Policies,
             smartAccount: msg.sender,
-            useRegistry: false
+            useRegistry: true
         });
     }
 
@@ -144,7 +144,7 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
             permissionId: permissionId,
             actionPolicyDatas: actionPolicies,
             smartAccount: msg.sender,
-            useRegistry: false
+            useRegistry: true
         });
     }
 
@@ -193,7 +193,7 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
                 smartAccount: msg.sender,
                 sessionValidator: session.sessionValidator,
                 sessionValidatorConfig: session.sessionValidatorInitData,
-                useRegistry: false
+                useRegistry: true
             });
 
             // Enable UserOp policies
@@ -203,7 +203,7 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
                 configId: permissionId.toUserOpPolicyId().toConfigId(),
                 policyDatas: session.userOpPolicies,
                 smartAccount: msg.sender,
-                useRegistry: false
+                useRegistry: true
             });
 
             // Enable ERC1271 policies
@@ -213,7 +213,7 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
                 configId: permissionId.toErc1271PolicyId().toConfigId(),
                 policyDatas: session.erc7739Policies.erc1271Policies,
                 smartAccount: msg.sender,
-                useRegistry: false
+                useRegistry: true
             });
             $enabledERC7739Content.enable(session.erc7739Policies.allowedERC7739Content, permissionId, msg.sender);
 
@@ -222,7 +222,7 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
                 permissionId: permissionId,
                 actionPolicyDatas: session.actions,
                 smartAccount: msg.sender,
-                useRegistry: false
+                useRegistry: true
             });
 
             permissionIds[i] = permissionId;
