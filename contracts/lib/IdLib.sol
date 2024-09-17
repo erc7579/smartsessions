@@ -3,8 +3,6 @@ pragma solidity ^0.8.25;
 
 import "../DataTypes.sol";
 
-import 'forge-std/console2.sol';
-
 library IdLib {
     function toUserOpPolicyId(PermissionId permissionId) internal pure returns (UserOpPolicyId userOpPolicyId) {
         userOpPolicyId = UserOpPolicyId.wrap(PermissionId.unwrap(permissionId));
