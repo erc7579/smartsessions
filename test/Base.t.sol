@@ -31,7 +31,8 @@ import { MockK1Validator } from "test/mock/MockK1Validator.sol";
 import { UserOperationBuilder } from "test/mock/erc7679/UserOpBuilder.sol";
 import { ModeLib, ModeCode as ExecutionMode } from "erc7579/lib/ModeLib.sol";
 import { HashLib } from "contracts/lib/HashLib.sol";
-import { TestHashLib } from "test/utils/TestHashLib.sol";
+import { TestHashLib } from "test/utils/lib/TestHashLib.sol";
+import { IntegrationEncodeLib } from "test/utils/lib/IntegrationEncodeLib.sol";
 import { IEntryPoint } from "account-abstraction/interfaces/IEntryPoint.sol";
 
 import "forge-std/console2.sol";
@@ -161,7 +162,7 @@ contract BaseTest is RhinestoneModuleKit, Test {
             mode: mode
         });
 
-        ChainDigest[] memory chainDigests = EncodeLib.encodeHashesAndChainIds(
+        ChainDigest[] memory chainDigests = IntegrationEncodeLib.encodeHashesAndChainIds(
             Solarray.uint64s(181_818, uint64(block.chainid), 777),
             Solarray.bytes32s(sessionDigest, sessionDigest, sessionDigest)
         );

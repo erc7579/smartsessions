@@ -70,12 +70,8 @@ library IdLib {
         _id = toConfigId(userOpPolicyId, msg.sender);
     }
 
-    function toConfigId(ActionPolicyId actionPolicyId) internal view returns (ConfigId _id) {
-        _id = toConfigId(actionPolicyId, msg.sender);
-    }
-
     function toConfigId(PermissionId permissionId, ActionId actionId) internal view returns (ConfigId _id) {
-        _id = toConfigId(toActionPolicyId(permissionId, actionId));
+        _id = toConfigId(toActionPolicyId(permissionId, actionId), msg.sender);
     }
 
     function toConfigId(Erc1271PolicyId erc1271PolicyId) internal view returns (ConfigId _id) {
