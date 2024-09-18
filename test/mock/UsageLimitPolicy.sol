@@ -84,7 +84,7 @@ contract UsageLimitPolicy is IUserOpPolicy, IActionPolicy {
     }
 
     function isModuleType(uint256 id) external pure returns (bool) {
-        return id == 7 || id == 8; 
+        return id == 7 || id == 8;
     }
 
     function supportsInterface(bytes4 interfaceID) external pure override returns (bool) {

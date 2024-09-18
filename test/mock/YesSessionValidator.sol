@@ -35,7 +35,6 @@ contract YesSessionValidator is ISessionValidator {
         return true;
     }
 
-
     /**
      * @dev This function is called by the smart account during installation of the module
      * @param data arbitrary data that may be required on the module during `onInstall`
@@ -43,9 +42,7 @@ contract YesSessionValidator is ISessionValidator {
      *
      * MUST revert on error (i.e. if module is already enabled)
      */
-    function onInstall(bytes calldata data) external {
-
-    }
+    function onInstall(bytes calldata data) external { }
 
     /**
      * @dev This function is called by the smart account during uninstallation of the module
@@ -54,7 +51,5 @@ contract YesSessionValidator is ISessionValidator {
      *
      * MUST revert on error
      */
-    function onUninstall(bytes calldata data) external {
-        
-    }
+    function onUninstall(bytes calldata data) external { }
 }

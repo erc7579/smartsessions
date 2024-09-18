@@ -36,7 +36,7 @@ library AssociatedArrayLib {
                 mstore(0, 0x8277484f) // `AssociatedArray_OutOfBounds(uint256)`
                 mstore(0x20, index)
                 revert(0x1c, 0x24)
-            }    
+            }
             value := sload(add(slot, mul(0x20, add(index, 1))))
         }
     }
@@ -81,7 +81,7 @@ library AssociatedArrayLib {
                 mstore(0, 0x8277484f) // `AssociatedArray_OutOfBounds(uint256)`
                 mstore(0x20, index)
                 revert(0x1c, 0x24)
-            }    
+            }
             sstore(add(slot, mul(0x20, add(index, 1))), value)
         }
     }
@@ -122,10 +122,10 @@ library AssociatedArrayLib {
             }
         }
         _set(slot, index, _get(s, account, __length - 1));
-        
+
         assembly {
             // clear the last slot
-            // this is the 'unchecked' version of _set(slot, __length - 1, 0) 
+            // this is the 'unchecked' version of _set(slot, __length - 1, 0)
             // as we use length-1 as index, so the check is excessive.
             // also removes extra -1 and +1 operations
             sstore(add(slot, mul(0x20, __length)), 0)
@@ -155,8 +155,9 @@ library AssociatedArrayLib {
     }
 
     function add(Bytes32Array storage s, address account, bytes32 value) internal {
-        if(!_contains(s._inner, account, value)) 
+        if (!_contains(s._inner, account, value)) {
             _push(s._inner, account, value);
+        }
     }
 
     function set(Bytes32Array storage s, address account, uint256 index, bytes32 value) internal {
@@ -203,7 +204,7 @@ library AssociatedArrayLib {
     }
 
     function add(AddressArray storage s, address account, address value) internal {
-        if(!_contains(s._inner, account, bytes32(uint256(uint160(value))))){
+        if (!_contains(s._inner, account, bytes32(uint256(uint160(value))))) {
             _push(s._inner, account, bytes32(uint256(uint160(value))));
         }
     }
@@ -252,7 +253,7 @@ library AssociatedArrayLib {
     }
 
     function add(UintArray storage s, address account, uint256 value) internal {
-        if(!_contains(s._inner, account, bytes32(value))){
+        if (!_contains(s._inner, account, bytes32(value))) {
             _push(s._inner, account, bytes32(value));
         }
     }

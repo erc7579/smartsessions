@@ -46,7 +46,7 @@ contract TimeFramePolicy is IUserOpPolicy, IActionPolicy {
 
     function check1271SignedAction(
         ConfigId id,
-        address, 
+        address,
         address smartAccount,
         bytes32,
         bytes calldata

@@ -38,7 +38,7 @@ contract YesPolicy is IActionPolicy, I1271Policy {
     }
 
     // to be used if policy installed directly on SA
-    function onUninstall(bytes calldata data ) external {
+    function onUninstall(bytes calldata data) external {
         if (data.length == 0) {
             //remove all configs for account
             EnumerableSet.Bytes32Set storage configIds = $enabledConfigs[msg.sender];
@@ -101,7 +101,9 @@ contract YesPolicy is IActionPolicy, I1271Policy {
         return true;
     }
 
-    function supportsInterface(bytes4 interfaceID ) external pure override returns (bool) {
-        return interfaceID == type(IActionPolicy).interfaceId || interfaceID == type(I1271Policy).interfaceId || interfaceID == IActionPolicy.checkAction.selector || interfaceID == I1271Policy.check1271SignedAction.selector;
+    function supportsInterface(bytes4 interfaceID) external pure override returns (bool) {
+        return interfaceID == type(IActionPolicy).interfaceId || interfaceID == type(I1271Policy).interfaceId
+            || interfaceID == IActionPolicy.checkAction.selector
+            || interfaceID == I1271Policy.check1271SignedAction.selector;
     }
 }

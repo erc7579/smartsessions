@@ -67,7 +67,8 @@ library PolicyLib {
         // Iterate over all policies and intersect the validation data
         for (uint256 i; i < length; i++) {
             // Call the policy contract with the provided calldata
-            (bool success, bytes memory returnDataFromPolicy) = policies[i].excessivelySafeCall({_gas: gasleft(), _value: 0, _maxCopy: 32, _calldata: callOnIPolicy });
+            (bool success, bytes memory returnDataFromPolicy) =
+                policies[i].excessivelySafeCall({ _gas: gasleft(), _value: 0, _maxCopy: 32, _calldata: callOnIPolicy });
             if (!success) revert();
             uint256 validationDataFromPolicy;
             assembly {

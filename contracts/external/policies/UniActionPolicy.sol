@@ -181,7 +181,10 @@ library UniActionLib {
             return false;
         } else if (rule.condition == ParamCondition.IN_RANGE) {
             // in this case rule.ref is abi.encodePacked(uint128(min), uint128(max))
-            if (param < (rule.ref >> 128) || param > (rule.ref & 0x00000000000000000000000000000000ffffffffffffffffffffffffffffffff)) {
+            if (
+                param < (rule.ref >> 128)
+                    || param > (rule.ref & 0x00000000000000000000000000000000ffffffffffffffffffffffffffffffff)
+            ) {
                 return false;
             }
         }

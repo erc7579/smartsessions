@@ -28,7 +28,7 @@ contract UniversalActionPolicyTest is BaseTest {
 
         permissionId = _enableSessionWithUniActionPolicy(salt, instance.account, 1e32, bytes32(uint256(0x01)));
         bytes memory callData = abi.encodeCall(MockCallee.addBalance, (instance.account, valToAdd, valToAdd32));
-        
+
         // get userOp from ModuleKit
         UserOpData memory userOpData = instance.getExecOps({
             target: address(mockCallee),
@@ -49,11 +49,14 @@ contract UniversalActionPolicyTest is BaseTest {
         assertTrue(uniPolicy.isInitialized(address(smartSession), instance.account));
     }
 
-    function test_use_universal_action_policy_fails_because_of_limit(bytes32 salt) public returns (PermissionId permissionId) {
+    function test_use_universal_action_policy_fails_because_of_limit(bytes32 salt)
+        public
+        returns (PermissionId permissionId)
+    {
         uint256 valToAdd = 2517;
         bytes32 valToAdd32 = bytes32(uint256(0xdecaf));
 
-        permissionId = _enableSessionWithUniActionPolicy(salt, instance.account, (valToAdd+1), bytes32(uint256(0x01)));
+        permissionId = _enableSessionWithUniActionPolicy(salt, instance.account, (valToAdd + 1), bytes32(uint256(0x01)));
         bytes memory callData = abi.encodeCall(MockCallee.addBalance, (instance.account, valToAdd, valToAdd32));
 
         // get userOp from ModuleKit
@@ -79,8 +82,8 @@ contract UniversalActionPolicyTest is BaseTest {
         userOpData.userOp.signature = EncodeLib.encodeUse({ permissionId: permissionId, sig: hex"4141414141" });
 
         bytes memory expectedRevertReason = abi.encodeWithSelector(
-            IEntryPoint.FailedOpWithRevert.selector, 
-            0, 
+            IEntryPoint.FailedOpWithRevert.selector,
+            0,
             "AA23 reverted",
             abi.encodeWithSelector(ISmartSession.PolicyViolation.selector, permissionId, address(uniPolicy))
         );
@@ -90,7 +93,15 @@ contract UniversalActionPolicyTest is BaseTest {
         userOpData.execUserOps();
     }
 
-    function _enableSessionWithUniActionPolicy(bytes32 salt, address refAddressRef, uint256 refUint256, bytes32 refBytes32) internal returns (PermissionId permissionId) {
+    function _enableSessionWithUniActionPolicy(
+        bytes32 salt,
+        address refAddressRef,
+        uint256 refUint256,
+        bytes32 refBytes32
+    )
+        internal
+        returns (PermissionId permissionId)
+    {
         ActionId actionId = address(mockCallee).toActionId(MockCallee.addBalance.selector);
 
         PolicyData[] memory actionPolicyDatas = new PolicyData[](1);
@@ -120,8 +131,17 @@ contract UniversalActionPolicyTest is BaseTest {
         vm.prank(instance.account);
         smartSession.enableSessions(enableSessionsArray);
     }
-    
-    function _getMockUniPolicyInitData(ActionId actionId, address refAddressRef, uint256 refUint256, bytes32 refBytes32) internal pure returns (bytes memory policyInitData) {
+
+    function _getMockUniPolicyInitData(
+        ActionId actionId,
+        address refAddressRef,
+        uint256 refUint256,
+        bytes32 refBytes32
+    )
+        internal
+        pure
+        returns (bytes memory policyInitData)
+    {
         ParamRule memory addrRule = ParamRule({
             condition: ParamCondition.EQUAL,
             offset: 0x00,
