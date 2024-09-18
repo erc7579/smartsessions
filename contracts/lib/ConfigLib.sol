@@ -60,7 +60,11 @@ library ConfigLib {
 
             // this will revert if the policy is not attested to
             if (useRegistry) {
-                registry.checkForAccount({ smartAccount: smartAccount, module: policy, moduleType: ModuleType.wrap(moduleType) });
+                registry.checkForAccount({
+                    smartAccount: smartAccount,
+                    module: policy,
+                    moduleType: ModuleType.wrap(moduleType)
+                });
             }
 
             // Add the policy to the list for the given permission and smart account
@@ -115,7 +119,7 @@ library ConfigLib {
 
             // Record the enabled action ID
             $self.enabledActionIds[permissionId].add(smartAccount, ActionId.unwrap(actionId));
-            
+
             //$self.enabledActionIds[permissionId].push(smartAccount, ActionId.unwrap(actionId));
 
             // Record the enabled action ID
@@ -205,7 +209,7 @@ library ConfigLib {
      * Disables specified policies for a given permission ID and smart account.
      *
      * @dev This function removes the specified policies from the policy list and emits events for each disabled policy.
-     * @notice Cleaning state on policies is not required as on enable, initializeWithMultiplexer is called which MUST 
+     * @notice Cleaning state on policies is not required as on enable, initializeWithMultiplexer is called which MUST
      *       overwrite the current state.
      *
      * @param $policy The storage reference to the Policy struct.
@@ -242,7 +246,7 @@ library ConfigLib {
         // Get the storage reference for the signer configuration
         SignerConf storage $conf = $sessionValidators[permissionId][smartAccount];
 
-        //emit event 
+        //emit event
         emit ISmartSession.SessionValidatorDisabled(permissionId, address($conf.sessionValidator), smartAccount);
 
         // Clear the session validator

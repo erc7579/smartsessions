@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 pragma solidity ^0.8.23;
 
-import {IModule} from "erc7579/interfaces/IERC7579Module.sol";
+import { IModule } from "erc7579/interfaces/IERC7579Module.sol";
 
 /**
  * ISessionValidator is a contract that validates signatures for a given session.

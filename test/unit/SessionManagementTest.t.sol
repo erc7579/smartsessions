@@ -30,9 +30,7 @@ contract SessionManagementTest is BaseTest {
         vm.label(address(policy3), "policy3");
     }
 
-    function test_enable_exec(
-        bytes32 salt
-    )
+    function test_enable_exec(bytes32 salt)
         public
         returns (PermissionId permissionId, EnableSession memory enableSessions)
     {
@@ -139,11 +137,14 @@ contract SessionManagementTest is BaseTest {
         assertEq(target.value(), 1337);
     }
 
-    function test_add_policies_to_permission(bytes32 salt) public returns (PermissionId permissionId, EnableSession memory enableSessions) {
+    function test_add_policies_to_permission(bytes32 salt)
+        public
+        returns (PermissionId permissionId, EnableSession memory enableSessions)
+    {
         (permissionId, enableSessions) = test_enable_exec(salt);
 
         YesPolicy yesPolicy2 = new YesPolicy();
-        
+
         ConfigId configId = permissionId.toConfigId(instance.account);
 
         assertFalse(usageLimitPolicy.isInitialized(instance.account, address(smartSession), configId));
@@ -166,7 +167,7 @@ contract SessionManagementTest is BaseTest {
             sessionValidatorInitData: "mockInitData",
             userOpPolicies: userOpPolicyData,
             erc7739Policies: _getEmptyERC7739Data("0", new PolicyData[](0)),
-            actions: _getEmptyActionDatas(address(target), MockTarget.setValue.selector, address(yesPolicy2)) 
+            actions: _getEmptyActionDatas(address(target), MockTarget.setValue.selector, address(yesPolicy2))
         });
 
         enableSessions = _makeMultiChainEnableData(permissionId, session, instance, SmartSessionMode.UNSAFE_ENABLE);

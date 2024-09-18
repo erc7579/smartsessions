@@ -17,9 +17,7 @@ contract ERC7715FlowTest is BaseTest {
         userOpBuilder = new UserOperationBuilder(ep);
     }
 
-    function test_7715_flow(
-        bytes32 salt
-    )
+    function test_7715_flow(bytes32 salt)
         public
         returns (PermissionId permissionId, EnableSession memory enableSessions)
     {

@@ -147,12 +147,12 @@ uint256 constant ERC7579_MODULE_TYPE_EXECUTOR = 2;
 uint256 constant ERC7579_MODULE_TYPE_FALLBACK = 3;
 uint256 constant ERC7579_MODULE_TYPE_HOOK = 4;
 
-// the module types are tbd, but for now we use 7,8,9 and 10 until new module types via ERC7579 extension process are defined
+// the module types are tbd, but for now we use 7,8,9 and 10 until new module types via ERC7579 extension process are
+// defined
 uint256 constant ERC7579_MODULE_TYPE_USEROP_POLICY = 7;
 uint256 constant ERC7579_MODULE_TYPE_ACTION_POLICY = 8;
 uint256 constant ERC7579_MODULE_TYPE_ERC1271_POLICY = 9;
 uint256 constant ERC7579_MODULE_TYPE_STATELESS_VALIDATOR = 10;
-
 
 IRegistry constant registry = IRegistry(0x000000000069E2a187AEFFb852bF3cCdC95151B2);
 ModuleType constant VALIDATOR_MODULE_TYPE = ModuleType.wrap(ERC7579_MODULE_TYPE_VALIDATOR);
@@ -164,7 +164,8 @@ ModuleType constant VALIDATOR_MODULE_TYPE = ModuleType.wrap(ERC7579_MODULE_TYPE_
 address constant FALLBACK_TARGET_FLAG = address(1);
 bytes4 constant FALLBACK_TARGET_SELECTOR_FLAG = 0x00000001;
 // 0xd884b6afa19f8ace90a388daca691e4e28f20cdac5aeefd46ad8bd1c074d28cf
-ActionId constant FALLBACK_ACTIONID = ActionId.wrap(keccak256(abi.encodePacked(FALLBACK_TARGET_FLAG, FALLBACK_TARGET_SELECTOR_FLAG)));
+ActionId constant FALLBACK_ACTIONID =
+    ActionId.wrap(keccak256(abi.encodePacked(FALLBACK_TARGET_FLAG, FALLBACK_TARGET_SELECTOR_FLAG)));
 
 // A unique ValidationData value to retry a policy check with the FALLBACK_ACTIONID.
 ValidationData constant RETRY_WITH_FALLBACK = ValidationData.wrap(uint256(0x50FFBAAD));

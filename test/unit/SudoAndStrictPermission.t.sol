@@ -59,8 +59,7 @@ contract SudoAndStrictPermissionTest is BaseTest {
         vm.prank(instance.account);
         smartSession.enableSessions(enableSessionsArray);
 
-
-        // Prepare strict permission implicit            
+        // Prepare strict permission implicit
         session = Session({
             sessionValidator: ISessionValidator(address(yesSessionValidator)),
             salt: keccak256("salt and pepper"),
@@ -68,7 +67,7 @@ contract SudoAndStrictPermissionTest is BaseTest {
             userOpPolicies: _getEmptyPolicyDatas(address(yesPolicy)),
             erc7739Policies: _getEmptyERC7739Data("0", new PolicyData[](0)),
             //actions: actionDatas
-            actions: new ActionData[](0) 
+            actions: new ActionData[](0)
         });
 
         permissionId_strict = smartSession.getPermissionId(session);
@@ -142,10 +141,10 @@ contract SudoAndStrictPermissionTest is BaseTest {
         });
 
         userOpData.userOp.signature = EncodeLib.encodeUse({ permissionId: permissionId_strict, sig: hex"4141414141" });
-        
+
         bytes memory expectedRevertReason = abi.encodeWithSelector(
-            IEntryPoint.FailedOpWithRevert.selector, 
-            0, 
+            IEntryPoint.FailedOpWithRevert.selector,
+            0,
             "AA23 reverted",
             abi.encodeWithSelector(ISmartSession.NoPoliciesSet.selector, permissionId_strict)
         );
@@ -163,8 +162,8 @@ contract SudoAndStrictPermissionTest is BaseTest {
 
         userOpData.userOp.signature = EncodeLib.encodeUse({ permissionId: permissionId_strict2, sig: hex"4141414141" });
         expectedRevertReason = abi.encodeWithSelector(
-            IEntryPoint.FailedOpWithRevert.selector, 
-            0, 
+            IEntryPoint.FailedOpWithRevert.selector,
+            0,
             "AA23 reverted",
             abi.encodeWithSelector(ISmartSession.PolicyViolation.selector, permissionId_strict2, address(noPolicy))
         );

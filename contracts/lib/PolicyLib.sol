@@ -59,13 +59,17 @@ library PolicyLib {
         address[] memory policies = $self.policyList[permissionId].values({ account: userOp.sender });
         uint256 length = policies.length;
 
-        // Ensure the minimum number of policies is met
+        // Ensure the minimum number of policies is met.
+        // Revert otherwise. Current minPolicies for userOp policies is 0.
+        // Current minPolicies for action policies is 1.
+        // This ensures sudo (open) permissions can be created only by explicitly setting SudoPolicy/YesPolicy
+        // as the only action policies
         if (minPolicies > length) revert ISmartSession.NoPoliciesSet(permissionId);
 
         // Iterate over all policies and intersect the validation data
         for (uint256 i; i < length; i++) {
             // Intersect the validation data from this policy with the accumulated result
-            vd = vd.intersect(policies[i]._checkPolicy(permissionId, callOnIPolicy));
+            vd = vd.intersect(policies[i].callPolicy(permissionId, callOnIPolicy));
         }
     }
 
@@ -79,7 +83,10 @@ library PolicyLib {
      * @param callOnIPolicy The encoded function call data to be executed on each policy contract.
      * @param minPolicies The minimum number of policies that must be present and checked.
      *
-     * @return vd The intersected ValidationData result from all policy checks.
+     * @return vd This value could either be:
+     *             - RETRY_WITH_FALLBACK if no adequate policies were set for this permissionId. Signaling the caller,
+     * that the Policy fallback procedure SHOULD be used
+     *             - Intersected Validation data of policies.
      */
     function tryCheck(
         Policy storage $self,
@@ -95,7 +102,11 @@ library PolicyLib {
         address[] memory policies = $self.policyList[permissionId].values({ account: userOp.sender });
         uint256 length = policies.length;
 
-        // Ensure the minimum number of policies is met
+        // Ensure the minimum number of policies is met. I.e. there are enough policies configured for given ActionId
+        // Current minPolicies is 1 for action policies. That means, if there is no policies at all confgured
+        // for a given ActionId (ActionId was not enabled), execution proceeds to the fallback flow.
+        // There can be any amount of fallback action policies configured, and those will be applied to all actionIds,
+        // that were not configured explicitly.
         if (minPolicies > length) {
             return RETRY_WITH_FALLBACK;
         }
@@ -103,34 +114,38 @@ library PolicyLib {
         // Iterate over all policies and intersect the validation data
         for (uint256 i; i < length; i++) {
             // Intersect the validation data from this policy with the accumulated result
-            vd = vd.intersect(policies[i]._checkPolicy(permissionId, callOnIPolicy));
+            vd = vd.intersect(policies[i].callPolicy(permissionId, callOnIPolicy));
         }
-        
+
         // Make sure policies can't alter the control flow
-        if (vd == RETRY_WITH_FALLBACK) revert();
+        if (vd == RETRY_WITH_FALLBACK) revert ISmartSession.ForbiddenValidationData();
     }
 
-    function _checkPolicy(
-        address policy, 
+    function callPolicy(
+        address policy,
         PermissionId permissionId,
         bytes memory callOnIPolicy
     )
         internal
         returns (ValidationData _vd)
     {
-        
         // Call the policy contract with the provided calldata
-        (bool success, bytes memory returnDataFromPolicy) = policy.excessivelySafeCall({_gas: gasleft(), _value: 0, _maxCopy: 32, _calldata: callOnIPolicy });
-        if (!success) revert();
+        (bool success, bytes memory returnDataFromPolicy) =
+            policy.excessivelySafeCall({ _gas: gasleft(), _value: 0, _maxCopy: 32, _calldata: callOnIPolicy });
         uint256 validationDataFromPolicy;
         assembly {
+            //if (!success) revert PolicyCheckReverted(bytes32);
+            if iszero(success) {
+                mstore(0, 0xf4270752) // `PolicyCheckReverted(bytes32)`
+                mstore(0x20, mload(add(returnDataFromPolicy, 0x20)))
+                revert(0x1c, 0x24)
+            }
             validationDataFromPolicy := mload(add(returnDataFromPolicy, 0x20))
         }
         _vd = ValidationData.wrap(validationDataFromPolicy);
-        // Revert if the policy check fails
+        // Prevent a malfunctioning policy, to return the magic value RETRY_WITH_FALLBACK and change control flow
         if (_vd.isFailed()) revert ISmartSession.PolicyViolation(permissionId, policy);
     }
-
 
     /**
      * Checks policies for a single ERC7579 execution within a user operation.
@@ -186,12 +201,16 @@ library PolicyLib {
             ),
             minPolicies: minPolicies
         });
+        // If tryCheck returns RETRY_WITH_FALLBACK magic value, that means not enough policies were configured
+        // for the actionId. Proceed with checking fallback action policies ($policies[FALLBACK_ACTIONID]).
         if (vd == RETRY_WITH_FALLBACK) {
+            // If no policies were configured for FALLBACK_ACTIONID for this PermissionId, this will revert
             vd = $policies[FALLBACK_ACTIONID].check({
                 userOp: userOp,
                 permissionId: permissionId,
                 callOnIPolicy: abi.encodeCall(
-                    IActionPolicy.checkAction, (permissionId.toConfigId(FALLBACK_ACTIONID), userOp.sender, target, value, callData)
+                    IActionPolicy.checkAction,
+                    (permissionId.toConfigId(FALLBACK_ACTIONID), userOp.sender, target, value, callData)
                 ),
                 minPolicies: minPolicies
             });

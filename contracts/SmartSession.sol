@@ -109,7 +109,6 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
         // If the signature is valid, the policies and signer will be enabled
         // after enabling the session, the policies will be enforced on the userOp similarly to the SmartSession.USE
         else if (mode.isEnableMode()) {
-            
             // unpack the EnableSession data and signature
             // calculate the permissionId from the Session data
             EnableSession memory enableData;
@@ -149,7 +148,6 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
         SmartSessionMode mode
     )
         internal
-        
     {
         // Increment nonce to prevent replay attacks
         uint256 nonce = $signerNonce[permissionId][account]++;
@@ -207,7 +205,9 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
             smartAccount: account,
             useRegistry: useRegistry
         });
-        $enabledERC7739Content.enable(enableData.sessionToEnable.erc7739Policies.allowedERC7739Content, permissionId, account);
+        $enabledERC7739Content.enable(
+            enableData.sessionToEnable.erc7739Policies.allowedERC7739Content, permissionId, account
+        );
 
         // Enable action policies
         $actionPolicies.enable({

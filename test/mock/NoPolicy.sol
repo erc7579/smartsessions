@@ -58,5 +58,4 @@ contract NoPolicy is IActionPolicy {
     function supportsInterface(bytes4 interfaceID) external view override returns (bool) {
         return true;
     }
-
 }

@@ -75,7 +75,7 @@ contract EIP712Test is Test {
 
         assertEq(hash, expected_hash);
     }
- 
+
     function test_erc7739_hash() public {
         bytes32 expected_typehash = 0xdd8bf2f9b88fa557b2cb00ffd37dc4a3b8f3ff1d0d9e03c6f7c183f38869e91d;
         assertEq(expected_typehash, ERC7739_DATA_TYPEHASH);

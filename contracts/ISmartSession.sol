@@ -46,6 +46,7 @@ interface ISmartSession {
     error UnsupportedExecutionType();
     error UnsupportedPolicy(address policy);
     error UnsupportedSmartSessionMode(SmartSessionMode mode);
+    error ForbiddenValidationData();
 
     event NonceIterated(PermissionId permissionId, address account, uint256 newValue);
     event SessionValidatorEnabled(PermissionId permissionId, address sessionValidator, address smartAccount);
@@ -62,7 +63,8 @@ interface ISmartSession {
     /**
      * ERC4337/ERC7579 validation function
      * the primary purpose of this function, is to validate if a userOp forwarded by a 7579 account is valid.
-     * This function will dissect the userop.signature field, and parse out the provided PermissionId, which identifies a
+     * This function will dissect the userop.signature field, and parse out the provided PermissionId, which identifies
+     * a
      * unique ID of a dapp for a specific user. n Policies and one Signer contract are mapped to this Id and will be
      * checked. Only UserOps that pass policies and signer checks, are considered valid.
      * Enable Flow:
