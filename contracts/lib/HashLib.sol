@@ -6,42 +6,54 @@ import { EfficientHashLib } from "solady/utils/EfficientHashLib.sol";
 import { MessageHashUtils } from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import { EfficientHashLib } from "solady/utils/EfficientHashLib.sol";
 
-string constant POLICY_DATA_NOTATION = "PolicyData(address policy,bytes initData)";
-bytes32 constant POLICY_DATA_TYPEHASH = keccak256(abi.encodePacked(POLICY_DATA_NOTATION));
-string constant ACTION_DATA_NOTATION_RAW =
-    "ActionData(bytes4 actionTargetSelector,address actionTarget,PolicyData[] actionPolicies)";
-bytes32 constant ACTION_DATA_TYPEHASH = keccak256(abi.encodePacked(ACTION_DATA_NOTATION_RAW, POLICY_DATA_NOTATION));
+// string constant POLICY_DATA_NOTATION = "PolicyData(address policy,bytes initData)";
+// bytes32 constant POLICY_DATA_TYPEHASH = keccak256(abi.encodePacked(POLICY_DATA_NOTATION));
+bytes32 constant POLICY_DATA_TYPEHASH = 0xdddac12cd8b10a071bea04226e97ac9490698394e19224abc47a5cfeeeb6ee97;
+// string constant ACTION_DATA_NOTATION_RAW =
+//     "ActionData(bytes4 actionTargetSelector,address actionTarget,PolicyData[] actionPolicies)";
+// bytes32 constant ACTION_DATA_TYPEHASH = keccak256(abi.encodePacked(ACTION_DATA_NOTATION_RAW, POLICY_DATA_NOTATION));
+bytes32 constant ACTION_DATA_TYPEHASH = 0x35809859dccf8877c407a59527c2f00fb81ca9c198ebcb0c832c3deaa38d3502;
 
-string constant ERC7739_DATA_NOTATION_RAW = "ERC7739Data(string[] allowedERC7739Content,PolicyData[] erc1271Policies)";
-bytes32 constant ERC7739_DATA_TYPEHASH = keccak256(abi.encodePacked(ERC7739_DATA_NOTATION_RAW, POLICY_DATA_NOTATION));
+// string constant ERC7739_DATA_NOTATION_RAW = "ERC7739Data(string[] allowedERC7739Content,PolicyData[]
+// erc1271Policies)";
+// bytes32 constant ERC7739_DATA_TYPEHASH = keccak256(abi.encodePacked(ERC7739_DATA_NOTATION_RAW,
+// POLICY_DATA_NOTATION));
+bytes32 constant ERC7739_DATA_TYPEHASH = 0xdd8bf2f9b88fa557b2cb00ffd37dc4a3b8f3ff1d0d9e03c6f7c183f38869e91d;
 
-string constant SESSION_NOTATION_RAW =
-    "SessionEIP712(address account,address smartSession,uint8 mode,address sessionValidator,bytes32 salt,bytes sessionValidatorInitData,PolicyData[] userOpPolicies,ERC7739Data erc7739Policies,ActionData[] actions,uint256 nonce)";
-bytes32 constant SESSION_TYPEHASH = keccak256(
-    abi.encodePacked(SESSION_NOTATION_RAW, ACTION_DATA_NOTATION_RAW, ERC7739_DATA_NOTATION_RAW, POLICY_DATA_NOTATION)
-);
-string constant CHAIN_SESSION_NOTATION_RAW = "ChainSessionEIP712(uint64 chainId,SessionEIP712 session)";
-bytes32 constant CHAIN_SESSION_TYPEHASH = keccak256(
-    abi.encodePacked(
-        CHAIN_SESSION_NOTATION_RAW,
-        ACTION_DATA_NOTATION_RAW,
-        ERC7739_DATA_NOTATION_RAW,
-        POLICY_DATA_NOTATION,
-        SESSION_NOTATION_RAW
-    )
-);
-string constant MULTICHAIN_SESSION_NOTATION_RAW = "MultiChainSessionEIP712(ChainSessionEIP712[] sessionsAndChainIds)";
+// string constant SESSION_NOTATION_RAW =
+//     "SessionEIP712(address account,address smartSession,uint8 mode,address sessionValidator,bytes32 salt,bytes
+// sessionValidatorInitData,PolicyData[] userOpPolicies,ERC7739Data erc7739Policies,ActionData[] actions,uint256
+// nonce)";
+// bytes32 constant SESSION_TYPEHASH = keccak256(
+//     abi.encodePacked(SESSION_NOTATION_RAW, ACTION_DATA_NOTATION_RAW, ERC7739_DATA_NOTATION_RAW, POLICY_DATA_NOTATION)
+// );
+bytes32 constant SESSION_TYPEHASH = 0x45f5f60cec99c2d0a0198ec513b02d6926b8ec63dfaf7e9afba954108dd97ebd;
+// string constant CHAIN_SESSION_NOTATION_RAW = "ChainSessionEIP712(uint64 chainId,SessionEIP712 session)";
+// bytes32 constant CHAIN_SESSION_TYPEHASH = keccak256(
+//     abi.encodePacked(
+//         CHAIN_SESSION_NOTATION_RAW,
+//         ACTION_DATA_NOTATION_RAW,
+//         ERC7739_DATA_NOTATION_RAW,
+//         POLICY_DATA_NOTATION,
+//         SESSION_NOTATION_RAW
+//     )
+// );
 
-bytes32 constant MULTICHAIN_SESSION_TYPEHASH = keccak256(
-    abi.encodePacked(
-        MULTICHAIN_SESSION_NOTATION_RAW,
-        ACTION_DATA_NOTATION_RAW,
-        CHAIN_SESSION_NOTATION_RAW,
-        ERC7739_DATA_NOTATION_RAW,
-        POLICY_DATA_NOTATION,
-        SESSION_NOTATION_RAW
-    )
-);
+bytes32 constant CHAIN_SESSION_TYPEHASH = 0x9c5d301c45209fe15c8bb85bc08d4234ac9e1d48c0d22b7ab701ae25e640086b;
+// string constant MULTICHAIN_SESSION_NOTATION_RAW = "MultiChainSessionEIP712(ChainSessionEIP712[]
+// sessionsAndChainIds)";
+//
+// bytes32 constant MULTICHAIN_SESSION_TYPEHASH = keccak256(
+//     abi.encodePacked(
+//         MULTICHAIN_SESSION_NOTATION_RAW,
+//         ACTION_DATA_NOTATION_RAW,
+//         CHAIN_SESSION_NOTATION_RAW,
+//         ERC7739_DATA_NOTATION_RAW,
+//         POLICY_DATA_NOTATION,
+//         SESSION_NOTATION_RAW
+//     )
+// );
+bytes32 constant MULTICHAIN_SESSION_TYPEHASH = 0x9af9262be547d4cc9dd06591bab37efd72d2b9d5fca173afd326b5b5410dac18;
 
 //0xb03948446334eb9b2196d5eb166f69b9d49403eb4a12f36de8d3f9f3cb8e15c3
 bytes32 constant _MULTICHAIN_DOMAIN_TYPEHASH = keccak256("EIP712Domain(string name,string version)");
