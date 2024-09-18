@@ -6,7 +6,7 @@ import "../../interfaces/IPolicy.sol";
 import "../../lib/SubModuleLib.sol";
 import "../../utils/EnumerableSet4337.sol";
 
-contract YesPolicy is IActionPolicy, I1271Policy {
+contract SudoPolicy is IActionPolicy, I1271Policy {
     using EnumerableSet for EnumerableSet.Bytes32Set;
 
     event SudoPolicyInstalledMultiplexer(address indexed account, address indexed multiplexer, ConfigId indexed id);

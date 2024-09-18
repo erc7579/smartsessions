@@ -157,6 +157,30 @@ uint256 constant ERC7579_MODULE_TYPE_STATELESS_VALIDATOR = 10;
 IRegistry constant registry = IRegistry(0x000000000069E2a187AEFFb852bF3cCdC95151B2);
 ModuleType constant VALIDATOR_MODULE_TYPE = ModuleType.wrap(ERC7579_MODULE_TYPE_VALIDATOR);
 
+// ActionId for a fallback action policy. This id will be used if both action
+// target and selector are set to 1. During validation if the current target and
+// selector does not have a set action policy, then the fallback will be used if
+// enabled.
+address constant FALLBACK_TARGET_FLAG = address(1);
+bytes4 constant FALLBACK_TARGET_SELECTOR_FLAG = 0x00000001;
+// 0xd884b6afa19f8ace90a388daca691e4e28f20cdac5aeefd46ad8bd1c074d28cf
+ActionId constant FALLBACK_ACTIONID =
+    ActionId.wrap(keccak256(abi.encodePacked(FALLBACK_TARGET_FLAG, FALLBACK_TARGET_SELECTOR_FLAG)));
+
+// A unique ValidationData value to retry a policy check with the FALLBACK_ACTIONID.
+ValidationData constant RETRY_WITH_FALLBACK = ValidationData.wrap(uint256(0x50FFBAAD));
+
+using { validationDataEq as == } for ValidationData global;
+using { validationDataNeq as != } for ValidationData global;
+
+function validationDataEq(ValidationData uid1, ValidationData uid2) pure returns (bool) {
+    return ValidationData.unwrap(uid1) == ValidationData.unwrap(uid2);
+}
+
+function validationDataNeq(ValidationData uid1, ValidationData uid2) pure returns (bool) {
+    return ValidationData.unwrap(uid1) != ValidationData.unwrap(uid2);
+}
+
 using { permissionIdEq as == } for PermissionId global;
 using { permissionIdNeq as != } for PermissionId global;
 

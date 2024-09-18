@@ -20,6 +20,7 @@ import { EncodeLib } from "contracts/lib/EncodeLib.sol";
 import { YesSessionValidator } from "./mock/YesSessionValidator.sol";
 import { MockTarget } from "./mock/MockTarget.sol";
 import { YesPolicy } from "./mock/YesPolicy.sol";
+import { SudoPolicy } from "contracts/external/policies/SudoPolicy.sol";
 import { MockRegistry } from "./mock/MockRegistry.sol";
 import { SimpleSessionValidator } from "./mock/SimpleSessionValidator.sol";
 import { SimpleGasPolicy } from "./mock/SimpleGasPolicy.sol";
@@ -47,6 +48,7 @@ contract BaseTest is RhinestoneModuleKit, Test {
     AccountInstance internal instance;
     SmartSession internal smartSession;
     YesPolicy internal yesPolicy;
+    SudoPolicy internal sudoPolicy;
     YesSessionValidator internal yesSessionValidator;
     SimpleSessionValidator internal simpleSessionValidator;
     SimpleGasPolicy internal simpleGasPolicy;
@@ -74,6 +76,7 @@ contract BaseTest is RhinestoneModuleKit, Test {
         target = new MockTarget();
         yesSessionValidator = new YesSessionValidator();
         yesPolicy = new YesPolicy();
+        sudoPolicy = new SudoPolicy();
         simpleSessionValidator = new SimpleSessionValidator();
         simpleGasPolicy = new SimpleGasPolicy();
         timeFramePolicy = new TimeFramePolicy();

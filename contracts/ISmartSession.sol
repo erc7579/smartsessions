@@ -46,6 +46,7 @@ interface ISmartSession {
     error UnsupportedExecutionType();
     error UnsupportedPolicy(address policy);
     error UnsupportedSmartSessionMode(SmartSessionMode mode);
+    error ForbiddenValidationData();
 
     event NonceIterated(PermissionId permissionId, address account, uint256 newValue);
     event SessionValidatorEnabled(PermissionId permissionId, address sessionValidator, address smartAccount);
