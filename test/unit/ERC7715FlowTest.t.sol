@@ -47,7 +47,7 @@ contract ERC7715FlowTest is BaseTest {
             abi.encodePacked(mockK1, sign(ECDSA.toEthSignedMessageHash(hash), owner.key));
 
         uint192 nonceKey = uint192(uint160(address(smartSession))) << 32;
-        bytes memory context = EncodeLib.encodeContext(
+        bytes memory context = IntegrationEncodeLib.encodeContext(
             nonceKey, //192 bits, 24 bytes
             ModeLib.encodeSimpleSingle(), //execution mode, 32 bytes
             permissionId,
