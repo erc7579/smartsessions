@@ -311,10 +311,6 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
         return configIdsCnt > 0;
     }
 
-    function isSessionEnabled(PermissionId permissionId, address account) external view returns (bool) {
-        return $enabledSessions.contains(account, PermissionId.unwrap(permissionId));
-    }
-
     function isModuleType(uint256 typeID) external pure override returns (bool) {
         if (typeID == ERC7579_MODULE_TYPE_VALIDATOR) return true;
     }
@@ -339,6 +335,10 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
 
     function _isISessionValidatorSet(PermissionId permissionId, address account) internal view returns (bool) {
         return address($sessionValidators[permissionId][account].sessionValidator) != address(0);
+    }
+
+    function isPermissionEnabled(PermissionId permissionId, address account) external view returns (bool) {
+        return $enabledSessions.contains(account, PermissionId.unwrap(permissionId));
     }
 
     function isPermissionEnabled(
