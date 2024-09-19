@@ -349,12 +349,8 @@ library PolicyLib {
             PolicyData memory policyData = policyDatas[i];
             IPolicy policy = IPolicy(policyData.policy);
 
-            // Check if policy is in the list and initialized for the smart account,
-            // this smart session and configId
-            if (
-                $policies.policyList[permissionId].contains(smartAccount, address(policy))
-                    && policy.isInitialized(smartAccount, address(this), configId)
-            ) enabledPolicies++;
+            // check if policy is enabled
+            if ($policies.policyList[permissionId].contains(smartAccount, address(policy))) enabledPolicies++;
         }
         if (enabledPolicies == 0) return false;
         else if (enabledPolicies == length) return true;

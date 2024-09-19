@@ -64,10 +64,6 @@ contract SimpleGasPolicy is IUserOpPolicy {
         return id == 7; //userOpPolicy
     }
 
-    function isInitialized(address account, address multiplexer, ConfigId id) external view override returns (bool) {
-        return gasLimitConfigs[id][multiplexer][account].gasLimit > 0;
-    }
-
     function supportsInterface(bytes4 interfaceID) external pure override returns (bool) {
         return true;
     }

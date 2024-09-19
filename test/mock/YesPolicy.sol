@@ -40,10 +40,6 @@ contract YesPolicy is IUserOpPolicy, IActionPolicy, I1271Policy {
         actionState[id][msg.sender][account] += 1;
     }
 
-    function isInitialized(address account, address multiplexer, ConfigId id) external view override returns (bool) {
-        return userOpState[id][multiplexer][account] != 0;
-    }
-
     function supportsInterface(bytes4 interfaceID) external view override returns (bool) {
         return true;
     }
