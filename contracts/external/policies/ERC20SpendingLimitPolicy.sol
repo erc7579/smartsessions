@@ -11,7 +11,7 @@ address constant NATIVE_TOKEN = address(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEE
 uint256 constant VALIDATION_SUCCESS = 0;
 uint256 constant VALIDATION_FAILED = 1;
 
-contract SpendingLimitPolicy is IActionPolicy {
+contract ERC20SpendingLimitPolicy is IActionPolicy {
     event TokenSpent(
         ConfigId id, address multiplexer, address token, address account, uint256 amount, uint256 remaining
     );
