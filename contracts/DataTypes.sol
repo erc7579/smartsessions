@@ -146,10 +146,6 @@ uint256 constant ERC7579_MODULE_TYPE_VALIDATOR = 1;
 uint256 constant ERC7579_MODULE_TYPE_EXECUTOR = 2;
 uint256 constant ERC7579_MODULE_TYPE_FALLBACK = 3;
 uint256 constant ERC7579_MODULE_TYPE_HOOK = 4;
-
-// the module types are tbd, but for now we use 7,8,9 and 10 until new module types via ERC7579 extension process are
-// defined
-uint256 constant ERC7579_MODULE_TYPE_POLICY = 0;
 uint256 constant ERC7579_MODULE_TYPE_STATELESS_VALIDATOR = 7;
 
 enum PolicyType {

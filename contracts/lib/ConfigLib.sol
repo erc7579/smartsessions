@@ -69,8 +69,7 @@ library ConfigLib {
             if (useRegistry) {
                 registry.checkForAccount({
                     smartAccount: smartAccount,
-                    module: policy,
-                    moduleType: ModuleType.wrap(ERC7579_MODULE_TYPE_POLICY)
+                    module: policy
                 });
             }
 
