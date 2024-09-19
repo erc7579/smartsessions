@@ -342,7 +342,6 @@ library PolicyLib {
     {
         uint256 length = policyDatas.length;
 
-        // TODO: should we change this to false?
         if (length == 0) return true; // 0 policies are always enabled lol
         uint256 enabledPolicies;
         for (uint256 i; i < length; i++) {
