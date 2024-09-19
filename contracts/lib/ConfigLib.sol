@@ -19,7 +19,7 @@ library ConfigLib {
 
     error UnsupportedPolicy(address policy);
 
-    function requireModuleType(address policy, PolicyType policyType) internal view {
+    function requirePolicyType(address policy, PolicyType policyType) internal view {
         bool supportsInterface;
         if (policyType == PolicyType.USER_OP) {
             supportsInterface = IPolicy(policy).supportsInterface(IUserOpPolicy.checkUserOpPolicy.selector);
@@ -63,7 +63,7 @@ library ConfigLib {
         for (uint256 i; i < lengthConfigs; i++) {
             address policy = policyDatas[i].policy;
 
-            policy.requireModuleType(policyType);
+            policy.requirePolicyType(policyType);
 
             // this will revert if the policy is not attested to
             if (useRegistry) {
