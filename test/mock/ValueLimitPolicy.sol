@@ -82,16 +82,8 @@ contract ValueLimitPolicy is IActionPolicy {
         return id == 8;
     }
 
-    function isInitialized(address account, ConfigId id) external view override returns (bool) {
-        return valueLimitConfigs[id][account][account].valueLimit > 0;
-    }
-
     function isInitialized(address account, address multiplexer, ConfigId id) external view override returns (bool) {
         return valueLimitConfigs[id][multiplexer][account].valueLimit > 0;
-    }
-
-    function isInitialized(address account) external view override returns (bool) {
-        return usedIds[msg.sender][account] > 0;
     }
 
     function supportsInterface(bytes4 interfaceID) external pure override returns (bool) {

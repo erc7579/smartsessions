@@ -110,10 +110,6 @@ contract TimeFramePolicy is IUserOpPolicy, IActionPolicy {
         return usedIds[msg.sender][smartAccount] > 0;
     }
 
-    function isInitialized(address account, ConfigId id) external view override returns (bool) {
-        return status[id][account][account] == Status.Live;
-    }
-
     function isInitialized(address account, address multiplexer, ConfigId id) external view override returns (bool) {
         return status[id][multiplexer][account] == Status.Live;
     }

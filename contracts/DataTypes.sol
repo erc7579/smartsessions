@@ -149,10 +149,15 @@ uint256 constant ERC7579_MODULE_TYPE_HOOK = 4;
 
 // the module types are tbd, but for now we use 7,8,9 and 10 until new module types via ERC7579 extension process are
 // defined
-uint256 constant ERC7579_MODULE_TYPE_USEROP_POLICY = 7;
-uint256 constant ERC7579_MODULE_TYPE_ACTION_POLICY = 8;
-uint256 constant ERC7579_MODULE_TYPE_ERC1271_POLICY = 9;
-uint256 constant ERC7579_MODULE_TYPE_STATELESS_VALIDATOR = 10;
+uint256 constant ERC7579_MODULE_TYPE_POLICY = 0;
+uint256 constant ERC7579_MODULE_TYPE_STATELESS_VALIDATOR = 7;
+
+enum PolicyType {
+    NA,
+    USER_OP,
+    ACTION,
+    ERC1271
+}
 
 IRegistry constant registry = IRegistry(0x000000000069E2a187AEFFb852bF3cCdC95151B2);
 ModuleType constant VALIDATOR_MODULE_TYPE = ModuleType.wrap(ERC7579_MODULE_TYPE_VALIDATOR);

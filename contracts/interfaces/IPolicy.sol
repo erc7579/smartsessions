@@ -14,10 +14,8 @@ import "forge-std/interfaces/IERC165.sol";
  *      mapping(id   =>   msg.sender   =>   userOp.sender(account) => state)
  *                        ^ smartSession    ^ smart account (associated storage)
  */
-interface IPolicy is IERC165, IERC7579Module {
-    function isInitialized(address account, ConfigId configId) external view returns (bool);
+interface IPolicy is IERC165 {
     function isInitialized(address account, address multiplexer, ConfigId configId) external view returns (bool);
-
     /**
      * This function may be called by the multiplexer (SmartSessions) without deinitializing first.
      * Policies MUST overwrite the current state when this happens

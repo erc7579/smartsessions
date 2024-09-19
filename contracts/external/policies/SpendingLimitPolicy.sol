@@ -53,8 +53,6 @@ contract SpendingLimitPolicy is IActionPolicy {
         }
     }
 
-    function onInstall(bytes calldata data) external override { }
-
     function initializeWithMultiplexer(address account, ConfigId configId, bytes calldata initData) external {
         (address[] memory tokens, uint256[] memory limits) = abi.decode(initData, (address[], uint256[]));
 
@@ -67,16 +65,6 @@ contract SpendingLimitPolicy is IActionPolicy {
             $.spendingLimit = limit;
         }
     }
-
-    function onUninstall(bytes calldata data) external override { }
-
-    function isModuleType(uint256 id) external pure returns (bool) {
-        return id == ERC7579_MODULE_TYPE_ACTION_POLICY;
-    }
-
-    function isInitialized(address smartAccount) external view override returns (bool) { }
-
-    function isInitialized(address account, ConfigId id) external view override returns (bool) { }
 
     function isInitialized(address account, address multiplexer, ConfigId id) external view override returns (bool) { }
 

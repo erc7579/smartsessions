@@ -110,41 +110,8 @@ contract UniActionPolicy is IActionPolicy {
         _initPolicy(configId, msg.sender, account, initData);
     }
 
-    // to be used use when the policy is installed directly to the SA
-    // requires state is fresh clean
-    // even cleaning with onUninstall is not enough, as it sets Status.deprecated, not Status.NA
-    // recommended to use fresh id in this case
-    function onInstall(bytes calldata data) external {
-        (ConfigId id, bytes calldata _data) = data.parseInstallData();
-        require(status[id][msg.sender][msg.sender] == Status.NA);
-        _initPolicy(id, msg.sender, msg.sender, _data);
-    }
-
-    // to be used use when the policy is installed directly to the SA
-    function onUninstall(bytes calldata data) external {
-        (ConfigId id, bytes calldata _data) = data.parseInstallData();
-        require(status[id][msg.sender][msg.sender] == Status.Live);
-        _deinitPolicy(id, msg.sender, msg.sender, _data);
-    }
-
-    function isInitialized(address account) external view returns (bool) {
-        return usedIds[msg.sender][account] > 0;
-    }
-
-    function isInitialized(address mxer, address account) external view returns (bool) {
-        return usedIds[mxer][account] > 0;
-    }
-
-    function isInitialized(address account, ConfigId id) external view returns (bool) {
-        return status[id][msg.sender][account] == Status.Live;
-    }
-
     function isInitialized(address mxer, address account, ConfigId id) external view returns (bool) {
         return status[id][mxer][account] == Status.Live;
-    }
-
-    function isModuleType(uint256 id) external pure returns (bool) {
-        return id == ERC7579_MODULE_TYPE_ACTION_POLICY;
     }
 
     function supportsInterface(bytes4 interfaceID) external pure override returns (bool) {
