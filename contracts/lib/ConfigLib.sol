@@ -67,10 +67,7 @@ library ConfigLib {
 
             // this will revert if the policy is not attested to
             if (useRegistry) {
-                registry.checkForAccount({
-                    smartAccount: smartAccount,
-                    module: policy
-                });
+                registry.checkForAccount({ smartAccount: smartAccount, module: policy });
             }
 
             // Add the policy to the list for the given permission and smart account
