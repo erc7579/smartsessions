@@ -49,7 +49,9 @@ contract UniversalActionPolicyTest is BaseTest {
         // assertTrue(uniPolicy.isInitialized(address(smartSession), instance.account));
     }
 
-    function test_use_universal_action_policy_fails_because_of_limit(bytes32 salt)
+    function test_use_universal_action_policy_fails_because_of_limit(
+        bytes32 salt
+    )
         public
         returns (PermissionId permissionId)
     {

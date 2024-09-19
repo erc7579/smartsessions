@@ -30,7 +30,9 @@ contract SessionManagementTest is BaseTest {
         vm.label(address(policy3), "policy3");
     }
 
-    function test_enable_exec(bytes32 salt)
+    function test_enable_exec(
+        bytes32 salt
+    )
         public
         returns (PermissionId permissionId, EnableSession memory enableSessions)
     {
@@ -137,7 +139,9 @@ contract SessionManagementTest is BaseTest {
         assertEq(target.value(), 1337);
     }
 
-    function test_add_policies_to_permission(bytes32 salt)
+    function test_add_policies_to_permission(
+        bytes32 salt
+    )
         public
         returns (PermissionId permissionId, EnableSession memory enableSessions)
     {
