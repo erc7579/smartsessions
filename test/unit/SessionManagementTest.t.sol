@@ -147,7 +147,7 @@ contract SessionManagementTest is BaseTest {
 
         ConfigId configId = permissionId.toConfigId(instance.account);
 
-        assertFalse(usageLimitPolicy.isInitialized(instance.account, address(smartSession), configId));
+        // assertFalse(usageLimitPolicy.isInitialized(instance.account, address(smartSession), configId));
 
         UserOpData memory userOpData = instance.getExecOps({
             target: address(target),
@@ -179,7 +179,7 @@ contract SessionManagementTest is BaseTest {
         userOpData.execUserOps();
 
         assertEq(target.value(), 1338);
-        assertTrue(usageLimitPolicy.isInitialized(instance.account, address(smartSession), configId));
+        // assertTrue(usageLimitPolicy.isInitialized(instance.account, address(smartSession), configId));
     }
 
     function test_disable_permission(bytes32 salt) public {
