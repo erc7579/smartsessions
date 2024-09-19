@@ -13,7 +13,9 @@ library EncodeLib {
 
     error ChainIdAndHashesLengthMismatch(uint256 chainIdsLength, uint256 hashesLength);
 
-    function unpackMode(bytes calldata packed)
+    function unpackMode(
+        bytes calldata packed
+    )
         internal
         pure
         returns (SmartSessionMode mode, PermissionId permissionId, bytes calldata data)
@@ -46,7 +48,9 @@ library EncodeLib {
         packedSig = abi.encodePacked(SmartSessionMode.UNSAFE_ENABLE, abi.encode(enableData, sig).flzCompress());
     }
 
-    function decodeEnable(bytes calldata packedSig)
+    function decodeEnable(
+        bytes calldata packedSig
+    )
         internal
         pure
         returns (EnableSession memory enableData, bytes memory signature)

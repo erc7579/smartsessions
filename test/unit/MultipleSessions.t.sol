@@ -84,14 +84,18 @@ contract MultipleSessionsTest is BaseTest {
         // disable session 1
         vm.prank(instance.account);
         smartSession.removeSession(permissionId1);
-        assertEq(smartSession.isPermissionEnabled(permissionId1, instance.account), false, "session 1 should be disabled");
+        assertEq(
+            smartSession.isPermissionEnabled(permissionId1, instance.account), false, "session 1 should be disabled"
+        );
         assertEq(smartSession.isPermissionEnabled(permissionId2, instance.account), true, "session 2 should be enabled");
         assertEq(smartSession.isPermissionEnabled(permissionId3, instance.account), true, "session 3 should be enabled");
         assertEq(smartSession.isPermissionEnabled(permissionId4, instance.account), true, "session 4 should be enabled");
 
         vm.prank(instance.account);
         smartSession.removeSession(permissionId3);
-        assertEq(smartSession.isPermissionEnabled(permissionId3, instance.account), false, "session 3 should be disabled");
+        assertEq(
+            smartSession.isPermissionEnabled(permissionId3, instance.account), false, "session 3 should be disabled"
+        );
     }
 
     function test_batched_exec() public {
