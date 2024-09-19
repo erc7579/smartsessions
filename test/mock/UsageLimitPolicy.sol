@@ -75,10 +75,6 @@ contract UsageLimitPolicy is IUserOpPolicy, IActionPolicy {
         return usedIds[msg.sender][account] > 0;
     }
 
-    // function isInitialized(address account, address multiplexer, ConfigId id) external view override returns (bool) {
-    //     return usedIds[multiplexer][account] > 0;
-    // }
-
     function isInitialized(address account, ConfigId id) external view returns (bool) {
         return status[id][msg.sender][account] == Status.Live;
     }
