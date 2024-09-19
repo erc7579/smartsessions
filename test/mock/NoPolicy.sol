@@ -31,10 +31,6 @@ contract NoPolicy is IActionPolicy {
         return 1; // sig validation failed
     }
 
-    function isInitialized(address account, address multiplexer, ConfigId id) external view override returns (bool) {
-        return actionState[id][multiplexer][account] != 0;
-    }
-
     function supportsInterface(bytes4 interfaceID) external view override returns (bool) {
         return true;
     }

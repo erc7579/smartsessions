@@ -20,7 +20,7 @@ contract SudoPolicy is IActionPolicy, I1271Policy {
     // to be used if policy installed through multiplexer such as Smart Sessions Module
     function initializeWithMultiplexer(address account, ConfigId configId, bytes calldata /*initData*/ ) external {
         $enabledConfigs[msg.sender].add(account, ConfigId.unwrap(configId));
-        emit SudoPolicySet(account, msg.sender, configId);
+        emit IPolicy.PolicySet(configId, msg.sender, account);
     }
 
     function checkAction(
@@ -35,11 +35,7 @@ contract SudoPolicy is IActionPolicy, I1271Policy {
         override
         returns (uint256)
     {
-        return 0;
-    }
-
-    function isInitialized(address account, address multiplexer, ConfigId id) external view override returns (bool) {
-        return $enabledConfigs[multiplexer].contains(account, ConfigId.unwrap(id));
+        return VALIDATION_SUCCESS;
     }
 
     function check1271SignedAction(

@@ -3,15 +3,15 @@
 pragma solidity ^0.8.23;
 
 import "../../DataTypes.sol";
-import { IActionPolicy } from "../../interfaces/IPolicy.sol";
+import { IActionPolicy, IPolicy } from "../../interfaces/IPolicy.sol";
 import { IERC20 } from "forge-std/interfaces/IERC20.sol";
 
-address constant NATIVE_TOKEN = address(0);
+address constant NATIVE_TOKEN = address(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE);
 
 uint256 constant VALIDATION_SUCCESS = 0;
 uint256 constant VALIDATION_FAILED = 1;
 
-contract SpendingLimitPolicy is IActionPolicy {
+contract ERC20SpendingLimitPolicy is IActionPolicy {
     event TokenSpent(
         ConfigId id, address multiplexer, address token, address account, uint256 amount, uint256 remaining
     );
@@ -24,6 +24,8 @@ contract SpendingLimitPolicy is IActionPolicy {
         uint256 spendingLimit;
     }
 
+    mapping(ConfigId id => mapping(address multiplexer => mapping(address userOpSender => bool initialized))) internal
+        $initialized;
     mapping(
         ConfigId id
             => mapping(
@@ -64,9 +66,8 @@ contract SpendingLimitPolicy is IActionPolicy {
             TokenPolicyData storage $ = _getPolicy({ id: configId, userOpSender: account, token: token });
             $.spendingLimit = limit;
         }
+        emit IPolicy.PolicySet(configId, msg.sender, account);
     }
-
-    function isInitialized(address account, address multiplexer, ConfigId id) external view override returns (bool) { }
 
     function _isTokenTransfer(
         address account,

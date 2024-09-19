@@ -108,10 +108,7 @@ contract UniActionPolicy is IActionPolicy {
     // overwrites state
     function initializeWithMultiplexer(address account, ConfigId configId, bytes calldata initData) external {
         _initPolicy(configId, msg.sender, account, initData);
-    }
-
-    function isInitialized(address mxer, address account, ConfigId id) external view returns (bool) {
-        return status[id][mxer][account] == Status.Live;
+        emit IPolicy.PolicySet(configId, msg.sender, account);
     }
 
     function supportsInterface(bytes4 interfaceID) external pure override returns (bool) {

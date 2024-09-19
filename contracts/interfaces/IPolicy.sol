@@ -15,11 +15,12 @@ import "forge-std/interfaces/IERC165.sol";
  *                        ^ smartSession    ^ smart account (associated storage)
  */
 interface IPolicy is IERC165 {
-    function isInitialized(address account, address multiplexer, ConfigId configId) external view returns (bool);
+    event PolicySet(ConfigId id, address multiplexer, address account);
     /**
      * This function may be called by the multiplexer (SmartSessions) without deinitializing first.
      * Policies MUST overwrite the current state when this happens
      */
+
     function initializeWithMultiplexer(address account, ConfigId configId, bytes calldata initData) external;
 }
 

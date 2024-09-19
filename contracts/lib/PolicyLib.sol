@@ -342,19 +342,14 @@ library PolicyLib {
     {
         uint256 length = policyDatas.length;
 
-        // TODO: should we change this to false?
         if (length == 0) return true; // 0 policies are always enabled lol
         uint256 enabledPolicies;
         for (uint256 i; i < length; i++) {
             PolicyData memory policyData = policyDatas[i];
             IPolicy policy = IPolicy(policyData.policy);
 
-            // Check if policy is in the list and initialized for the smart account,
-            // this smart session and configId
-            if (
-                $policies.policyList[permissionId].contains(smartAccount, address(policy))
-                    && policy.isInitialized(smartAccount, address(this), configId)
-            ) enabledPolicies++;
+            // check if policy is enabled
+            if ($policies.policyList[permissionId].contains(smartAccount, address(policy))) enabledPolicies++;
         }
         if (enabledPolicies == 0) return false;
         else if (enabledPolicies == length) return true;
