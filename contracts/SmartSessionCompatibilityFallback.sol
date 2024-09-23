@@ -12,12 +12,6 @@ contract SmartSessionCompatibilityFallback is ERC7579FallbackBase {
 
     mapping(address smartAccount => bool isInitialized) public isInitialized;
 
-    address internal immutable SMART_SESSION_IMPL;
-
-    constructor(address smartSessionImpl) {
-        SMART_SESSION_IMPL = smartSessionImpl;
-    }
-
     function onInstall(bytes calldata /*data*/ ) external override {
         isInitialized[msg.sender] = true;
     }
