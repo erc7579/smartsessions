@@ -167,6 +167,11 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
             permissionId: permissionId,
             policies: policies
         });
+
+        // remove the actionId from the enabledActionIds if no policies are left
+        if ($actionPolicies.actionPolicies[actionId].policyList[permissionId].length(msg.sender) == 0) {
+            $actionPolicies.enabledActionIds[permissionId].remove(msg.sender, ActionId.unwrap(actionId));
+        }
     }
 
     /**
