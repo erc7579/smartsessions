@@ -245,6 +245,8 @@ library PolicyLib {
         // Decode the batch of 7579 executions from the user operation's call data
         Execution[] calldata executions = userOp.callData.decodeUserOpCallData().decodeBatch();
         uint256 length = executions.length;
+        // Revert if there are no executions in the batch
+        if (length == 0) revert ISmartSession.NoExecutionsInBatch();
 
         // Iterate through each execution in the batch
         for (uint256 i; i < length; i++) {
