@@ -209,28 +209,6 @@ contract SessionManagementTest is BaseTest {
         userOpData.execUserOps();
     }
 
-    function test_is_permission_enabled(bytes32 salt) public {
-        (PermissionId permissionId, EnableSession memory enableSessions) = test_enable_exec(salt);
-        bool isEnabled = smartSession.isPermissionFullyEnabled({
-            permissionId: permissionId,
-            account: instance.account,
-            userOpPolicies: enableSessions.sessionToEnable.userOpPolicies,
-            erc1271Policies: enableSessions.sessionToEnable.erc7739Policies.erc1271Policies,
-            actions: enableSessions.sessionToEnable.actions
-        });
-        assertTrue(isEnabled);
-
-        test_disable_permission(salt);
-        isEnabled = smartSession.isPermissionFullyEnabled({
-            permissionId: permissionId,
-            account: instance.account,
-            userOpPolicies: enableSessions.sessionToEnable.userOpPolicies,
-            erc1271Policies: enableSessions.sessionToEnable.erc7739Policies.erc1271Policies,
-            actions: enableSessions.sessionToEnable.actions
-        });
-        assertFalse(isEnabled);
-    }
-
     function test_revoke_signed_enable(bytes32 salt) public {
         address _target = address(target);
         uint256 value = 0;

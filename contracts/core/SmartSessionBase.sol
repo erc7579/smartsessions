@@ -10,17 +10,19 @@ import { PolicyLib } from "../lib/PolicyLib.sol";
 import { IdLib } from "../lib/IdLib.sol";
 import { HashLib } from "../lib/HashLib.sol";
 import { NonceManager } from "./NonceManager.sol";
+import { FlatBytesLib } from "flatbytes/BytesLib.sol";
 
 abstract contract SmartSessionBase is ISmartSession, NonceManager {
     using EnumerableSet for EnumerableSet.Bytes32Set;
     using EnumerableSet for EnumerableSet.AddressSet;
-    using HashLib for Session;
+    using HashLib for *;
     using PolicyLib for *;
     using ConfigLib for *;
     using EncodeLib for *;
     using IdLib for *;
     using ConfigLib for Policy;
     using ConfigLib for EnumerableActionPolicy;
+    using FlatBytesLib for FlatBytesLib.Bytes;
 
     /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
     /*                    SmartSession Storage                    */
@@ -337,6 +339,10 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
         return address($sessionValidators[permissionId][account].sessionValidator) != address(0);
     }
 
+    function isISessionValidatorSet(PermissionId permissionId, address account) external view returns (bool) {
+        return _isISessionValidatorSet(permissionId, account);
+    }
+
     function isPermissionEnabled(PermissionId permissionId, address account) external view returns (bool) {
         return $enabledSessions.contains(account, PermissionId.unwrap(permissionId));
     }
@@ -364,13 +370,11 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
         }
         bool uo = $userOpPolicies.areEnabled({
             permissionId: permissionId,
-            configId: permissionId.toUserOpPolicyId().toConfigId(account),
             smartAccount: account,
             policyDatas: userOpPolicies
         });
         bool erc1271 = $erc1271Policies.areEnabled({
             permissionId: permissionId,
-            configId: permissionId.toErc1271PolicyId().toConfigId(account),
             smartAccount: account,
             policyDatas: erc1271Policies
         });
@@ -385,5 +389,77 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
         }
         if (res == 3) return true;
         else return false;
+    }
+
+    function areUserOpPoliciesEnabled(address account, PermissionId permissionId, PolicyData[] memory userOpPolicies) external view returns (bool) {
+        return $userOpPolicies.areEnabled({
+            permissionId: permissionId,
+            smartAccount: account,
+            policyDatas: userOpPolicies
+        });
+    }
+
+    function areERC1271PoliciesEnabled(address account, PermissionId permissionId, PolicyData[] memory erc1271Policies) external view returns (bool) {
+        return $erc1271Policies.areEnabled({
+            permissionId: permissionId,
+            smartAccount: account,
+            policyDatas: erc1271Policies
+        });
+    }
+
+    function areActionsEnabled(address account, PermissionId permissionId,  ActionData[] memory actions) external view returns (bool) {
+        return $actionPolicies.areEnabled({
+            permissionId: permissionId,
+            smartAccount: account,
+            actionPolicyDatas: actions
+        });
+    }
+
+    function isUserOpPolicyEnabled(address account, PermissionId permissionId, address policy) external view returns (bool) {
+        return $userOpPolicies.policyList[permissionId].contains(account, policy);
+    }
+
+    function isERC1271PolicyEnabled(address account, PermissionId permissionId, address policy) external view returns (bool) {
+        return $erc1271Policies.policyList[permissionId].contains(account, policy);
+    }
+
+    // for action policies
+    function isActionPolicyEnabled(address account, PermissionId permissionId, ActionId actionId, address policy) external view returns (bool) {
+        return $actionPolicies.actionPolicies[actionId].policyList[permissionId].contains(account, policy);
+    }
+
+    // for actionIds
+    function isActionIdEnabled(address account, PermissionId permissionId, ActionId actionId) external view returns (bool) {
+        return $actionPolicies.enabledActionIds[permissionId].contains(account, ActionId.unwrap(actionId));
+    }
+
+    function isERC7739ContentEnabled(address account, PermissionId permissionId, string memory content) external view returns (bool) {
+        return $enabledERC7739Content[permissionId].contains(account, content.hashERC7739Content());
+    }
+
+    function getUserOpPolicies(address account, PermissionId permissionId) external view returns (address[] memory) {
+        return $userOpPolicies.policyList[permissionId].values(account);
+    }
+
+    function getERC1271Policies(address account, PermissionId permissionId) external view returns (address[] memory) {
+        return $erc1271Policies.policyList[permissionId].values(account);
+    }
+
+    function getActionPolicies(address account, PermissionId permissionId, ActionId actionId) external view returns (address[] memory) {
+        $actionPolicies.actionPolicies[actionId].policyList[permissionId].values(account);
+    }
+
+    function getEnabledActions(address account, PermissionId permissionId) external view returns (bytes32[] memory) {
+        return $actionPolicies.enabledActionIds[permissionId].values(account);
+    }
+
+    function getEnabledERC7739Content(address account, PermissionId permissionId) external view returns (bytes32[] memory) {
+        return $enabledERC7739Content[permissionId].values(account);
+    }
+
+    function getSessionValidatorAndConfig(address account, PermissionId permissionId) external view returns (address sessionValidator, bytes memory sessionValidatorData) {
+        SignerConf storage $s = $sessionValidators[permissionId][account];
+        sessionValidator = address($s.sessionValidator);
+        sessionValidatorData = $s.config.load();
     }
 }

@@ -322,7 +322,6 @@ library PolicyLib {
      *
      * @param $policies The storage reference to the Policy struct.
      * @param permissionId The identifier of the permission being checked.
-     * @param configId The configuration identifier.
      * @param smartAccount The address of the smart account.
      * @param policyDatas An array of PolicyData structs representing the policies to check.
      *
@@ -332,7 +331,6 @@ library PolicyLib {
     function areEnabled(
         Policy storage $policies,
         PermissionId permissionId,
-        ConfigId configId,
         address smartAccount,
         PolicyData[] memory policyDatas
     )
@@ -345,9 +343,10 @@ library PolicyLib {
         for (uint256 i; i < length; i++) {
             PolicyData memory policyData = policyDatas[i];
             IPolicy policy = IPolicy(policyData.policy);
-
             // check if policy is enabled
-            if (!$policies.policyList[permissionId].contains(smartAccount, address(policy))) return false;
+            if (!$policies.policyList[permissionId].contains(smartAccount, address(policy))) {
+                return false;
+            }
         }
         return true;
     }
@@ -380,11 +379,10 @@ library PolicyLib {
         for (uint256 i; i < length; i++) {
             ActionData memory actionPolicyData = actionPolicyDatas[i];
             ActionId actionId = actionPolicyData.actionTarget.toActionId(actionPolicyData.actionTargetSelector);
-            ConfigId configId = permissionId.toConfigId(actionId, smartAccount);
             // Check if the action policy is enabled
             if (
                 !$self.actionPolicies[actionId].areEnabled(
-                    permissionId, configId, smartAccount, actionPolicyData.actionPolicies
+                    permissionId, smartAccount, actionPolicyData.actionPolicies
                 )
             ) return false;
         }
