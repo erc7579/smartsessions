@@ -238,6 +238,34 @@ library ConfigLib {
         }
     }
 
+    /**
+     * Disables all the policies for a given permission ID and smart account.
+     *
+     * @dev This function removes the specified policies from the policy list and emits events for each disabled policy.
+     * @notice Cleaning state on policies is not required as on enable, initializeWithMultiplexer is called which MUST
+     *       overwrite the current state.
+     * @notice This function doesn't use removeAll to be able to emit appropriate events for all the removed policies
+     * @param $policy The storage reference to the Policy struct.
+     * @param policyType The type of policy being disabled defined as ERC-7579 module type
+     * @param smartAccount The address of the smart account for which policies are being disabled.
+     * @param permissionId The identifier of the permission for which policies are being disabled.
+     */
+    function disableAll(
+        Policy storage $policy,
+        PolicyType policyType,
+        address smartAccount,
+        PermissionId permissionId
+    )
+        internal
+    {
+        uint256 length = $policy.policyList[permissionId].length(smartAccount);
+        for (uint256 i = 1; i <= length; i++) {
+            address policy = $policy.policyList[permissionId].at(smartAccount, length-i);
+            $policy.policyList[permissionId].remove(smartAccount, policy);
+            emit ISmartSession.PolicyDisabled(permissionId, policyType, address(policy), smartAccount);
+        }
+    }
+
     function disable(
         mapping(PermissionId permissionId => mapping(address smartAccount => SignerConf conf)) storage
             $sessionValidators,

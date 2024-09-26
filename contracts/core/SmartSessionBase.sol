@@ -107,11 +107,36 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
     }
 
     /**
-     * @notice Disable specific ERC1271 policies for a given permission
+     * @notice Disable specific ERC1271 policies and contents for a given permission
      * @param permissionId The unique identifier for the permission
      * @param policies An array of policy addresses to be disabled
+     * @param contents An array of 7739 contents to be disabled
      */
-    function disableERC1271Policies(PermissionId permissionId, address[] calldata policies) public {
+    function disableERC1271Policies(PermissionId permissionId, address[] calldata policies, string[] calldata contents) public {
+        // Check if the session is enabled for the caller and the given permission
+        if ($enabledSessions.contains(msg.sender, PermissionId.unwrap(permissionId)) == false) {
+            revert InvalidSession(permissionId);
+        }
+
+        for (uint256 i; i < contents.length; ++i) {
+            bytes32 contentHash = HashLib.hashERC7739Content(contents[i]);
+            $enabledERC7739Content[permissionId].remove(msg.sender, contentHash);
+        }
+
+        // Disable the specified ERC1271 policies
+        $erc1271Policies.disable({
+            policyType: PolicyType.ERC1271,
+            smartAccount: msg.sender,
+            permissionId: permissionId,
+            policies: policies
+        });
+    }
+
+    /**
+     * @notice Disable specific ERC1271 policies and contents for a given permission
+     * @param permissionId The unique identifier for the permission
+     */
+    function disableERC1271Policies(PermissionId permissionId) public {
         // Check if the session is enabled for the caller and the given permission
         if ($enabledSessions.contains(msg.sender, PermissionId.unwrap(permissionId)) == false) {
             revert InvalidSession(permissionId);
@@ -120,11 +145,10 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
         $enabledERC7739Content[permissionId].removeAll(msg.sender);
 
         // Disable the specified ERC1271 policies
-        $erc1271Policies.disable({
+        $erc1271Policies.disableAll({
             policyType: PolicyType.ERC1271,
             smartAccount: msg.sender,
-            permissionId: permissionId,
-            policies: policies
+            permissionId: permissionId
         });
     }
 

@@ -115,7 +115,8 @@ interface ISmartSession {
     function enableSessions(Session[] memory sessions) external returns (PermissionId[] memory permissionIds);
     function enableUserOpPolicies(PermissionId permissionId, PolicyData[] memory userOpPolicies) external;
     function disableActionPolicies(PermissionId permissionId, ActionId actionId, address[] memory policies) external;
-    function disableERC1271Policies(PermissionId permissionId, address[] memory policies) external;
+    function disableERC1271Policies(PermissionId permissionId, address[] memory policies, string[] calldata contents) external;
+    function disableERC1271Policies(PermissionId permissionId) external;
     function disableUserOpPolicies(PermissionId permissionId, address[] memory policies) external;
 
     function removeSession(PermissionId permissionId) external;
