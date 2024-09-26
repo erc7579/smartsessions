@@ -22,12 +22,17 @@ library ConfigLib {
     function requirePolicyType(address policy, PolicyType policyType) internal view {
         bool supportsInterface;
         if (policyType == PolicyType.USER_OP) {
-            supportsInterface = IPolicy(policy).supportsInterface(IUserOpPolicy.checkUserOpPolicy.selector);
+            supportsInterface = IPolicy(policy).supportsInterface(type(IUserOpPolicy).interfaceId);
         } else if (policyType == PolicyType.ACTION) {
-            supportsInterface = IPolicy(policy).supportsInterface(IActionPolicy.checkAction.selector);
+            supportsInterface = IPolicy(policy).supportsInterface(type(IActionPolicy).interfaceId);
         } else if (policyType == PolicyType.ERC1271) {
-            supportsInterface = IPolicy(policy).supportsInterface(I1271Policy.check1271SignedAction.selector);
+            supportsInterface = IPolicy(policy).supportsInterface(type(I1271Policy).interfaceId);
         } else {
+            revert UnsupportedPolicy(policy);
+        }
+
+        // Revert if the policy does not support the required interface
+        if (!supportsInterface) {
             revert UnsupportedPolicy(policy);
         }
     }
