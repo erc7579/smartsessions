@@ -112,12 +112,10 @@ contract UniActionPolicy is IActionPolicy {
     }
 
     function supportsInterface(bytes4 interfaceID) external pure override returns (bool) {
-        if (interfaceID == type(IActionPolicy).interfaceId) {
-            return true;
-        }
-        if (interfaceID == IActionPolicy.checkAction.selector) {
-            return true;
-        }
+        return (
+            interfaceID == type(IERC165).interfaceId || interfaceID == type(IPolicy).interfaceId
+                || interfaceID == type(IActionPolicy).interfaceId
+        );
     }
 }
 

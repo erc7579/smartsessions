@@ -5,6 +5,7 @@ pragma solidity ^0.8.23;
 import "../../interfaces/IPolicy.sol";
 import "../../lib/SubModuleLib.sol";
 import "../../utils/EnumerableSet4337.sol";
+import { IERC165 } from "forge-std/interfaces/IERC165.sol";
 
 contract SudoPolicy is IActionPolicy, I1271Policy {
     using EnumerableSet for EnumerableSet.Bytes32Set;
@@ -54,7 +55,7 @@ contract SudoPolicy is IActionPolicy, I1271Policy {
 
     function supportsInterface(bytes4 interfaceID) external pure override returns (bool) {
         return interfaceID == type(IActionPolicy).interfaceId || interfaceID == type(I1271Policy).interfaceId
-            || interfaceID == IActionPolicy.checkAction.selector
+            || interfaceID == IActionPolicy.checkAction.selector || interfaceID == type(IERC165).interfaceId
             || interfaceID == I1271Policy.check1271SignedAction.selector;
     }
 }
