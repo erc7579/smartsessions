@@ -99,11 +99,6 @@ contract UniActionPolicy is IActionPolicy {
         actionConfigs[id][mxer][opSender].fill(config);
     }
 
-    function _deinitPolicy(ConfigId id, address mxer, address opSender, bytes calldata) internal {
-        status[id][mxer][opSender] = Status.Deprecated;
-        usedIds[mxer][opSender]--;
-    }
-
     // to be used use when the policy is installed via the multiplexer, i.e. Smart Sessions
     // overwrites state
     function initializeWithMultiplexer(address account, ConfigId configId, bytes calldata initData) external {
