@@ -203,7 +203,7 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
         // Enable mode can involve enabling ISessionValidator (new Permission)
         // or just adding policies (existing permission)
         // a) ISessionValidator is not set => enable ISessionValidator
-        // b) ISessionValidator is set => just add policies
+        // b) ISessionValidator is set => just add policies (above)
         // Attention: if the same policy that has already been configured is added again,
         // the policy will be overwritten with the new configuration
         if (!_isISessionValidatorSet(permissionId, account)) {

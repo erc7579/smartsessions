@@ -55,6 +55,12 @@ contract ERC20SpendingLimitPolicy is IActionPolicy {
         }
     }
 
+    /**
+     * Initializes the policy to be used by given account through multiplexer (msg.sender) such as Smart Sessions.
+     * Overwrites state.
+     * @notice ATTENTION: This method is called during permission installation as part of the enabling policies flow.
+     * A secure policy would minimize external calls from this method (ideally, to 0) to prevent passing control flow to external contracts.
+     */
     function initializeWithMultiplexer(address account, ConfigId configId, bytes calldata initData) external {
         (address[] memory tokens, uint256[] memory limits) = abi.decode(initData, (address[], uint256[]));
 
