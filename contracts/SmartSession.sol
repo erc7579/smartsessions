@@ -337,6 +337,8 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
         /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
         /*                 Check SessionKey ISessionValidator         */
         /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
+        // perform signature check with ISessionValidator
+        // this function will revert if no ISessionValidator is set for this permissionId
         bool validSig = $sessionValidators.isValidISessionValidator({
             hash: userOpHash,
             account: account,
