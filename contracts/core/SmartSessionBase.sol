@@ -347,50 +347,9 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
         return $enabledSessions.contains(account, PermissionId.unwrap(permissionId));
     }
 
-    /// @notice Returns true if the provided permission is fully enabled.
-    /// That means all provided policies are enabled under provided permissionId.
-    /// It doesn't mean there are no other policies enabled under provided permissionId,
-    /// which were not provided as arguments to this method.
-    /// This method return `false` even if the provided policies are partly enabled 
-    /// i.e. some of the provided policies are already enabled, and some are not.
-    function isPermissionFullyEnabled(
-        PermissionId permissionId,
-        address account,
-        PolicyData[] memory userOpPolicies,
-        PolicyData[] memory erc1271Policies,
-        ActionData[] memory actions
-    )
-        external
-        view
-        returns (bool isEnabled)
-    {
-        //if ISessionValidator is not set for permissionId, the permission has not been enabled yet
-        if (!_isISessionValidatorSet(permissionId, account)) {
-            return false;
-        }
-        bool uo = $userOpPolicies.areEnabled({
-            permissionId: permissionId,
-            smartAccount: account,
-            policyDatas: userOpPolicies
-        });
-        bool erc1271 = $erc1271Policies.areEnabled({
-            permissionId: permissionId,
-            smartAccount: account,
-            policyDatas: erc1271Policies
-        });
-        bool action = $actionPolicies.areEnabled({
-            permissionId: permissionId,
-            smartAccount: account,
-            actionPolicyDatas: actions
-        });
-        uint256 res;
-        assembly {
-            res := add(add(uo, erc1271), action)
-        }
-        if (res == 3) return true;
-        else return false;
-    }
-
+    // This function accepts not the array of policies, but full PolicyData,
+    // So it is easier to use it with an EnableSessions object
+    // If you just need to check array of addresses, use is____PolicyEnabled methods in a loop
     function areUserOpPoliciesEnabled(address account, PermissionId permissionId, PolicyData[] memory userOpPolicies) external view returns (bool) {
         return $userOpPolicies.areEnabled({
             permissionId: permissionId,
@@ -399,6 +358,8 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
         });
     }
 
+    // This function accepts not the array of policies, but full PolicyData,
+    // So it is easier to use it with an EnableSessions object
     function areERC1271PoliciesEnabled(address account, PermissionId permissionId, PolicyData[] memory erc1271Policies) external view returns (bool) {
         return $erc1271Policies.areEnabled({
             permissionId: permissionId,
@@ -407,6 +368,8 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
         });
     }
 
+    // This function accepts not the array of policies, but full ActionData,
+    // So it is easier to use it with an EnableSessions object
     function areActionsEnabled(address account, PermissionId permissionId,  ActionData[] memory actions) external view returns (bool) {
         return $actionPolicies.areEnabled({
             permissionId: permissionId,
