@@ -40,7 +40,6 @@ interface ISmartSession {
     error NoPoliciesSet(PermissionId permissionId);
     error PartlyEnabledActions();
     error PartlyEnabledPolicies();
-    error PermissionPartlyEnabled();
     error PolicyViolation(PermissionId permissionId, address policy);
     error SignerNotFound(PermissionId permissionId, address account);
     error UnsupportedExecutionType();
@@ -138,7 +137,7 @@ interface ISmartSession {
     function getNonce(PermissionId permissionId, address account) external view returns (uint256);
     function getPermissionId(Session memory session) external pure returns (PermissionId permissionId);
     function isPermissionEnabled(PermissionId permissionId, address account) external view returns (bool);
-    function isPermissionEnabled(
+    function isPermissionFullyEnabled(
         PermissionId permissionId,
         address account,
         PolicyData[] memory userOpPolicies,

@@ -341,7 +341,13 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
         return $enabledSessions.contains(account, PermissionId.unwrap(permissionId));
     }
 
-    function isPermissionEnabled(
+    /// @notice Returns true if the provided permission is fully enabled.
+    /// That means all provided policies are enabled under provided permissionId.
+    /// It doesn't mean there are no other policies enabled under provided permissionId,
+    /// which were not provided as arguments to this method.
+    /// This method return `false` even if the provided policies are partly enabled 
+    /// i.e. some of the provided policies are already enabled, and some are not.
+    function isPermissionFullyEnabled(
         PermissionId permissionId,
         address account,
         PolicyData[] memory userOpPolicies,
@@ -377,11 +383,7 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
         assembly {
             res := add(add(uo, erc1271), action)
         }
-        if (res == 0) return false;
-        else if (res == 3) return true;
-        else revert PermissionPartlyEnabled();
-        // partly enabled permission will prevent the full permission to be enabled
-        // and we can not consider it being fully enabled, as it missed some policies we'd want to enforce
-        // as per given 'enableData'
+        if (res == 3) return true;
+        else return false;
     }
 }

@@ -12,7 +12,7 @@ import "contracts/DataTypes.sol";
 import "forge-std/Console2.sol";
 
 interface IPermissionEnabled {
-    function isPermissionEnabled(
+    function isPermissionFullyEnabled(
         PermissionId permissionId,
         address smartAccount,
         PolicyData[] memory userOpPolicies,
@@ -110,7 +110,7 @@ contract UserOperationBuilder is IUserOperationBuilder {
         EnableSession memory enableData = abi.decode(context[88:], (EnableSession));
         Session memory session = enableData.sessionToEnable;
 
-        try IPermissionEnabled(permissionValidator).isPermissionEnabled(
+        try IPermissionEnabled(permissionValidator).isPermissionFullyEnabled(
             permissionId, smartAccount, session.userOpPolicies, session.erc7739Policies.erc1271Policies, session.actions
         ) returns (bool isEnabled) {
             if (isEnabled) {

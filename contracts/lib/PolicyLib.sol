@@ -341,19 +341,15 @@ library PolicyLib {
         returns (bool)
     {
         uint256 length = policyDatas.length;
-
         if (length == 0) return true; // 0 policies are always enabled lol
-        uint256 enabledPolicies;
         for (uint256 i; i < length; i++) {
             PolicyData memory policyData = policyDatas[i];
             IPolicy policy = IPolicy(policyData.policy);
 
             // check if policy is enabled
-            if ($policies.policyList[permissionId].contains(smartAccount, address(policy))) enabledPolicies++;
+            if (!$policies.policyList[permissionId].contains(smartAccount, address(policy))) return false;
         }
-        if (enabledPolicies == 0) return false;
-        else if (enabledPolicies == length) return true;
-        else revert ISmartSession.PartlyEnabledPolicies();
+        return true;
     }
 
     /**
@@ -381,20 +377,17 @@ library PolicyLib {
     {
         uint256 length = actionPolicyDatas.length;
         if (length == 0) return true; // 0 actions are always enabled
-        uint256 actionsProperlyEnabled;
         for (uint256 i; i < length; i++) {
             ActionData memory actionPolicyData = actionPolicyDatas[i];
             ActionId actionId = actionPolicyData.actionTarget.toActionId(actionPolicyData.actionTargetSelector);
             ConfigId configId = permissionId.toConfigId(actionId, smartAccount);
             // Check if the action policy is enabled
             if (
-                $self.actionPolicies[actionId].areEnabled(
+                !$self.actionPolicies[actionId].areEnabled(
                     permissionId, configId, smartAccount, actionPolicyData.actionPolicies
                 )
-            ) actionsProperlyEnabled++;
+            ) return false;
         }
-        if (actionsProperlyEnabled == 0) return false;
-        else if (actionsProperlyEnabled == length) return true;
-        else revert ISmartSession.PartlyEnabledActions();
+        return true;
     }
 }

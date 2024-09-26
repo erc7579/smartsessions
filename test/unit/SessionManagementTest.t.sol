@@ -211,7 +211,7 @@ contract SessionManagementTest is BaseTest {
 
     function test_is_permission_enabled(bytes32 salt) public {
         (PermissionId permissionId, EnableSession memory enableSessions) = test_enable_exec(salt);
-        bool isEnabled = smartSession.isPermissionEnabled({
+        bool isEnabled = smartSession.isPermissionFullyEnabled({
             permissionId: permissionId,
             account: instance.account,
             userOpPolicies: enableSessions.sessionToEnable.userOpPolicies,
@@ -221,7 +221,7 @@ contract SessionManagementTest is BaseTest {
         assertTrue(isEnabled);
 
         test_disable_permission(salt);
-        isEnabled = smartSession.isPermissionEnabled({
+        isEnabled = smartSession.isPermissionFullyEnabled({
             permissionId: permissionId,
             account: instance.account,
             userOpPolicies: enableSessions.sessionToEnable.userOpPolicies,
