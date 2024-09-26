@@ -63,7 +63,6 @@ contract UniActionPolicy is IActionPolicy {
     using SubModuleLib for bytes;
     using UniActionLib for *;
 
-    mapping(address msgSender => mapping(address opSender => uint256)) public usedIds;
     mapping(ConfigId id => mapping(address msgSender => mapping(address userOpSender => Status))) public status;
     mapping(ConfigId id => mapping(address msgSender => mapping(address userOpSender => ActionConfig))) public
         actionConfigs;
@@ -93,7 +92,6 @@ contract UniActionPolicy is IActionPolicy {
     }
 
     function _initPolicy(ConfigId id, address mxer, address opSender, bytes calldata _data) internal {
-        usedIds[mxer][opSender]++;
         status[id][mxer][opSender] = Status.Live;
         ActionConfig memory config = abi.decode(_data, (ActionConfig));
         actionConfigs[id][mxer][opSender].fill(config);
