@@ -65,6 +65,7 @@ contract ERC20SpendingLimitPolicy is IActionPolicy {
             if (limit == 0) revert InvalidLimit(limit);
             TokenPolicyData storage $ = _getPolicy({ id: configId, userOpSender: account, token: token });
             $.spendingLimit = limit;
+            $.alreadySpent = 0;
         }
         emit IPolicy.PolicySet(configId, msg.sender, account);
     }
