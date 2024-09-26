@@ -189,6 +189,9 @@ library PolicyLib {
             revert ISmartSession.InvalidSelfCall();
         }
 
+        // Prevent fallback action from being used directly
+        if (target == FALLBACK_TARGET_FLAG) revert ISmartSession.InvalidTarget();
+
         // Generate the action ID based on the target and function selector
         ActionId actionId = target.toActionId(targetSig);
 
