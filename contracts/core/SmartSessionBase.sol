@@ -350,7 +350,7 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
     // This function accepts not the array of policies, but full PolicyData,
     // So it is easier to use it with an EnableSessions object
     // If you just need to check array of addresses, use is____PolicyEnabled methods in a loop
-    function areUserOpPoliciesEnabled(address account, PermissionId permissionId, PolicyData[] memory userOpPolicies) external view returns (bool) {
+    function areUserOpPoliciesEnabled(address account, PermissionId permissionId, PolicyData[] calldata userOpPolicies) external view returns (bool) {
         return $userOpPolicies.areEnabled({
             permissionId: permissionId,
             smartAccount: account,
@@ -360,7 +360,7 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
 
     // This function accepts not the array of policies, but full PolicyData,
     // So it is easier to use it with an EnableSessions object
-    function areERC1271PoliciesEnabled(address account, PermissionId permissionId, PolicyData[] memory erc1271Policies) external view returns (bool) {
+    function areERC1271PoliciesEnabled(address account, PermissionId permissionId, PolicyData[] calldata erc1271Policies) external view returns (bool) {
         return $erc1271Policies.areEnabled({
             permissionId: permissionId,
             smartAccount: account,
@@ -370,7 +370,7 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
 
     // This function accepts not the array of policies, but full ActionData,
     // So it is easier to use it with an EnableSessions object
-    function areActionsEnabled(address account, PermissionId permissionId,  ActionData[] memory actions) external view returns (bool) {
+    function areActionsEnabled(address account, PermissionId permissionId,  ActionData[] calldata actions) external view returns (bool) {
         return $actionPolicies.areEnabled({
             permissionId: permissionId,
             smartAccount: account,

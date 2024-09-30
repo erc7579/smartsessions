@@ -332,7 +332,7 @@ library PolicyLib {
         Policy storage $policies,
         PermissionId permissionId,
         address smartAccount,
-        PolicyData[] memory policyDatas
+        PolicyData[] calldata policyDatas
     )
         internal
         view
@@ -368,7 +368,7 @@ library PolicyLib {
         EnumerableActionPolicy storage $self,
         PermissionId permissionId,
         address smartAccount,
-        ActionData[] memory actionPolicyDatas
+        ActionData[] calldata actionPolicyDatas
     )
         internal
         view
@@ -377,7 +377,7 @@ library PolicyLib {
         uint256 length = actionPolicyDatas.length;
         if (length == 0) return true; // 0 actions are always enabled
         for (uint256 i; i < length; i++) {
-            ActionData memory actionPolicyData = actionPolicyDatas[i];
+            ActionData calldata actionPolicyData = actionPolicyDatas[i];
             ActionId actionId = actionPolicyData.actionTarget.toActionId(actionPolicyData.actionTargetSelector);
             // Check if the action policy is enabled
             if (
