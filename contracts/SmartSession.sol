@@ -348,6 +348,22 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
         vd = vd.setSig({ sigFailed: !validSig });
     }
 
+    /**
+     * @notice SessionKey ERC-1271 signature validation
+     * this function implements the ERC-1271 forwarding function defined by ERC-7579
+     * SessionKeys can be used to sign messages and validate ERC-1271 on behalf of Accounts
+     * In order to validate a signature, the signature must be wrapped with ERC-7739
+     * @param sender The address of ERC-1271 sender
+     * @param hash The hash of the message
+     * @param signature The signature of the message
+     *         signature is expected to be in the format:
+     *         (PermissionId (32 bytes),
+     *          ERC7739 (abi.encodePacked(signatureForSessionValidator,
+     *                                    _DOMAIN_SEP_B,
+     *                                    contents,
+     *                                    contentsType,
+     *                                    uint16(contentsType.length))
+     */
     function isValidSignatureWithSender(
         address sender,
         bytes32 hash,
