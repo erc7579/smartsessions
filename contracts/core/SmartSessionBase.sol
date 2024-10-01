@@ -10,17 +10,19 @@ import { PolicyLib } from "../lib/PolicyLib.sol";
 import { IdLib } from "../lib/IdLib.sol";
 import { HashLib } from "../lib/HashLib.sol";
 import { NonceManager } from "./NonceManager.sol";
+import { FlatBytesLib } from "flatbytes/BytesLib.sol";
 
 abstract contract SmartSessionBase is ISmartSession, NonceManager {
     using EnumerableSet for EnumerableSet.Bytes32Set;
     using EnumerableSet for EnumerableSet.AddressSet;
-    using HashLib for Session;
+    using HashLib for *;
     using PolicyLib for *;
     using ConfigLib for *;
     using EncodeLib for *;
     using IdLib for *;
     using ConfigLib for Policy;
     using ConfigLib for EnumerableActionPolicy;
+    using FlatBytesLib for FlatBytesLib.Bytes;
 
     /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
     /*                    SmartSession Storage                    */
@@ -78,7 +80,7 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
             policies: policies
         });
     }
-
+    
     /**
      * @notice Enable ERC1271 policies for a specific permission
      * @param permissionId The unique identifier for the permission
@@ -107,17 +109,21 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
     }
 
     /**
-     * @notice Disable specific ERC1271 policies for a given permission
+     * @notice Disable specific ERC1271 policies and contents for a given permission
      * @param permissionId The unique identifier for the permission
      * @param policies An array of policy addresses to be disabled
+     * @param contents An array of 7739 contents to be disabled
      */
-    function disableERC1271Policies(PermissionId permissionId, address[] calldata policies) public {
+    function disableERC1271Policies(PermissionId permissionId, address[] calldata policies, string[] calldata contents) public {
         // Check if the session is enabled for the caller and the given permission
         if ($enabledSessions.contains(msg.sender, PermissionId.unwrap(permissionId)) == false) {
             revert InvalidSession(permissionId);
         }
 
-        $enabledERC7739Content[permissionId].removeAll(msg.sender);
+        for (uint256 i; i < contents.length; ++i) {
+            bytes32 contentHash = HashLib.hashERC7739Content(contents[i]);
+            $enabledERC7739Content[permissionId].remove(msg.sender, contentHash);
+        }
 
         // Disable the specified ERC1271 policies
         $erc1271Policies.disable({
@@ -152,6 +158,27 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
      * @notice Disable specific action policies for a given permission and action ID
      * @param permissionId The unique identifier for the permission
      * @param actionId The specific action identifier
+     */
+    function disableActionId(PermissionId permissionId, ActionId actionId) public {
+        // Check if the session is enabled for the caller and the given permission
+        if ($enabledSessions.contains(msg.sender, PermissionId.unwrap(permissionId)) == false) {
+            revert InvalidSession(permissionId);
+        }
+
+        // Disable all action policies for the given action ID
+        // No need to emit events here, as unlike with 7739contents and 1271 policies, 
+        // here disabling the actionId means all action policies are also disabled
+        $actionPolicies.actionPolicies[actionId].policyList[permissionId].removeAll(msg.sender);
+
+        // remove action Id from enabledActionIds
+        $actionPolicies.enabledActionIds[permissionId].remove(msg.sender, ActionId.unwrap(actionId));
+        emit ISmartSession.ActionIdDisabled(permissionId, actionId, msg.sender);
+    }
+
+    /**
+     * @notice Disable action id for a given permission and action ID
+     * @param permissionId The unique identifier for the permission
+     * @param actionId The specific action identifier
      * @param policies An array of policy addresses to be disabled
      */
     function disableActionPolicies(PermissionId permissionId, ActionId actionId, address[] calldata policies) public {
@@ -167,6 +194,12 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
             permissionId: permissionId,
             policies: policies
         });
+
+        // remove the actionId from the enabledActionIds if no policies are left
+        if ($actionPolicies.actionPolicies[actionId].policyList[permissionId].length(msg.sender) == 0) {
+            $actionPolicies.enabledActionIds[permissionId].remove(msg.sender, ActionId.unwrap(actionId));
+            emit ISmartSession.ActionIdDisabled(permissionId, actionId, msg.sender);
+        }
     }
 
     /**
@@ -183,18 +216,6 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
         for (uint256 i; i < length; i++) {
             Session calldata session = sessions[i];
             PermissionId permissionId = session.toPermissionId();
-
-            // Add the session to the list of enabled sessions for the caller
-            $enabledSessions.add({ account: msg.sender, value: PermissionId.unwrap(permissionId) });
-
-            // Enable the ISessionValidator for this session
-            $sessionValidators.enable({
-                permissionId: permissionId,
-                smartAccount: msg.sender,
-                sessionValidator: session.sessionValidator,
-                sessionValidatorConfig: session.sessionValidatorInitData,
-                useRegistry: true
-            });
 
             // Enable UserOp policies
             $userOpPolicies.enable({
@@ -222,6 +243,18 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
                 permissionId: permissionId,
                 actionPolicyDatas: session.actions,
                 smartAccount: msg.sender,
+                useRegistry: true
+            });
+
+            // Add the session to the list of enabled sessions for the caller
+            $enabledSessions.add({ account: msg.sender, value: PermissionId.unwrap(permissionId) });
+
+            // Enable the ISessionValidator for this session
+            $sessionValidators.enable({
+                permissionId: permissionId,
+                smartAccount: msg.sender,
+                sessionValidator: session.sessionValidator,
+                sessionValidatorConfig: session.sessionValidatorInitData,
                 useRegistry: true
             });
 
@@ -312,7 +345,7 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
     }
 
     function isModuleType(uint256 typeID) external pure override returns (bool) {
-        if (typeID == ERC7579_MODULE_TYPE_VALIDATOR) return true;
+        return typeID == ERC7579_MODULE_TYPE_VALIDATOR;
     }
 
     function getSessionDigest(
@@ -337,51 +370,90 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
         return address($sessionValidators[permissionId][account].sessionValidator) != address(0);
     }
 
+    function isISessionValidatorSet(PermissionId permissionId, address account) external view returns (bool) {
+        return _isISessionValidatorSet(permissionId, account);
+    }
+
     function isPermissionEnabled(PermissionId permissionId, address account) external view returns (bool) {
         return $enabledSessions.contains(account, PermissionId.unwrap(permissionId));
     }
 
-    function isPermissionEnabled(
-        PermissionId permissionId,
-        address account,
-        PolicyData[] memory userOpPolicies,
-        PolicyData[] memory erc1271Policies,
-        ActionData[] memory actions
-    )
-        external
-        view
-        returns (bool isEnabled)
-    {
-        //if ISessionValidator is not set for permissionId, the permission has not been enabled yet
-        if (!_isISessionValidatorSet(permissionId, account)) {
-            return false;
-        }
-        bool uo = $userOpPolicies.areEnabled({
+    // This function accepts not the array of policies, but full PolicyData,
+    // So it is easier to use it with an EnableSessions object
+    // If you just need to check array of addresses, use is____PolicyEnabled methods in a loop
+    function areUserOpPoliciesEnabled(address account, PermissionId permissionId, PolicyData[] calldata userOpPolicies) external view returns (bool) {
+        return $userOpPolicies.areEnabled({
             permissionId: permissionId,
-            configId: permissionId.toUserOpPolicyId().toConfigId(account),
             smartAccount: account,
             policyDatas: userOpPolicies
         });
-        bool erc1271 = $erc1271Policies.areEnabled({
+    }
+
+    // This function accepts not the array of policies, but full PolicyData,
+    // So it is easier to use it with an EnableSessions object
+    function areERC1271PoliciesEnabled(address account, PermissionId permissionId, PolicyData[] calldata erc1271Policies) external view returns (bool) {
+        return $erc1271Policies.areEnabled({
             permissionId: permissionId,
-            configId: permissionId.toErc1271PolicyId().toConfigId(account),
             smartAccount: account,
             policyDatas: erc1271Policies
         });
-        bool action = $actionPolicies.areEnabled({
+    }
+
+    // This function accepts not the array of policies, but full ActionData,
+    // So it is easier to use it with an EnableSessions object
+    function areActionsEnabled(address account, PermissionId permissionId,  ActionData[] calldata actions) external view returns (bool) {
+        return $actionPolicies.areEnabled({
             permissionId: permissionId,
             smartAccount: account,
             actionPolicyDatas: actions
         });
-        uint256 res;
-        assembly {
-            res := add(add(uo, erc1271), action)
-        }
-        if (res == 0) return false;
-        else if (res == 3) return true;
-        else revert PermissionPartlyEnabled();
-        // partly enabled permission will prevent the full permission to be enabled
-        // and we can not consider it being fully enabled, as it missed some policies we'd want to enforce
-        // as per given 'enableData'
+    }
+
+    function isUserOpPolicyEnabled(address account, PermissionId permissionId, address policy) external view returns (bool) {
+        return $userOpPolicies.policyList[permissionId].contains(account, policy);
+    }
+
+    function isERC1271PolicyEnabled(address account, PermissionId permissionId, address policy) external view returns (bool) {
+        return $erc1271Policies.policyList[permissionId].contains(account, policy);
+    }
+
+    // for action policies
+    function isActionPolicyEnabled(address account, PermissionId permissionId, ActionId actionId, address policy) external view returns (bool) {
+        return $actionPolicies.actionPolicies[actionId].policyList[permissionId].contains(account, policy);
+    }
+
+    // for actionIds
+    function isActionIdEnabled(address account, PermissionId permissionId, ActionId actionId) external view returns (bool) {
+        return $actionPolicies.enabledActionIds[permissionId].contains(account, ActionId.unwrap(actionId));
+    }
+
+    function isERC7739ContentEnabled(address account, PermissionId permissionId, string memory content) external view returns (bool) {
+        return $enabledERC7739Content[permissionId].contains(account, content.hashERC7739Content());
+    }
+
+    function getUserOpPolicies(address account, PermissionId permissionId) external view returns (address[] memory) {
+        return $userOpPolicies.policyList[permissionId].values(account);
+    }
+
+    function getERC1271Policies(address account, PermissionId permissionId) external view returns (address[] memory) {
+        return $erc1271Policies.policyList[permissionId].values(account);
+    }
+
+    function getActionPolicies(address account, PermissionId permissionId, ActionId actionId) external view returns (address[] memory) {
+        $actionPolicies.actionPolicies[actionId].policyList[permissionId].values(account);
+    }
+
+    function getEnabledActions(address account, PermissionId permissionId) external view returns (bytes32[] memory) {
+        return $actionPolicies.enabledActionIds[permissionId].values(account);
+    }
+
+    function getEnabledERC7739Content(address account, PermissionId permissionId) external view returns (bytes32[] memory) {
+        return $enabledERC7739Content[permissionId].values(account);
+    }
+
+    function getSessionValidatorAndConfig(address account, PermissionId permissionId) external view returns (address sessionValidator, bytes memory sessionValidatorData) {
+        SignerConf storage $s = $sessionValidators[permissionId][account];
+        sessionValidator = address($s.sessionValidator);
+        sessionValidatorData = $s.config.load();
     }
 }

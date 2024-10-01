@@ -2,8 +2,10 @@
 
 pragma solidity ^0.8.27;
 
-import "../../interfaces/IPolicy.sol";
-import "../../lib/SubModuleLib.sol";
+import "../../DataTypes.sol";
+import { IActionPolicy, IPolicy, VALIDATION_SUCCESS, VALIDATION_FAILED } from "../../interfaces/IPolicy.sol";
+import { SubModuleLib } from "../../lib/SubModuleLib.sol";
+import { IERC165 } from "forge-std/interfaces/IERC165.sol";
 
 /**
  * @title UniActionPolicy: Universal Action Policy
@@ -63,7 +65,6 @@ contract UniActionPolicy is IActionPolicy {
     using SubModuleLib for bytes;
     using UniActionLib for *;
 
-    mapping(address msgSender => mapping(address opSender => uint256)) public usedIds;
     mapping(ConfigId id => mapping(address msgSender => mapping(address userOpSender => Status))) public status;
     mapping(ConfigId id => mapping(address msgSender => mapping(address userOpSender => ActionConfig))) public
         actionConfigs;
@@ -93,19 +94,18 @@ contract UniActionPolicy is IActionPolicy {
     }
 
     function _initPolicy(ConfigId id, address mxer, address opSender, bytes calldata _data) internal {
-        usedIds[mxer][opSender]++;
         status[id][mxer][opSender] = Status.Live;
         ActionConfig memory config = abi.decode(_data, (ActionConfig));
         actionConfigs[id][mxer][opSender].fill(config);
     }
 
-    function _deinitPolicy(ConfigId id, address mxer, address opSender, bytes calldata) internal {
-        status[id][mxer][opSender] = Status.Deprecated;
-        usedIds[mxer][opSender]--;
-    }
-
-    // to be used use when the policy is installed via the multiplexer, i.e. Smart Sessions
-    // overwrites state
+    /**
+     * Initializes the policy to be used by given account through multiplexer (msg.sender) such as Smart Sessions.
+     * Overwrites state.
+     * @notice ATTENTION: This method is called during permission installation as part of the enabling policies flow.
+     * A secure policy would minimize external calls from this method (ideally, to 0) to prevent passing control flow to
+     * external contracts.
+     */
     function initializeWithMultiplexer(address account, ConfigId configId, bytes calldata initData) external {
         _initPolicy(configId, msg.sender, account, initData);
         emit IPolicy.PolicySet(configId, msg.sender, account);

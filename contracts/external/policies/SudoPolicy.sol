@@ -2,10 +2,11 @@
 
 pragma solidity ^0.8.23;
 
-import "../../interfaces/IPolicy.sol";
-import "../../lib/SubModuleLib.sol";
-import "../../utils/EnumerableSet4337.sol";
+import "../../DataTypes.sol";
+import { IActionPolicy, I1271Policy, IPolicy, VALIDATION_SUCCESS, VALIDATION_FAILED } from "../../interfaces/IPolicy.sol";
 import { IERC165 } from "forge-std/interfaces/IERC165.sol";
+import { SubModuleLib } from "../../lib/SubModuleLib.sol";
+import { EnumerableSet } from "../../utils/EnumerableSet4337.sol";
 
 contract SudoPolicy is IActionPolicy, I1271Policy {
     using EnumerableSet for EnumerableSet.Bytes32Set;
@@ -18,7 +19,13 @@ contract SudoPolicy is IActionPolicy, I1271Policy {
     mapping(address account => bool isInitialized) internal $initialized;
     mapping(address multiplexer => EnumerableSet.Bytes32Set configIds) internal $enabledConfigs;
 
-    // to be used if policy installed through multiplexer such as Smart Sessions Module
+    /**
+     * Initializes the policy to be used by given account through multiplexer (msg.sender) such as Smart Sessions.
+     * Overwrites state.
+     * @notice ATTENTION: This method is called during permission installation as part of the enabling policies flow.
+     * A secure policy would minimize external calls from this method (ideally, to 0) to prevent passing control flow to
+     * external contracts.
+     */
     function initializeWithMultiplexer(address account, ConfigId configId, bytes calldata /*initData*/ ) external {
         $enabledConfigs[msg.sender].add(account, ConfigId.unwrap(configId));
         emit IPolicy.PolicySet(configId, msg.sender, account);
@@ -55,7 +62,6 @@ contract SudoPolicy is IActionPolicy, I1271Policy {
 
     function supportsInterface(bytes4 interfaceID) external pure override returns (bool) {
         return interfaceID == type(IActionPolicy).interfaceId || interfaceID == type(I1271Policy).interfaceId
-            || interfaceID == IActionPolicy.checkAction.selector || interfaceID == type(IERC165).interfaceId
-            || interfaceID == I1271Policy.check1271SignedAction.selector;
+            || interfaceID == type(IERC165).interfaceId || interfaceID == type(IPolicy).interfaceId;
     }
 }

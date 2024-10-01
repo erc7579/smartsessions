@@ -81,7 +81,7 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
         override
         returns (ValidationData vd)
     {
-        // ensure that userOp.sender == account
+        // ensure that userOp.sender == msg.sender == account 
         // SmartSession will sstore configs for a certain account,
         // so we have to ensure that unauthorized access is not possible
         address account = userOp.sender;
@@ -165,22 +165,6 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
         // Determine if registry should be used based on the mode
         bool useRegistry = mode.useRegistry();
 
-        // Enable mode can involve enabling ISessionValidator (new Permission)
-        // or just adding policies (existing permission)
-        // a) ISessionValidator is not set => enable ISessionValidator
-        // b) ISessionValidator is set => just add policies
-        // Attention: if the same policy that has already been configured is added again,
-        // the policy will be overwritten with the new configuration
-        if (!_isISessionValidatorSet(permissionId, account)) {
-            $sessionValidators.enable({
-                permissionId: permissionId,
-                smartAccount: account,
-                sessionValidator: enableData.sessionToEnable.sessionValidator,
-                sessionValidatorConfig: enableData.sessionToEnable.sessionValidatorInitData,
-                useRegistry: useRegistry
-            });
-        }
-
         // Enable UserOp policies
         $userOpPolicies.enable({
             policyType: PolicyType.USER_OP,
@@ -197,6 +181,8 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
             permissionId: permissionId,
             smartAccount: account
         });
+
+        // Enabel ERC1271 policies
         $erc1271Policies.enable({
             policyType: PolicyType.ERC1271,
             permissionId: permissionId,
@@ -205,9 +191,6 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
             smartAccount: account,
             useRegistry: useRegistry
         });
-        $enabledERC7739Content.enable(
-            enableData.sessionToEnable.erc7739Policies.allowedERC7739Content, permissionId, account
-        );
 
         // Enable action policies
         $actionPolicies.enable({
@@ -216,6 +199,22 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
             smartAccount: account,
             useRegistry: useRegistry
         });
+
+        // Enable mode can involve enabling ISessionValidator (new Permission)
+        // or just adding policies (existing permission)
+        // a) ISessionValidator is not set => enable ISessionValidator
+        // b) ISessionValidator is set => just add policies (above)
+        // Attention: if the same policy that has already been configured is added again,
+        // the policy will be overwritten with the new configuration
+        if (!_isISessionValidatorSet(permissionId, account)) {
+            $sessionValidators.enable({
+                permissionId: permissionId,
+                smartAccount: account,
+                sessionValidator: enableData.sessionToEnable.sessionValidator,
+                sessionValidatorConfig: enableData.sessionToEnable.sessionValidatorInitData,
+                useRegistry: useRegistry
+            });
+        }
 
         // Mark the session as enabled
         $enabledSessions.add(msg.sender, PermissionId.unwrap(permissionId));
@@ -254,7 +253,9 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
         vd = $userOpPolicies.check({
             userOp: userOp,
             permissionId: permissionId,
-            callOnIPolicy: abi.encodeCall(IUserOpPolicy.checkUserOpPolicy, (permissionId.toConfigId(), userOp)),
+            callOnIPolicy: abi.encodeCall(
+                IUserOpPolicy.checkUserOpPolicy, (permissionId.toUserOpPolicyId().toConfigId(), userOp)
+            ),
             minPolicies: 0 // for userOp policies, a min of 0 is ok. since these are not security critical
          });
 
@@ -316,7 +317,7 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
             ActionId actionId = account.toActionId(bytes4(userOp.callData[:4]));
 
             vd = vd.intersect(
-                $actionPolicies.actionPolicies[actionId].tryCheck({
+                $actionPolicies.actionPolicies[actionId].check({
                     userOp: userOp,
                     permissionId: permissionId,
                     callOnIPolicy: abi.encodeCall(
@@ -337,15 +338,39 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
         /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
         /*                 Check SessionKey ISessionValidator         */
         /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
+        // perform signature check with ISessionValidator
+        // this function will revert if no ISessionValidator is set for this permissionId
         bool validSig = $sessionValidators.isValidISessionValidator({
             hash: userOpHash,
             account: account,
             permissionId: permissionId,
             signature: decompressedSignature
         });
-        vd = vd.setSig({ sigFailed: !validSig });
+
+        // if the ISessionValidator signature is invalid, the userOp is invalid
+        if (!validSig) return ERC4337_VALIDATION_FAILED;
+
+        // In every Policy check, the ERC4337.ValidationData sigFailed required to be false, SmartSession validation
+        // flow will only reach to this line, if all Policies return valid and ISessionValidator signature is valid
+        return vd;
     }
 
+    /**
+     * @notice SessionKey ERC-1271 signature validation
+     * this function implements the ERC-1271 forwarding function defined by ERC-7579
+     * SessionKeys can be used to sign messages and validate ERC-1271 on behalf of Accounts
+     * In order to validate a signature, the signature must be wrapped with ERC-7739
+     * @param sender The address of ERC-1271 sender
+     * @param hash The hash of the message
+     * @param signature The signature of the message
+     *         signature is expected to be in the format:
+     *         (PermissionId (32 bytes),
+     *          ERC7739 (abi.encodePacked(signatureForSessionValidator,
+     *                                    _DOMAIN_SEP_B,
+     *                                    contents,
+     *                                    contentsType,
+     *                                    uint16(contentsType.length))
+     */
     function isValidSignatureWithSender(
         address sender,
         bytes32 hash,
@@ -368,6 +393,21 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
         }
     }
 
+    /**
+     * @notice Validates an ERC-1271 signature with additional ERC-7739 content checks
+     * @dev This function performs several checks to validate the signature:
+     *      1. Verifies that the permissionId is enabled for the sender
+     *      2. Ensures the ERC-7739 content is enabled for the given permissionId
+     *      3. Checks the ERC-1271 policy
+     *      4. Validates the signature using ISessionValidator
+     * @dev This function returns false if a permissionId supplied within the signature is not enabled
+     * @dev This function returns false if the ERC-7739 content is not enabled for the given permissionId
+     * @param sender The address initiating the signature validation
+     * @param hash The hash of the data to be signed
+     * @param signature The signature to be validated (first 32 bytes contain the permissionId)
+     * @param contents The ERC-7739 content to be validated
+     * @return valid Boolean indicating whether the signature is valid
+     */
     function _erc1271IsValidSignatureNowCalldata(
         address sender,
         bytes32 hash,
@@ -381,9 +421,16 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
         returns (bool valid)
     {
         bytes32 contentHash = string(contents).hashERC7739Content();
+        // isolate the PermissionId and actual signature from the supplied signature param
         PermissionId permissionId = PermissionId.wrap(bytes32(signature[0:32]));
         signature = signature[32:];
+
+        // return false if the permissionId is not enabled
+        if (!$enabledSessions.contains(msg.sender, PermissionId.unwrap(permissionId))) return false;
+        // return false if the content is not enabled
         if (!$enabledERC7739Content[permissionId].contains(msg.sender, contentHash)) return false;
+
+        // check the ERC-1271 policy
         valid = $erc1271Policies.checkERC1271({
             account: msg.sender,
             requestSender: sender,
@@ -394,8 +441,9 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
             minPoliciesToEnforce: 0
         });
 
+        // if the erc1271 policy check failed, return false
         if (!valid) return false;
-        // this call reverts if the ISessionValidator is not set or signature is invalid
+        // this call reverts if the ISessionValidator is not set
         return $sessionValidators.isValidISessionValidator({
             hash: hash,
             account: msg.sender,

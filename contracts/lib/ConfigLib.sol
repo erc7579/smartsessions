@@ -128,8 +128,6 @@ library ConfigLib {
             // Record the enabled action ID
             $self.enabledActionIds[permissionId].add(smartAccount, ActionId.unwrap(actionId));
 
-            //$self.enabledActionIds[permissionId].push(smartAccount, ActionId.unwrap(actionId));
-
             // Record the enabled action ID
             $self.actionPolicies[actionId].enable({
                 policyType: PolicyType.ACTION,

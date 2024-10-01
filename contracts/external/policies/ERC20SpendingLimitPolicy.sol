@@ -3,16 +3,15 @@
 pragma solidity ^0.8.23;
 
 import "../../DataTypes.sol";
-import { IActionPolicy, IPolicy } from "../../interfaces/IPolicy.sol";
+import { IActionPolicy, IPolicy, VALIDATION_SUCCESS, VALIDATION_FAILED } from "../../interfaces/IPolicy.sol";
 import { IERC20 } from "forge-std/interfaces/IERC20.sol";
 import { IERC165 } from "forge-std/interfaces/IERC165.sol";
-
-address constant NATIVE_TOKEN = address(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE);
-
-uint256 constant VALIDATION_SUCCESS = 0;
-uint256 constant VALIDATION_FAILED = 1;
+import { EnumerableSet } from "../../utils/EnumerableSet4337.sol";
 
 contract ERC20SpendingLimitPolicy is IActionPolicy {
+
+    using EnumerableSet for EnumerableSet.AddressSet;
+
     event TokenSpent(
         ConfigId id, address multiplexer, address token, address account, uint256 amount, uint256 remaining
     );
@@ -25,8 +24,8 @@ contract ERC20SpendingLimitPolicy is IActionPolicy {
         uint256 spendingLimit;
     }
 
-    mapping(ConfigId id => mapping(address multiplexer => mapping(address userOpSender => bool initialized))) internal
-        $initialized;
+    mapping(ConfigId id => mapping(address multiplexer => EnumerableSet.AddressSet tokensEnabled)) internal
+        $tokens;
     mapping(
         ConfigId id
             => mapping(
@@ -54,16 +53,44 @@ contract ERC20SpendingLimitPolicy is IActionPolicy {
         );
     }
 
+    /**
+     * Initializes the policy to be used by given account through multiplexer (msg.sender) such as Smart Sessions.
+     * Overwrites state.
+     * @notice ATTENTION: This method is called during permission installation as part of the enabling policies flow.
+     * A secure policy would minimize external calls from this method (ideally, to 0) to prevent passing control flow to
+     * external contracts.
+     */
     function initializeWithMultiplexer(address account, ConfigId configId, bytes calldata initData) external {
         (address[] memory tokens, uint256[] memory limits) = abi.decode(initData, (address[], uint256[]));
+        EnumerableSet.AddressSet storage $t = $tokens[configId][msg.sender];
+        
+        uint256 length_i = $t.length(account);
+        
+        // if there's some inited tokens, clear storage first
+        if(length_i > 0) {
+            for (uint256 i; i < length_i; i++) {
+                // for all tokens which have been inited for a given configId and mxer
+                address token = $t.at(account, i);
+                TokenPolicyData storage $ = _getPolicy({ id: configId, userOpSender: account, token: token });
+                // clear limit and spent
+                $.spendingLimit = 0;
+                $.alreadySpent = 0;
+            }
+            // clear inited tokens
+            $t.removeAll(account);
+        }
 
+        // set new
         for (uint256 i; i < tokens.length; i++) {
             address token = tokens[i];
             uint256 limit = limits[i];
             if (token == address(0)) revert InvalidTokenAddress(token);
             if (limit == 0) revert InvalidLimit(limit);
             TokenPolicyData storage $ = _getPolicy({ id: configId, userOpSender: account, token: token });
+            // set limit
             $.spendingLimit = limit;
+            // mark token as inited
+            $t.add(account, token);
         }
         emit IPolicy.PolicySet(configId, msg.sender, account);
     }
