@@ -24,8 +24,14 @@ library PolicyLib {
     using ValidationDataLib for ValidationData;
     using ExcessivelySafeCall for address;
 
+    /**
+     * Helper function to evaluate the ValidationData result of a policy check.
+     * To prevent Policies from returning a packed aggregator value, we use this bitmask.
+     */
     function isFailed(ValidationData packedData) internal pure returns (bool sigFailed) {
-        sigFailed = (ValidationData.unwrap(packedData) & 1) == 1;
+        sigFailed = (
+            ValidationData.unwrap(packedData) & 0x000000000000000000000000ffffffffffffffffffffffffffffffffffffffff
+        ) != 0;
     }
 
     /**
