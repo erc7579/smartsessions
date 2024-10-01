@@ -201,6 +201,8 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
         }
 
         // Disable all action policies for the given action ID
+        // No need to emit events here, as unlike with 7739contents and 1271 policies, 
+        // here disabling the actionId means all action policies are also disabled
         $actionPolicies.actionPolicies[actionId].policyList[permissionId].removeAll(msg.sender);
 
         // remove action Id from enabledActionIds
