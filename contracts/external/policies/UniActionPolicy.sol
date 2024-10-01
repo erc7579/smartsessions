@@ -5,21 +5,9 @@ pragma solidity ^0.8.27;
 import "../../interfaces/IPolicy.sol";
 import "../../lib/SubModuleLib.sol";
 
-/**
- * @title UniActionPolicy: Universal Action Policy
- * @dev A policy that allows defining custom rules for actions based on function signatures.
- * Rules can be configured for function arguments with conditions.
- * So the argument is compared to a reference value against the the condition.
- * Also, rules feature usage limits for arguments.
- * For example, you can limit not just max amount for a transfer,
- * but also limit the total amount to be transferred within a permission.
- * Limit is uint256 so you can control any kind of numerable params.
- *
- * If you need to deal with dynamic-length arguments, such as bytes, please refer to
- * https://docs.soliditylang.org/en/v0.8.24/abi-spec.html#function-selector-and-argument-encoding
- * to learn more about how dynamic arguments are represented in the calldata
- * and which offsets should be used to access them.
- */
+error PolicyNotInitialized(ConfigId id, address mxer, address account);
+error ValueLimitExceeded(ConfigId id, uint256 value, uint256 limit);
+
 struct ActionConfig {
     uint256 valueLimitPerUse;
     ParamRules paramRules;
@@ -53,6 +41,22 @@ enum ParamCondition {
     IN_RANGE
 }
 
+/**
+ * @title UniActionPolicy: Universal Action Policy
+ * @dev A policy that allows defining custom rules for actions based on function signatures.
+ * Rules can be configured for function arguments with conditions.
+ * So the argument is compared to a reference value against the the condition.
+ * Also, rules feature usage limits for arguments.
+ * For example, you can limit not just max amount for a transfer,
+ * but also limit the total amount to be transferred within a permission.
+ * Limit is uint256 so you can control any kind of numerable params.
+ *
+ * If you need to deal with dynamic-length arguments, such as bytes, please refer to
+ * https://docs.soliditylang.org/en/v0.8.24/abi-spec.html#function-selector-and-argument-encoding
+ * to learn more about how dynamic arguments are represented in the calldata
+ * and which offsets should be used to access them.
+ */
+
 contract UniActionPolicy is IActionPolicy {
     enum Status {
         NA,
@@ -63,7 +67,6 @@ contract UniActionPolicy is IActionPolicy {
     using SubModuleLib for bytes;
     using UniActionLib for *;
 
-    mapping(ConfigId id => mapping(address msgSender => mapping(address userOpSender => Status))) public status;
     mapping(ConfigId id => mapping(address msgSender => mapping(address userOpSender => ActionConfig))) public
         actionConfigs;
 
@@ -80,9 +83,9 @@ contract UniActionPolicy is IActionPolicy {
         external
         returns (uint256)
     {
-        require(status[id][msg.sender][account] == Status.Live);
         ActionConfig storage config = actionConfigs[id][msg.sender][account];
-        require(value <= config.valueLimitPerUse);
+        require(config.paramRules.length > 0, PolicyNotInitialized(id, msg.sender, account));
+        require(value <= config.valueLimitPerUse, ValueLimitExceeded(id, value, config.valueLimitPerUse));
         uint256 length = config.paramRules.length;
         for (uint256 i = 0; i < length; i++) {
             if (!config.paramRules.rules[i].check(data)) return VALIDATION_FAILED;
@@ -92,7 +95,6 @@ contract UniActionPolicy is IActionPolicy {
     }
 
     function _initPolicy(ConfigId id, address mxer, address opSender, bytes calldata _data) internal {
-        status[id][mxer][opSender] = Status.Live;
         ActionConfig memory config = abi.decode(_data, (ActionConfig));
         actionConfigs[id][mxer][opSender].fill(config);
     }
