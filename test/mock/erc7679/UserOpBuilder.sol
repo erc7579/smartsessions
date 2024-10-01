@@ -8,21 +8,9 @@ import { IERC7579Account } from "erc7579/interfaces/IERC7579Account.sol";
 import { ModeCode as ExecutionMode, ExecType, CallType, CALLTYPE_BATCH, CALLTYPE_SINGLE } from "erc7579/lib/ModeLib.sol";
 import { EncodeLib } from "contracts/lib/EncodeLib.sol";
 import { ExecutionLib as ExecutionLib } from "contracts/lib/ExecutionLib.sol";
+import { SmartSession } from "contracts/SmartSession.sol";
 import "contracts/DataTypes.sol";
 import "forge-std/Console2.sol";
-
-interface IPermissionEnabled {
-    function isPermissionEnabled(
-        PermissionId permissionId,
-        address smartAccount,
-        PolicyData[] memory userOpPolicies,
-        PolicyData[] memory erc1271Policies,
-        ActionData[] memory actions
-    )
-        external
-        view
-        returns (bool);
-}
 
 contract UserOperationBuilder is IUserOperationBuilder {
     /**
@@ -106,21 +94,31 @@ contract UserOperationBuilder is IUserOperationBuilder {
             return EncodeLib.encodeUse(permissionId, userOperation.signature);
         }
 
-        address permissionValidator = address(bytes20(context[0:20]));
+        SmartSession permissionValidator = SmartSession(address(bytes20(context[0:20])));
         EnableSession memory enableData = abi.decode(context[88:], (EnableSession));
         Session memory session = enableData.sessionToEnable;
 
-        try IPermissionEnabled(permissionValidator).isPermissionEnabled(
+        bool isEnabled = true;
+        /*try IPermissionEnabled(permissionValidator).isPermissionFullyEnabled(
             permissionId, smartAccount, session.userOpPolicies, session.erc7739Policies.erc1271Policies, session.actions
         ) returns (bool isEnabled) {
             if (isEnabled) {
                 return EncodeLib.encodeUse(permissionId, userOperation.signature);
             } else {
-                return EncodeLib.encodeEnable(permissionId, userOperation.signature, enableData);
+                return EncodeLib.encodeUnsafeEnable(userOperation.signature, enableData);
             }
         } catch (bytes memory error) {
             revert InvalidPermission(error);
+        }*/
+
+        if (!permissionValidator.isISessionValidatorSet(permissionId, smartAccount)) isEnabled = false;
+        // if permissionValidator is not enabled, makes no sense to check policies
+        if (isEnabled) {
+            if (!permissionValidator.areUserOpPoliciesEnabled(smartAccount, permissionId, session.userOpPolicies)) isEnabled = false;
+            if (!permissionValidator.areERC1271PoliciesEnabled(smartAccount, permissionId, session.erc7739Policies.erc1271Policies)) isEnabled = false;
+            if (!permissionValidator.areActionsEnabled(smartAccount, permissionId, session.actions)) isEnabled = false;
         }
+        return isEnabled ? EncodeLib.encodeUse(permissionId, userOperation.signature) : EncodeLib.encodeUnsafeEnable(userOperation.signature, enableData);
     }
 
     /* 

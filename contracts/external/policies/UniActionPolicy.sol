@@ -1,25 +1,15 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.23;
+pragma solidity ^0.8.27;
 
-import "contracts/interfaces/IPolicy.sol";
-import "contracts/lib/SubModuleLib.sol";
+import "../../DataTypes.sol";
+import { IActionPolicy, IPolicy, VALIDATION_SUCCESS, VALIDATION_FAILED } from "../../interfaces/IPolicy.sol";
+import { SubModuleLib } from "../../lib/SubModuleLib.sol";
+import { IERC165 } from "forge-std/interfaces/IERC165.sol";
 
-/**
- * @title UniActionPolicy: Universal Action Policy
- * @dev A policy that allows defining custom rules for actions based on function signatures.
- * Rules can be configured for function arguments with conditions.
- * So the argument is compared to a reference value against the the condition.
- * Also, rules feature usage limits for arguments.
- * For example, you can limit not just max amount for a transfer,
- * but also limit the total amount to be transferred within a permission.
- * Limit is uint256 so you can control any kind of numerable params.
- *
- * If you need to deal with dynamic-length arguments, such as bytes, please refer to
- * https://docs.soliditylang.org/en/v0.8.24/abi-spec.html#function-selector-and-argument-encoding
- * to learn more about how dynamic arguments are represented in the calldata
- * and which offsets should be used to access them.
- */
+error PolicyNotInitialized(ConfigId id, address mxer, address account);
+error ValueLimitExceeded(ConfigId id, uint256 value, uint256 limit);
+
 struct ActionConfig {
     uint256 valueLimitPerUse;
     ParamRules paramRules;
@@ -49,8 +39,25 @@ enum ParamCondition {
     LESS_THAN,
     GREATER_THAN_OR_EQUAL,
     LESS_THAN_OR_EQUAL,
-    NOT_EQUAL
+    NOT_EQUAL,
+    IN_RANGE
 }
+
+/**
+ * @title UniActionPolicy: Universal Action Policy
+ * @dev A policy that allows defining custom rules for actions based on function signatures.
+ * Rules can be configured for function arguments with conditions.
+ * So the argument is compared to a reference value against the the condition.
+ * Also, rules feature usage limits for arguments.
+ * For example, you can limit not just max amount for a transfer,
+ * but also limit the total amount to be transferred within a permission.
+ * Limit is uint256 so you can control any kind of numerable params.
+ *
+ * If you need to deal with dynamic-length arguments, such as bytes, please refer to
+ * https://docs.soliditylang.org/en/v0.8.24/abi-spec.html#function-selector-and-argument-encoding
+ * to learn more about how dynamic arguments are represented in the calldata
+ * and which offsets should be used to access them.
+ */
 
 contract UniActionPolicy is IActionPolicy {
     enum Status {
@@ -62,8 +69,6 @@ contract UniActionPolicy is IActionPolicy {
     using SubModuleLib for bytes;
     using UniActionLib for *;
 
-    mapping(address msgSender => mapping(address opSender => uint256)) public usedIds;
-    mapping(ConfigId id => mapping(address msgSender => mapping(address userOpSender => Status))) public status;
     mapping(ConfigId id => mapping(address msgSender => mapping(address userOpSender => ActionConfig))) public
         actionConfigs;
 
@@ -80,9 +85,9 @@ contract UniActionPolicy is IActionPolicy {
         external
         returns (uint256)
     {
-        require(status[id][msg.sender][account] == Status.Live);
         ActionConfig storage config = actionConfigs[id][msg.sender][account];
-        require(value <= config.valueLimitPerUse);
+        require(config.paramRules.length > 0, PolicyNotInitialized(id, msg.sender, account));
+        require(value <= config.valueLimitPerUse, ValueLimitExceeded(id, value, config.valueLimitPerUse));
         uint256 length = config.paramRules.length;
         for (uint256 i = 0; i < length; i++) {
             if (!config.paramRules.rules[i].check(data)) return VALIDATION_FAILED;
@@ -91,56 +96,28 @@ contract UniActionPolicy is IActionPolicy {
         return VALIDATION_SUCCESS;
     }
 
-    function _onInstallPolicy(ConfigId id, address opSender, bytes calldata _data) internal {
-        require(status[id][msg.sender][opSender] == Status.NA);
-        usedIds[msg.sender][opSender]++;
-        status[id][msg.sender][opSender] = Status.Live;
+    function _initPolicy(ConfigId id, address mxer, address opSender, bytes calldata _data) internal {
         ActionConfig memory config = abi.decode(_data, (ActionConfig));
-        actionConfigs[id][msg.sender][opSender].fill(config);
+        actionConfigs[id][mxer][opSender].fill(config);
     }
 
-    function _onUninstallPolicy(ConfigId id, address opSender, bytes calldata) internal {
-        require(status[id][msg.sender][opSender] == Status.Live);
-        status[id][msg.sender][opSender] = Status.Deprecated;
-        usedIds[msg.sender][opSender]--;
-    }
-
-    function onInstall(bytes calldata data) external {
-        (ConfigId id, address opSender, bytes calldata _data) = data.parseInstallData();
-        _onInstallPolicy(id, opSender, _data);
-    }
-
+    /**
+     * Initializes the policy to be used by given account through multiplexer (msg.sender) such as Smart Sessions.
+     * Overwrites state.
+     * @notice ATTENTION: This method is called during permission installation as part of the enabling policies flow.
+     * A secure policy would minimize external calls from this method (ideally, to 0) to prevent passing control flow to
+     * external contracts.
+     */
     function initializeWithMultiplexer(address account, ConfigId configId, bytes calldata initData) external {
-        _onInstallPolicy(configId, account, initData);
-    }
-
-    function onUninstall(bytes calldata data) external {
-        (ConfigId id, address opSender, bytes calldata _data) = data.parseInstallData();
-        _onUninstallPolicy(id, opSender, _data);
-    }
-
-    function isInitialized(address account) external view returns (bool) {
-        return usedIds[msg.sender][account] > 0;
-    }
-
-    function isInitialized(address mxer, address account) external view returns (bool) {
-        return usedIds[mxer][account] > 0;
-    }
-
-    function isInitialized(address account, ConfigId id) external view returns (bool) {
-        return status[id][msg.sender][account] == Status.Live;
-    }
-
-    function isInitialized(address mxer, address account, ConfigId id) external view returns (bool) {
-        return status[id][mxer][account] == Status.Live;
-    }
-
-    function isModuleType(uint256 id) external pure returns (bool) {
-        return id == ERC7579_MODULE_TYPE_POLICY;
+        _initPolicy(configId, msg.sender, account, initData);
+        emit IPolicy.PolicySet(configId, msg.sender, account);
     }
 
     function supportsInterface(bytes4 interfaceID) external pure override returns (bool) {
-        return true;
+        return (
+            interfaceID == type(IERC165).interfaceId || interfaceID == type(IPolicy).interfaceId
+                || interfaceID == type(IActionPolicy).interfaceId
+        );
     }
 }
 
@@ -150,7 +127,7 @@ library UniActionLib {
      * and compares it to the reference value based on the condition.
      * Also checks if the limit is reached/exceeded.
      */
-    function check(ParamRule memory rule, bytes calldata data) internal view returns (bool) {
+    function check(ParamRule storage rule, bytes calldata data) internal returns (bool) {
         bytes32 param = bytes32(data[4 + rule.offset:4 + rule.offset + 32]);
 
         // CHECK ParamCondition
@@ -166,6 +143,14 @@ library UniActionLib {
             return false;
         } else if (rule.condition == ParamCondition.NOT_EQUAL && param == rule.ref) {
             return false;
+        } else if (rule.condition == ParamCondition.IN_RANGE) {
+            // in this case rule.ref is abi.encodePacked(uint128(min), uint128(max))
+            if (
+                param < (rule.ref >> 128)
+                    || param > (rule.ref & 0x00000000000000000000000000000000ffffffffffffffffffffffffffffffff)
+            ) {
+                return false;
+            }
         }
 
         // CHECK PARAM LIMIT

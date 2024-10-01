@@ -1,6 +1,7 @@
 import "../Base.t.sol";
 import "contracts/core/SmartSessionBase.sol";
 import "solady/utils/ECDSA.sol";
+import "contracts/lib/HashLib.sol";
 
 contract Multichain712DigestTest is BaseTest {
     using ModuleKitHelpers for *;
@@ -15,7 +16,7 @@ contract Multichain712DigestTest is BaseTest {
 
     function test_multichain_digest_creation() public {
         Session memory session = Session({
-            sessionValidator: ISessionValidator(address(yesSigner)),
+            sessionValidator: ISessionValidator(address(yesSessionValidator)),
             salt: keccak256("salt"),
             sessionValidatorInitData: "mockInitData",
             userOpPolicies: _getEmptyPolicyDatas(address(yesPolicy)),

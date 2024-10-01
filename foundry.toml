@@ -4,14 +4,14 @@
   auto_detect_solc = false
   block_timestamp = 1_680_220_800 # March 31, 2023 at 00:00 GMT
   bytecode_hash = "none"
-  evm_version = "paris"           # See https://www.evmdiff.com/features?name=PUSH0&kind=opcode
+  evm_version = "cancun"           # See https://www.evmdiff.com/features?name=PUSH0&kind=opcode
   fuzz = { runs = 1_000 }
   gas_reports = ["*"]
   optimizer = true
-  optimizer_runs = 1_000_000
+  optimizer_runs = 10_000
   out = "out"
   script = "script"
-  solc = "0.8.26"
+  solc = "0.8.27"
   src = "contracts"
   test = "test"
   cache_path  = "cache_forge"

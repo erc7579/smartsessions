@@ -2,59 +2,33 @@
 
 pragma solidity ^0.8.23;
 
-import "contracts/interfaces/IPolicy.sol";
-import "contracts/lib/SubModuleLib.sol";
-import "../../utils/EnumerableSet4337.sol";
+import "../../DataTypes.sol";
+import { IActionPolicy, I1271Policy, IPolicy, VALIDATION_SUCCESS, VALIDATION_FAILED } from "../../interfaces/IPolicy.sol";
+import { IERC165 } from "forge-std/interfaces/IERC165.sol";
+import { SubModuleLib } from "../../lib/SubModuleLib.sol";
+import { EnumerableSet } from "../../utils/EnumerableSet4337.sol";
 
-contract YesPolicy is IUserOpPolicy, IActionPolicy, I1271Policy {
+contract SudoPolicy is IActionPolicy, I1271Policy {
     using EnumerableSet for EnumerableSet.Bytes32Set;
 
     event SudoPolicyInstalledMultiplexer(address indexed account, address indexed multiplexer, ConfigId indexed id);
     event SudoPolicyUninstalledAllAccount(address indexed account);
     event SudoPolicySet(address indexed account, address indexed multiplexer, ConfigId indexed id);
+    event SudoPolicyRemoved(address indexed account, address indexed multiplexer, ConfigId indexed id);
 
     mapping(address account => bool isInitialized) internal $initialized;
     mapping(address multiplexer => EnumerableSet.Bytes32Set configIds) internal $enabledConfigs;
 
-    function onInstall(bytes calldata data) external {
-        bool _isInitialized = isInitialized(msg.sender);
-        if (_isInitialized) revert AlreadyInitialized(msg.sender);
-        $initialized[msg.sender] = true;
-        if (data.length == 0) return;
-        ConfigId[] memory configs = abi.decode(data, (ConfigId[]));
-        uint256 length = configs.length;
-        for (uint256 i; i < length; i++) {
-            $enabledConfigs[msg.sender].add(msg.sender, ConfigId.unwrap(configs[i]));
-            emit SudoPolicySet(msg.sender, msg.sender, configs[i]);
-        }
-    }
-
+    /**
+     * Initializes the policy to be used by given account through multiplexer (msg.sender) such as Smart Sessions.
+     * Overwrites state.
+     * @notice ATTENTION: This method is called during permission installation as part of the enabling policies flow.
+     * A secure policy would minimize external calls from this method (ideally, to 0) to prevent passing control flow to
+     * external contracts.
+     */
     function initializeWithMultiplexer(address account, ConfigId configId, bytes calldata /*initData*/ ) external {
         $enabledConfigs[msg.sender].add(account, ConfigId.unwrap(configId));
-        emit SudoPolicySet(msg.sender, account, configId);
-    }
-
-    function onUninstall(bytes calldata /*data*/ ) external {
-        EnumerableSet.Bytes32Set storage configIds = $enabledConfigs[msg.sender];
-        configIds.removeAll(msg.sender);
-        $initialized[msg.sender] = false;
-        emit SudoPolicyUninstalledAllAccount(msg.sender);
-    }
-
-    function isModuleType(uint256 id) external pure returns (bool) {
-        return id == ERC7579_MODULE_TYPE_POLICY;
-    }
-
-    function checkUserOpPolicy(
-        ConfigId, /*id*/
-        PackedUserOperation calldata /*userOp*/
-    )
-        external
-        pure
-        override
-        returns (uint256)
-    {
-        return 0;
+        emit IPolicy.PolicySet(configId, msg.sender, account);
     }
 
     function checkAction(
@@ -69,23 +43,7 @@ contract YesPolicy is IUserOpPolicy, IActionPolicy, I1271Policy {
         override
         returns (uint256)
     {
-        return 0;
-    }
-
-    function isInitialized(address account, ConfigId id) external view override returns (bool) {
-        return $enabledConfigs[account].contains(account, ConfigId.unwrap(id));
-    }
-
-    function isInitialized(address account, address multiplexer, ConfigId id) external view override returns (bool) {
-        return $enabledConfigs[multiplexer].contains(account, ConfigId.unwrap(id));
-    }
-
-    function isInitialized(address account) public view override returns (bool) {
-        return $initialized[account];
-    }
-
-    function supportsInterface(bytes4 /*interfaceID*/ ) external pure override returns (bool) {
-        return true;
+        return VALIDATION_SUCCESS;
     }
 
     function check1271SignedAction(
@@ -96,9 +54,14 @@ contract YesPolicy is IUserOpPolicy, IActionPolicy, I1271Policy {
         bytes calldata signature
     )
         external
-        view
+        pure
         returns (bool)
     {
         return true;
+    }
+
+    function supportsInterface(bytes4 interfaceID) external pure override returns (bool) {
+        return interfaceID == type(IActionPolicy).interfaceId || interfaceID == type(I1271Policy).interfaceId
+            || interfaceID == type(IERC165).interfaceId || interfaceID == type(IPolicy).interfaceId;
     }
 }

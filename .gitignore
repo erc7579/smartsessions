@@ -11,11 +11,15 @@ cache_forge/solidity-files-cache.json
 /broadcast/**/dry-run/
 broadcast/
 
-# Docs
-docs/
-
 # Dotenv file
 .env
 
 #Deps
 node_modules/
+
+# Added by cargo
+/target
+
+#ds store
+.DS_Store
+

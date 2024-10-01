@@ -27,7 +27,7 @@ contract MultipleSessionsTest is BaseTest {
         // get userOp from ModuleKit
 
         Session memory session = Session({
-            sessionValidator: ISessionValidator(address(yesSigner)),
+            sessionValidator: ISessionValidator(address(yesSessionValidator)),
             salt: salt,
             sessionValidatorInitData: "mockInitData",
             userOpPolicies: _getEmptyPolicyDatas(address(yesPolicy)),
@@ -46,7 +46,7 @@ contract MultipleSessionsTest is BaseTest {
         assertEq(
             PermissionId.unwrap(permissionId), PermissionId.unwrap(permissionIds[0]), "permissionIds should be the same"
         );
-        assertEq(smartSession.isSessionEnabled(permissionId, instance.account), true, "session failed to enable");
+        assertEq(smartSession.isPermissionEnabled(permissionId, instance.account), true, "session failed to enable");
     }
 
     function _exec_session(PermissionId permissionId, address to, uint256 value, bytes memory callData) public {
@@ -76,22 +76,26 @@ contract MultipleSessionsTest is BaseTest {
         assertEq(target.value(), 4);
 
         // check that the sessions are still enabled
-        assertEq(smartSession.isSessionEnabled(permissionId1, instance.account), true, "session 1 should be enabled");
-        assertEq(smartSession.isSessionEnabled(permissionId2, instance.account), true, "session 2 should be enabled");
-        assertEq(smartSession.isSessionEnabled(permissionId3, instance.account), true, "session 3 should be enabled");
-        assertEq(smartSession.isSessionEnabled(permissionId4, instance.account), true, "session 4 should be enabled");
+        assertEq(smartSession.isPermissionEnabled(permissionId1, instance.account), true, "session 1 should be enabled");
+        assertEq(smartSession.isPermissionEnabled(permissionId2, instance.account), true, "session 2 should be enabled");
+        assertEq(smartSession.isPermissionEnabled(permissionId3, instance.account), true, "session 3 should be enabled");
+        assertEq(smartSession.isPermissionEnabled(permissionId4, instance.account), true, "session 4 should be enabled");
 
         // disable session 1
         vm.prank(instance.account);
         smartSession.removeSession(permissionId1);
-        assertEq(smartSession.isSessionEnabled(permissionId1, instance.account), false, "session 1 should be disabled");
-        assertEq(smartSession.isSessionEnabled(permissionId2, instance.account), true, "session 2 should be enabled");
-        assertEq(smartSession.isSessionEnabled(permissionId3, instance.account), true, "session 3 should be enabled");
-        assertEq(smartSession.isSessionEnabled(permissionId4, instance.account), true, "session 4 should be enabled");
+        assertEq(
+            smartSession.isPermissionEnabled(permissionId1, instance.account), false, "session 1 should be disabled"
+        );
+        assertEq(smartSession.isPermissionEnabled(permissionId2, instance.account), true, "session 2 should be enabled");
+        assertEq(smartSession.isPermissionEnabled(permissionId3, instance.account), true, "session 3 should be enabled");
+        assertEq(smartSession.isPermissionEnabled(permissionId4, instance.account), true, "session 4 should be enabled");
 
         vm.prank(instance.account);
         smartSession.removeSession(permissionId3);
-        assertEq(smartSession.isSessionEnabled(permissionId3, instance.account), false, "session 3 should be disabled");
+        assertEq(
+            smartSession.isPermissionEnabled(permissionId3, instance.account), false, "session 3 should be disabled"
+        );
     }
 
     function test_batched_exec() public {
@@ -169,6 +173,36 @@ contract MultipleSessionsTest is BaseTest {
 
         userOpData.userOp.signature = EncodeLib.encodeUse({ permissionId: permissionId, sig: hex"4141414141" });
         instance.expect4337Revert();
+        userOpData.execUserOps();
+    }
+
+    function test_send_value() public {
+        address receiver = makeAddr("receiver");
+        PermissionId permissionId = _makeSession(receiver, IdLib.VALUE_SELECTOR, "salt1", 1);
+
+        Execution[] memory executions = new Execution[](1);
+        executions[0] = Execution({ target: receiver, value: 100, callData: "" });
+
+        // get userOp from ModuleKit
+        UserOpData memory userOpData =
+            instance.getExecOps({ executions: executions, txValidator: address(smartSession) });
+
+        userOpData.userOp.signature = EncodeLib.encodeUse({ permissionId: permissionId, sig: hex"4141414141" });
+        userOpData.execUserOps();
+    }
+
+    function test_payableFunction() public {
+        PermissionId permissionId = _makeSession(address(target), MockTarget.setValue.selector, "salt1", 1);
+
+        Execution[] memory executions = new Execution[](1);
+        executions[0] =
+            Execution({ target: address(target), value: 100, callData: abi.encodeCall(MockTarget.setValue, (1234)) });
+
+        // get userOp from ModuleKit
+        UserOpData memory userOpData =
+            instance.getExecOps({ executions: executions, txValidator: address(smartSession) });
+
+        userOpData.userOp.signature = EncodeLib.encodeUse({ permissionId: permissionId, sig: hex"4141414141" });
         userOpData.execUserOps();
     }
 }

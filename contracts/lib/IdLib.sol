@@ -4,8 +4,15 @@ pragma solidity ^0.8.25;
 import "../DataTypes.sol";
 
 library IdLib {
+    bytes4 internal constant VALUE_SELECTOR = 0xFFFFFFFF;
+
     function toUserOpPolicyId(PermissionId permissionId) internal pure returns (UserOpPolicyId userOpPolicyId) {
         userOpPolicyId = UserOpPolicyId.wrap(PermissionId.unwrap(permissionId));
+    }
+
+    function toActionId(address target, bytes calldata callData) internal pure returns (ActionId actionId) {
+        if (callData.length < 4) return toActionId(target, VALUE_SELECTOR);
+        else return toActionId(target, callData[:4]);
     }
 
     function toActionId(address target, bytes4 functionSelector) internal pure returns (ActionId actionId) {
@@ -25,10 +32,6 @@ library IdLib {
 
     function toErc1271PolicyId(PermissionId permissionId) internal pure returns (Erc1271PolicyId erc1271PolicyId) {
         erc1271PolicyId = Erc1271PolicyId.wrap(keccak256(abi.encodePacked("ERC1271: ", permissionId)));
-    }
-
-    function toConfigId(PermissionId permissionId, address account) internal pure returns (ConfigId _id) {
-        _id = ConfigId.wrap(keccak256(abi.encodePacked(account, permissionId)));
     }
 
     function toConfigId(UserOpPolicyId userOpPolicyId, address account) internal pure returns (ConfigId _id) {
@@ -55,20 +58,12 @@ library IdLib {
         _id = ConfigId.wrap(keccak256(abi.encodePacked(account, erc1271PolicyId)));
     }
 
-    function toConfigId(PermissionId permissionId) internal view returns (ConfigId _id) {
-        _id = toConfigId(permissionId, msg.sender);
-    }
-
     function toConfigId(UserOpPolicyId userOpPolicyId) internal view returns (ConfigId _id) {
         _id = toConfigId(userOpPolicyId, msg.sender);
     }
 
-    function toConfigId(ActionPolicyId actionPolicyId) internal view returns (ConfigId _id) {
-        _id = toConfigId(actionPolicyId, msg.sender);
-    }
-
     function toConfigId(PermissionId permissionId, ActionId actionId) internal view returns (ConfigId _id) {
-        _id = toConfigId(toActionPolicyId(permissionId, actionId));
+        _id = toConfigId(toActionPolicyId(permissionId, actionId), msg.sender);
     }
 
     function toConfigId(Erc1271PolicyId erc1271PolicyId) internal view returns (ConfigId _id) {

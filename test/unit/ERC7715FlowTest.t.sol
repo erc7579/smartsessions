@@ -17,12 +17,10 @@ contract ERC7715FlowTest is BaseTest {
         userOpBuilder = new UserOperationBuilder(ep);
     }
 
-    function test_7715_flow(
-        bytes32 salt
-    )
+    function test_7715_flow(bytes32 salt)
         public
         returns (PermissionId permissionId, EnableSession memory enableSessions)
-    {
+    {   
         address _target = address(target);
         uint256 value = 0;
         // bytes memory callData = abi.encodeCall(MockTarget.setValue, (1337));
@@ -32,7 +30,7 @@ contract ERC7715FlowTest is BaseTest {
             instance.getExecOps({ target: address(0), value: 0, callData: "", txValidator: address(0) });
 
         Session memory session = Session({
-            sessionValidator: ISessionValidator(address(yesSigner)),
+            sessionValidator: ISessionValidator(address(yesSessionValidator)),
             salt: salt,
             sessionValidatorInitData: "mockInitData",
             userOpPolicies: _getEmptyPolicyDatas(address(yesPolicy)),
@@ -49,7 +47,7 @@ contract ERC7715FlowTest is BaseTest {
             abi.encodePacked(mockK1, sign(ECDSA.toEthSignedMessageHash(hash), owner.key));
 
         uint192 nonceKey = uint192(uint160(address(smartSession))) << 32;
-        bytes memory context = EncodeLib.encodeContext(
+        bytes memory context = IntegrationEncodeLib.encodeContext(
             nonceKey, //192 bits, 24 bytes
             ModeLib.encodeSimpleSingle(), //execution mode, 32 bytes
             permissionId,

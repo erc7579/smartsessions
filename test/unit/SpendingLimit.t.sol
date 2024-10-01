@@ -3,7 +3,7 @@ import "contracts/core/SmartSessionBase.sol";
 import "solady/utils/ECDSA.sol";
 import "contracts/lib/IdLib.sol";
 
-import "contracts/external/policies/SpendingLimitPolicy.sol";
+import "contracts/external/policies/ERC20SpendingLimitPolicy.sol";
 import "solmate/test/utils/mocks/MockERC20.sol";
 import "forge-std/interfaces/IERC20.sol";
 
@@ -13,7 +13,7 @@ contract SpendingLimitTest is BaseTest {
     using ModuleKitUserOp for *;
     using EncodeLib for PermissionId;
 
-    SpendingLimitPolicy spendingLimit;
+    ERC20SpendingLimitPolicy spendingLimit;
 
     MockERC20 token;
     PermissionId permissionId;
@@ -21,7 +21,7 @@ contract SpendingLimitTest is BaseTest {
     function setUp() public virtual override {
         super.setUp();
 
-        spendingLimit = new SpendingLimitPolicy();
+        spendingLimit = new ERC20SpendingLimitPolicy();
         token = new MockERC20("MockToken", "MTK", 18);
 
         token.mint(instance.account, 100 ether);
@@ -48,7 +48,7 @@ contract SpendingLimitTest is BaseTest {
         });
 
         Session memory session = Session({
-            sessionValidator: ISessionValidator(address(yesSigner)),
+            sessionValidator: ISessionValidator(address(yesSessionValidator)),
             salt: keccak256("salt"),
             sessionValidatorInitData: "mockInitData",
             userOpPolicies: _getEmptyPolicyDatas(address(yesPolicy)),

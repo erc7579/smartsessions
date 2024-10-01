@@ -50,6 +50,18 @@ contract EnumerableSetTest is Test {
         assertTrue(values[0] == value2 || values[1] == value2);
     }
 
+    function testBytes32RemoveAllBug() public {
+        bytes32Set.add(ACCOUNT, bytes32(uint256(1)));
+        bytes32Set.add(ACCOUNT, bytes32(uint256(2)));
+
+        assertEq(bytes32Set.length(ACCOUNT), 2, "length");
+
+        bytes32Set.removeAll(ACCOUNT);
+
+        // This is a bug, the length would be expected to be 0
+        assertEq(bytes32Set.length(ACCOUNT), 0, "length should be 0");
+    }
+
     function testAddressSet() public {
         address value1 = address(0x5678);
         address value2 = address(0x9ABC);

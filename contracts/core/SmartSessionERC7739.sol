@@ -6,7 +6,7 @@ import { ISmartSession } from "../ISmartSession.sol";
 
 /// @notice ERC1271 mixin with nested EIP-712 approach.
 /// @author Solady (https://github.com/vectorized/solady/blob/main/src/accounts/ERC1271.sol)
-abstract contract SmartSessionERC7739 is ISmartSession, EIP712 {
+abstract contract SmartSessionERC7739 is ISmartSession {
     /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
     /*                         CONSTANTS                          */
     /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
@@ -27,16 +27,6 @@ abstract contract SmartSessionERC7739 is ISmartSession, EIP712 {
     /// This method intentionally returns bytes32 to allow freedom for future extensions.
     function supportsNestedTypedDataSign() public view virtual returns (bytes32 result) {
         result = bytes4(0xd620c85a);
-    }
-
-    /// @dev Returns whether the `msg.sender` is considered safe, such
-    /// that we don't need to use the nested EIP-712 workflow.
-    /// Override to return true for more callers.
-    /// See: https://mirror.xyz/curiousapple.eth/pFqAdW2LiJ-6S4sg_u1z08k4vK6BCJ33LcyXpnNb8yU
-    function _erc1271CallerIsSafe() internal view virtual returns (bool) {
-        // The canonical `MulticallerWithSigner` at 0x000000000000D9ECebf3C23529de49815Dac1c4c
-        // is known to include the account in the hash to be signed.
-        return msg.sender == 0x000000000000D9ECebf3C23529de49815Dac1c4c;
     }
 
     /// @dev Returns whether the `hash` and `signature` are valid.
@@ -71,8 +61,10 @@ abstract contract SmartSessionERC7739 is ISmartSession, EIP712 {
     }
 
     /// @dev ERC1271 signature validation (Nested EIP-712 workflow).
-    ///
-    /// This uses ECDSA recovery by default (see: `_erc1271IsValidSignatureNowCalldata`).
+    /// @dev Currently known as ERC-7739
+    /// https://ethereum-magicians.org/t/erc-7739-readable-typed-signatures-for-smart-accounts/20513
+    /// This forwards signature verification to an appropriate ISessionValidator
+    /// see: `_erc1271IsValidSignatureNowCalldata`.
     /// It also uses a nested EIP-712 approach to prevent signature replays when a single EOA
     /// owns multiple smart contract accounts,
     /// while still enabling wallet UIs (e.g. Metamask) to show the EIP-712 values.
@@ -114,19 +106,7 @@ abstract contract SmartSessionERC7739 is ISmartSession, EIP712 {
     /// The `APP_DOMAIN_SEPARATOR` and `contents` will be used to verify if `hash` is indeed correct.
     /// __________________________________________________________________________________________
     ///
-    /// For the `PersonalSign` workflow, the final hash will be:
-    /// ```
-    ///     keccak256(\x19\x01 ‖ ACCOUNT_DOMAIN_SEPARATOR ‖
-    ///         hashStruct(PersonalSign({
-    ///             prefixed: keccak256(bytes(\x19Ethereum Signed Message:\n ‖
-    ///                 base10(bytes(someString).length) ‖ someString))
-    ///         }))
-    ///     )
-    /// ```
-    /// where `‖` denotes the concatenation operator for bytes.
-    ///
-    /// The `PersonalSign` type hash will be `keccak256("PersonalSign(bytes prefixed)")`.
-    /// The signature will be `r ‖ s ‖ v`.
+    /// `PersonalSign` is not supported.
     /// __________________________________________________________________________________________
     ///
     /// For demo and typescript code, see:
@@ -168,9 +148,6 @@ abstract contract SmartSessionERC7739 is ISmartSession, EIP712 {
                 // `appendedData.length > signature.length || contentsType.length == 0`.
                 if or(xor(keccak256(0x1e, 0x42), hash), or(lt(signature.length, l), iszero(c))) {
                     t := 0 // Set `t` to 0, denoting that we need to `hash = _hashTypedData(hash)`.
-                    mstore(t, _PERSONAL_SIGN_TYPEHASH)
-                    mstore(0x20, hash) // Store the `prefixed`.
-                    hash := keccak256(t, 0x40) // Compute the `PersonalSign` struct hash.
                     break
                 }
                 // Else, use the `TypedDataSign` workflow.
@@ -201,12 +178,11 @@ abstract contract SmartSessionERC7739 is ISmartSession, EIP712 {
                 // Compute the final hash, corrupted if `contentsName` is invalid.
                 hash := keccak256(0x1e, add(0x42, and(1, d)))
                 signature.length := sub(signature.length, l) // Truncate the signature.
-
                 break
             }
             mstore(0x40, m) // Restore the free memory pointer.
         }
-        if (t == bytes32(0)) hash = _hashTypedData(hash); // `PersonalSign` workflow.
+        if (t == bytes32(0)) return false; // `PersonalSign` workflow is not supported.
         result = _erc1271IsValidSignatureNowCalldata(sender, hash, signature, contents);
     }
 
@@ -220,7 +196,7 @@ abstract contract SmartSessionERC7739 is ISmartSession, EIP712 {
             address verifyingContract,
             bytes32 salt,
             uint256[] memory extensions
-        ) = eip712Domain();
+        ) = EIP712(msg.sender).eip712Domain();
         /// @solidity memory-safe-assembly
         assembly {
             m := mload(0x40) // Grab the free memory pointer.
@@ -234,9 +210,5 @@ abstract contract SmartSessionERC7739 is ISmartSession, EIP712 {
             mstore(add(m, 0xe0), salt)
             mstore(add(m, 0x100), keccak256(add(extensions, 0x20), shl(5, mload(extensions))))
         }
-    }
-
-    function _domainNameAndVersion() internal pure override returns (string memory, string memory) {
-        return ("SmartSession", "1");
     }
 }

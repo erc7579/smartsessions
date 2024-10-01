@@ -13,8 +13,9 @@ SmartSession is a collaborative effort between Rhinestone and Biconomy to create
   - User operation validation
   - Action-specific policies
   - ERC-1271 signature validation
-- Unique "enable flow" for creating session keys within the first user operation
-- Nested EIP-712 approach for EIP-1271 signature validation
+- "Enable flow" for creating session keys within the first user operation
+- Optimized for ERC-7715 flow for requesting permissions
+- Nested EIP-712 approach for EIP-1271 signature validation (aka ERC-7739)
 - Native Support for ERC-7579 batched executions
 - Integration with external policy contracts for flexible permission management
 

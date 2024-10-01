@@ -44,39 +44,35 @@ contract UsageLimitPolicy is IUserOpPolicy, IActionPolicy {
         return VALIDATION_SUCCESS;
     }
 
-    function _onInstallPolicy(ConfigId id, address opSender, bytes calldata _data) internal {
-        require(status[id][msg.sender][opSender] == Status.NA);
-        usedIds[msg.sender][opSender]++;
-        status[id][msg.sender][opSender] = Status.Live;
-        usageLimitConfigs[id][msg.sender][opSender].limit = uint256(bytes32(_data[0:32]));
+    function _onInstallPolicy(ConfigId id, address mxer, address opSender, bytes calldata _data) internal {
+        usedIds[mxer][opSender]++;
+        status[id][mxer][opSender] = Status.Live;
+        usageLimitConfigs[id][mxer][opSender].limit = uint256(bytes32(_data[0:32]));
     }
 
-    function _onUninstallPolicy(ConfigId id, address opSender, bytes calldata) internal {
-        require(status[id][msg.sender][opSender] == Status.Live);
-        status[id][msg.sender][opSender] = Status.Deprecated;
-        usedIds[msg.sender][opSender]--;
+    function _onUninstallPolicy(ConfigId id, address mxer, address opSender, bytes calldata) internal {
+        status[id][mxer][opSender] = Status.Deprecated;
+        usedIds[mxer][opSender]--;
     }
 
     function onInstall(bytes calldata data) external {
-        (ConfigId id, address opSender, bytes calldata _data) = data.parseInstallData();
-        _onInstallPolicy(id, opSender, _data);
+        (ConfigId id, bytes calldata _data) = data.parseInstallData();
+        require(status[id][msg.sender][msg.sender] == Status.NA);
+        _onInstallPolicy(id, msg.sender, msg.sender, _data);
     }
 
     function initializeWithMultiplexer(address account, ConfigId configId, bytes calldata initData) external {
-        _onInstallPolicy(configId, account, initData);
+        _onInstallPolicy(configId, msg.sender, account, initData);
     }
 
     function onUninstall(bytes calldata data) external {
-        (ConfigId id, address opSender, bytes calldata _data) = data.parseInstallData();
-        _onUninstallPolicy(id, opSender, _data);
+        (ConfigId id, bytes calldata _data) = data.parseInstallData();
+        require(status[id][msg.sender][msg.sender] == Status.Live);
+        _onUninstallPolicy(id, msg.sender, msg.sender, _data);
     }
 
     function isInitialized(address account) external view returns (bool) {
         return usedIds[msg.sender][account] > 0;
-    }
-
-    function isInitialized(address account, address multiplexer, ConfigId id) external view override returns (bool) {
-        return usedIds[multiplexer][account] > 0;
     }
 
     function isInitialized(address account, ConfigId id) external view returns (bool) {
@@ -84,7 +80,7 @@ contract UsageLimitPolicy is IUserOpPolicy, IActionPolicy {
     }
 
     function isModuleType(uint256 id) external pure returns (bool) {
-        return id == 7;
+        return id == 7 || id == 8;
     }
 
     function supportsInterface(bytes4 interfaceID) external pure override returns (bool) {

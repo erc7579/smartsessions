@@ -6,13 +6,15 @@
     "name": "Biconomy & Rhinestone"
   },
   "dependencies": {
+    "@rhinestone/flatbytes": "github:rhinestonewtf/flatbytes",
     "@rhinestone/modulekit": "^0.4.10",
     "freshcryptolib": "github:rdubois-crypto/FreshCryptoLib",
     "solmate": "github:transmissions11/solmate",
-    "@rhinestone/flatbytes": "github:rhinestonewtf/flatbytes"
+    "stringutils": "github:Arachnid/solidity-stringutils"
   },
   "devDependencies": {
     "@changesets/cli": "^2.27.2",
+    "husky": "^9.1.6",
     "solhint": "^5.0.1"
   },
   "scripts": {
@@ -31,7 +33,8 @@
     "test:accounts": "forge test && ACCOUNT_TYPE=SAFE forge test && ACCOUNT_TYPE=KERNEL forge test",
     "changeset": "changeset",
     "changeset:release": "pnpm build && changeset publish",
-    "changeset:version": "changeset version && pnpm install --lockfile-only"
+    "changeset:version": "changeset version && pnpm install --lockfile-only",
+    "prepare": "husky"
   },
   "files": [
     "contracts",
@@ -56,5 +59,6 @@
   ],
   "publishConfig": {
     "access": "public"
-  }
+  },
+  "packageManager": "pnpm@9.0.5+sha1.6db99351548f394a1d96aa1de98dec032aef8823"
 }

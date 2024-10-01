@@ -17,11 +17,12 @@ import { ISessionValidator } from "contracts/interfaces/ISessionValidator.sol";
 import { IRegistry } from "contracts/interfaces/IRegistry.sol";
 import "contracts/DataTypes.sol";
 import { EncodeLib } from "contracts/lib/EncodeLib.sol";
-import { YesSigner } from "./mock/YesSigner.sol";
+import { YesSessionValidator } from "./mock/YesSessionValidator.sol";
 import { MockTarget } from "./mock/MockTarget.sol";
 import { YesPolicy } from "./mock/YesPolicy.sol";
+import { SudoPolicy } from "contracts/external/policies/SudoPolicy.sol";
 import { MockRegistry } from "./mock/MockRegistry.sol";
-import { SimpleSigner } from "./mock/SimpleSigner.sol";
+import { SimpleSessionValidator } from "./mock/SimpleSessionValidator.sol";
 import { SimpleGasPolicy } from "./mock/SimpleGasPolicy.sol";
 import { TimeFramePolicy } from "./mock/TimeFramePolicy.sol";
 import { ValueLimitPolicy } from "./mock/ValueLimitPolicy.sol";
@@ -31,7 +32,9 @@ import { MockK1Validator } from "test/mock/MockK1Validator.sol";
 import { UserOperationBuilder } from "test/mock/erc7679/UserOpBuilder.sol";
 import { ModeLib, ModeCode as ExecutionMode } from "erc7579/lib/ModeLib.sol";
 import { HashLib } from "contracts/lib/HashLib.sol";
-import { TestHashLib } from "test/utils/TestHashLib.sol";
+import { TestHashLib } from "test/utils/lib/TestHashLib.sol";
+import { IntegrationEncodeLib } from "test/utils/lib/IntegrationEncodeLib.sol";
+import { IEntryPoint } from "account-abstraction/interfaces/IEntryPoint.sol";
 
 import "forge-std/console2.sol";
 
@@ -45,8 +48,9 @@ contract BaseTest is RhinestoneModuleKit, Test {
     AccountInstance internal instance;
     SmartSession internal smartSession;
     YesPolicy internal yesPolicy;
-    YesSigner internal yesSigner;
-    SimpleSigner internal simpleSigner;
+    SudoPolicy internal sudoPolicy;
+    YesSessionValidator internal yesSessionValidator;
+    SimpleSessionValidator internal simpleSessionValidator;
     SimpleGasPolicy internal simpleGasPolicy;
     TimeFramePolicy internal timeFramePolicy;
     ValueLimitPolicy internal valueLimitPolicy;
@@ -70,9 +74,10 @@ contract BaseTest is RhinestoneModuleKit, Test {
 
         smartSession = new SmartSession();
         target = new MockTarget();
-        yesSigner = new YesSigner();
+        yesSessionValidator = new YesSessionValidator();
         yesPolicy = new YesPolicy();
-        simpleSigner = new SimpleSigner();
+        sudoPolicy = new SudoPolicy();
+        simpleSessionValidator = new SimpleSessionValidator();
         simpleGasPolicy = new SimpleGasPolicy();
         timeFramePolicy = new TimeFramePolicy();
         valueLimitPolicy = new ValueLimitPolicy();
@@ -160,7 +165,7 @@ contract BaseTest is RhinestoneModuleKit, Test {
             mode: mode
         });
 
-        ChainDigest[] memory chainDigests = EncodeLib.encodeHashesAndChainIds(
+        ChainDigest[] memory chainDigests = IntegrationEncodeLib.encodeHashesAndChainIds(
             Solarray.uint64s(181_818, uint64(block.chainid), 777),
             Solarray.bytes32s(sessionDigest, sessionDigest, sessionDigest)
         );
