@@ -26,6 +26,8 @@ interface ISmartSession {
     error HashMismatch(bytes32 providedHash, bytes32 computedHash);
     error InvalidData();
     error InvalidActionId();
+    error NoExecutionsInBatch();
+    error InvalidTarget();
     error InvalidEnableSignature(address account, bytes32 hash);
     error InvalidISessionValidator(ISessionValidator sessionValidator);
     error InvalidSelfCall();
@@ -40,7 +42,6 @@ interface ISmartSession {
     error NoPoliciesSet(PermissionId permissionId);
     error PartlyEnabledActions();
     error PartlyEnabledPolicies();
-    error PermissionPartlyEnabled();
     error PolicyViolation(PermissionId permissionId, address policy);
     error SignerNotFound(PermissionId permissionId, address account);
     error UnsupportedExecutionType();
@@ -138,14 +139,4 @@ interface ISmartSession {
     function getNonce(PermissionId permissionId, address account) external view returns (uint256);
     function getPermissionId(Session memory session) external pure returns (PermissionId permissionId);
     function isPermissionEnabled(PermissionId permissionId, address account) external view returns (bool);
-    function isPermissionEnabled(
-        PermissionId permissionId,
-        address account,
-        PolicyData[] memory userOpPolicies,
-        PolicyData[] memory erc1271Policies,
-        ActionData[] memory actions
-    )
-        external
-        view
-        returns (bool isEnabled);
 }
