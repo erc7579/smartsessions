@@ -80,7 +80,7 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
             policies: policies
         });
     }
-
+    
     /**
      * @notice Enable ERC1271 policies for a specific permission
      * @param permissionId The unique identifier for the permission
@@ -109,17 +109,21 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
     }
 
     /**
-     * @notice Disable specific ERC1271 policies for a given permission
+     * @notice Disable specific ERC1271 policies and contents for a given permission
      * @param permissionId The unique identifier for the permission
      * @param policies An array of policy addresses to be disabled
+     * @param contents An array of 7739 contents to be disabled
      */
-    function disableERC1271Policies(PermissionId permissionId, address[] calldata policies) public {
+    function disableERC1271Policies(PermissionId permissionId, address[] calldata policies, string[] calldata contents) public {
         // Check if the session is enabled for the caller and the given permission
         if ($enabledSessions.contains(msg.sender, PermissionId.unwrap(permissionId)) == false) {
             revert InvalidSession(permissionId);
         }
 
-        $enabledERC7739Content[permissionId].removeAll(msg.sender);
+        for (uint256 i; i < contents.length; ++i) {
+            bytes32 contentHash = HashLib.hashERC7739Content(contents[i]);
+            $enabledERC7739Content[permissionId].remove(msg.sender, contentHash);
+        }
 
         // Disable the specified ERC1271 policies
         $erc1271Policies.disable({
@@ -154,6 +158,27 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
      * @notice Disable specific action policies for a given permission and action ID
      * @param permissionId The unique identifier for the permission
      * @param actionId The specific action identifier
+     */
+    function disableActionId(PermissionId permissionId, ActionId actionId) public {
+        // Check if the session is enabled for the caller and the given permission
+        if ($enabledSessions.contains(msg.sender, PermissionId.unwrap(permissionId)) == false) {
+            revert InvalidSession(permissionId);
+        }
+
+        // Disable all action policies for the given action ID
+        // No need to emit events here, as unlike with 7739contents and 1271 policies, 
+        // here disabling the actionId means all action policies are also disabled
+        $actionPolicies.actionPolicies[actionId].policyList[permissionId].removeAll(msg.sender);
+
+        // remove action Id from enabledActionIds
+        $actionPolicies.enabledActionIds[permissionId].remove(msg.sender, ActionId.unwrap(actionId));
+        emit ISmartSession.ActionIdDisabled(permissionId, actionId, msg.sender);
+    }
+
+    /**
+     * @notice Disable action id for a given permission and action ID
+     * @param permissionId The unique identifier for the permission
+     * @param actionId The specific action identifier
      * @param policies An array of policy addresses to be disabled
      */
     function disableActionPolicies(PermissionId permissionId, ActionId actionId, address[] calldata policies) public {
@@ -173,6 +198,7 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
         // remove the actionId from the enabledActionIds if no policies are left
         if ($actionPolicies.actionPolicies[actionId].policyList[permissionId].length(msg.sender) == 0) {
             $actionPolicies.enabledActionIds[permissionId].remove(msg.sender, ActionId.unwrap(actionId));
+            emit ISmartSession.ActionIdDisabled(permissionId, actionId, msg.sender);
         }
     }
 

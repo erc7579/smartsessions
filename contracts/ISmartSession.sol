@@ -53,6 +53,7 @@ interface ISmartSession {
     event SessionValidatorEnabled(PermissionId permissionId, address sessionValidator, address smartAccount);
     event SessionValidatorDisabled(PermissionId permissionId, address sessionValidator, address smartAccount);
     event PolicyDisabled(PermissionId permissionId, PolicyType policyType, address policy, address smartAccount);
+    event ActionIdDisabled(PermissionId permissionId, ActionId actionId, address smartAccount);
     event PolicyEnabled(PermissionId permissionId, PolicyType policyType, address policy, address smartAccount);
     event SessionCreated(PermissionId permissionId, address account);
     event SessionRemoved(PermissionId permissionId, address smartAccount);
@@ -116,9 +117,9 @@ interface ISmartSession {
     function enableSessions(Session[] memory sessions) external returns (PermissionId[] memory permissionIds);
     function enableUserOpPolicies(PermissionId permissionId, PolicyData[] memory userOpPolicies) external;
     function disableActionPolicies(PermissionId permissionId, ActionId actionId, address[] memory policies) external;
-    function disableERC1271Policies(PermissionId permissionId, address[] memory policies) external;
+    function disableActionId(PermissionId permissionId, ActionId actionId) external;
+    function disableERC1271Policies(PermissionId permissionId, address[] memory policies, string[] calldata contents) external;
     function disableUserOpPolicies(PermissionId permissionId, address[] memory policies) external;
-
     function removeSession(PermissionId permissionId) external;
     function revokeEnableSignature(PermissionId permissionId) external;
 
