@@ -52,6 +52,7 @@ interface ISmartSession {
     event SessionValidatorEnabled(PermissionId permissionId, address sessionValidator, address smartAccount);
     event SessionValidatorDisabled(PermissionId permissionId, address sessionValidator, address smartAccount);
     event PolicyDisabled(PermissionId permissionId, PolicyType policyType, address policy, address smartAccount);
+    event ActionIdDisabled(PermissionId permissionId, ActionId actionId, address smartAccount);
     event PolicyEnabled(PermissionId permissionId, PolicyType policyType, address policy, address smartAccount);
     event SessionCreated(PermissionId permissionId, address account);
     event SessionRemoved(PermissionId permissionId, address smartAccount);
