@@ -291,7 +291,7 @@ library PolicyLib {
      * @param signature The signature to be validated.
      * @param permissionId The identifier of the permission being checked.
      * @param configId The configuration identifier.
-     * @param minPoliciesToEnforce The minimum number of policies that must be checked.
+     * @param minPoliciesToEnforce at least this number of policies should be enforced.
      *
      * @return valid Returns true if the signature is valid according to all policies, false otherwise.
      */
@@ -335,7 +335,6 @@ library PolicyLib {
      *
      * @param $policies The storage reference to the Policy struct.
      * @param permissionId The identifier of the permission being checked.
-     * @param configId The configuration identifier.
      * @param smartAccount The address of the smart account.
      * @param policyDatas An array of PolicyData structs representing the policies to check.
      *
@@ -345,28 +344,24 @@ library PolicyLib {
     function areEnabled(
         Policy storage $policies,
         PermissionId permissionId,
-        ConfigId configId,
         address smartAccount,
-        PolicyData[] memory policyDatas
+        PolicyData[] calldata policyDatas
     )
         internal
         view
         returns (bool)
     {
         uint256 length = policyDatas.length;
-
         if (length == 0) return true; // 0 policies are always enabled lol
-        uint256 enabledPolicies;
         for (uint256 i; i < length; i++) {
             PolicyData memory policyData = policyDatas[i];
             IPolicy policy = IPolicy(policyData.policy);
-
             // check if policy is enabled
-            if ($policies.policyList[permissionId].contains(smartAccount, address(policy))) enabledPolicies++;
+            if (!$policies.policyList[permissionId].contains(smartAccount, address(policy))) {
+                return false;
+            }
         }
-        if (enabledPolicies == 0) return false;
-        else if (enabledPolicies == length) return true;
-        else revert ISmartSession.PartlyEnabledPolicies();
+        return true;
     }
 
     /**
@@ -386,7 +381,7 @@ library PolicyLib {
         EnumerableActionPolicy storage $self,
         PermissionId permissionId,
         address smartAccount,
-        ActionData[] memory actionPolicyDatas
+        ActionData[] calldata actionPolicyDatas
     )
         internal
         view
@@ -394,20 +389,16 @@ library PolicyLib {
     {
         uint256 length = actionPolicyDatas.length;
         if (length == 0) return true; // 0 actions are always enabled
-        uint256 actionsProperlyEnabled;
         for (uint256 i; i < length; i++) {
-            ActionData memory actionPolicyData = actionPolicyDatas[i];
+            ActionData calldata actionPolicyData = actionPolicyDatas[i];
             ActionId actionId = actionPolicyData.actionTarget.toActionId(actionPolicyData.actionTargetSelector);
-            ConfigId configId = permissionId.toConfigId(actionId, smartAccount);
             // Check if the action policy is enabled
             if (
-                $self.actionPolicies[actionId].areEnabled(
-                    permissionId, configId, smartAccount, actionPolicyData.actionPolicies
+                !$self.actionPolicies[actionId].areEnabled(
+                    permissionId, smartAccount, actionPolicyData.actionPolicies
                 )
-            ) actionsProperlyEnabled++;
+            ) return false;
         }
-        if (actionsProperlyEnabled == 0) return false;
-        else if (actionsProperlyEnabled == length) return true;
-        else revert ISmartSession.PartlyEnabledActions();
+        return true;
     }
 }
