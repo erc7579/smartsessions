@@ -254,7 +254,9 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
         vd = $userOpPolicies.check({
             userOp: userOp,
             permissionId: permissionId,
-            callOnIPolicy: abi.encodeCall(IUserOpPolicy.checkUserOpPolicy, (permissionId.toConfigId(), userOp)),
+            callOnIPolicy: abi.encodeCall(
+                IUserOpPolicy.checkUserOpPolicy, (permissionId.toUserOpPolicyId().toConfigId(), userOp)
+            ),
             minPolicies: 0 // for userOp policies, a min of 0 is ok. since these are not security critical
          });
 

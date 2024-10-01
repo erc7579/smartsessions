@@ -34,10 +34,6 @@ library IdLib {
         erc1271PolicyId = Erc1271PolicyId.wrap(keccak256(abi.encodePacked("ERC1271: ", permissionId)));
     }
 
-    function toConfigId(PermissionId permissionId, address account) internal pure returns (ConfigId _id) {
-        _id = ConfigId.wrap(keccak256(abi.encodePacked(account, permissionId)));
-    }
-
     function toConfigId(UserOpPolicyId userOpPolicyId, address account) internal pure returns (ConfigId _id) {
         _id = ConfigId.wrap(keccak256(abi.encodePacked(account, userOpPolicyId)));
     }
@@ -60,10 +56,6 @@ library IdLib {
 
     function toConfigId(Erc1271PolicyId erc1271PolicyId, address account) internal pure returns (ConfigId _id) {
         _id = ConfigId.wrap(keccak256(abi.encodePacked(account, erc1271PolicyId)));
-    }
-
-    function toConfigId(PermissionId permissionId) internal view returns (ConfigId _id) {
-        _id = toConfigId(permissionId, msg.sender);
     }
 
     function toConfigId(UserOpPolicyId userOpPolicyId) internal view returns (ConfigId _id) {
