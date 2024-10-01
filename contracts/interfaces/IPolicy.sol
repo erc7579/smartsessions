@@ -20,8 +20,10 @@ interface IPolicy is IERC165 {
      * This function may be called by the multiplexer (SmartSessions) without deinitializing first.
      * Policies MUST overwrite the current state when this happens
      * @notice ATTENTION: This method is called during permission installation as part of the enabling policies flow.
-     * A secure policy would minimize external calls from this method (ideally, to 0) to prevent passing control flow to external contracts.
+     * A secure policy would minimize external calls from this method (ideally, to 0) to prevent passing control flow to
+     * external contracts.
      */
+
     function initializeWithMultiplexer(address account, ConfigId configId, bytes calldata initData) external;
 }
 
