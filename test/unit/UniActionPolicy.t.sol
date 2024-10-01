@@ -46,7 +46,6 @@ contract UniversalActionPolicyTest is BaseTest {
         (uint256 postBal, bytes32 postBal32) = mockCallee.bals(instance.account);
         assertEq(postBal, valToAdd);
         assertEq(postBal32, valToAdd32);
-        // assertTrue(uniPolicy.isInitialized(address(smartSession), instance.account));
     }
 
     function test_use_universal_action_policy_fails_because_of_limit(bytes32 salt)
