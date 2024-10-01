@@ -368,6 +368,21 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
         }
     }
 
+    /**
+     * @notice Validates an ERC-1271 signature with additional ERC-7739 content checks
+     * @dev This function performs several checks to validate the signature:
+     *      1. Verifies that the permissionId is enabled for the sender
+     *      2. Ensures the ERC-7739 content is enabled for the given permissionId
+     *      3. Checks the ERC-1271 policy
+     *      4. Validates the signature using ISessionValidator
+     * @dev This function returns false if a permissionId supplied within the signature is not enabled
+     * @dev This function returns false if the ERC-7739 content is not enabled for the given permissionId
+     * @param sender The address initiating the signature validation
+     * @param hash The hash of the data to be signed
+     * @param signature The signature to be validated (first 32 bytes contain the permissionId)
+     * @param contents The ERC-7739 content to be validated
+     * @return valid Boolean indicating whether the signature is valid
+     */
     function _erc1271IsValidSignatureNowCalldata(
         address sender,
         bytes32 hash,
@@ -381,9 +396,16 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
         returns (bool valid)
     {
         bytes32 contentHash = string(contents).hashERC7739Content();
+        // isolate the PermissionId and actual signature from the supplied signature param
         PermissionId permissionId = PermissionId.wrap(bytes32(signature[0:32]));
         signature = signature[32:];
+
+        // return false if the permissionId is not enabled
+        if (!$enabledSessions.contains(msg.sender, PermissionId.unwrap(permissionId))) return false;
+        // return false if the content is not enabled
         if (!$enabledERC7739Content[permissionId].contains(msg.sender, contentHash)) return false;
+
+        // check the ERC-1271 policy
         valid = $erc1271Policies.checkERC1271({
             account: msg.sender,
             requestSender: sender,
@@ -394,8 +416,9 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
             minPoliciesToEnforce: 0
         });
 
+        // if the erc1271 policy check failed, return false
         if (!valid) return false;
-        // this call reverts if the ISessionValidator is not set or signature is invalid
+        // this call reverts if the ISessionValidator is not set
         return $sessionValidators.isValidISessionValidator({
             hash: hash,
             account: msg.sender,
