@@ -20,7 +20,7 @@ contract ERC7715FlowTest is BaseTest {
     function test_7715_flow(bytes32 salt)
         public
         returns (PermissionId permissionId, EnableSession memory enableSessions)
-    {
+    {   
         address _target = address(target);
         uint256 value = 0;
         // bytes memory callData = abi.encodeCall(MockTarget.setValue, (1337));
