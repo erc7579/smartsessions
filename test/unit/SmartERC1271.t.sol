@@ -32,7 +32,7 @@ contract SmartSessionERC1271Test is BaseTest {
     function setUp() public virtual override {
         super.setUp();
 
-        fallbackModule = new SmartSessionCompatibilityFallback(address(smartSession));
+        fallbackModule = new SmartSessionCompatibilityFallback();
 
         bytes memory _fallback = abi.encode(EIP712.eip712Domain.selector, CALLTYPE_SINGLE, "");
         instance.installModule({ moduleTypeId: MODULE_TYPE_FALLBACK, module: address(fallbackModule), data: _fallback });

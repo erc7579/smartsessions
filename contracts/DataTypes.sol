@@ -137,7 +137,7 @@ ActionPolicyId constant EMPTY_ACTIONPOLICYID = ActionPolicyId.wrap(bytes32(0));
 Erc1271PolicyId constant EMPTY_ERC1271POLICYID = Erc1271PolicyId.wrap(bytes32(0));
 ConfigId constant EMPTY_CONFIGID = ConfigId.wrap(bytes32(0));
 
-ValidationData constant ERC4377_VALIDATION_SUCCESS = ValidationData.wrap(0);
+ValidationData constant ERC4337_VALIDATION_SUCCESS = ValidationData.wrap(0);
 ValidationData constant ERC4337_VALIDATION_FAILED = ValidationData.wrap(1);
 bytes4 constant EIP1271_SUCCESS = 0x1626ba7e;
 bytes4 constant EIP1271_FAILED = 0xFFFFFFFF;
