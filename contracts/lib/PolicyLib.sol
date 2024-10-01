@@ -291,7 +291,7 @@ library PolicyLib {
      * @param signature The signature to be validated.
      * @param permissionId The identifier of the permission being checked.
      * @param configId The configuration identifier.
-     * @param minPoliciesToEnforce The minimum number of policies that must be checked.
+     * @param minPoliciesToEnforce at least this number of policies should be enforced.
      *
      * @return valid Returns true if the signature is valid according to all policies, false otherwise.
      */

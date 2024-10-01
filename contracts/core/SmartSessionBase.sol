@@ -317,7 +317,7 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
     }
 
     function isModuleType(uint256 typeID) external pure override returns (bool) {
-        if (typeID == ERC7579_MODULE_TYPE_VALIDATOR) return true;
+        return typeID == ERC7579_MODULE_TYPE_VALIDATOR;
     }
 
     function getSessionDigest(
