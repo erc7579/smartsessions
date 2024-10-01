@@ -418,7 +418,7 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
         view
         virtual
         override
-        returns (bool valid)
+        returns (bool)
     {
         bytes32 contentHash = string(contents).hashERC7739Content();
         // isolate the PermissionId and actual signature from the supplied signature param
@@ -429,9 +429,8 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
         if (!$enabledSessions.contains(msg.sender, PermissionId.unwrap(permissionId))) return false;
         // return false if the content is not enabled
         if (!$enabledERC7739Content[permissionId].contains(msg.sender, contentHash)) return false;
-
         // check the ERC-1271 policy
-        valid = $erc1271Policies.checkERC1271({
+        bool valid = $erc1271Policies.checkERC1271({
             account: msg.sender,
             requestSender: sender,
             hash: hash,
