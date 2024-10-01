@@ -80,23 +80,6 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
             policies: policies
         });
     }
-
-    /**
-     * @notice Disable all user operation policies for a given permission
-     * @param permissionId The unique identifier for the permission
-     */
-    function disableUserOpPolicies(PermissionId permissionId) public {
-        // Check if the session is enabled for the caller and the given permission
-        if ($enabledSessions.contains(msg.sender, PermissionId.unwrap(permissionId)) == false) {
-            revert InvalidSession(permissionId);
-        }
-        // Disable all user operation policies
-        $userOpPolicies.disableAll({
-            policyType: PolicyType.USER_OP,
-            smartAccount: msg.sender,
-            permissionId: permissionId
-        });
-    }
     
     /**
      * @notice Enable ERC1271 policies for a specific permission
@@ -148,26 +131,6 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
             smartAccount: msg.sender,
             permissionId: permissionId,
             policies: policies
-        });
-    }
-
-    /**
-     * @notice Disable specific ERC1271 policies and contents for a given permission
-     * @param permissionId The unique identifier for the permission
-     */
-    function disableERC1271Policies(PermissionId permissionId) public {
-        // Check if the session is enabled for the caller and the given permission
-        if ($enabledSessions.contains(msg.sender, PermissionId.unwrap(permissionId)) == false) {
-            revert InvalidSession(permissionId);
-        }
-
-        $enabledERC7739Content[permissionId].removeAll(msg.sender);
-
-        // Disable the specified ERC1271 policies
-        $erc1271Policies.disableAll({
-            policyType: PolicyType.ERC1271,
-            smartAccount: msg.sender,
-            permissionId: permissionId
         });
     }
 
