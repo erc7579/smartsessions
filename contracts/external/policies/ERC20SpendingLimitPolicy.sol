@@ -3,12 +3,10 @@
 pragma solidity ^0.8.23;
 
 import "../../DataTypes.sol";
-import { IActionPolicy, IPolicy } from "../../interfaces/IPolicy.sol";
+import { IActionPolicy, IPolicy, VALIDATION_SUCCESS, VALIDATION_FAILED } from "../../interfaces/IPolicy.sol";
 import { IERC20 } from "forge-std/interfaces/IERC20.sol";
+import { IERC165 } from "forge-std/interfaces/IERC165.sol";
 import { EnumerableSet } from "../../utils/EnumerableSet4337.sol";
-
-uint256 constant VALIDATION_SUCCESS = 0;
-uint256 constant VALIDATION_FAILED = 1;
 
 contract ERC20SpendingLimitPolicy is IActionPolicy {
 
@@ -49,12 +47,10 @@ contract ERC20SpendingLimitPolicy is IActionPolicy {
     }
 
     function supportsInterface(bytes4 interfaceID) external pure override returns (bool) {
-        if (interfaceID == type(IActionPolicy).interfaceId) {
-            return true;
-        }
-        if (interfaceID == IActionPolicy.checkAction.selector) {
-            return true;
-        }
+        return (
+            interfaceID == type(IERC165).interfaceId || interfaceID == type(IPolicy).interfaceId
+                || interfaceID == type(IActionPolicy).interfaceId
+        );
     }
 
     /**

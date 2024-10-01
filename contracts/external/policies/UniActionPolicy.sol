@@ -2,8 +2,10 @@
 
 pragma solidity ^0.8.27;
 
-import "../../interfaces/IPolicy.sol";
-import "../../lib/SubModuleLib.sol";
+import "../../DataTypes.sol";
+import { IActionPolicy, IPolicy, VALIDATION_SUCCESS, VALIDATION_FAILED } from "../../interfaces/IPolicy.sol";
+import { SubModuleLib } from "../../lib/SubModuleLib.sol";
+import { IERC165 } from "forge-std/interfaces/IERC165.sol";
 
 /**
  * @title UniActionPolicy: Universal Action Policy
@@ -110,12 +112,10 @@ contract UniActionPolicy is IActionPolicy {
     }
 
     function supportsInterface(bytes4 interfaceID) external pure override returns (bool) {
-        if (interfaceID == type(IActionPolicy).interfaceId) {
-            return true;
-        }
-        if (interfaceID == IActionPolicy.checkAction.selector) {
-            return true;
-        }
+        return (
+            interfaceID == type(IERC165).interfaceId || interfaceID == type(IPolicy).interfaceId
+                || interfaceID == type(IActionPolicy).interfaceId
+        );
     }
 }
 
