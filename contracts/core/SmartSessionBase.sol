@@ -217,18 +217,6 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
             Session calldata session = sessions[i];
             PermissionId permissionId = session.toPermissionId();
 
-            // Add the session to the list of enabled sessions for the caller
-            $enabledSessions.add({ account: msg.sender, value: PermissionId.unwrap(permissionId) });
-
-            // Enable the ISessionValidator for this session
-            $sessionValidators.enable({
-                permissionId: permissionId,
-                smartAccount: msg.sender,
-                sessionValidator: session.sessionValidator,
-                sessionValidatorConfig: session.sessionValidatorInitData,
-                useRegistry: true
-            });
-
             // Enable UserOp policies
             $userOpPolicies.enable({
                 policyType: PolicyType.USER_OP,
@@ -255,6 +243,18 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
                 permissionId: permissionId,
                 actionPolicyDatas: session.actions,
                 smartAccount: msg.sender,
+                useRegistry: true
+            });
+
+            // Add the session to the list of enabled sessions for the caller
+            $enabledSessions.add({ account: msg.sender, value: PermissionId.unwrap(permissionId) });
+
+            // Enable the ISessionValidator for this session
+            $sessionValidators.enable({
+                permissionId: permissionId,
+                smartAccount: msg.sender,
+                sessionValidator: session.sessionValidator,
+                sessionValidatorConfig: session.sessionValidatorInitData,
                 useRegistry: true
             });
 

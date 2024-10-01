@@ -165,22 +165,6 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
         // Determine if registry should be used based on the mode
         bool useRegistry = mode.useRegistry();
 
-        // Enable mode can involve enabling ISessionValidator (new Permission)
-        // or just adding policies (existing permission)
-        // a) ISessionValidator is not set => enable ISessionValidator
-        // b) ISessionValidator is set => just add policies
-        // Attention: if the same policy that has already been configured is added again,
-        // the policy will be overwritten with the new configuration
-        if (!_isISessionValidatorSet(permissionId, account)) {
-            $sessionValidators.enable({
-                permissionId: permissionId,
-                smartAccount: account,
-                sessionValidator: enableData.sessionToEnable.sessionValidator,
-                sessionValidatorConfig: enableData.sessionToEnable.sessionValidatorInitData,
-                useRegistry: useRegistry
-            });
-        }
-
         // Enable UserOp policies
         $userOpPolicies.enable({
             policyType: PolicyType.USER_OP,
@@ -197,6 +181,8 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
             permissionId: permissionId,
             smartAccount: account
         });
+
+        // Enabel ERC1271 policies
         $erc1271Policies.enable({
             policyType: PolicyType.ERC1271,
             permissionId: permissionId,
@@ -205,9 +191,6 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
             smartAccount: account,
             useRegistry: useRegistry
         });
-        $enabledERC7739Content.enable(
-            enableData.sessionToEnable.erc7739Policies.allowedERC7739Content, permissionId, account
-        );
 
         // Enable action policies
         $actionPolicies.enable({
@@ -216,6 +199,22 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
             smartAccount: account,
             useRegistry: useRegistry
         });
+
+        // Enable mode can involve enabling ISessionValidator (new Permission)
+        // or just adding policies (existing permission)
+        // a) ISessionValidator is not set => enable ISessionValidator
+        // b) ISessionValidator is set => just add policies (above)
+        // Attention: if the same policy that has already been configured is added again,
+        // the policy will be overwritten with the new configuration
+        if (!_isISessionValidatorSet(permissionId, account)) {
+            $sessionValidators.enable({
+                permissionId: permissionId,
+                smartAccount: account,
+                sessionValidator: enableData.sessionToEnable.sessionValidator,
+                sessionValidatorConfig: enableData.sessionToEnable.sessionValidatorInitData,
+                useRegistry: useRegistry
+            });
+        }
 
         // Mark the session as enabled
         $enabledSessions.add(msg.sender, PermissionId.unwrap(permissionId));
