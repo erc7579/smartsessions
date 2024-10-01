@@ -6,19 +6,6 @@ import { _packValidationData } from "@ERC4337/account-abstraction/contracts/core
 // @author zeroknots rhinestone
 
 library ValidationDataLib {
-    function setSig(
-        ValidationData validationData,
-        bool sigFailed
-    )
-        internal
-        pure
-        returns (ValidationData _validationData)
-    {
-        assembly {
-            _validationData := xor(validationData, sigFailed)
-        }
-    }
-
     function intersect(ValidationData a, ValidationData b) internal pure returns (ValidationData validationData) {
         assembly {
             // xor(a,b) == shows only matching bits

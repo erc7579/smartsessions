@@ -339,13 +339,21 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
         /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
         /*                 Check SessionKey ISessionValidator         */
         /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
+        // perform signature check with ISessionValidator
+        // this function will revert if no ISessionValidator is set for this permissionId
         bool validSig = $sessionValidators.isValidISessionValidator({
             hash: userOpHash,
             account: account,
             permissionId: permissionId,
             signature: decompressedSignature
         });
-        vd = vd.setSig({ sigFailed: !validSig });
+
+        // if the ISessionValidator signature is invalid, the userOp is invalid
+        if (!validSig) return ERC4337_VALIDATION_FAILED;
+
+        // In every Policy check, the ERC4337.ValidationData sigFailed required to be false, SmartSession validation
+        // flow will only reach to this line, if all Policies return valid and ISessionValidator signature is valid
+        return vd;
     }
 
     /**

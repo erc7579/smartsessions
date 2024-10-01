@@ -32,6 +32,8 @@ interface IPolicy is IERC165 {
  * The policy's decision should be one of the following:
  * - VALIDATION_SUCCESS: The user operation is allowed.
  * - VALIDATION_FAILED: The user operation is not allowed.
+ * - While it is possible to return values that pack validUntil and validAfter timestamps,
+ *   SmartSession Policies can not utilize aggregator addresses. (PolicyLib.isFailed() will prevent this)
  */
 interface IUserOpPolicy is IPolicy {
     function checkUserOpPolicy(ConfigId id, PackedUserOperation calldata userOp) external returns (uint256);
