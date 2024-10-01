@@ -26,6 +26,8 @@ interface ISmartSession {
     error HashMismatch(bytes32 providedHash, bytes32 computedHash);
     error InvalidData();
     error InvalidActionId();
+    error NoExecutionsInBatch();
+    error InvalidTarget();
     error InvalidEnableSignature(address account, bytes32 hash);
     error InvalidISessionValidator(ISessionValidator sessionValidator);
     error InvalidSelfCall();

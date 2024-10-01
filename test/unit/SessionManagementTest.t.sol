@@ -145,10 +145,6 @@ contract SessionManagementTest is BaseTest {
 
         YesPolicy yesPolicy2 = new YesPolicy();
 
-        ConfigId configId = permissionId.toConfigId(instance.account);
-
-        // assertFalse(usageLimitPolicy.isInitialized(instance.account, address(smartSession), configId));
-
         UserOpData memory userOpData = instance.getExecOps({
             target: address(target),
             value: 0,

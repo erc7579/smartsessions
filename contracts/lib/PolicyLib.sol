@@ -130,8 +130,16 @@ library PolicyLib {
         returns (ValidationData _vd)
     {
         // Call the policy contract with the provided calldata
-        (bool success, bytes memory returnDataFromPolicy) =
-            policy.excessivelySafeCall({ _gas: gasleft(), _value: 0, _maxCopy: 32, _calldata: callOnIPolicy });
+        (bool success, bytes memory returnDataFromPolicy) = policy.excessivelySafeCall({
+            // To better align with the ERC-4337 validation rules, we replaced gasleft() with type(uint256).max.
+            // This will accomplish the same result of forwarding all remaining gas.
+            // Note that there is no error for attempting to use more gas than is currently available, as this has been
+            // allowed since https://eips.ethereum.org/EIPS/eip-150#specification
+            _gas: type(uint256).max,
+            _value: 0,
+            _maxCopy: 32,
+            _calldata: callOnIPolicy
+        });
         uint256 validationDataFromPolicy;
         assembly {
             //if (!success) revert PolicyCheckReverted(bytes32);
@@ -189,6 +197,9 @@ library PolicyLib {
             revert ISmartSession.InvalidSelfCall();
         }
 
+        // Prevent fallback action from being used directly
+        if (target == FALLBACK_TARGET_FLAG) revert ISmartSession.InvalidTarget();
+
         // Generate the action ID based on the target and function selector
         ActionId actionId = target.toActionId(targetSig);
 
@@ -245,6 +256,8 @@ library PolicyLib {
         // Decode the batch of 7579 executions from the user operation's call data
         Execution[] calldata executions = userOp.callData.decodeUserOpCallData().decodeBatch();
         uint256 length = executions.length;
+        // Revert if there are no executions in the batch
+        if (length == 0) revert ISmartSession.NoExecutionsInBatch();
 
         // Iterate through each execution in the batch
         for (uint256 i; i < length; i++) {
