@@ -61,7 +61,6 @@ contract UsageLimitPolicyTest is PolicyTestBase {
         assertEq(target.value(), 1337);
 
         userOpData.userOp.nonce++;
-        userOpData.userOp.callData = abi.encodeCall(MockTarget.setValue, (1338));
         
         bytes memory innerRevertReason = abi.encodeWithSelector(
                 ISmartSession.PolicyViolation.selector,
@@ -77,6 +76,34 @@ contract UsageLimitPolicyTest is PolicyTestBase {
         );      
         vm.expectRevert(expectedRevertReason);
         userOpData.execUserOps();
+    } 
+
+    function test_use_usage_limit_policy_as_action_policy_success_and_fails_if_exceeds_limit() public returns (PermissionId permissionId) {
+        bytes memory callData = abi.encodeCall(MockTarget.setValue, (1337));
+        UserOpData memory userOpData = instance.getExecOps({
+            target: _target,
+            value: 0,
+            callData: callData,
+            txValidator: address(smartSession)
+        });
+        userOpData.userOp.signature = EncodeLib.encodeUse({ permissionId: permissionId_usageLimitedAction, sig: hex"4141414141" });
+        userOpData.execUserOps();
         assertEq(target.value(), 1337);
-    }    
+
+        userOpData.userOp.nonce++;
+
+        bytes memory innerRevertReason = abi.encodeWithSelector(
+                ISmartSession.PolicyViolation.selector,
+                permissionId_usageLimitedAction,
+                address(usageLimitPolicy)
+            );
+        bytes memory expectedRevertReason = abi.encodeWithSelector(
+            IEntryPoint.FailedOpWithRevert.selector,
+            0,
+            "AA23 reverted",
+            innerRevertReason);
+ 
+        vm.expectRevert(expectedRevertReason);
+        userOpData.execUserOps();
+    }
 }
