@@ -35,7 +35,6 @@ contract SessionManagementTest is BaseTest {
         returns (PermissionId permissionId, EnableSession memory enableSessions)
     {
         // get userOp from ModuleKit
-
         address _target = address(target);
         uint256 value = 0;
         bytes memory callData = abi.encodeCall(MockTarget.setValue, (1337));
