@@ -7,7 +7,6 @@ import { IActionPolicy, IPolicy, VALIDATION_SUCCESS, VALIDATION_FAILED } from ".
 import { SubModuleLib } from "../../lib/SubModuleLib.sol";
 import { IERC165 } from "forge-std/interfaces/IERC165.sol";
 
-error PolicyNotInitialized(ConfigId id, address mxer, address account);
 error ValueLimitExceeded(ConfigId id, uint256 value, uint256 limit);
 
 struct ActionConfig {

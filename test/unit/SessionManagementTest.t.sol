@@ -152,7 +152,7 @@ contract SessionManagementTest is BaseTest {
         });
 
         PolicyData[] memory userOpPolicyData = new PolicyData[](1);
-        bytes memory policyInitData = abi.encodePacked(uint256(10));
+        bytes memory policyInitData = abi.encodePacked(uint128(10));
         userOpPolicyData[0] = PolicyData({ policy: address(usageLimitPolicy), initData: policyInitData });
 
         // session to add one userOp policy

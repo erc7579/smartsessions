@@ -7,21 +7,11 @@ import { IActionPolicy, I1271Policy, IUserOpPolicy, IPolicy, VALIDATION_SUCCESS,
 import { PackedUserOperation, _packValidationData } from "@rhinestone/modulekit/src/external/ERC4337.sol";
 import { IERC165 } from "forge-std/interfaces/IERC165.sol";
 
-import "forge-std/console2.sol";
-
 contract TimeFramePolicy is IPolicy, IUserOpPolicy, IActionPolicy, I1271Policy {
-    
-    error PolicyNotInitialized(ConfigId id, address mxer, address account);
 
     struct TimeFrameConfig {
         uint48 validUntil;
         uint48 validAfter;
-    }
-
-    enum Status {
-        NA,
-        Live,
-        Deprecated
     }
 
     mapping(ConfigId id => mapping(address msgSender => mapping(address opSender => TimeFrameConfig))) public
@@ -56,22 +46,18 @@ contract TimeFramePolicy is IPolicy, IUserOpPolicy, IActionPolicy, I1271Policy {
         view
         returns (bool)
     {
-        TimeFrameConfig storage $config = timeFrameConfigs[id][msg.sender][smartAccount];
-        uint256 validUntil = $config.validUntil;
-        uint256 validAfter = $config.validAfter;
-        require(validUntil != 0 || validAfter != 0, PolicyNotInitialized(id, msg.sender, smartAccount));
-        if ((block.timestamp < validUntil || validUntil == 0) && block.timestamp >= validAfter) {
+        TimeFrameConfig memory config = timeFrameConfigs[id][msg.sender][smartAccount];
+        require(config.validUntil != 0 || config.validAfter != 0, PolicyNotInitialized(id, msg.sender, smartAccount));
+        if ((block.timestamp < config.validUntil || config.validUntil == 0) && block.timestamp >= config.validAfter) {
             return true;
         }
         return false;
     }
 
     function _checkTimeFrame(ConfigId id, address multiplexer, address smartAccount) internal view returns (uint256) {
-        TimeFrameConfig storage $config = timeFrameConfigs[id][multiplexer][smartAccount];
-        uint48 validUntil = $config.validUntil;
-        uint48 validAfter = $config.validAfter;
-        require(validUntil != 0 || validAfter != 0, PolicyNotInitialized(id, msg.sender, smartAccount));
-        return _packValidationData({sigFailed:false, validUntil: validUntil, validAfter: validAfter});
+        TimeFrameConfig memory config = timeFrameConfigs[id][multiplexer][smartAccount];
+        require(config.validUntil != 0 || config.validAfter != 0, PolicyNotInitialized(id, multiplexer, smartAccount));
+        return _packValidationData({sigFailed:false, validUntil: config.validUntil, validAfter: config.validAfter});
     }
 
     function initializeWithMultiplexer(address account, ConfigId configId, bytes calldata initData) external {
