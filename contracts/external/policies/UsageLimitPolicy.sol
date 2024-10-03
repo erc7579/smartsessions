@@ -7,8 +7,6 @@ import "contracts/lib/SubModuleLib.sol";
 
 contract UsageLimitPolicy is IUserOpPolicy, IActionPolicy {
 
-    error UsageLimitExceeded(uint128 used, uint128 limit);
-
     struct UsageLimitConfig {
         uint128 limit;
         uint128 used;
@@ -32,7 +30,7 @@ contract UsageLimitPolicy is IUserOpPolicy, IActionPolicy {
         uint128 limit = $config.limit;
         require(limit > 0, PolicyNotInitialized(id, mxer, smartAccount));
         if (++$config.used > limit) {
-            revert UsageLimitExceeded($config.used, limit);
+            return VALIDATION_FAILED;
         }
         return VALIDATION_SUCCESS;
     }

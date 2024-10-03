@@ -63,13 +63,10 @@ contract UsageLimitPolicyTest is PolicyTestBase {
         userOpData.userOp.nonce++;
         userOpData.userOp.callData = abi.encodeCall(MockTarget.setValue, (1338));
         
-        bytes memory innerRevertReason = abi.encodePacked(
-                hex'f4270752', // `PolicyCheckReverted(bytes32)`
-                bytes32(abi.encodeWithSelector(
-                    UsageLimitPolicy.UsageLimitExceeded.selector,
-                    uint128(2),
-                    uint128(1)
-                ))
+        bytes memory innerRevertReason = abi.encodeWithSelector(
+                ISmartSession.PolicyViolation.selector,
+                permissionId_usageLimitedSudo,
+                address(usageLimitPolicy)
             );
 
         bytes memory expectedRevertReason = abi.encodeWithSelector(
