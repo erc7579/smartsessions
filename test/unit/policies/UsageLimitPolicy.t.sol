@@ -10,20 +10,24 @@ contract UsageLimitPolicyTest is PolicyTestBase {
     using ModuleKitUserOp for *;
     using EncodeLib for PermissionId;
 
-    PermissionId permissionId_usageLimitedSudo;
     PermissionId permissionId_usageLimitedAction;
 
     function setUp() public virtual override {
         super.setUp();
 
         bytes memory usageLimitPolicyInitData = abi.encodePacked(uint128(1));
-        permissionId_usageLimitedSudo = _enableUserOpSession(address(usageLimitPolicy), usageLimitPolicyInitData, instance, keccak256("salt"));
         permissionId_usageLimitedAction = _enableActionSession(address(usageLimitPolicy), usageLimitPolicyInitData, instance, keccak256("salt and pepper"));
     }
 
-    function test_use_usage_limit_policy_fails_not_initialized() public returns (PermissionId permissionId) {
+    function test_usage_limit_policy_init_reinit_use() public {
+        PermissionId permissionId = using_usage_limit_policy_fails_not_initialized();
+        permissionId = use_usage_limit_policy_as_UserOp_policy_success_and_fails_if_exceeds_limit(permissionId);
+        usage_limit_policy_can_be_reinitialized(permissionId);
+    }
+
+    function using_usage_limit_policy_fails_not_initialized() public returns (PermissionId) {
         bytes memory callData = abi.encodeCall(MockTarget.setValue, (1337));
-        PermissionId invalidPermissionId = _enableUserOpSession(address(usageLimitPolicy), abi.encodePacked(uint128(0)), instance, keccak256("sugar"));
+        PermissionId invalidPermissionId = _enableUserOpSession(address(usageLimitPolicy), abi.encodePacked(uint128(0)), instance, keccak256("salt"));
         UserOpData memory userOpData = instance.getExecOps({
             target: _target,
             value: 0,
@@ -44,9 +48,14 @@ contract UsageLimitPolicyTest is PolicyTestBase {
         vm.expectRevert(expectedRevertReason);
         userOpData.execUserOps();
         assertEq(target.value(), 0);
+        return invalidPermissionId;
     }
 
-    function test_use_usage_limit_policy_as_UserOp_policy_success_and_fails_if_exceeds_limit() public returns (PermissionId permissionId) {
+    function use_usage_limit_policy_as_UserOp_policy_success_and_fails_if_exceeds_limit(PermissionId permissionId) public returns (PermissionId) {
+        //re-initialize
+        PermissionId permissionIdReInited = _enableUserOpSession(address(usageLimitPolicy), abi.encodePacked(uint128(1)), instance, keccak256("salt"));
+        assertEq(PermissionId.unwrap(permissionIdReInited), PermissionId.unwrap(permissionId));
+        // use
         bytes memory callData = abi.encodeCall(MockTarget.setValue, (1337));
         // get userOp from ModuleKit
         UserOpData memory userOpData = instance.getExecOps({
@@ -55,16 +64,20 @@ contract UsageLimitPolicyTest is PolicyTestBase {
             callData: callData,
             txValidator: address(smartSession)
         });
-        userOpData.userOp.signature = EncodeLib.encodeUse({ permissionId: permissionId_usageLimitedSudo, sig: hex"4141414141" });
+        userOpData.userOp.signature = EncodeLib.encodeUse({ permissionId: permissionId, sig: hex"4141414141" });
         // execute userOp with modulekit
         userOpData.execUserOps();
         assertEq(target.value(), 1337);
+
+        ConfigId configId = IdLib.toConfigId(IdLib.toUserOpPolicyId(permissionIdReInited), instance.account);
+        assertEq(usageLimitPolicy.getUsageLimit(configId, address(smartSession), instance.account), uint128(1));
+        assertEq(usageLimitPolicy.getUsed(configId, address(smartSession), instance.account), uint128(1));
 
         userOpData.userOp.nonce++;
         
         bytes memory innerRevertReason = abi.encodeWithSelector(
                 ISmartSession.PolicyViolation.selector,
-                permissionId_usageLimitedSudo,
+                permissionId,
                 address(usageLimitPolicy)
             );
 
@@ -76,7 +89,17 @@ contract UsageLimitPolicyTest is PolicyTestBase {
         );      
         vm.expectRevert(expectedRevertReason);
         userOpData.execUserOps();
+        return permissionIdReInited;
     } 
+
+    function usage_limit_policy_can_be_reinitialized(PermissionId permissionId) public returns (PermissionId) {
+        // re-initialize with new limit, check that both limit and used are updated
+        PermissionId permissionIdReInited = _enableUserOpSession(address(usageLimitPolicy), abi.encodePacked(uint128(2)), instance, keccak256("salt"));
+        assertEq(PermissionId.unwrap(permissionIdReInited), PermissionId.unwrap(permissionId));
+        ConfigId configId = IdLib.toConfigId(IdLib.toUserOpPolicyId(permissionIdReInited), instance.account);
+        assertEq(usageLimitPolicy.getUsageLimit(configId, address(smartSession), instance.account), uint128(2));
+        assertEq(usageLimitPolicy.getUsed(configId, address(smartSession), instance.account), uint128(0));
+    }
 
     function test_use_usage_limit_policy_as_action_policy_success_and_fails_if_exceeds_limit() public returns (PermissionId permissionId) {
         bytes memory callData = abi.encodeCall(MockTarget.setValue, (1337));

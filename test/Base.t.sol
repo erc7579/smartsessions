@@ -24,7 +24,7 @@ import { SudoPolicy } from "contracts/external/policies/SudoPolicy.sol";
 import { MockRegistry } from "./mock/MockRegistry.sol";
 import { SimpleSessionValidator } from "./mock/SimpleSessionValidator.sol";
 import { SimpleGasPolicy } from "./mock/SimpleGasPolicy.sol";
-import { TimeFramePolicy } from "contracts/external/policies/TimeFramePolicy.sol";
+import { TimeFramePolicy, TimeFrameConfig } from "contracts/external/policies/TimeFramePolicy.sol";
 import { ValueLimitPolicy } from "contracts/external/policies/ValueLimitPolicy.sol";
 import { UsageLimitPolicy } from "contracts/external/policies/UsageLimitPolicy.sol";
 import { EIP1271_MAGIC_VALUE, IERC1271 } from "module-bases/interfaces/IERC1271.sol";

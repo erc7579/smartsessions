@@ -10,22 +10,30 @@ contract TimeFramePolicyTest is PolicyTestBase {
     using ModuleKitUserOp for *;
     using EncodeLib for PermissionId;
 
-    PermissionId permissionId_timeframedSudo;
+   // PermissionId permissionId_timeframedSudo;
     PermissionId permissionId_timeframedAction;
     PermissionId permissionId_timeframed1271;
 
+    bytes timeFramePolicyInitData;
+
     function setUp() public virtual override {
         super.setUp();
-
-        bytes memory timeFramePolicyInitData = abi.encodePacked(uint128(block.timestamp + 10 minutes), uint128(block.timestamp));
-        permissionId_timeframedSudo = _enableUserOpSession(address(timeFramePolicy), timeFramePolicyInitData, instance, keccak256("salt"));
+        timeFramePolicyInitData = abi.encodePacked(uint128(block.timestamp + 10 minutes), uint128(block.timestamp));
+//        permissionId_timeframedSudo = _enableUserOpSession(address(timeFramePolicy), timeFramePolicyInitData, instance, keccak256("salt"));
         permissionId_timeframedAction = _enableActionSession(address(timeFramePolicy), timeFramePolicyInitData, instance, keccak256("salt and pepper"));
         permissionId_timeframed1271 = _enable1271Session(address(timeFramePolicy), timeFramePolicyInitData, instance, keccak256("salt and pepper 2"));
     }
 
-    function test_use_timeframe_policy_fails_not_initialized() public returns (PermissionId permissionId) {
+    function test_timeframe_policy_init_reinit_use() public {
+        PermissionId permissionId = use_timeframe_policy_fails_not_initialized();
+        permissionId = use_timeframe_policy_asUserOp_policy_success(permissionId);
+        permissionId = use_timeframe_policy_asUserOp_policy_fail(permissionId);
+        reinit_timeframe_policy(permissionId);
+    }
+
+    function use_timeframe_policy_fails_not_initialized() public returns (PermissionId permissionId) {
         bytes memory callData = abi.encodeCall(MockTarget.setValue, (1337));
-        PermissionId invalidPermissionId = _enableUserOpSession(address(timeFramePolicy), abi.encodePacked(uint256(0)), instance, keccak256("sugar"));
+        PermissionId invalidPermissionId = _enableUserOpSession(address(timeFramePolicy), abi.encodePacked(uint256(0)), instance, keccak256("salt"));
         UserOpData memory userOpData = instance.getExecOps({
             target: _target,
             value: 0,
@@ -46,9 +54,12 @@ contract TimeFramePolicyTest is PolicyTestBase {
         vm.expectRevert(expectedRevertReason);
         userOpData.execUserOps();
         assertEq(target.value(), 0);
+        return invalidPermissionId;
     }
 
-    function test_use_timeframe_policy_asUserOp_policy_success() public returns (PermissionId permissionId) {
+    function use_timeframe_policy_asUserOp_policy_success(PermissionId permissionId) public returns (PermissionId) {
+        PermissionId permissionIdReInited = _enableUserOpSession(address(timeFramePolicy), timeFramePolicyInitData, instance, keccak256("salt"));
+        assertEq(PermissionId.unwrap(permissionIdReInited), PermissionId.unwrap(permissionId));
         bytes memory callData = abi.encodeCall(MockTarget.setValue, (1337));
         // get userOp from ModuleKit
         UserOpData memory userOpData = instance.getExecOps({
@@ -57,21 +68,23 @@ contract TimeFramePolicyTest is PolicyTestBase {
             callData: callData,
             txValidator: address(smartSession)
         });
-        userOpData.userOp.signature = EncodeLib.encodeUse({ permissionId: permissionId_timeframedSudo, sig: hex"4141414141" });
+        userOpData.userOp.signature = EncodeLib.encodeUse({ permissionId: permissionId, sig: hex"4141414141" });
         // execute userOp with modulekit
         userOpData.execUserOps();
         assertEq(target.value(), 1337);
+        return permissionId;
     }
 
-    function test_use_timeframe_policy_asUserOp_policy_fail() public returns (PermissionId permissionId) {
+    function use_timeframe_policy_asUserOp_policy_fail(PermissionId permissionId) public returns (PermissionId) {
         bytes memory callData = abi.encodeCall(MockTarget.setValue, (1337));
+        uint256 targetValueBefore = target.value();
         UserOpData memory userOpData = instance.getExecOps({
             target: _target,
             value: 0,
             callData: callData,
             txValidator: address(smartSession)
         });
-        userOpData.userOp.signature = EncodeLib.encodeUse({ permissionId: permissionId_timeframedSudo, sig: hex"4141414141" });
+        userOpData.userOp.signature = EncodeLib.encodeUse({ permissionId: permissionId, sig: hex"4141414141" });
         vm.warp(block.timestamp + 11 minutes);
 
         bytes memory expectedRevertReason = abi.encodeWithSelector(
@@ -81,7 +94,17 @@ contract TimeFramePolicyTest is PolicyTestBase {
         );
         vm.expectRevert(expectedRevertReason);
         userOpData.execUserOps();
-        assertEq(target.value(), 0);
+        assertEq(target.value(), targetValueBefore);
+        return permissionId;
+    }
+
+    function reinit_timeframe_policy(PermissionId permissionId) public {
+        bytes memory newTimeFramePolicyInitData = abi.encodePacked(uint128(block.timestamp + 10 minutes), uint128(block.timestamp));
+        PermissionId permissionIdReInited = _enableUserOpSession(address(timeFramePolicy), newTimeFramePolicyInitData, instance, keccak256("salt"));
+        assertEq(PermissionId.unwrap(permissionIdReInited), PermissionId.unwrap(permissionId));
+        TimeFrameConfig memory config = timeFramePolicy.getTimeFrameConfig(IdLib.toConfigId(IdLib.toUserOpPolicyId(permissionIdReInited), instance.account), address(smartSession), instance.account);
+        assertEq(config.validUntil, uint48(block.timestamp + 10 minutes));
+        assertEq(config.validAfter, uint48(block.timestamp));
     }
 
     //test as 1271 policy

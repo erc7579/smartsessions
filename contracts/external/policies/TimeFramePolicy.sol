@@ -7,12 +7,12 @@ import { IActionPolicy, I1271Policy, IUserOpPolicy, IPolicy, VALIDATION_SUCCESS,
 import { PackedUserOperation, _packValidationData } from "@rhinestone/modulekit/src/external/ERC4337.sol";
 import { IERC165 } from "forge-std/interfaces/IERC165.sol";
 
-contract TimeFramePolicy is IPolicy, IUserOpPolicy, IActionPolicy, I1271Policy {
+struct TimeFrameConfig {
+    uint48 validUntil;
+    uint48 validAfter;
+}
 
-    struct TimeFrameConfig {
-        uint48 validUntil;
-        uint48 validAfter;
-    }
+contract TimeFramePolicy is IPolicy, IUserOpPolicy, IActionPolicy, I1271Policy {
 
     mapping(ConfigId id => mapping(address msgSender => mapping(address opSender => TimeFrameConfig))) public
         timeFrameConfigs;
@@ -63,6 +63,10 @@ contract TimeFramePolicy is IPolicy, IUserOpPolicy, IActionPolicy, I1271Policy {
     function initializeWithMultiplexer(address account, ConfigId configId, bytes calldata initData) external {
         timeFrameConfigs[configId][msg.sender][account].validUntil = uint48(uint128(bytes16(initData[0:16])));
         timeFrameConfigs[configId][msg.sender][account].validAfter = uint48(uint128(bytes16(initData[16:32])));
+    }
+
+    function getTimeFrameConfig(ConfigId id, address multiplexer, address smartAccount) external view returns (TimeFrameConfig memory) {
+        return timeFrameConfigs[id][multiplexer][smartAccount];
     }
     
     function supportsInterface(bytes4 interfaceID) external pure override returns (bool) {

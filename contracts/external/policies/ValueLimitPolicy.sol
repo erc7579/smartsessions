@@ -75,6 +75,14 @@ contract ValueLimitPolicy is IActionPolicy {
         valueLimitConfigs[configId][msg.sender][account].limitUsed = 0;
     }
 
+    function getUsed(ConfigId configId, address msgSender, address userOpSender) external view returns (uint256) {
+        return valueLimitConfigs[configId][msgSender][userOpSender].limitUsed;
+    }
+
+    function getValueLimit(ConfigId configId, address msgSender, address userOpSender) external view returns (uint256) {
+        return valueLimitConfigs[configId][msgSender][userOpSender].valueLimit;
+    }
+
     function supportsInterface(bytes4 interfaceID) external pure override returns (bool) {
         return interfaceID == type(IERC165).interfaceId || interfaceID == type(IPolicy).interfaceId
             || interfaceID == type(IActionPolicy).interfaceId || interfaceID == type(IUserOpPolicy).interfaceId;

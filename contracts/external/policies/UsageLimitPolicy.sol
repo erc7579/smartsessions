@@ -37,6 +37,14 @@ contract UsageLimitPolicy is IUserOpPolicy, IActionPolicy {
         usageLimitConfigs[configId][msg.sender][account].used = 0;
     }
 
+    function getUsageLimit(ConfigId id, address mxer, address smartAccount) external view returns (uint128 limit) {
+        return usageLimitConfigs[id][mxer][smartAccount].limit;
+    }
+
+    function getUsed(ConfigId id, address mxer, address smartAccount) external view returns (uint128 used) {
+        return usageLimitConfigs[id][mxer][smartAccount].used;
+    }
+
     function supportsInterface(bytes4 interfaceID) external pure override returns (bool) {
         return interfaceID == type(IERC165).interfaceId || interfaceID == type(IPolicy).interfaceId
             || interfaceID == type(IUserOpPolicy).interfaceId || interfaceID == type(IActionPolicy).interfaceId;
