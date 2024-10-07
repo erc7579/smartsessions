@@ -4,7 +4,6 @@ pragma solidity ^0.8.27;
 
 import "../../DataTypes.sol";
 import { IActionPolicy, IPolicy, VALIDATION_SUCCESS, VALIDATION_FAILED } from "../../interfaces/IPolicy.sol";
-import { SubModuleLib } from "../../lib/SubModuleLib.sol";
 import { IERC165 } from "forge-std/interfaces/IERC165.sol";
 
 error ValueLimitExceeded(ConfigId id, uint256 value, uint256 limit);
@@ -65,7 +64,6 @@ contract UniActionPolicy is IActionPolicy {
         Deprecated
     }
 
-    using SubModuleLib for bytes;
     using UniActionLib for *;
 
     mapping(ConfigId id => mapping(address msgSender => mapping(address userOpSender => ActionConfig))) public

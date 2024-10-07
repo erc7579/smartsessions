@@ -3,7 +3,6 @@
 pragma solidity ^0.8.23;
 
 import "contracts/interfaces/IPolicy.sol";
-import "contracts/lib/SubModuleLib.sol";
 
 contract UsageLimitPolicy is IUserOpPolicy, IActionPolicy {
 
@@ -11,8 +10,6 @@ contract UsageLimitPolicy is IUserOpPolicy, IActionPolicy {
         uint128 limit;
         uint128 used;
     }
-
-    using SubModuleLib for bytes;
 
     mapping(ConfigId id => mapping(address msgSender => mapping(address userOpSender => UsageLimitConfig))) public
         usageLimitConfigs;

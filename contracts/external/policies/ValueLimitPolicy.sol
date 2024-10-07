@@ -3,90 +3,80 @@
 pragma solidity ^0.8.23;
 
 import "contracts/interfaces/IPolicy.sol";
-import "contracts/lib/SubModuleLib.sol";
+import { CallType, CALLTYPE_BATCH, CALLTYPE_SINGLE, CALLTYPE_DELEGATECALL } from "erc7579/lib/ModeLib.sol";
+import { ISmartSession } from "contracts/ISmartSession.sol";
+import { IERC7579Account, Execution } from "erc7579/interfaces/IERC7579Account.sol";
+import { ExecutionLib } from "contracts/lib/ExecutionLib.sol";
 
 contract ValueLimitPolicy is IActionPolicy {
-    using SubModuleLib for bytes;
+
+    using ExecutionLib for bytes;
 
     struct ValueLimitConfig {
         uint256 valueLimit;
         uint256 limitUsed;
     }
 
-    mapping(address msgSender => mapping(address opSender => uint256)) public usedIds;
     mapping(ConfigId id => mapping(address msgSender => mapping(address userOpSender => ValueLimitConfig))) public
         valueLimitConfigs;
 
-    // TODO: Make per PermissionId limits => this will allow to set value transfer limits not per action, but per
-    // session
-    // key (signer)
-    // To make this, need to make one more mapping
-    // mapping(PermissionId permissionId => mapping(address msgSender => mapping(address userOpSender =>
-    // ValueLimitConfig)))
-    // public valueLimitConfigs;
-    // and receive this limit in onInstall
-    // and use EncodeLib.getPermissionIdFromSignature() method to get permissionId from op.signature
-    // and check/increment value limits and usage per PermissionId as well
-    // so there can be no checking limits per action (need to set let's say 0xfefefefefefe as valueLimit to avoid check
-    // and increment)
-    // but check per permissionId
+    function checkUserOpPolicy(ConfigId id, PackedUserOperation calldata op) external returns (uint256) {
+        ValueLimitConfig storage $config = valueLimitConfigs[id][msg.sender][op.sender];
+        require($config.valueLimit != 0, PolicyNotInitialized(id, msg.sender, op.sender));
+        bytes4 selector = bytes4(op.callData[0:4]);
+        if (selector == IERC7579Account.execute.selector) {
+            (CallType callType, ) = op.callData.get7579ExecutionTypes();
+            if (callType == CALLTYPE_SINGLE) {
+                (, uint256 value, ) = op.callData.decodeUserOpCallData().decodeSingle();
+                if (!_checkAndAdjustLimit($config, value)) return VALIDATION_FAILED;
+            } else if (callType == CALLTYPE_BATCH) {
+                Execution[] calldata executions = op.callData.decodeUserOpCallData().decodeBatch();
+                uint256 length = executions.length;
+                uint256 totalValue = 0;
+                for (uint256 i; i < length; i++) {
+                    totalValue += executions[i].value;
+                }
+                if (!_checkAndAdjustLimit($config, totalValue)) return VALIDATION_FAILED;
+            } else if (callType == CALLTYPE_DELEGATECALL) {
+                // delegatecall does not transfer value
+                return VALIDATION_SUCCESS;
+            } else {
+                // it doesn't return validation failed to express that validation was not possible
+                revert ISmartSession.UnsupportedCallType(callType);
+            }
+        }
+        return VALIDATION_SUCCESS;
+    }
 
     function checkAction(
         ConfigId id,
         address account,
         address,
         uint256 value,
-        bytes calldata callData
+        bytes calldata 
     )
         external
         returns (uint256)
     {
-        ValueLimitConfig storage config = valueLimitConfigs[id][msg.sender][account];
-        if (config.valueLimit == 0) {
-            revert("ValueLimitPolicy: config not installed");
-        }
-        if (config.limitUsed + value > config.valueLimit) {
-            revert("ValueLimitPolicy: limit exceeded");
-        }
-        config.limitUsed += value;
+        ValueLimitConfig storage $config = valueLimitConfigs[id][msg.sender][account];
+        require($config.valueLimit != 0, PolicyNotInitialized(id, msg.sender, account));
+        if (!_checkAndAdjustLimit($config, value)) return VALIDATION_FAILED;
         return VALIDATION_SUCCESS;
     }
 
-    function _onInstallPolicy(ConfigId id, address mxer, address opSender, bytes calldata _data) internal {
-        usedIds[mxer][opSender]++;
-        valueLimitConfigs[id][mxer][opSender].valueLimit = uint256(bytes32(_data[0:32]));
-    }
-
-    function _onUninstallPolicy(ConfigId id, address mxer, address opSender, bytes calldata) internal {
-        delete valueLimitConfigs[id][mxer][opSender];
-        usedIds[mxer][opSender]--;
-    }
-
-    function onInstall(bytes calldata data) external {
-        (ConfigId id, bytes calldata _data) = data.parseInstallData();
-        require(valueLimitConfigs[id][msg.sender][msg.sender].valueLimit == 0);
-        _onInstallPolicy(id, msg.sender, msg.sender, _data);
+    function _checkAndAdjustLimit(ValueLimitConfig storage $config, uint256 value) internal returns (bool) {
+        if ($config.limitUsed + value > $config.valueLimit) return false;
+        $config.limitUsed += value;
+        return true;
     }
 
     function initializeWithMultiplexer(address account, ConfigId configId, bytes calldata initData) external {
-        _onInstallPolicy(configId, msg.sender, account, initData);
+        valueLimitConfigs[configId][msg.sender][account].valueLimit = uint256(bytes32(initData[0:32]));
+        valueLimitConfigs[configId][msg.sender][account].limitUsed = 0;
     }
 
-    function onUninstall(bytes calldata data) external {
-        (ConfigId id, bytes calldata _data) = data.parseInstallData();
-        require(valueLimitConfigs[id][msg.sender][msg.sender].valueLimit != 0);
-        _onUninstallPolicy(id, msg.sender, msg.sender, _data);
-    }
-
-    function isModuleType(uint256 id) external pure returns (bool) {
-        return id == 8;
-    }
-
-    // function isInitialized(address account, address multiplexer, ConfigId id) external view override returns (bool) {
-    //     return valueLimitConfigs[id][multiplexer][account].valueLimit > 0;
-    // }
-    //
     function supportsInterface(bytes4 interfaceID) external pure override returns (bool) {
-        return true;
+        return interfaceID == type(IERC165).interfaceId || interfaceID == type(IPolicy).interfaceId
+            || interfaceID == type(IActionPolicy).interfaceId || interfaceID == type(IUserOpPolicy).interfaceId;
     }
 }

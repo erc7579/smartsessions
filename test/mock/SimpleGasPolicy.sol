@@ -3,10 +3,8 @@
 pragma solidity ^0.8.23;
 
 import "contracts/interfaces/IPolicy.sol";
-import "contracts/lib/SubModuleLib.sol";
 
 contract SimpleGasPolicy is IUserOpPolicy {
-    using SubModuleLib for bytes;
 
     struct GasLimitConfig {
         uint256 gasLimit;
@@ -34,37 +32,13 @@ contract SimpleGasPolicy is IUserOpPolicy {
         return VALIDATION_SUCCESS;
     }
 
-    function _onInstallPolicy(ConfigId id, address mxer, address opSender, bytes calldata _data) internal {
-        usedIds[mxer][opSender]++;
-        gasLimitConfigs[id][mxer][opSender].gasLimit = uint256(bytes32(_data[0:32]));
-    }
-
-    function _onUninstallPolicy(ConfigId id, address mxer, address opSender, bytes calldata) internal {
-        delete gasLimitConfigs[id][mxer][opSender];
-        usedIds[mxer][opSender]--;
-    }
-
-    function onInstall(bytes calldata data) external {
-        (ConfigId id, bytes calldata _data) = data.parseInstallData();
-        require(gasLimitConfigs[id][msg.sender][msg.sender].gasLimit == 0);
-        _onInstallPolicy(id, msg.sender, msg.sender, _data);
-    }
-
     function initializeWithMultiplexer(address account, ConfigId configId, bytes calldata initData) external {
-        _onInstallPolicy(configId, msg.sender, account, initData);
-    }
-
-    function onUninstall(bytes calldata data) external {
-        (ConfigId id, bytes calldata _data) = data.parseInstallData();
-        require(gasLimitConfigs[id][msg.sender][msg.sender].gasLimit != 0);
-        _onUninstallPolicy(id, msg.sender, msg.sender, _data);
-    }
-
-    function isModuleType(uint256 id) external pure returns (bool) {
-        return id == 7; //userOpPolicy
+        gasLimitConfigs[configId][msg.sender][account].gasLimit = uint256(bytes32(initData[0:32]));
+        gasLimitConfigs[configId][msg.sender][account].gasUsed = 0;
     }
 
     function supportsInterface(bytes4 interfaceID) external pure override returns (bool) {
-        return true;
+        return interfaceID == type(IERC165).interfaceId || interfaceID == type(IPolicy).interfaceId
+            || interfaceID == type(IUserOpPolicy).interfaceId;
     }
 }

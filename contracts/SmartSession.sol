@@ -15,11 +15,9 @@ import {
     CALLTYPE_SINGLE,
     EXECTYPE_DEFAULT
 } from "erc7579/lib/ModeLib.sol";
-
 import { ISmartSession } from "./ISmartSession.sol";
 import { SmartSessionBase } from "./core/SmartSessionBase.sol";
 import { SmartSessionERC7739 } from "./core/SmartSessionERC7739.sol";
-
 import { EnumerableSet } from "./utils/EnumerableSet4337.sol";
 import { ExecutionLib as ExecutionLib } from "./lib/ExecutionLib.sol";
 import { IUserOpPolicy, IActionPolicy } from "./interfaces/IPolicy.sol";
@@ -300,7 +298,7 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
             }
             // DelegateCalls are not supported by SmartSession
             else {
-                revert UnsupportedExecutionType();
+                revert UnsupportedCallType(callType);
             }
         }
         // SmartSession does not support executeUserOp,
