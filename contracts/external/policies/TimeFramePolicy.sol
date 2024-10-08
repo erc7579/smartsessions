@@ -37,9 +37,6 @@ contract TimeFramePolicy is IPolicy, IUserOpPolicy, IActionPolicy, I1271Policy {
      * @notice Checks if the action is within the valid time frame.
      * @param id The config ID.
      * @param account The account.
-     * @param target The target.
-     * @param value The value.
-     * @param data The data.
      */
     function checkAction(
         ConfigId id,
@@ -58,12 +55,10 @@ contract TimeFramePolicy is IPolicy, IUserOpPolicy, IActionPolicy, I1271Policy {
     /**
      * @notice Checks if the 1271 signed action is within the valid time frame.
      * @param id The config ID.
-     * @param requestSender The request sender.
-     * @param account The account.
-     * @param hash The hash.
-     * @param signature The signature.
+     * @param smartAccount The account.
      */
-    function check1271SignedAction(ConfigId id, address requestSender, address account, bytes32 hash, bytes calldata signature) external view override returns (uint256) {
+    function check1271SignedAction(
+        ConfigId id,
         address,
         address smartAccount,
         bytes32,
