@@ -23,7 +23,7 @@ import { YesPolicy } from "./mock/YesPolicy.sol";
 import { SudoPolicy } from "contracts/external/policies/SudoPolicy.sol";
 import { MockRegistry } from "./mock/MockRegistry.sol";
 import { SimpleSessionValidator } from "./mock/SimpleSessionValidator.sol";
-import { SimpleGasPolicy } from "./mock/SimpleGasPolicy.sol";
+import { SimpleGasPolicy } from "contracts/external/policies/SimpleGasPolicy.sol";
 import { TimeFramePolicy, TimeFrameConfig } from "contracts/external/policies/TimeFramePolicy.sol";
 import { ValueLimitPolicy } from "contracts/external/policies/ValueLimitPolicy.sol";
 import { UsageLimitPolicy } from "contracts/external/policies/UsageLimitPolicy.sol";

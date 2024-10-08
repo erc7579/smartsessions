@@ -8,7 +8,7 @@ import "test/mock/SimpleSessionValidator.sol";
 import "contracts/external/policies/UniActionPolicy.sol";
 import "contracts/external/policies/UsageLimitPolicy.sol";
 import "contracts/external/policies/TimeFramePolicy.sol";
-import "test/mock/SimpleGasPolicy.sol";
+import "contracts/external/policies/SimpleGasPolicy.sol";
 import "contracts/external/policies/ValueLimitPolicy.sol";
 import "test/mock/erc7679/UserOpBuilder.sol";
 import "test/mock/YesPolicy.sol";
