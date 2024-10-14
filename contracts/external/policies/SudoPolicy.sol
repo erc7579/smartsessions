@@ -9,7 +9,7 @@ import { EnumerableSet } from "../../utils/EnumerableSet4337.sol";
 
 /**
  * @title SudoPolicy
- * @notice A policy that validates all actions.
+ * @notice A policy that allows all actions.
  */
 contract SudoPolicy is IActionPolicy, I1271Policy {
     using EnumerableSet for EnumerableSet.Bytes32Set;
