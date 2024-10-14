@@ -8,6 +8,11 @@ import { IERC20 } from "forge-std/interfaces/IERC20.sol";
 import { IERC165 } from "forge-std/interfaces/IERC165.sol";
 import { EnumerableSet } from "../../utils/EnumerableSet4337.sol";
 
+/**
+ * @title ERC20SpendingLimitPolicy
+ * @notice A policy that allows transferring ERC20 tokens up to a certain limit.
+ * @dev Every config can allow multiple tokens with its own limit each.
+ */
 contract ERC20SpendingLimitPolicy is IActionPolicy {
 
     using EnumerableSet for EnumerableSet.AddressSet;
@@ -32,26 +37,6 @@ contract ERC20SpendingLimitPolicy is IActionPolicy {
                 address mulitplexer => mapping(address token => mapping(address userOpSender => TokenPolicyData))
             )
     ) internal $policyData;
-
-    function _getPolicy(
-        ConfigId id,
-        address userOpSender,
-        address token
-    )
-        internal
-        view
-        returns (TokenPolicyData storage s)
-    {
-        if (token == address(0)) revert InvalidTokenAddress(token);
-        s = $policyData[id][msg.sender][token][userOpSender];
-    }
-
-    function supportsInterface(bytes4 interfaceID) external pure override returns (bool) {
-        return (
-            interfaceID == type(IERC165).interfaceId || interfaceID == type(IPolicy).interfaceId
-                || interfaceID == type(IActionPolicy).interfaceId
-        );
-    }
 
     /**
      * Initializes the policy to be used by given account through multiplexer (msg.sender) such as Smart Sessions.
@@ -95,29 +80,15 @@ contract ERC20SpendingLimitPolicy is IActionPolicy {
         emit IPolicy.PolicySet(configId, msg.sender, account);
     }
 
-    function _isTokenTransfer(
-        address account,
-        bytes calldata callData
-    )
-        internal
-        pure
-        returns (bool isTransfer, uint256 amount)
-    {
-        bytes4 functionSelector = bytes4(callData[0:4]);
-
-        if (functionSelector == IERC20.approve.selector) {
-            (, amount) = abi.decode(callData[4:], (address, uint256));
-            return (true, amount);
-        } else if (functionSelector == IERC20.transfer.selector) {
-            (, amount) = abi.decode(callData[4:], (address, uint256));
-            return (true, amount);
-        } else if (functionSelector == IERC20.transferFrom.selector) {
-            (,, amount) = abi.decode(callData[4:], (address, address, uint256));
-            return (true, amount);
-        }
-        return (false, 0);
-    }
-
+    /**
+     * @notice Checks if the action is valid according to the policy.
+     * @param id The config ID.
+     * @param account The account address.
+     * @param target The target address.
+     * @param value The value.
+     * @param callData The call data.
+     * @return The validation result.
+     */
     function checkAction(
         ConfigId id,
         address account,
@@ -148,5 +119,53 @@ contract ERC20SpendingLimitPolicy is IActionPolicy {
             emit TokenSpent(id, msg.sender, target, account, amount, spendingLimit - newAmount);
             return VALIDATION_SUCCESS;
         }
+    }
+
+    /**
+     * @notice Supports the IERC165 interface.
+     * @param interfaceID The interface ID.
+     * @return True if the interface is supported, false otherwise.
+     */
+    function supportsInterface(bytes4 interfaceID) external pure override returns (bool) {
+        return (
+            interfaceID == type(IERC165).interfaceId || interfaceID == type(IPolicy).interfaceId
+                || interfaceID == type(IActionPolicy).interfaceId
+        );
+    }
+
+    function _isTokenTransfer(
+        address account,
+        bytes calldata callData
+    )
+        internal
+        pure
+        returns (bool isTransfer, uint256 amount)
+    {
+        bytes4 functionSelector = bytes4(callData[0:4]);
+
+        if (functionSelector == IERC20.approve.selector) {
+            (, amount) = abi.decode(callData[4:], (address, uint256));
+            return (true, amount);
+        } else if (functionSelector == IERC20.transfer.selector) {
+            (, amount) = abi.decode(callData[4:], (address, uint256));
+            return (true, amount);
+        } else if (functionSelector == IERC20.transferFrom.selector) {
+            (,, amount) = abi.decode(callData[4:], (address, address, uint256));
+            return (true, amount);
+        }
+        return (false, 0);
+    }
+
+    function _getPolicy(
+        ConfigId id,
+        address userOpSender,
+        address token
+    )
+        internal
+        view
+        returns (TokenPolicyData storage s)
+    {
+        if (token == address(0)) revert InvalidTokenAddress(token);
+        s = $policyData[id][msg.sender][token][userOpSender];
     }
 }
