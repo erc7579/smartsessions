@@ -13,8 +13,6 @@ import { SmartSessionModeLib } from "../lib/SmartSessionModeLib.sol";
 import { NonceManager } from "./NonceManager.sol";
 import { FlatBytesLib } from "flatbytes/BytesLib.sol";
 
-import "forge-std/console2.sol";
-
 abstract contract SmartSessionBase is ISmartSession, NonceManager {
     using EnumerableSet for EnumerableSet.Bytes32Set;
     using EnumerableSet for EnumerableSet.AddressSet;
