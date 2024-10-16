@@ -84,6 +84,7 @@ contract UsageLimitPolicy is IUserOpPolicy, IActionPolicy {
     }
 
     function supportsInterface(bytes4 interfaceID) external pure override returns (bool) {
-        return true;
+        return interfaceID == type(IPolicy).interfaceId || interfaceID == type(IUserOpPolicy).interfaceId
+            || interfaceID == type(IActionPolicy).interfaceId || interfaceID == type(IERC165).interfaceId;
     }
 }
