@@ -399,11 +399,10 @@ library PolicyLib {
             ActionData calldata actionPolicyData = actionPolicyDatas[i];
             ActionId actionId = actionPolicyData.actionTarget.toActionId(actionPolicyData.actionTargetSelector);
             // Check if the action policy is enabled
-            if (
-                !$self.actionPolicies[actionId].areEnabled(
-                    permissionId, smartAccount, actionPolicyData.actionPolicies
-                )
-            ) return false;
+            if (!$self.actionPolicies[actionId].areEnabled(permissionId, smartAccount, actionPolicyData.actionPolicies))
+            {
+                return false;
+            }
         }
         return true;
     }
