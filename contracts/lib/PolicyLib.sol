@@ -204,7 +204,7 @@ library PolicyLib {
         }
 
         // Prevent fallback action from being used directly
-        if (target == FALLBACK_TARGET_FLAG) revert ISmartSession.InvalidTarget();
+        if (target == FALLBACK_TARGET_FLAG || target == address(this)) revert ISmartSession.InvalidTarget();
 
         // Generate the action ID based on the target and function selector
         ActionId actionId = target.toActionId(targetSig);
