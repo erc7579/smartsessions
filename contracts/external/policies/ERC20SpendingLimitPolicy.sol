@@ -9,7 +9,6 @@ import { IERC165 } from "forge-std/interfaces/IERC165.sol";
 import { EnumerableSet } from "../../utils/EnumerableSet4337.sol";
 
 contract ERC20SpendingLimitPolicy is IActionPolicy {
-
     using EnumerableSet for EnumerableSet.AddressSet;
 
     event TokenSpent(
@@ -24,8 +23,7 @@ contract ERC20SpendingLimitPolicy is IActionPolicy {
         uint256 spendingLimit;
     }
 
-    mapping(ConfigId id => mapping(address multiplexer => EnumerableSet.AddressSet tokensEnabled)) internal
-        $tokens;
+    mapping(ConfigId id => mapping(address multiplexer => EnumerableSet.AddressSet tokensEnabled)) internal $tokens;
     mapping(
         ConfigId id
             => mapping(
@@ -63,11 +61,11 @@ contract ERC20SpendingLimitPolicy is IActionPolicy {
     function initializeWithMultiplexer(address account, ConfigId configId, bytes calldata initData) external {
         (address[] memory tokens, uint256[] memory limits) = abi.decode(initData, (address[], uint256[]));
         EnumerableSet.AddressSet storage $t = $tokens[configId][msg.sender];
-        
+
         uint256 length_i = $t.length(account);
-        
+
         // if there's some inited tokens, clear storage first
-        if(length_i > 0) {
+        if (length_i > 0) {
             for (uint256 i; i < length_i; i++) {
                 // for all tokens which have been inited for a given configId and mxer
                 address token = $t.at(account, i);

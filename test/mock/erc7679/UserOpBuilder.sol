@@ -100,7 +100,7 @@ contract UserOperationBuilder is IUserOperationBuilder {
 
         bool isEnabled = true;
         /*try IPermissionEnabled(permissionValidator).isPermissionFullyEnabled(
-            permissionId, smartAccount, session.userOpPolicies, session.erc7739Policies.erc1271Policies, session.actions
+        permissionId, smartAccount, session.userOpPolicies, session.erc7739Policies.erc1271Policies, session.actions
         ) returns (bool isEnabled) {
             if (isEnabled) {
                 return EncodeLib.encodeUse(permissionId, userOperation.signature);
@@ -114,11 +114,19 @@ contract UserOperationBuilder is IUserOperationBuilder {
         if (!permissionValidator.isISessionValidatorSet(permissionId, smartAccount)) isEnabled = false;
         // if permissionValidator is not enabled, makes no sense to check policies
         if (isEnabled) {
-            if (!permissionValidator.areUserOpPoliciesEnabled(smartAccount, permissionId, session.userOpPolicies)) isEnabled = false;
-            if (!permissionValidator.areERC1271PoliciesEnabled(smartAccount, permissionId, session.erc7739Policies.erc1271Policies)) isEnabled = false;
+            if (!permissionValidator.areUserOpPoliciesEnabled(smartAccount, permissionId, session.userOpPolicies)) {
+                isEnabled = false;
+            }
+            if (
+                !permissionValidator.areERC1271PoliciesEnabled(
+                    smartAccount, permissionId, session.erc7739Policies.erc1271Policies
+                )
+            ) isEnabled = false;
             if (!permissionValidator.areActionsEnabled(smartAccount, permissionId, session.actions)) isEnabled = false;
         }
-        return isEnabled ? EncodeLib.encodeUse(permissionId, userOperation.signature) : EncodeLib.encodeUnsafeEnable(userOperation.signature, enableData);
+        return isEnabled
+            ? EncodeLib.encodeUse(permissionId, userOperation.signature)
+            : EncodeLib.encodeUnsafeEnable(userOperation.signature, enableData);
     }
 
     /* 
