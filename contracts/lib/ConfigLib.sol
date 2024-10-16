@@ -141,9 +141,6 @@ library ConfigLib {
             if (actionId == EMPTY_ACTIONID) revert ISmartSession.InvalidActionId();
 
             // Record the enabled action ID
-            $self.enabledActionIds[permissionId].add(smartAccount, ActionId.unwrap(actionId));
-
-            // Record the enabled action ID
             $self.actionPolicies[actionId].enable({
                 policyType: PolicyType.ACTION,
                 permissionId: permissionId,
@@ -152,6 +149,9 @@ library ConfigLib {
                 smartAccount: smartAccount,
                 useRegistry: useRegistry
             });
+
+            // Record the enabled action ID
+            $self.enabledActionIds[permissionId].add(smartAccount, ActionId.unwrap(actionId));
         }
     }
 
