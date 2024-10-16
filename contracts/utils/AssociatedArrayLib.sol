@@ -37,7 +37,7 @@ library AssociatedArrayLib {
                 mstore(0x20, index)
                 revert(0x1c, 0x24)
             }
-            value := sload(add(slot, mul(0x20, add(index, 1))))
+            value := sload(add(slot, add(index, 1)))
         }
     }
 
@@ -82,7 +82,7 @@ library AssociatedArrayLib {
                 mstore(0x20, index)
                 revert(0x1c, 0x24)
             }
-            sstore(add(slot, mul(0x20, add(index, 1))), value)
+            sstore(add(slot, add(index, 1)), value)
         }
     }
 
@@ -92,7 +92,7 @@ library AssociatedArrayLib {
             // load length (stored @ slot), add 1 to it => index.
             // mul index by 0x20 and add it to orig slot to get the next free slot
             let index := add(sload(slot), 1)
-            sstore(add(slot, mul(0x20, index)), value)
+            sstore(add(slot, index), value)
             sstore(slot, index) //increment length by 1
         }
     }
@@ -128,7 +128,7 @@ library AssociatedArrayLib {
             // this is the 'unchecked' version of _set(slot, __length - 1, 0)
             // as we use length-1 as index, so the check is excessive.
             // also removes extra -1 and +1 operations
-            sstore(add(slot, mul(0x20, __length)), 0)
+            sstore(add(slot, __length), 0)
             // store new length
             sstore(slot, sub(__length, 1))
         }
