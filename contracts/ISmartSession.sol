@@ -38,6 +38,7 @@ interface ISmartSession {
     error SmartSessionModuleAlreadyInstalled(address account);
     error InvalidPermissionId(PermissionId permissionId);
     error InvalidCallTarget();
+    error InvalidMode();
     error InvalidUserOpSender(address sender);
     error NoPoliciesSet(PermissionId permissionId);
     error PartlyEnabledActions();

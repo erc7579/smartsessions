@@ -9,12 +9,16 @@ import { EncodeLib } from "../lib/EncodeLib.sol";
 import { PolicyLib } from "../lib/PolicyLib.sol";
 import { IdLib } from "../lib/IdLib.sol";
 import { HashLib } from "../lib/HashLib.sol";
+import { SmartSessionModeLib } from "../lib/SmartSessionModeLib.sol";
 import { NonceManager } from "./NonceManager.sol";
 import { FlatBytesLib } from "flatbytes/BytesLib.sol";
+
+import "forge-std/console2.sol";
 
 abstract contract SmartSessionBase is ISmartSession, NonceManager {
     using EnumerableSet for EnumerableSet.Bytes32Set;
     using EnumerableSet for EnumerableSet.AddressSet;
+    using SmartSessionModeLib for SmartSessionMode;
     using HashLib for *;
     using PolicyLib for *;
     using ConfigLib for *;
@@ -210,10 +214,27 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
 
     /**
      * @notice Enable multiple sessions with their associated policies
+     * since this function is only called during the ERC-4337 execution phase, it is safe to use the registry
      * @param sessions An array of Session structures to be enabled
      * @return permissionIds An array of PermissionId values corresponding to the enabled sessions
      */
-    function enableSessions(Session[] calldata sessions) public returns (PermissionId[] memory permissionIds) {
+    function enableSessions(Session[] calldata sessions) external returns (PermissionId[] memory permissionIds) {
+        return _enableSessions(sessions, true);
+    }
+
+    /**
+     * @notice Enable multiple sessions with their associated policies
+     * @param sessions An array of Session structures to be enabled
+     * @param useRegistry A flag to indicate whether to use a registry check for the policies and session validator
+     * @return permissionIds An array of PermissionId values corresponding to the enabled sessions
+     */
+    function _enableSessions(
+        Session[] calldata sessions,
+        bool useRegistry
+    )
+        internal
+        returns (PermissionId[] memory permissionIds)
+    {
         uint256 length = sessions.length;
         if (length == 0) revert InvalidData();
 
@@ -230,7 +251,7 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
                 configId: permissionId.toUserOpPolicyId().toConfigId(),
                 policyDatas: session.userOpPolicies,
                 smartAccount: msg.sender,
-                useRegistry: true
+                useRegistry: useRegistry
             });
 
             // Enable ERC1271 policies
@@ -240,7 +261,7 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
                 configId: permissionId.toErc1271PolicyId().toConfigId(),
                 policyDatas: session.erc7739Policies.erc1271Policies,
                 smartAccount: msg.sender,
-                useRegistry: true
+                useRegistry: useRegistry
             });
             $enabledERC7739Content.enable(session.erc7739Policies.allowedERC7739Content, permissionId, msg.sender);
 
@@ -249,7 +270,7 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
                 permissionId: permissionId,
                 actionPolicyDatas: session.actions,
                 smartAccount: msg.sender,
-                useRegistry: true
+                useRegistry: useRegistry
             });
 
             // Add the session to the list of enabled sessions for the caller
@@ -261,7 +282,7 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
                 smartAccount: msg.sender,
                 sessionValidator: session.sessionValidator,
                 sessionValidatorConfig: session.sessionValidatorInitData,
-                useRegistry: true
+                useRegistry: useRegistry
             });
 
             permissionIds[i] = permissionId;
@@ -304,6 +325,8 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
      * Initialize the module with the given data
      *
      * @param data The data to initialize the module with
+     *         data is expected to be in the format of: abi.encode(SmartSessionMode, abi.encode(Session[]))
+     *         if no data is provided, the module will be installed without any sessions
      */
     function onInstall(bytes calldata data) external override {
         // Its possible that the module was installed before and when uninstalling the module, the smart session storage
@@ -319,6 +342,13 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
         // It's allowed to install smartsessions on a ERC7579 account without any params
         if (data.length == 0) return;
 
+        // data is expected to be in the format of:
+        //    abi.encodePacked(SmartSessionMode, abi.encode(Session[]))
+        SmartSessionMode mode = SmartSessionMode(uint8(bytes1(data[:1])));
+        // ensure that the mode provided is a valid ENABLE mode
+        if (!mode.isEnableMode()) revert InvalidMode();
+        // nudge the data pointer to the next byte to make decoding easier
+        data = data[1:];
         Session[] calldata sessions;
 
         // equivalent of abi.decode(data,Session[])
@@ -328,7 +358,7 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
             sessions.offset := add(dataPointer, 32)
             sessions.length := calldataload(dataPointer)
         }
-        enableSessions(sessions);
+        _enableSessions(sessions, mode.useRegistry());
     }
 
     /**
