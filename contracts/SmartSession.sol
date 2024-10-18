@@ -437,7 +437,7 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
             signature: signature,
             permissionId: permissionId,
             configId: permissionId.toErc1271PolicyId().toConfigId(),
-            minPoliciesToEnforce: 0
+            minPoliciesToEnforce: 1
         });
 
         // if the erc1271 policy check failed, return false
