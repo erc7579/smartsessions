@@ -238,8 +238,9 @@ library ConfigLib {
         uint256 length = policies.length;
         for (uint256 i; i < length; i++) {
             address policy = policies[i];
-            $policy.policyList[permissionId].remove(smartAccount, policy);
-            emit ISmartSession.PolicyDisabled(permissionId, policyType, address(policy), smartAccount);
+            if ($policy.policyList[permissionId].remove(smartAccount, policy)) {
+                emit ISmartSession.PolicyDisabled(permissionId, policyType, address(policy), smartAccount);
+            }
         }
     }
 
