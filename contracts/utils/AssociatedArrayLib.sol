@@ -1,6 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
+/**
+  ERC-4337 / ERC-7562 Compatible array lib.
+  This array can be used as mapping value in mappings such as (address account => Bytes32Array array) 
+  Array size should not exceed 128.
+*/
+
 library AssociatedArrayLib {
     using AssociatedArrayLib for *;
 
@@ -37,7 +43,7 @@ library AssociatedArrayLib {
                 mstore(0x20, index)
                 revert(0x1c, 0x24)
             }
-            value := sload(add(slot, mul(0x20, add(index, 1))))
+            value := sload(add(slot, add(index, 1)))
         }
     }
 
@@ -82,18 +88,22 @@ library AssociatedArrayLib {
                 mstore(0x20, index)
                 revert(0x1c, 0x24)
             }
-            sstore(add(slot, mul(0x20, add(index, 1))), value)
+            sstore(add(slot, add(index, 1)), value)
         }
     }
 
     function _push(Array storage s, address account, bytes32 value) private {
         bytes32 slot = _slot(s, account);
         assembly {
-            // load length (stored @ slot), add 1 to it => index.
-            // mul index by 0x20 and add it to orig slot to get the next free slot
-            let index := add(sload(slot), 1)
-            sstore(add(slot, mul(0x20, index)), value)
-            sstore(slot, index) //increment length by 1
+            // load length (stored @ slot) => this would be the index of a new element
+            let index := sload(slot)
+            if gt(index, 127) {
+                mstore(0, 0x8277484f) // `AssociatedArray_OutOfBounds(uint256)`
+                mstore(0x20, index)
+                revert(0x1c, 0x24)
+            }
+            sstore(add(slot, add(index, 1)), value) // store at (slot+index+1) => 0th element is stored at slot+1
+            sstore(slot, add(index, 1)) // increment length by 1
         }
     }
 
@@ -128,7 +138,7 @@ library AssociatedArrayLib {
             // this is the 'unchecked' version of _set(slot, __length - 1, 0)
             // as we use length-1 as index, so the check is excessive.
             // also removes extra -1 and +1 operations
-            sstore(add(slot, mul(0x20, __length)), 0)
+            sstore(add(slot, __length), 0)
             // store new length
             sstore(slot, sub(__length, 1))
         }
