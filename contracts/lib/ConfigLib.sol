@@ -8,8 +8,10 @@ import { IRegistry, ModuleType } from "../interfaces/IRegistry.sol";
 import { IdLib } from "./IdLib.sol";
 import { HashLib } from "./HashLib.sol";
 import { EnumerableSet } from "../utils/EnumerableSet4337.sol";
+import { ERC165Checker } from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 
 library ConfigLib {
+    using ERC165Checker for address;
     using FlatBytesLib for FlatBytesLib.Bytes;
     using EnumerableSet for EnumerableSet.AddressSet;
     using EnumerableSet for EnumerableSet.Bytes32Set;
@@ -22,11 +24,11 @@ library ConfigLib {
     function requirePolicyType(address policy, PolicyType policyType) internal view {
         bool supportsInterface;
         if (policyType == PolicyType.USER_OP) {
-            supportsInterface = IPolicy(policy).supportsInterface(type(IUserOpPolicy).interfaceId);
+            supportsInterface = policy.supportsInterface(type(IUserOpPolicy).interfaceId);
         } else if (policyType == PolicyType.ACTION) {
-            supportsInterface = IPolicy(policy).supportsInterface(type(IActionPolicy).interfaceId);
+            supportsInterface = policy.supportsInterface(type(IActionPolicy).interfaceId);
         } else if (policyType == PolicyType.ERC1271) {
-            supportsInterface = IPolicy(policy).supportsInterface(type(I1271Policy).interfaceId);
+            supportsInterface = policy.supportsInterface(type(I1271Policy).interfaceId);
         } else {
             revert UnsupportedPolicy(policy);
         }
@@ -236,8 +238,9 @@ library ConfigLib {
         uint256 length = policies.length;
         for (uint256 i; i < length; i++) {
             address policy = policies[i];
-            $policy.policyList[permissionId].remove(smartAccount, policy);
-            emit ISmartSession.PolicyDisabled(permissionId, policyType, address(policy), smartAccount);
+            if ($policy.policyList[permissionId].remove(smartAccount, policy)) {
+                emit ISmartSession.PolicyDisabled(permissionId, policyType, address(policy), smartAccount);
+            }
         }
     }
 
