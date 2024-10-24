@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "forge-std/console2.sol";
-
 /**
   ERC-4337 / ERC-7562 Compatible array lib.
   This array can be used as mapping value in mappings such as (address account => Bytes32Array array) 
@@ -96,11 +94,6 @@ library AssociatedArrayLib {
 
     function _push(Array storage s, address account, bytes32 value) private {
         bytes32 slot = _slot(s, account);
-        uint256  _index;
-        assembly {
-          _index := sload(slot)
-        }
-        console2.log("index in lib ", _index);
         assembly {
             // load length (stored @ slot) => this would be the index of a new element
             let index := sload(slot)
