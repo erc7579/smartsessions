@@ -40,6 +40,21 @@ library ConfigLib {
     }
 
     /**
+     * Helper function that ensures that the provided permission ID is enabled for the calling account.
+     */
+    function requirePermissionIdEnabled(
+        EnumerableSet.Bytes32Set storage set,
+        PermissionId permissionId
+    )
+        internal
+        view
+    {
+        if (!set.contains(msg.sender, PermissionId.unwrap(permissionId))) {
+            revert ISmartSession.InvalidPermissionId(permissionId);
+        }
+    }
+
+    /**
      * Enables policies for a given permission ID.
      *
      * @dev This function iterates through the provided policy data and enables each policy.
@@ -128,9 +143,6 @@ library ConfigLib {
             if (actionId == EMPTY_ACTIONID) revert ISmartSession.InvalidActionId();
 
             // Record the enabled action ID
-            $self.enabledActionIds[permissionId].add(smartAccount, ActionId.unwrap(actionId));
-
-            // Record the enabled action ID
             $self.actionPolicies[actionId].enable({
                 policyType: PolicyType.ACTION,
                 permissionId: permissionId,
@@ -139,6 +151,9 @@ library ConfigLib {
                 smartAccount: smartAccount,
                 useRegistry: useRegistry
             });
+
+            // Record the enabled action ID
+            $self.enabledActionIds[permissionId].add(smartAccount, ActionId.unwrap(actionId));
         }
     }
 
