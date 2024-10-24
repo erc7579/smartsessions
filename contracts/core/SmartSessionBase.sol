@@ -256,13 +256,16 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
             $enabledSessions.add({ account: msg.sender, value: PermissionId.unwrap(permissionId) });
 
             // Enable the ISessionValidator for this session
-            $sessionValidators.enable({
-                permissionId: permissionId,
-                smartAccount: msg.sender,
-                sessionValidator: session.sessionValidator,
-                sessionValidatorConfig: session.sessionValidatorInitData,
-                useRegistry: true
-            });
+
+            if (!_isISessionValidatorSet(permissionId, msg.sender)) {
+                $sessionValidators.enable({
+                    permissionId: permissionId,
+                    smartAccount: msg.sender,
+                    sessionValidator: session.sessionValidator,
+                    sessionValidatorConfig: session.sessionValidatorInitData,
+                    useRegistry: true
+                });
+            }
 
             permissionIds[i] = permissionId;
             emit SessionCreated(permissionId, msg.sender);
@@ -519,7 +522,7 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
         view
         returns (address[] memory)
     {
-        $actionPolicies.actionPolicies[actionId].policyList[permissionId].values(account);
+        return $actionPolicies.actionPolicies[actionId].policyList[permissionId].values(account);
     }
 
     function getEnabledActions(address account, PermissionId permissionId) external view returns (bytes32[] memory) {
