@@ -2,6 +2,7 @@
 pragma solidity ^0.8.25;
 
 import "./DataTypes.sol";
+import "forge-std/console2.sol";
 
 import { IERC7579Account } from "erc7579/interfaces/IERC7579Account.sol";
 import { IAccountExecute } from "modulekit/external/ERC4337.sol";
@@ -424,6 +425,8 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
         // isolate the PermissionId and actual signature from the supplied signature param
         PermissionId permissionId = PermissionId.wrap(bytes32(signature[0:32]));
         signature = signature[32:];
+
+        console2.log("foo");
 
         // return false if the permissionId is not enabled
         if (!$enabledSessions.contains(msg.sender, PermissionId.unwrap(permissionId))) return false;
