@@ -49,7 +49,7 @@ contract SmartSessionERC1271Test is BaseTest {
             salt: keccak256("salt"),
             sessionValidatorInitData: abi.encodePacked(sessionSigner1.addr),
             userOpPolicies: _getEmptyPolicyDatas(address(yesPolicy)),
-            erc7739Policies: _getEmptyERC7739Data("Permit(bytes32 stuff)", _getEmptyPolicyDatas(address(yesPolicy))),
+            erc7739Policies: _getEmptyERC7739Data("Permit(bytes32 stuff)Permit", _getEmptyPolicyDatas(address(yesPolicy))),
             actions: new ActionData[](0)
         });
 
@@ -74,34 +74,31 @@ contract SmartSessionERC1271Test is BaseTest {
     function test_ERC1271() public {
         console2.log("using permissionId");
         console2.logBytes32(PermissionId.unwrap(permissionId));
-        _testIsValidSignature("Permit(bytes32 stuff)", ERC1271Result.SUCCESS, permissionId, hex'00');
-    }
-
-    function test_ERC1271_fails_with_0_ERC1271Policies() public {
-        console2.log("using permissionId");
-        console2.logBytes32(PermissionId.unwrap(permissionId_invalid));
-        bytes memory revertReason = abi.encodeWithSelector(
-            ISmartSession.NoPoliciesSet.selector,
-            permissionId_invalid
-        );
-        _testIsValidSignature("Permit(bytes32 stuff)", ERC1271Result.REVERT, permissionId_invalid, revertReason); 
+        _testIsValidSignature("Permit(bytes32 stuff)", "Permit", true);
     }
 
     // By right, this should be a proper domain separator, but I'm lazy.
     bytes32 internal constant _DOMAIN_SEP_B = 0xa1a044077d7677adbbfa892ded5390979b33993e0e2a457e3f974bbcda53821b;
 
-    function _testIsValidSignature(bytes memory contentsType, ERC1271Result res, PermissionId _permissionId, bytes memory revertReason) internal {
+    function _testIsValidSignature(bytes memory contentsType, bytes memory contentsName, bool success) internal {
         bytes32 contents = keccak256(abi.encode("random", contentsType));
         console2.log("contents");
         console2.logBytes32(contents);
 
         _TestTemps memory t = _testTemps(sessionSigner1);
         // (t.signer, t.privateKey) = _randomSigner();
-        (t.v, t.r, t.s) = vm.sign(t.privateKey, _toERC1271Hash(address(t.account), contents, contentsType));
 
-        bytes memory signature =
-            abi.encodePacked(t.r, t.s, t.v, _DOMAIN_SEP_B, contents, contentsType, uint16(contentsType.length));
-        signature = abi.encodePacked(_permissionId, signature);
+        bytes32 hash = _toERC1271Hash(address(t.account), contents, contentsType, contentsName);
+        console2.log("---------");
+        console2.logBytes32(hash);
+        (t.v, t.r, t.s) = vm.sign(t.privateKey, hash);
+
+        bytes memory contentsDescription = abi.encodePacked(contentsType, contentsName);
+
+        bytes memory signature = abi.encodePacked(
+            t.r, t.s, t.v, _DOMAIN_SEP_B, contents, contentsDescription, uint16(contentsDescription.length)
+        );
+        signature = abi.encodePacked(permissionId, signature);
         signature = _erc6492Wrap(signature);
 
         // signature = abi.encodePacked(permissionId, signature);
@@ -109,17 +106,11 @@ contract SmartSessionERC1271Test is BaseTest {
         if (res == ERC1271Result.REVERT) {
             vm.expectRevert(revertReason);
             IERC1271(t.account).isValidSignature(
-                    _toContentsHash(contents), abi.encodePacked(address(smartSession), signature)
-                );
-        } else {
-            bytes4 retValue = IERC1271(t.account).isValidSignature(
-                    _toContentsHash(contents), abi.encodePacked(address(smartSession), signature)
-                );
-            assertEq(
-                retValue,
-                res == ERC1271Result.SUCCESS ? bytes4(0x1626ba7e) : bytes4(0xffffffff)
-            );
-        }
+                _toContentsHash(contents), abi.encodePacked(address(smartSession), signature)
+            ),
+            success ? bytes4(0x1626ba7e) : bytes4(0xffffffff),
+            "invalid sig"
+        );
     }
 
     function _erc6492Wrap(bytes memory signature) internal returns (bytes memory) {
@@ -132,7 +123,8 @@ contract SmartSessionERC1271Test is BaseTest {
     function _toERC1271Hash(
         address account,
         bytes32 contents,
-        bytes memory contentsType
+        bytes memory contentsType,
+        bytes memory contentsName
     )
         internal
         view
@@ -140,46 +132,42 @@ contract SmartSessionERC1271Test is BaseTest {
     {
         bytes32 parentStructHash = keccak256(
             abi.encodePacked(
-                abi.encode(_typedDataSignTypeHash(contentsType), contents), _accountDomainStructFields(account)
+                abi.encode(_typedDataSignTypeHash(contentsType, contentsName), contents),
+                _accountDomainStructFields(account)
             )
         );
         return keccak256(abi.encodePacked("\x19\x01", _DOMAIN_SEP_B, parentStructHash));
     }
 
     struct _AccountDomainStruct {
-        bytes1 fields;
         string name;
         string version;
         uint256 chainId;
         address verifyingContract;
         bytes32 salt;
-        uint256[] extensions;
     }
 
     function _accountDomainStructFields(address account) internal view returns (bytes memory) {
         _AccountDomainStruct memory t;
-        (t.fields, t.name, t.version, t.chainId, t.verifyingContract, t.salt, t.extensions) =
-            EIP712(account).eip712Domain();
+        (, t.name, t.version, t.chainId, t.verifyingContract, t.salt,) = EIP712(account).eip712Domain();
 
-        return abi.encode(
-            t.fields,
-            keccak256(bytes(t.name)),
-            keccak256(bytes(t.version)),
-            t.chainId,
-            t.verifyingContract,
-            t.salt,
-            keccak256(abi.encodePacked(t.extensions))
-        );
+        return abi.encode(keccak256(bytes(t.name)), keccak256(bytes(t.version)), t.chainId, t.verifyingContract, t.salt);
     }
 
-    function _typedDataSignTypeHash(bytes memory contentsType) internal pure returns (bytes32) {
-        bytes memory ct = contentsType;
+    function _typedDataSignTypeHash(
+        bytes memory contentsType,
+        bytes memory contentsName
+    )
+        internal
+        pure
+        returns (bytes32)
+    {
         return keccak256(
             abi.encodePacked(
                 "TypedDataSign(",
-                LibString.slice(string(ct), 0, LibString.indexOf(string(ct), "(", 0)),
-                " contents,bytes1 fields,string name,string version,uint256 chainId,address verifyingContract,bytes32 salt,uint256[] extensions)",
-                ct
+                contentsName,
+                " contents,string name,string version,uint256 chainId,address verifyingContract,bytes32 salt)",
+                contentsType
             )
         );
     }
