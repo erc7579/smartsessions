@@ -1,6 +1,7 @@
 import "forge-std/Test.sol";
 import "contracts/lib/HashLib.sol";
 import "contracts/DataTypes.sol";
+import { Solarray } from "solarray/Solarray.sol";
 
 contract Helper {
     using HashLib for *;
@@ -93,7 +94,7 @@ contract EIP712Test is Test {
 
     function test_erc7739_hash() public pure {
         ERC7739Context[] memory contexts = new ERC7739Context[](1);
-        contexts[0].contentName = "mockContent";
+        contexts[0].contentNames = Solarray.strings("mockContent");
         contexts[0].appDomainSeparator = EIP712Domain({
             name: "Forge",
             version: "1",
@@ -107,12 +108,12 @@ contract EIP712Test is Test {
         ERC7739Data memory erc7739Data = ERC7739Data({ allowedERC7739Content: contexts, erc1271Policies: policyDatas });
 
         bytes32 contextHash = erc7739Data.allowedERC7739Content[0].hashERC7739Context();
-        bytes32 expected_hash = 0x7bf774767fc9639d50b9b3d1d46dd5aca589488a95ae40673c815c46b4edda68;
-        assertEq(contextHash, expected_hash);
+        bytes32 expected_hash = 0x506da236a69b2f437f547d7900eb350f6a4cb145b6b850a499f29954b24c5739;
+        assertEq(contextHash, expected_hash, "should be same content hash");
 
         bytes32 hash = erc7739Data.hashERC7739Data();
-        expected_hash = 0x18d338f81763ec82d67d0a21cb8d05c2efaba5896544ede55fcc8238d98c4a71;
-        assertEq(hash, expected_hash);
+        expected_hash = 0x48980e1d3e20a9058d6b8d77d1835f32f0c3ca7c5d3d4031749f335f768d4694;
+        assertEq(hash, expected_hash, "should be same data hash");
     }
 
     function test_session_hash() public {
@@ -139,7 +140,7 @@ contract EIP712Test is Test {
         );
         assertEq(
             session.erc7739Policies.hashERC7739Data(),
-            0x18d338f81763ec82d67d0a21cb8d05c2efaba5896544ede55fcc8238d98c4a71,
+            0x48980e1d3e20a9058d6b8d77d1835f32f0c3ca7c5d3d4031749f335f768d4694,
             "ERC7739Data hashing"
         );
 
@@ -151,7 +152,7 @@ contract EIP712Test is Test {
 
         console2.log("helper addr:", address(helper));
 
-        bytes32 expectedSessionHash = 0x13b36e5c011a5a4fe095b82d73148a84b3f5b258f81184e23b644f65f5370a1e;
+        bytes32 expectedSessionHash = 0xba314bbd236c44d09b70fec50f4778864e550af840f8681de3e1fdd8ff0011d1;
 
         bytes32 hash = helper.hash(session);
         // bytes32 expected_hash = 0x4e1b5958b515b1750b96d520eccbb89236e76222301abc68a037111e2efa6687;
@@ -166,7 +167,7 @@ contract EIP712Test is Test {
         returns (ERC7739Data memory)
     {
         ERC7739Context[] memory contents = new ERC7739Context[](1);
-        contents[0].contentName = content;
+        contents[0].contentNames = Solarray.strings("mockContent");
         contents[0].appDomainSeparator = EIP712Domain({
             name: "Forge",
             version: "1",

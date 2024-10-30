@@ -146,7 +146,7 @@ contract BaseTest is RhinestoneModuleKit, Test {
         returns (ERC7739Data memory)
     {
         ERC7739Context[] memory contents = new ERC7739Context[](1);
-        contents[0].contentName = content;
+        contents[0].contentNames = Solarray.strings(content);
         contents[0].appDomainSeparator = EIP712Domain({
             name: "Forge",
             version: "1",
