@@ -121,7 +121,7 @@ interface ISmartSession {
     function disableERC1271Policies(
         PermissionId permissionId,
         address[] memory policies,
-        string[] calldata contents
+        ERC7739Context[] calldata contexts
     )
         external;
     function disableUserOpPolicies(PermissionId permissionId, address[] memory policies) external;

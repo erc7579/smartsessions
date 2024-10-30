@@ -12,6 +12,7 @@ import { CALLTYPE_SINGLE } from "modulekit/external/ERC7579.sol";
 contract SmartSessionERC1271Test is BaseTest {
     using ModuleKitHelpers for *;
     using ModuleKitUserOp for *;
+    using HashLib for *;
 
     struct _TestTemps {
         address owner;
@@ -28,6 +29,7 @@ contract SmartSessionERC1271Test is BaseTest {
 
     PermissionId permissionId;
     SmartSessionCompatibilityFallback fallbackModule;
+    bytes32 appDomainSeparator;
 
     function setUp() public virtual override {
         super.setUp();
@@ -37,6 +39,13 @@ contract SmartSessionERC1271Test is BaseTest {
         bytes memory _fallback = abi.encode(EIP712.eip712Domain.selector, CALLTYPE_SINGLE, "");
         instance.installModule({ moduleTypeId: MODULE_TYPE_FALLBACK, module: address(fallbackModule), data: _fallback });
 
+        EIP712Domain memory domain = EIP712Domain({
+            name: "Forge",
+            version: "1",
+            chainId: 1,
+            verifyingContract: address(0x6605F8785E09a245DD558e55F9A0f4A508434503)
+        });
+        appDomainSeparator = domain.hashEIP712Domain();
         Session memory session = Session({
             sessionValidator: ISessionValidator(address(simpleSessionValidator)),
             salt: keccak256("salt"),
@@ -60,7 +69,6 @@ contract SmartSessionERC1271Test is BaseTest {
     }
 
     // By right, this should be a proper domain separator, but I'm lazy.
-    bytes32 internal constant _DOMAIN_SEP_B = 0xa1a044077d7677adbbfa892ded5390979b33993e0e2a457e3f974bbcda53821b;
 
     function _testIsValidSignature(bytes memory contentsType, bytes memory contentsName, bool success) internal {
         bytes32 contents = keccak256(abi.encode("random", contentsType));
@@ -78,7 +86,7 @@ contract SmartSessionERC1271Test is BaseTest {
         bytes memory contentsDescription = abi.encodePacked(contentsType, contentsName);
 
         bytes memory signature = abi.encodePacked(
-            t.r, t.s, t.v, _DOMAIN_SEP_B, contents, contentsDescription, uint16(contentsDescription.length)
+            t.r, t.s, t.v, appDomainSeparator, contents, contentsDescription, uint16(contentsDescription.length)
         );
         signature = abi.encodePacked(permissionId, signature);
         signature = _erc6492Wrap(signature);
@@ -117,7 +125,7 @@ contract SmartSessionERC1271Test is BaseTest {
                 _accountDomainStructFields(account)
             )
         );
-        return keccak256(abi.encodePacked("\x19\x01", _DOMAIN_SEP_B, parentStructHash));
+        return keccak256(abi.encodePacked("\x19\x01", appDomainSeparator, parentStructHash));
     }
 
     struct _AccountDomainStruct {
@@ -164,7 +172,7 @@ contract SmartSessionERC1271Test is BaseTest {
         t.account = instance.account;
     }
 
-    function _toContentsHash(bytes32 contents) internal pure returns (bytes32) {
-        return keccak256(abi.encodePacked(hex"1901", _DOMAIN_SEP_B, contents));
+    function _toContentsHash(bytes32 contents) internal view returns (bytes32) {
+        return keccak256(abi.encodePacked(hex"1901", appDomainSeparator, contents));
     }
 }

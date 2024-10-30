@@ -5,53 +5,15 @@ import "../DataTypes.sol";
 import { EfficientHashLib } from "solady/utils/EfficientHashLib.sol";
 import { MessageHashUtils } from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
-// string constant POLICY_DATA_NOTATION = "PolicyData(address policy,bytes initData)";
-// bytes32 constant POLICY_DATA_TYPEHASH = keccak256(abi.encodePacked(POLICY_DATA_NOTATION));
 bytes32 constant POLICY_DATA_TYPEHASH = 0xdddac12cd8b10a071bea04226e97ac9490698394e19224abc47a5cfeeeb6ee97;
-// string constant ACTION_DATA_NOTATION_RAW =
-//     "ActionData(bytes4 actionTargetSelector,address actionTarget,PolicyData[] actionPolicies)";
-// bytes32 constant ACTION_DATA_TYPEHASH = keccak256(abi.encodePacked(ACTION_DATA_NOTATION_RAW, POLICY_DATA_NOTATION));
 bytes32 constant ACTION_DATA_TYPEHASH = 0x35809859dccf8877c407a59527c2f00fb81ca9c198ebcb0c832c3deaa38d3502;
-
-// string constant ERC7739_DATA_NOTATION_RAW = "ERC7739Data(string[] allowedERC7739Content,PolicyData[]
-// erc1271Policies)";
-// bytes32 constant ERC7739_DATA_TYPEHASH = keccak256(abi.encodePacked(ERC7739_DATA_NOTATION_RAW,
-// POLICY_DATA_NOTATION));
-bytes32 constant ERC7739_DATA_TYPEHASH = 0xdd8bf2f9b88fa557b2cb00ffd37dc4a3b8f3ff1d0d9e03c6f7c183f38869e91d;
-
-// string constant SESSION_NOTATION_RAW =
-//     "SessionEIP712(address account,address smartSession,uint8 mode,address sessionValidator,bytes32 salt,bytes
-// sessionValidatorInitData,PolicyData[] userOpPolicies,ERC7739Data erc7739Policies,ActionData[] actions,uint256
-// nonce)";
-// bytes32 constant SESSION_TYPEHASH = keccak256(
-//     abi.encodePacked(SESSION_NOTATION_RAW, ACTION_DATA_NOTATION_RAW, ERC7739_DATA_NOTATION_RAW, POLICY_DATA_NOTATION)
-// );
-bytes32 constant SESSION_TYPEHASH = 0x45f5f60cec99c2d0a0198ec513b02d6926b8ec63dfaf7e9afba954108dd97ebd;
-// string constant CHAIN_SESSION_NOTATION_RAW = "ChainSessionEIP712(uint64 chainId,SessionEIP712 session)";
-// bytes32 constant CHAIN_SESSION_TYPEHASH = keccak256(
-//     abi.encodePacked(
-//         CHAIN_SESSION_NOTATION_RAW,
-//         ACTION_DATA_NOTATION_RAW,
-//         ERC7739_DATA_NOTATION_RAW,
-//         POLICY_DATA_NOTATION,
-//         SESSION_NOTATION_RAW
-//     )
-// );
+bytes32 constant EIP712_DOMAIN_TYPEHASH = 0x8b73c3c69bb8fe3d512ecc4cf759cc79239f7b179b0ffacaa9a75d522b39400f;
+bytes32 constant ERC7739_DATA_TYPEHASH = 0x8413470d115ed1db29ff4895a78348ddb39c81dba5b0650daa182ad1f2241b42;
+bytes32 constant SESSION_TYPEHASH = 0x8c4d780764a568a093897547040b95eaf4aadc428c2ff1b7c51748437135622e;
 
 bytes32 constant CHAIN_SESSION_TYPEHASH = 0x9c5d301c45209fe15c8bb85bc08d4234ac9e1d48c0d22b7ab701ae25e640086b;
-// string constant MULTICHAIN_SESSION_NOTATION_RAW = "MultiChainSessionEIP712(ChainSessionEIP712[]
-// sessionsAndChainIds)";
-//
-// bytes32 constant MULTICHAIN_SESSION_TYPEHASH = keccak256(
-//     abi.encodePacked(
-//         MULTICHAIN_SESSION_NOTATION_RAW,
-//         ACTION_DATA_NOTATION_RAW,
-//         CHAIN_SESSION_NOTATION_RAW,
-//         ERC7739_DATA_NOTATION_RAW,
-//         POLICY_DATA_NOTATION,
-//         SESSION_NOTATION_RAW
-//     )
-// );
+
+bytes32 constant ERC7739_CONTEXT_TYPEHASH = 0x31cff7a9d2ea9be9b8bd6a4ed47a6fc960b6ede07b91540decfae554dde44f63;
 bytes32 constant MULTICHAIN_SESSION_TYPEHASH = 0x9af9262be547d4cc9dd06591bab37efd72d2b9d5fca173afd326b5b5410dac18;
 
 //0xb03948446334eb9b2196d5eb166f69b9d49403eb4a12f36de8d3f9f3cb8e15c3
@@ -216,10 +178,54 @@ library HashLib {
         return a.hash();
     }
 
+    function hashEIP712Domain(EIP712Domain memory erc7739Data) internal pure returns (bytes32) {
+        return keccak256(
+            abi.encode(
+                EIP712_DOMAIN_TYPEHASH,
+                keccak256(bytes(erc7739Data.name)),
+                keccak256(bytes(erc7739Data.version)),
+                erc7739Data.chainId,
+                erc7739Data.verifyingContract
+            )
+        );
+    }
+
+    function hash(EIP712Domain calldata erc7739Data) internal pure returns (bytes32) {
+        return keccak256(
+            abi.encode(
+                EIP712_DOMAIN_TYPEHASH,
+                keccak256(bytes(erc7739Data.name)),
+                keccak256(bytes(erc7739Data.version)),
+                erc7739Data.chainId,
+                erc7739Data.verifyingContract
+            )
+        );
+    }
+
+    function hashERC7739Context(ERC7739Context memory erc7739Context) internal pure returns (bytes32) {
+        return keccak256(
+            abi.encode(
+                ERC7739_CONTEXT_TYPEHASH,
+                erc7739Context.appDomainSeparator.hashEIP712Domain(),
+                keccak256(bytes(erc7739Context.contentName))
+            )
+        );
+    }
+
+    function hashERC7739ContextArray(ERC7739Context[] memory erc7739Context) internal pure returns (bytes32) {
+        uint256 length = erc7739Context.length;
+        bytes32[] memory a = EfficientHashLib.malloc(length);
+
+        for (uint256 i; i < length; i++) {
+            a.set(i, erc7739Context[i].hashERC7739Context());
+        }
+        return a.hash();
+    }
+
     function hashERC7739Data(ERC7739Data memory erc7739Data) internal pure returns (bytes32) {
         bytes32[] memory a = EfficientHashLib.malloc(3);
         a.set(0, ERC7739_DATA_TYPEHASH);
-        a.set(1, erc7739Data.allowedERC7739Content.hashStringArray());
+        a.set(1, erc7739Data.allowedERC7739Content.hashERC7739ContextArray());
         a.set(2, erc7739Data.erc1271Policies.hashPolicyDataArray());
         return a.hash();
     }
@@ -234,7 +240,7 @@ library HashLib {
     }
 
     function hashERC7739Content(string memory content) internal pure returns (bytes32) {
-        return keccak256(abi.encodePacked(content));
+        return keccak256(bytes(content));
     }
 
     function getAndVerifyDigest(
