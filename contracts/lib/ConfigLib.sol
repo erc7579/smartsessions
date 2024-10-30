@@ -5,17 +5,20 @@ import "../DataTypes.sol";
 import { IPolicy, IUserOpPolicy, IActionPolicy, I1271Policy } from "../interfaces/IPolicy.sol";
 import { ISmartSession } from "../ISmartSession.sol";
 import { IRegistry, ModuleType } from "../interfaces/IRegistry.sol";
+import { EnumerableMap } from "../utils/EnumerableMap4337.sol";
 import { IdLib } from "./IdLib.sol";
 import { HashLib } from "./HashLib.sol";
 import { EnumerableSet } from "../utils/EnumerableSet4337.sol";
 import { ERC165Checker } from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
+import "forge-std/console2.sol";
 
 library ConfigLib {
+    using EnumerableMap for EnumerableMap.Bytes32ToBytes32Map;
     using ERC165Checker for address;
     using FlatBytesLib for FlatBytesLib.Bytes;
     using EnumerableSet for EnumerableSet.AddressSet;
     using EnumerableSet for EnumerableSet.Bytes32Set;
-    using HashLib for string;
+    using HashLib for *;
     using IdLib for *;
     using ConfigLib for *;
 
@@ -162,23 +165,25 @@ library ConfigLib {
      *
      * @dev This function marks the provided content as enabled for the specified configuration and smart account.
      *
-     * @param $enabledERC7739Content The storage mapping for enabled ERC7739 content.
-     * @param contents An array of strings representing the content to be enabled.
+     * @param $enabledERC7739 The storage mapping for enabled ERC7739 content.
+     * @param contexts An array of ERC7739Contexts
      * @param permissionId The configuration ID associated with the content.
      * @param smartAccount The address of the smart account for which the content is being enabled.
      */
     function enable(
-        mapping(PermissionId permissionId => EnumerableSet.Bytes32Set) storage $enabledERC7739Content,
-        string[] memory contents,
+        EnumerableERC7739Config storage $enabledERC7739,
+        ERC7739Context[] memory contexts,
         PermissionId permissionId,
         address smartAccount
     )
         internal
     {
-        uint256 length = contents.length;
+        uint256 length = contexts.length;
         for (uint256 i; i < length; i++) {
-            bytes32 contentHash = contents[i].hashERC7739Content();
-            $enabledERC7739Content[permissionId].add(smartAccount, contentHash);
+            bytes32 contentHash = contexts[i].contentName.hashERC7739Content();
+            bytes32 appDomainSeparator = contexts[i].appDomainSeparator.hashEIP712Domain();
+            $enabledERC7739.enabledDomainSeparators[permissionId].add(smartAccount, appDomainSeparator);
+            $enabledERC7739.enabledContentNames[permissionId][appDomainSeparator].add(smartAccount, contentHash);
         }
     }
 
@@ -278,5 +283,39 @@ library ConfigLib {
 
         // clear the signer configuration
         $conf.config.clear();
+    }
+
+    function disable(
+        EnumerableERC7739Config storage $enabledERC7739,
+        ERC7739Context[] memory contexts,
+        PermissionId permissionId,
+        address smartAccount
+    )
+        internal
+    {
+        uint256 length = contexts.length;
+        for (uint256 i; i < length; i++) {
+            bytes32 appDomainSeparator = contexts[i].appDomainSeparator.hashEIP712Domain();
+            bytes32 contentHash = contexts[i].contentName.hashERC7739Content();
+            $enabledERC7739.enabledContentNames[permissionId][appDomainSeparator].remove(smartAccount, contentHash);
+            if ($enabledERC7739.enabledContentNames[permissionId][appDomainSeparator].length(smartAccount) == 0) {
+                $enabledERC7739.enabledDomainSeparators[permissionId].remove(smartAccount, appDomainSeparator);
+            }
+        }
+    }
+
+    function removeAll(
+        EnumerableERC7739Config storage $enabledERC7739,
+        PermissionId permissionId,
+        address smartAccount
+    )
+        internal
+    {
+        bytes32[] memory domainSeparators = $enabledERC7739.enabledDomainSeparators[permissionId].values(smartAccount);
+        uint256 length = domainSeparators.length;
+        for (uint256 i; i < length; i++) {
+            bytes32 appDomainSeparator = domainSeparators[i];
+            $enabledERC7739.enabledContentNames[permissionId][appDomainSeparator].removeAll(smartAccount);
+        }
     }
 }

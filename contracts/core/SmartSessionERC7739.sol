@@ -32,6 +32,7 @@ abstract contract SmartSessionERC7739 is ISmartSession {
         address sender,
         bytes32 hash,
         bytes calldata signature,
+        bytes32 appDomainSeparator,
         bytes calldata contents
     )
         internal
@@ -130,6 +131,7 @@ abstract contract SmartSessionERC7739 is ISmartSession {
         returns (bool result)
     {
         bytes calldata contents = signature;
+        bytes32 appDomainSeparator;
         uint256 t = uint256(uint160(address(this)));
         // Forces the compiler to pop the variables after the scope, avoiding stack-too-deep.
         if (t != uint256(0)) {
@@ -192,6 +194,7 @@ abstract contract SmartSessionERC7739 is ISmartSession {
                 mstore(t, keccak256(m, sub(add(p, c), m))) // Store `typedDataSignTypehash`.
                 // The "\x19\x01" prefix is already at 0x00.
                 // `APP_DOMAIN_SEPARATOR` is already at 0x20.
+                appDomainSeparator := mload(0x20) // Load the `APP_DOMAIN_SEPARATOR`.
                 mstore(0x40, keccak256(t, 0xe0)) // `hashStruct(typedDataSign)`.
                 // Compute the final hash, corrupted if `contentsName` is invalid.
                 hash := keccak256(0x1e, add(0x42, and(1, d)))
@@ -200,7 +203,7 @@ abstract contract SmartSessionERC7739 is ISmartSession {
             }
             mstore(0x40, m) // Restore the free memory pointer.
         }
-        result = _erc1271IsValidSignatureNowCalldata(sender, hash, signature, contents);
+        result = _erc1271IsValidSignatureNowCalldata(sender, hash, signature, appDomainSeparator, contents);
     }
 
     /// @dev For use in `_erc1271IsValidSignatureViaNestedEIP712`,

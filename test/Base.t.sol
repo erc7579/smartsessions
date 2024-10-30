@@ -38,6 +38,8 @@ import { IEntryPoint } from "account-abstraction/interfaces/IEntryPoint.sol";
 
 import "forge-std/console2.sol";
 
+bytes32 constant APP_DOMAIN_SEPARATOR = keccak256("0x01");
+
 contract BaseTest is RhinestoneModuleKit, Test {
     using ModuleKitHelpers for *;
     using ModuleKitUserOp for *;
@@ -143,8 +145,14 @@ contract BaseTest is RhinestoneModuleKit, Test {
         internal
         returns (ERC7739Data memory)
     {
-        string[] memory contents = new string[](1);
-        contents[0] = content;
+        ERC7739Context[] memory contents = new ERC7739Context[](1);
+        contents[0].contentName = content;
+        contents[0].appDomainSeparator = EIP712Domain({
+            name: "Forge",
+            version: "1",
+            chainId: 1,
+            verifyingContract: address(0x6605F8785E09a245DD558e55F9A0f4A508434503)
+        });
         return ERC7739Data({ allowedERC7739Content: contents, erc1271Policies: erc1271Policies });
     }
 

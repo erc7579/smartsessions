@@ -1,10 +1,11 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: AGPL21.0-only
 pragma solidity ^0.8.25;
 
 import "./utils/AssociatedArrayLib.sol";
 import { IRegistry, ModuleType } from "./interfaces/IRegistry.sol";
 import "./interfaces/ISessionValidator.sol";
 import { EnumerableSet } from "./utils/EnumerableSet4337.sol";
+import { EnumerableMap } from "./utils/EnumerableMap4337.sol";
 import { FlatBytesLib } from "flatbytes/BytesLib.sol";
 
 /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
@@ -83,8 +84,20 @@ struct ActionData {
     PolicyData[] actionPolicies;
 }
 
+struct ERC7739Context {
+    EIP712Domain appDomainSeparator;
+    string contentName;
+}
+
+struct EIP712Domain {
+    string name;
+    string version;
+    uint256 chainId;
+    address verifyingContract;
+}
+
 struct ERC7739Data {
-    string[] allowedERC7739Content;
+    ERC7739Context[] allowedERC7739Content;
     PolicyData[] erc1271Policies;
 }
 
@@ -111,6 +124,16 @@ struct EnumerableActionPolicy {
     mapping(ActionId => Policy) actionPolicies;
     mapping(PermissionId => EnumerableSet.Bytes32Set) enabledActionIds;
 }
+
+struct EnumerableERC7739Config {
+    mapping(PermissionId => mapping(bytes32 appDomainSeparator => EnumerableSet.Bytes32Set)) enabledContentNames;
+    mapping(PermissionId => EnumerableSet.Bytes32Set) enabledDomainSeparators;
+}
+
+// struct EnumerableERC7739Config {
+//     mapping(PermissionId => EnumerableMap.Bytes32ToBytes32Map) erc1271Policies;
+// }
+// mapping(PermissionId => EnumerableSet.Bytes32Set) enabledDomainSeparators;
 
 /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
 /*                 Custom Types & Constants                   */

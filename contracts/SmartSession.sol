@@ -50,6 +50,7 @@ import { SmartSessionModeLib } from "./lib/SmartSessionModeLib.sol";
  */
 contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
     using EnumerableSet for EnumerableSet.Bytes32Set;
+    using EnumerableMap for EnumerableMap.Bytes32ToBytes32Map;
     using SmartSessionModeLib for SmartSessionMode;
     using IdLib for *;
     using ValidationDataLib for ValidationData;
@@ -177,8 +178,8 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
         });
 
         // Enable ERC1271 policies
-        $enabledERC7739Content.enable({
-            contents: enableData.sessionToEnable.erc7739Policies.allowedERC7739Content,
+        $enabledERC7739.enable({
+            contexts: enableData.sessionToEnable.erc7739Policies.allowedERC7739Content,
             permissionId: permissionId,
             smartAccount: account
         });
@@ -413,6 +414,7 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
         address sender,
         bytes32 hash,
         bytes calldata signature,
+        bytes32 appDomainSeparator,
         bytes calldata contents
     )
         internal
@@ -426,12 +428,13 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
         PermissionId permissionId = PermissionId.wrap(bytes32(signature[0:32]));
         signature = signature[32:];
 
-        console2.log("foo");
-
         // return false if the permissionId is not enabled
         if (!$enabledSessions.contains(msg.sender, PermissionId.unwrap(permissionId))) return false;
         // return false if the content is not enabled
-        if (!$enabledERC7739Content[permissionId].contains(msg.sender, contentHash)) return false;
+        if (!$enabledERC7739.enabledContentNames[permissionId][appDomainSeparator].contains(msg.sender, contentHash)) {
+            return false;
+        }
+
         // check the ERC-1271 policy
         bool valid = $erc1271Policies.checkERC1271({
             account: msg.sender,
