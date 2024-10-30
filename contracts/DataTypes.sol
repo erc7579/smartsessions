@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL21.0-only
+// SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity ^0.8.25;
 
 import "./utils/AssociatedArrayLib.sol";
