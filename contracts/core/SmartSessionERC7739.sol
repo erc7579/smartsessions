@@ -3,7 +3,6 @@ pragma solidity ^0.8.25;
 
 import { EIP712 } from "solady/utils/EIP712.sol";
 import { ISmartSession } from "../ISmartSession.sol";
-import "forge-std/console2.sol";
 
 /// @notice ERC1271 mixin with nested EIP-712 approach.
 /// @author Solady (https://github.com/vectorized/solady/blob/main/src/accounts/ERC1271.sol)

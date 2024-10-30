@@ -2,7 +2,6 @@
 pragma solidity ^0.8.25;
 
 import "./DataTypes.sol";
-import "forge-std/console2.sol";
 
 import { IERC7579Account } from "erc7579/interfaces/IERC7579Account.sol";
 import { IAccountExecute } from "modulekit/external/ERC4337.sol";
