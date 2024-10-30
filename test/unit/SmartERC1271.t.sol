@@ -111,8 +111,7 @@ contract SmartSessionERC1271Test is BaseTest {
 
         // signature = abi.encodePacked(permissionId, signature);
         // Success returns `0x1626ba7e`.
-        if (res == ERC1271Result.REVERT) {
-            vm.expectRevert(revertReason);
+        assertEq(
             IERC1271(t.account).isValidSignature(
                 _toContentsHash(contents), abi.encodePacked(address(smartSession), signature)
             ),
