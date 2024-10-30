@@ -86,7 +86,7 @@ struct ActionData {
 
 struct ERC7739Context {
     EIP712Domain appDomainSeparator;
-    string contentName;
+    string[] contentNames;
 }
 
 struct EIP712Domain {

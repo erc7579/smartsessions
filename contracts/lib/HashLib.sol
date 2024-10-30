@@ -8,12 +8,12 @@ import { MessageHashUtils } from "@openzeppelin/contracts/utils/cryptography/Mes
 bytes32 constant POLICY_DATA_TYPEHASH = 0xdddac12cd8b10a071bea04226e97ac9490698394e19224abc47a5cfeeeb6ee97;
 bytes32 constant ACTION_DATA_TYPEHASH = 0x35809859dccf8877c407a59527c2f00fb81ca9c198ebcb0c832c3deaa38d3502;
 bytes32 constant EIP712_DOMAIN_TYPEHASH = 0x8b73c3c69bb8fe3d512ecc4cf759cc79239f7b179b0ffacaa9a75d522b39400f;
-bytes32 constant ERC7739_DATA_TYPEHASH = 0x8413470d115ed1db29ff4895a78348ddb39c81dba5b0650daa182ad1f2241b42;
-bytes32 constant SESSION_TYPEHASH = 0x8c4d780764a568a093897547040b95eaf4aadc428c2ff1b7c51748437135622e;
+bytes32 constant ERC7739_CONTEXT_TYPEHASH = 0xbd0e46d8b677722b4dee5c5ac1cc662ce3ed101a69180757a46296a5f8145637;
+bytes32 constant ERC7739_DATA_TYPEHASH = 0x9765606c364ca1d146d9ce40fd0e31bb17d940908efed36dd2cf76d797d40cee;
+bytes32 constant SESSION_TYPEHASH = 0x8a7e8ff36d259760d0a6d53492c1107d2a8c18ee2b07ab422654db3ce2be7486;
 
 bytes32 constant CHAIN_SESSION_TYPEHASH = 0x9c5d301c45209fe15c8bb85bc08d4234ac9e1d48c0d22b7ab701ae25e640086b;
 
-bytes32 constant ERC7739_CONTEXT_TYPEHASH = 0x31cff7a9d2ea9be9b8bd6a4ed47a6fc960b6ede07b91540decfae554dde44f63;
 bytes32 constant MULTICHAIN_SESSION_TYPEHASH = 0x9af9262be547d4cc9dd06591bab37efd72d2b9d5fca173afd326b5b5410dac18;
 
 //0xb03948446334eb9b2196d5eb166f69b9d49403eb4a12f36de8d3f9f3cb8e15c3
@@ -207,7 +207,7 @@ library HashLib {
             abi.encode(
                 ERC7739_CONTEXT_TYPEHASH,
                 erc7739Context.appDomainSeparator.hashEIP712Domain(),
-                keccak256(bytes(erc7739Context.contentName))
+                hashStringArray(erc7739Context.contentNames)
             )
         );
     }

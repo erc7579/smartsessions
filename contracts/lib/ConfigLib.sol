@@ -165,10 +165,14 @@ library ConfigLib {
     {
         uint256 length = contexts.length;
         for (uint256 i; i < length; i++) {
-            bytes32 contentHash = contexts[i].contentName.hashERC7739Content();
             bytes32 appDomainSeparator = contexts[i].appDomainSeparator.hashEIP712Domain();
-            $enabledERC7739.enabledDomainSeparators[permissionId].add(smartAccount, appDomainSeparator);
-            $enabledERC7739.enabledContentNames[permissionId][appDomainSeparator].add(smartAccount, contentHash);
+
+            uint256 contentNamesLength = contexts[i].contentNames.length;
+            for (uint256 y; y < contentNamesLength; y++) {
+                bytes32 contentHash = contexts[i].contentNames[y].hashERC7739Content();
+                $enabledERC7739.enabledDomainSeparators[permissionId].add(smartAccount, appDomainSeparator);
+                $enabledERC7739.enabledContentNames[permissionId][appDomainSeparator].add(smartAccount, contentHash);
+            }
         }
     }
 
@@ -281,8 +285,13 @@ library ConfigLib {
         uint256 length = contexts.length;
         for (uint256 i; i < length; i++) {
             bytes32 appDomainSeparator = contexts[i].appDomainSeparator.hashEIP712Domain();
-            bytes32 contentHash = contexts[i].contentName.hashERC7739Content();
-            $enabledERC7739.enabledContentNames[permissionId][appDomainSeparator].remove(smartAccount, contentHash);
+
+            uint256 contentNamesLength = contexts[i].contentNames.length;
+            for (uint256 y; y < contentNamesLength; y++) {
+                bytes32 contentHash = contexts[i].contentNames[y].hashERC7739Content();
+                $enabledERC7739.enabledContentNames[permissionId][appDomainSeparator].remove(smartAccount, contentHash);
+            }
+
             if ($enabledERC7739.enabledContentNames[permissionId][appDomainSeparator].length(smartAccount) == 0) {
                 $enabledERC7739.enabledDomainSeparators[permissionId].remove(smartAccount, appDomainSeparator);
             }

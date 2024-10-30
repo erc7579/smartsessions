@@ -31,7 +31,7 @@ pub fn mock_erc7739_context() -> ERC7739Context {
             chainId: U256::from(1),
             verifyingContract: address!("6605F8785E09a245DD558e55F9A0f4A508434503")
         },
-        contentName: "mockContent".to_string()
+        contentName: vec!["mockContent".to_string()]
     }
 }
 
