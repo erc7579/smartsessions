@@ -35,7 +35,8 @@ contract ERC7715FlowTest is BaseTest {
             sessionValidatorInitData: "mockInitData",
             userOpPolicies: _getEmptyPolicyDatas(address(yesPolicy)),
             erc7739Policies: _getEmptyERC7739Data("0", new PolicyData[](0)),
-            actions: _getEmptyActionDatas(_target, MockTarget.setValue.selector, address(yesPolicy))
+            actions: _getEmptyActionDatas(_target, MockTarget.setValue.selector, address(yesPolicy)),
+            canUsePaymaster: true
         });
         // predict permissionId correlating to EnableSession
         permissionId = smartSession.getPermissionId(session);

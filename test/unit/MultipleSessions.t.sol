@@ -32,7 +32,8 @@ contract MultipleSessionsTest is BaseTest {
             sessionValidatorInitData: "mockInitData",
             userOpPolicies: _getEmptyPolicyDatas(address(yesPolicy)),
             erc7739Policies: _getEmptyERC7739Data("0", new PolicyData[](0)),
-            actions: _getEmptyActionDatas(target, selector, address(yesPolicy))
+            actions: _getEmptyActionDatas(target, selector, address(yesPolicy)),
+            canUsePaymaster: true
         });
 
         // predict permissionId correlating to EnableSession

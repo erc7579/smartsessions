@@ -130,7 +130,8 @@ contract EIP712Test is Test {
             salt: bytes32(0),
             userOpPolicies: policyDatas,
             erc7739Policies: _getEmptyERC7739Data("mockContent", _getEmptyPolicyDatas(address(0))),
-            actions: actions
+            actions: actions,
+            canUsePaymaster: true
         });
 
         assertEq(

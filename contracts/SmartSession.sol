@@ -246,19 +246,35 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
             revert InvalidPermissionId(permissionId);
         }
 
-        /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
-        /*                    Check UserOp Policies                   */
-        /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
-        // Check UserOp policies
-        // This reverts if policies are violated
-        vd = $userOpPolicies.check({
-            userOp: userOp,
-            permissionId: permissionId,
-            callOnIPolicy: abi.encodeCall(
-                IUserOpPolicy.checkUserOpPolicy, (permissionId.toUserOpPolicyId().toConfigId(), userOp)
-            ),
-            minPolicies: 0 // for userOp policies, a min of 0 is ok. since these are not security critical
-         });
+        /* --- Scope: Check UserOp Policies --- */
+        {
+            // by default, minPolicies for userOp policies is 0
+            // in the case of the UserOp having paymasterAndData and the user opted in, to allow the PermissionID to use
+            // paymasters, this value will be 1
+            uint256 minPolicies;
+
+            // if a paymaster is used in this userop, we must ensure that the user authorized this PermissionID to use
+            // any
+            // paymasters. Should this be the case, a UserOpPolicy must run, this could be a yes policy, or a specific
+            // UserOpPolicy that can destructure the paymasterAndData and inspect it
+            if (userOp.paymasterAndData.length != 0 && $canUsePaymaster[permissionId][account]) {
+                minPolicies = 1;
+            }
+            /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
+            /*                    Check UserOp Policies                   */
+            /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
+            // Check UserOp policies
+            // This reverts if policies are violated
+            vd = $userOpPolicies.check({
+                userOp: userOp,
+                permissionId: permissionId,
+                callOnIPolicy: abi.encodeCall(
+                    IUserOpPolicy.checkUserOpPolicy, (permissionId.toUserOpPolicyId().toConfigId(), userOp)
+                ),
+                minPolicies: minPolicies
+            });
+        }
+        /* --- End Scope: Check UserOp Policies --- */
 
         bytes4 selector = bytes4(userOp.callData[0:4]);
 
