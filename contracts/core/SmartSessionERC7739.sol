@@ -8,22 +8,8 @@ import { ISmartSession } from "../ISmartSession.sol";
 /// @author Solady (https://github.com/vectorized/solady/blob/main/src/accounts/ERC1271.sol)
 abstract contract SmartSessionERC7739 is ISmartSession {
     /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
-    /*                         CONSTANTS                          */
-    /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
-
-    /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
     /*                     ERC1271 OPERATIONS                     */
     /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
-
-    /// @dev For automatic detection that the smart account supports the nested EIP-712 workflow.
-    /// By default, it returns `bytes32(bytes4(keccak256("supportsNestedTypedDataSign()")))`,
-    /// denoting support for the default behavior, as implemented in
-    /// `_erc1271IsValidSignatureViaNestedEIP712`, which is called in `isValidSignature`.
-    /// Future extensions should return a different non-zero `result` to denote different behavior.
-    /// This method intentionally returns bytes32 to allow freedom for future extensions.
-    function supportsNestedTypedDataSign() public view virtual returns (bytes32 result) {
-        result = bytes4(0xd620c85a);
-    }
 
     /// @dev Returns whether the `hash` and `signature` are valid.
     /// Override if you need non-ECDSA logic.
