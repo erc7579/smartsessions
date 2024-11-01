@@ -95,6 +95,7 @@ contract TimeFramePolicy is IPolicy, IUserOpPolicy, IActionPolicy, I1271Policy {
     function initializeWithMultiplexer(address account, ConfigId configId, bytes calldata initData) external {
         timeFrameConfigs[configId][msg.sender][account].validUntil = uint48(uint128(bytes16(initData[0:16])));
         timeFrameConfigs[configId][msg.sender][account].validAfter = uint48(uint128(bytes16(initData[16:32])));
+        emit IPolicy.PolicySet(configId, msg.sender, account);
     }
 
     /**
