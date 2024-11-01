@@ -26,6 +26,7 @@ contract ERC20SpendingLimitPolicy is IActionPolicy {
 
     struct TokenPolicyData {
         uint256 alreadySpent;
+        uint256 approvedAmount;
         uint256 spendingLimit;
     }
 
@@ -60,6 +61,7 @@ contract ERC20SpendingLimitPolicy is IActionPolicy {
                 // clear limit and spent
                 $.spendingLimit = 0;
                 $.alreadySpent = 0;
+                $.approvedAmount = 0;
             }
             // clear inited tokens
             $t.removeAll(account);
@@ -106,19 +108,27 @@ contract ERC20SpendingLimitPolicy is IActionPolicy {
 
         TokenPolicyData storage $ = _getPolicy({ id: id, userOpSender: account, token: target });
 
-        uint256 spendingLimit = $.spendingLimit;
-        uint256 alreadySpent = $.alreadySpent;
-
-        uint256 newAmount = alreadySpent + amount;
-
-        if (newAmount > spendingLimit) {
-            return VALIDATION_FAILED;
+        if (bytes4(callData[0:4]) == IERC20.approve.selector) {
+            // if this is approval, it doesn't add, it replaces
+            $.approvedAmount = amount;
+            amount -= $.approvedAmount; //to emit correctly
+        } else if (bytes4(callData[0:4]) == bytes4(keccak256("increaseAllowance(address,uint256)"))) {
+            //increase approval case
+            $.approvedAmount += amount;
         } else {
-            $.alreadySpent = newAmount;
-
-            emit TokenSpent(id, msg.sender, target, account, amount, spendingLimit - newAmount);
-            return VALIDATION_SUCCESS;
+            // transfer or transferFrom case
+            $.alreadySpent += amount;
         }
+        
+        uint256 totalSpentAndApproved = $.alreadySpent + $.approvedAmount;
+        uint256 spendingLimit = $.spendingLimit;
+
+        if (totalSpentAndApproved > spendingLimit) {
+            return VALIDATION_FAILED;
+        } 
+
+        emit TokenSpent(id, msg.sender, target, account, amount, spendingLimit - totalSpentAndApproved);
+        return VALIDATION_SUCCESS;
     }
 
     /**
@@ -172,6 +182,10 @@ contract ERC20SpendingLimitPolicy is IActionPolicy {
             (, uint256 amount) = abi.decode(callData[4:], (address, uint256));
             // if approve is to account itself, it should revert in the token contract
             // otherwise it should spend the limit
+            return (true, amount);
+        } else if (functionSelector == bytes4(keccak256("increaseAllowance(address,uint256)"))) {
+            // increase allowance is deprecated interface by OZ, can be used by some tokens
+            (, uint256 amount) = abi.decode(callData[4:], (address, uint256));
             return (true, amount);
         } else if (functionSelector == IERC20.transfer.selector) {
             (, uint256 amount) = abi.decode(callData[4:], (address, uint256));
