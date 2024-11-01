@@ -79,7 +79,7 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
         override
         returns (ValidationData vd)
     {
-        // ensure that userOp.sender == msg.sender == account 
+        // ensure that userOp.sender == msg.sender == account
         // SmartSession will sstore configs for a certain account,
         // so we have to ensure that unauthorized access is not possible
         address account = userOp.sender;
@@ -435,7 +435,7 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
             signature: signature,
             permissionId: permissionId,
             configId: permissionId.toErc1271PolicyId().toConfigId(),
-            minPoliciesToEnforce: 0
+            minPoliciesToEnforce: 1
         });
 
         // if the erc1271 policy check failed, return false

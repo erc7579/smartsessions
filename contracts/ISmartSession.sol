@@ -39,6 +39,7 @@ interface ISmartSession {
     error SmartSessionModuleAlreadyInstalled(address account);
     error InvalidPermissionId(PermissionId permissionId);
     error InvalidCallTarget();
+    error InvalidMode();
     error InvalidUserOpSender(address sender);
     error NoPoliciesSet(PermissionId permissionId);
     error PartlyEnabledActions();
@@ -120,7 +121,12 @@ interface ISmartSession {
     function enableUserOpPolicies(PermissionId permissionId, PolicyData[] memory userOpPolicies) external;
     function disableActionPolicies(PermissionId permissionId, ActionId actionId, address[] memory policies) external;
     function disableActionId(PermissionId permissionId, ActionId actionId) external;
-    function disableERC1271Policies(PermissionId permissionId, address[] memory policies, string[] calldata contents) external;
+    function disableERC1271Policies(
+        PermissionId permissionId,
+        address[] memory policies,
+        string[] calldata contents
+    )
+        external;
     function disableUserOpPolicies(PermissionId permissionId, address[] memory policies) external;
     function removeSession(PermissionId permissionId) external;
     function revokeEnableSignature(PermissionId permissionId) external;

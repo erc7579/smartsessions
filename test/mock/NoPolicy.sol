@@ -29,6 +29,8 @@ contract NoPolicy is IActionPolicy {
     }
 
     function supportsInterface(bytes4 interfaceID) external view override returns (bool) {
-        return true;
+        return interfaceID == type(IPolicy).interfaceId || interfaceID == type(IUserOpPolicy).interfaceId
+            || interfaceID == type(IActionPolicy).interfaceId || interfaceID == type(I1271Policy).interfaceId
+            || interfaceID == type(IERC165).interfaceId;
     }
 }

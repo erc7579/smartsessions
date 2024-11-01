@@ -38,7 +38,9 @@ contract YesPolicy is IUserOpPolicy, IActionPolicy, I1271Policy {
     }
 
     function supportsInterface(bytes4 interfaceID) external view override returns (bool) {
-        return true;
+        return interfaceID == type(IPolicy).interfaceId || interfaceID == type(IUserOpPolicy).interfaceId
+            || interfaceID == type(IActionPolicy).interfaceId || interfaceID == type(I1271Policy).interfaceId
+            || interfaceID == type(IERC165).interfaceId;
     }
 
     function check1271SignedAction(

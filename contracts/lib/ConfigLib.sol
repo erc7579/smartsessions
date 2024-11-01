@@ -8,8 +8,10 @@ import { IRegistry, ModuleType } from "../interfaces/IRegistry.sol";
 import { IdLib } from "./IdLib.sol";
 import { HashLib } from "./HashLib.sol";
 import { EnumerableSet } from "../utils/EnumerableSet4337.sol";
+import { ERC165Checker } from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 
 library ConfigLib {
+    using ERC165Checker for address;
     using FlatBytesLib for FlatBytesLib.Bytes;
     using EnumerableSet for EnumerableSet.AddressSet;
     using EnumerableSet for EnumerableSet.Bytes32Set;
@@ -22,11 +24,11 @@ library ConfigLib {
     function requirePolicyType(address policy, PolicyType policyType) internal view {
         bool supportsInterface;
         if (policyType == PolicyType.USER_OP) {
-            supportsInterface = IPolicy(policy).supportsInterface(type(IUserOpPolicy).interfaceId);
+            supportsInterface = policy.supportsInterface(type(IUserOpPolicy).interfaceId);
         } else if (policyType == PolicyType.ACTION) {
-            supportsInterface = IPolicy(policy).supportsInterface(type(IActionPolicy).interfaceId);
+            supportsInterface = policy.supportsInterface(type(IActionPolicy).interfaceId);
         } else if (policyType == PolicyType.ERC1271) {
-            supportsInterface = IPolicy(policy).supportsInterface(type(I1271Policy).interfaceId);
+            supportsInterface = policy.supportsInterface(type(I1271Policy).interfaceId);
         } else {
             revert UnsupportedPolicy(policy);
         }
@@ -34,6 +36,21 @@ library ConfigLib {
         // Revert if the policy does not support the required interface
         if (!supportsInterface) {
             revert UnsupportedPolicy(policy);
+        }
+    }
+
+    /**
+     * Helper function that ensures that the provided permission ID is enabled for the calling account.
+     */
+    function requirePermissionIdEnabled(
+        EnumerableSet.Bytes32Set storage set,
+        PermissionId permissionId
+    )
+        internal
+        view
+    {
+        if (!set.contains(msg.sender, PermissionId.unwrap(permissionId))) {
+            revert ISmartSession.InvalidPermissionId(permissionId);
         }
     }
 
@@ -126,9 +143,6 @@ library ConfigLib {
             if (actionId == EMPTY_ACTIONID) revert ISmartSession.InvalidActionId();
 
             // Record the enabled action ID
-            $self.enabledActionIds[permissionId].add(smartAccount, ActionId.unwrap(actionId));
-
-            // Record the enabled action ID
             $self.actionPolicies[actionId].enable({
                 policyType: PolicyType.ACTION,
                 permissionId: permissionId,
@@ -137,6 +151,9 @@ library ConfigLib {
                 smartAccount: smartAccount,
                 useRegistry: useRegistry
             });
+
+            // Record the enabled action ID
+            $self.enabledActionIds[permissionId].add(smartAccount, ActionId.unwrap(actionId));
         }
     }
 
@@ -236,8 +253,9 @@ library ConfigLib {
         uint256 length = policies.length;
         for (uint256 i; i < length; i++) {
             address policy = policies[i];
-            $policy.policyList[permissionId].remove(smartAccount, policy);
-            emit ISmartSession.PolicyDisabled(permissionId, policyType, address(policy), smartAccount);
+            if ($policy.policyList[permissionId].remove(smartAccount, policy)) {
+                emit ISmartSession.PolicyDisabled(permissionId, policyType, address(policy), smartAccount);
+            }
         }
     }
 

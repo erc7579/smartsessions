@@ -56,7 +56,6 @@ enum ParamCondition {
  * to learn more about how dynamic arguments are represented in the calldata
  * and which offsets should be used to access them.
  */
-
 contract UniActionPolicy is IActionPolicy {
     enum Status {
         NA,

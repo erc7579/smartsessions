@@ -14,7 +14,6 @@ import { EnumerableSet } from "../../utils/EnumerableSet4337.sol";
  * @dev Every config can allow multiple tokens with its own limit each.
  */
 contract ERC20SpendingLimitPolicy is IActionPolicy {
-
     using EnumerableSet for EnumerableSet.AddressSet;
 
     event TokenSpent(
@@ -30,8 +29,7 @@ contract ERC20SpendingLimitPolicy is IActionPolicy {
         uint256 spendingLimit;
     }
 
-    mapping(ConfigId id => mapping(address multiplexer => EnumerableSet.AddressSet tokensEnabled)) internal
-        $tokens;
+    mapping(ConfigId id => mapping(address multiplexer => EnumerableSet.AddressSet tokensEnabled)) internal $tokens;
     mapping(
         ConfigId id
             => mapping(
@@ -49,11 +47,11 @@ contract ERC20SpendingLimitPolicy is IActionPolicy {
     function initializeWithMultiplexer(address account, ConfigId configId, bytes calldata initData) external {
         (address[] memory tokens, uint256[] memory limits) = abi.decode(initData, (address[], uint256[]));
         EnumerableSet.AddressSet storage $t = $tokens[configId][msg.sender];
-        
+
         uint256 length_i = $t.length(account);
-        
+
         // if there's some inited tokens, clear storage first
-        if(length_i > 0) {
+        if (length_i > 0) {
             for (uint256 i; i < length_i; i++) {
                 // for all tokens which have been inited for a given configId and mxer
                 address token = $t.at(account, i);
@@ -137,16 +135,17 @@ contract ERC20SpendingLimitPolicy is IActionPolicy {
      * @param multiplexer The multiplexer address.
      * @param token The token address.
      * @param userOpSender The user operation sender address.
-     * @return alreadySpent The already spent amount.
      * @return spendingLimit The spending limit.
+     * @return alreadySpent The already spent amount.
+     * @return approvedAmount The approved amount.
      */
-    function getPolicyData(ConfigId id, address multiplexer, address token, address userOpSender) external view returns (uint256 alreadySpent, uint256 spendingLimit) {
+    function getPolicyData(ConfigId id, address multiplexer, address token, address userOpSender) external view returns (uint256 spendingLimit, uint256 alreadySpent, uint256 approvedAmount) {
         if (token == address(0)) revert InvalidTokenAddress(token);
         if (!$tokens[id][multiplexer].contains(userOpSender, token)) {
             revert InvalidTokenAddress(token);
         }
         TokenPolicyData memory $ = $policyData[id][multiplexer][token][userOpSender];
-        return ($.alreadySpent, $.spendingLimit);
+        return ($.spendingLimit, $.alreadySpent, $.approvedAmount);
     }
 
     /**
