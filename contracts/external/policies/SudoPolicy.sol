@@ -7,9 +7,12 @@ import {
     IActionPolicy, I1271Policy, IPolicy, VALIDATION_SUCCESS, VALIDATION_FAILED
 } from "../../interfaces/IPolicy.sol";
 import { IERC165 } from "forge-std/interfaces/IERC165.sol";
-import { SubModuleLib } from "../../lib/SubModuleLib.sol";
 import { EnumerableSet } from "../../utils/EnumerableSet4337.sol";
 
+/**
+ * @title SudoPolicy
+ * @notice A policy that allows all actions.
+ */
 contract SudoPolicy is IActionPolicy, I1271Policy {
     using EnumerableSet for EnumerableSet.Bytes32Set;
 
