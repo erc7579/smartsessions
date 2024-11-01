@@ -3,14 +3,15 @@ import "contracts/core/SmartSessionBase.sol";
 import "solady/utils/ECDSA.sol";
 import "contracts/lib/IdLib.sol";
 import "../base/PolicyTestBase.t.sol";
+import {TimeFrameConfigLib} from "contracts/external/policies/TimeFramePolicy.sol";
 
 contract TimeFramePolicyTest is PolicyTestBase {
     using IdLib for *;
     using ModuleKitHelpers for *;
     using ModuleKitUserOp for *;
     using EncodeLib for PermissionId;
-
-   // PermissionId permissionId_timeframedSudo;
+    using TimeFrameConfigLib for TimeFrameConfig;
+   
     PermissionId permissionId_timeframedAction;
     PermissionId permissionId_timeframed1271;
 
@@ -18,8 +19,7 @@ contract TimeFramePolicyTest is PolicyTestBase {
 
     function setUp() public virtual override {
         super.setUp();
-        timeFramePolicyInitData = abi.encodePacked(uint128(block.timestamp + 10 minutes), uint128(block.timestamp));
-//        permissionId_timeframedSudo = _enableUserOpSession(address(timeFramePolicy), timeFramePolicyInitData, instance, keccak256("salt"));
+        timeFramePolicyInitData = abi.encodePacked(uint48(block.timestamp + 10 minutes), uint48(block.timestamp));
         permissionId_timeframedAction = _enableActionSession(address(timeFramePolicy), timeFramePolicyInitData, instance, keccak256("salt and pepper"));
         permissionId_timeframed1271 = _enable1271Session(address(timeFramePolicy), timeFramePolicyInitData, instance, keccak256("salt and pepper 2"));
     }
@@ -99,12 +99,12 @@ contract TimeFramePolicyTest is PolicyTestBase {
     }
 
     function reinit_timeframe_policy(PermissionId permissionId) public {
-        bytes memory newTimeFramePolicyInitData = abi.encodePacked(uint128(block.timestamp + 10 minutes), uint128(block.timestamp));
+        bytes memory newTimeFramePolicyInitData = abi.encodePacked(uint48(block.timestamp + 10 minutes), uint48(block.timestamp));
         PermissionId permissionIdReInited = _enableUserOpSession(address(timeFramePolicy), newTimeFramePolicyInitData, instance, keccak256("salt"));
         assertEq(PermissionId.unwrap(permissionIdReInited), PermissionId.unwrap(permissionId));
-        TimeFrameConfig memory config = timeFramePolicy.getTimeFrameConfig(IdLib.toConfigId(IdLib.toUserOpPolicyId(permissionIdReInited), instance.account), address(smartSession), instance.account);
-        assertEq(config.validUntil, uint48(block.timestamp + 10 minutes));
-        assertEq(config.validAfter, uint48(block.timestamp));
+        TimeFrameConfig config = timeFramePolicy.getTimeFrameConfig(IdLib.toConfigId(IdLib.toUserOpPolicyId(permissionIdReInited), instance.account), address(smartSession), instance.account);
+        assertEq(config.validUntil(), uint48(block.timestamp + 10 minutes));
+        assertEq(config.validAfter(), uint48(block.timestamp));
     }
 
     //test as 1271 policy

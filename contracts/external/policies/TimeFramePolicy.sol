@@ -7,11 +7,9 @@ import { IActionPolicy, I1271Policy, IUserOpPolicy, IPolicy, VALIDATION_SUCCESS,
 import { PackedUserOperation, _packValidationData } from "@rhinestone/modulekit/src/external/ERC4337.sol";
 import { IERC165 } from "forge-std/interfaces/IERC165.sol";
 
-struct TimeFrameConfig {
-    uint48 validUntil;
-    uint48 validAfter;
-}
+import "forge-std/console2.sol";
 
+type TimeFrameConfig is uint256;
 
 /**
  * @title TimeFramePolicy
@@ -20,6 +18,8 @@ struct TimeFrameConfig {
  * It packs the valid time frame into validation data to be returned to the EntryPoint.
  */
 contract TimeFramePolicy is IPolicy, IUserOpPolicy, IActionPolicy, I1271Policy {
+
+    using TimeFrameConfigLib for TimeFrameConfig;
 
     mapping(ConfigId id => mapping(address msgSender => mapping(address opSender => TimeFrameConfig))) public
         timeFrameConfigs;
@@ -68,18 +68,18 @@ contract TimeFramePolicy is IPolicy, IUserOpPolicy, IActionPolicy, I1271Policy {
         view
         returns (bool)
     {
-        TimeFrameConfig memory config = timeFrameConfigs[id][msg.sender][smartAccount];
-        require(config.validUntil != 0 || config.validAfter != 0, PolicyNotInitialized(id, msg.sender, smartAccount));
-        if ((block.timestamp < config.validUntil || config.validUntil == 0) && block.timestamp >= config.validAfter) {
+        TimeFrameConfig config = timeFrameConfigs[id][msg.sender][smartAccount];
+        require(config.validUntil() != 0 || config.validAfter() != 0, PolicyNotInitialized(id, msg.sender, smartAccount));
+        if ((block.timestamp < config.validUntil() || config.validUntil() == 0) && block.timestamp >= config.validAfter()) {
             return true;
         }
         return false;
     }
 
     function _checkTimeFrame(ConfigId id, address multiplexer, address smartAccount) internal view returns (uint256) {
-        TimeFrameConfig memory config = timeFrameConfigs[id][multiplexer][smartAccount];
-        require(config.validUntil != 0 || config.validAfter != 0, PolicyNotInitialized(id, multiplexer, smartAccount));
-        return _packValidationData({sigFailed:false, validUntil: config.validUntil, validAfter: config.validAfter});
+        TimeFrameConfig config = timeFrameConfigs[id][multiplexer][smartAccount];    
+        require(config.validUntil() != 0 || config.validAfter() != 0, PolicyNotInitialized(id, multiplexer, smartAccount));
+        return _packValidationData({sigFailed:false, validUntil: config.validUntil(), validAfter: config.validAfter()});
     }
 
     /**
@@ -93,8 +93,7 @@ contract TimeFramePolicy is IPolicy, IUserOpPolicy, IActionPolicy, I1271Policy {
      * @param initData The initialization data.
      */
     function initializeWithMultiplexer(address account, ConfigId configId, bytes calldata initData) external {
-        timeFrameConfigs[configId][msg.sender][account].validUntil = uint48(uint128(bytes16(initData[0:16])));
-        timeFrameConfigs[configId][msg.sender][account].validAfter = uint48(uint128(bytes16(initData[16:32])));
+        timeFrameConfigs[configId][msg.sender][account] = TimeFrameConfig.wrap(uint256(uint96(bytes12(initData[0:12]))));
         emit IPolicy.PolicySet(configId, msg.sender, account);
     }
 
@@ -105,7 +104,7 @@ contract TimeFramePolicy is IPolicy, IUserOpPolicy, IActionPolicy, I1271Policy {
      * @param smartAccount The smart account.
      * @return The time frame config.
      */
-    function getTimeFrameConfig(ConfigId id, address multiplexer, address smartAccount) external view returns (TimeFrameConfig memory) {
+    function getTimeFrameConfig(ConfigId id, address multiplexer, address smartAccount) external view returns (TimeFrameConfig) {
         return timeFrameConfigs[id][multiplexer][smartAccount];
     }
 
@@ -120,5 +119,15 @@ contract TimeFramePolicy is IPolicy, IUserOpPolicy, IActionPolicy, I1271Policy {
                 || interfaceID == type(IActionPolicy).interfaceId || interfaceID == type(I1271Policy).interfaceId
                 || interfaceID == type(IUserOpPolicy).interfaceId
         );
+    }
+}
+
+library TimeFrameConfigLib {
+    function validUntil(TimeFrameConfig config) internal pure returns (uint48) {
+        return uint48(TimeFrameConfig.unwrap(config) >> 48);
+    }
+
+    function validAfter(TimeFrameConfig config) internal pure returns (uint48) {
+        return uint48(TimeFrameConfig.unwrap(config));
     }
 }
