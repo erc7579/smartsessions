@@ -122,6 +122,24 @@ contract ERC20SpendingLimitPolicy is IActionPolicy {
     }
 
     /**
+     * @notice Returns the limit and spent amount for a given token under permission, account, multiplexer.
+     * @param id The config ID.
+     * @param multiplexer The multiplexer address.
+     * @param token The token address.
+     * @param userOpSender The user operation sender address.
+     * @return alreadySpent The already spent amount.
+     * @return spendingLimit The spending limit.
+     */
+    function getPolicyData(ConfigId id, address multiplexer, address token, address userOpSender) external view returns (uint256 alreadySpent, uint256 spendingLimit) {
+        if (token == address(0)) revert InvalidTokenAddress(token);
+        if (!$tokens[id][multiplexer].contains(userOpSender, token)) {
+            revert InvalidTokenAddress(token);
+        }
+        TokenPolicyData memory $ = $policyData[id][multiplexer][token][userOpSender];
+        return ($.alreadySpent, $.spendingLimit);
+    }
+
+    /**
      * @notice Supports the IERC165 interface.
      * @param interfaceID The interface ID.
      * @return True if the interface is supported, false otherwise.
@@ -133,24 +151,42 @@ contract ERC20SpendingLimitPolicy is IActionPolicy {
         );
     }
 
+    /**
+     * @notice Checks if the call is a token transfer.
+     * @param account The account address.
+     * @param callData The call data.
+     * @dev we do not check if the transfer is from self to self, as this should not be allowed by token itself
+     * returns bool => isTransfer, amount spent
+     */
     function _isTokenTransfer(
         address account,
         bytes calldata callData
     )
         internal
         pure
-        returns (bool isTransfer, uint256 amount)
+        returns (bool, uint256) 
     {
         bytes4 functionSelector = bytes4(callData[0:4]);
 
         if (functionSelector == IERC20.approve.selector) {
-            (, amount) = abi.decode(callData[4:], (address, uint256));
+            (, uint256 amount) = abi.decode(callData[4:], (address, uint256));
+            // if approve is to account itself, it should revert in the token contract
+            // otherwise it should spend the limit
             return (true, amount);
         } else if (functionSelector == IERC20.transfer.selector) {
-            (, amount) = abi.decode(callData[4:], (address, uint256));
+            (, uint256 amount) = abi.decode(callData[4:], (address, uint256));
+            // if transfer is to account, it should revert in the token contract
+            // otherwise it should spend the limit
             return (true, amount);
         } else if (functionSelector == IERC20.transferFrom.selector) {
-            (,, amount) = abi.decode(callData[4:], (address, address, uint256));
+            (, address to, uint256 amount) = abi.decode(callData[4:], (address, address, uint256));
+            if(to == account) {
+                // if transfer is from and to account, it should revert in the token contract
+                // if transfer is from somewhere to account, it should not spend the limit, so amount is 0            
+                return (true, 0);
+            }
+            // from is account and to is not => spend tokens from account
+            // or from is not account and to is not => spend approved tokens also considered as spending the limit
             return (true, amount);
         }
         return (false, 0);
@@ -168,4 +204,5 @@ contract ERC20SpendingLimitPolicy is IActionPolicy {
         if (token == address(0)) revert InvalidTokenAddress(token);
         s = $policyData[id][msg.sender][token][userOpSender];
     }
+
 }
