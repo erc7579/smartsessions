@@ -382,6 +382,7 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
         override
         returns (bytes4 result)
     {
+        // ERC-7739 support detection
         if (hash == 0x7739773977397739773977397739773977397739773977397739773977397739) return bytes4(0x77390001);
         // disallow that session can be authorized by other sessions
         if (sender == address(this)) return EIP1271_FAILED;
