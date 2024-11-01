@@ -190,18 +190,6 @@ library HashLib {
         );
     }
 
-    function hash(EIP712Domain calldata erc7739Data) internal pure returns (bytes32) {
-        return keccak256(
-            abi.encode(
-                EIP712_DOMAIN_TYPEHASH,
-                keccak256(bytes(erc7739Data.name)),
-                keccak256(bytes(erc7739Data.version)),
-                erc7739Data.chainId,
-                erc7739Data.verifyingContract
-            )
-        );
-    }
-
     function hashERC7739Context(ERC7739Context memory erc7739Context) internal pure returns (bytes32) {
         return keccak256(
             abi.encode(
