@@ -36,10 +36,8 @@ contract ERC1271TestBase is BaseTest {
         instance.installModule({ moduleTypeId: MODULE_TYPE_FALLBACK, module: address(fallbackModule), data: _fallback });
     }
 
-    function _testIsValidSignature(bytes memory contentsType, bool success, PermissionId permissionId, bool is6492, Account memory sessionSigner) internal {
+    function _testIsValidSignature(bytes memory contentsType, bool expectSuccess, PermissionId permissionId, bool is6492, Account memory sessionSigner) internal {
         bytes32 contents = keccak256(abi.encode("random", contentsType));
-        //console2.log("contents");
-        //console2.logBytes32(contents);
 
         _TestTemps memory t = _testTemps(sessionSigner);
         (t.v, t.r, t.s) = vm.sign(t.privateKey, _toERC1271Hash(address(t.account), contents, contentsType));
@@ -56,7 +54,7 @@ contract ERC1271TestBase is BaseTest {
             IERC1271(t.account).isValidSignature(
                 _toContentsHash(contents), abi.encodePacked(address(smartSession), signature)
             ),
-            success ? bytes4(0x1626ba7e) : bytes4(0xffffffff)
+            expectSuccess ? bytes4(0x1626ba7e) : bytes4(0xffffffff)
         );
     }
 
