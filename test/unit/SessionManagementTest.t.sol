@@ -52,8 +52,9 @@ contract SessionManagementTest is BaseTest {
             salt: salt,
             sessionValidatorInitData: "mockInitData",
             userOpPolicies: _getEmptyPolicyDatas(address(yesPolicy)),
-            erc7739Policies: _getEmptyERC7739Data("mockContent", _getEmptyPolicyDatas(address(yesPolicy))),
-            actions: _getEmptyActionDatas(_target, MockTarget.setValue.selector, address(yesPolicy))
+            erc7739Policies: _getEmptyERC7739Data("0", new PolicyData[](0)),
+            actions: _getEmptyActionDatas(_target, MockTarget.setValue.selector, address(yesPolicy)),
+            canUsePaymaster: true
         });
 
         // predict permissionId correlating to EnableSession
@@ -109,8 +110,9 @@ contract SessionManagementTest is BaseTest {
             salt: salt,
             sessionValidatorInitData: "mockInitData",
             userOpPolicies: _getEmptyPolicyDatas(address(yesPolicy)),
-            erc7739Policies: _getEmptyERC7739Data("mockContent", _getEmptyPolicyDatas(address(yesPolicy))),
-            actions: _getEmptyActionDatas(_target, MockTarget.setValue.selector, address(yesPolicy))
+            erc7739Policies: _getEmptyERC7739Data("0", new PolicyData[](0)),
+            actions: _getEmptyActionDatas(_target, MockTarget.setValue.selector, address(yesPolicy)),
+            canUsePaymaster: true
         });
 
         permissionId = smartSession.getPermissionId(session);
@@ -163,7 +165,8 @@ contract SessionManagementTest is BaseTest {
             sessionValidatorInitData: "mockInitData",
             userOpPolicies: userOpPolicyData,
             erc7739Policies: _getEmptyERC7739Data("0", new PolicyData[](0)),
-            actions: _getEmptyActionDatas(address(target), MockTarget.setValue.selector, address(yesPolicy2))
+            actions: _getEmptyActionDatas(address(target), MockTarget.setValue.selector, address(yesPolicy2)),
+            canUsePaymaster: true
         });
 
         enableSessions = _makeMultiChainEnableData(permissionId, session, instance, SmartSessionMode.UNSAFE_ENABLE);
@@ -222,8 +225,9 @@ contract SessionManagementTest is BaseTest {
             salt: salt,
             sessionValidatorInitData: "mockInitData",
             userOpPolicies: _getEmptyPolicyDatas(address(yesPolicy)),
-            erc7739Policies: _getEmptyERC7739Data("mockContent", _getEmptyPolicyDatas(address(yesPolicy))),
-            actions: _getEmptyActionDatas(_target, MockTarget.setValue.selector, address(yesPolicy))
+            erc7739Policies: _getEmptyERC7739Data("0", new PolicyData[](0)),
+            actions: _getEmptyActionDatas(_target, MockTarget.setValue.selector, address(yesPolicy)),
+            canUsePaymaster: true
         });
 
         // predict permissionId correlating to EnableSession
@@ -266,8 +270,9 @@ contract SessionManagementTest is BaseTest {
             salt: bytes32("salt"),
             sessionValidatorInitData: "mockInitData",
             userOpPolicies: new PolicyData[](0),
-            erc7739Policies: _getEmptyERC7739Data("mockContent", _getEmptyPolicyDatas(address(yesPolicy))),
-            actions: actionData
+            erc7739Policies: _getEmptyERC7739Data("0", new PolicyData[](0)),
+            actions: actionData,
+            canUsePaymaster: true
         });
 
         PermissionId multiActionPermissionId = smartSession.getPermissionId(session);

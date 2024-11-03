@@ -160,7 +160,7 @@ contract EnumerableSetTest is Test {
         for (uint256 j; j < length; j++) {
             testValues[j] = _testValues[j];
         }
-        
+
         uint256 uniqueCount = 0;
         for (uint256 i = 0; i < testValues.length; i++) {
             if (addressSet.add(ACCOUNT, testValues[i])) {

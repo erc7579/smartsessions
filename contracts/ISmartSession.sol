@@ -49,6 +49,7 @@ interface ISmartSession {
     error UnsupportedPolicy(address policy);
     error UnsupportedSmartSessionMode(SmartSessionMode mode);
     error ForbiddenValidationData();
+    error PaymasterValidationNotEnabled(PermissionId permissionId);
 
     event NonceIterated(PermissionId permissionId, address account, uint256 newValue);
     event SessionValidatorEnabled(PermissionId permissionId, address sessionValidator, address smartAccount);
@@ -58,6 +59,8 @@ interface ISmartSession {
     event PolicyEnabled(PermissionId permissionId, PolicyType policyType, address policy, address smartAccount);
     event SessionCreated(PermissionId permissionId, address account);
     event SessionRemoved(PermissionId permissionId, address smartAccount);
+
+    event PermissionIdCanUsePaymaster(PermissionId permissionId, address smartAccount, bool enabled);
 
     /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
     /*                           ERC7579                          */
@@ -122,7 +125,7 @@ interface ISmartSession {
     function disableERC1271Policies(
         PermissionId permissionId,
         address[] memory policies,
-        string[] calldata contents
+        ERC7739Context[] calldata contexts
     )
         external;
     function disableUserOpPolicies(PermissionId permissionId, address[] memory policies) external;
