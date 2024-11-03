@@ -42,6 +42,7 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
     EnumerableSet.Bytes32Set internal $enabledSessions;
     EnumerableERC7739Config internal $enabledERC7739;
     mapping(PermissionId permissionId => mapping(address smartAccount => SignerConf conf)) internal $sessionValidators;
+    mapping(PermissionId permissionId => mapping(address smartAccount => bool canUsePaymaster)) public $canUsePaymaster;
 
     /**
      * Before enabling policies, we need to check if the session is enabled for the caller and the given permission
@@ -110,6 +111,12 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
             permissionId: permissionId,
             policies: policies
         });
+    }
+
+    function setCanUsePaymaster(PermissionId permissionId, bool enabled) external {
+        $enabledSessions.requirePermissionIdEnabled(permissionId);
+        $canUsePaymaster[permissionId][msg.sender] = true;
+        emit PermissionIdCanUsePaymaster(permissionId, msg.sender, enabled);
     }
 
     /**
@@ -306,6 +313,8 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
             // Add the session to the list of enabled sessions for the caller
             $enabledSessions.add({ account: msg.sender, value: PermissionId.unwrap(permissionId) });
 
+            if (session.canUsePaymaster) $canUsePaymaster[permissionId][msg.sender] = true;
+
             // Enable the ISessionValidator for this session
             if (!_isISessionValidatorSet(permissionId, msg.sender)) {
                 $sessionValidators.enable({
@@ -345,6 +354,7 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
         $actionPolicies.enabledActionIds[permissionId].removeAll(msg.sender);
 
         $sessionValidators.disable({ permissionId: permissionId, smartAccount: msg.sender });
+        delete $canUsePaymaster[permissionId][msg.sender];
 
         // Remove all ERC1271 policies for this session
         $enabledSessions.remove({ account: msg.sender, value: PermissionId.unwrap(permissionId) });

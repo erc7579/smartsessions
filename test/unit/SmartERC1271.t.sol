@@ -59,7 +59,8 @@ contract SmartSessionERC1271Test is BaseTest {
             sessionValidatorInitData: abi.encodePacked(sessionSigner1.addr),
             userOpPolicies: _getEmptyPolicyDatas(address(yesPolicy)),
             erc7739Policies: _getEmptyERC7739Data("Permit(bytes32 stuff)Permit", _getEmptyPolicyDatas(address(yesPolicy))),
-            actions: new ActionData[](0)
+            actions: new ActionData[](0),
+            canUsePaymaster: true
         });
 
         Session memory session_invalid = Session({
@@ -68,7 +69,8 @@ contract SmartSessionERC1271Test is BaseTest {
             sessionValidatorInitData: abi.encodePacked(sessionSigner1.addr),
             userOpPolicies: _getEmptyPolicyDatas(address(yesPolicy)),
             erc7739Policies: _getEmptyERC7739Data("Permit(bytes32 stuff)", new PolicyData[](0)),
-            actions: new ActionData[](0)
+            actions: new ActionData[](0),
+            canUsePaymaster: true
         });
 
         Session[] memory sessions = new Session[](2);

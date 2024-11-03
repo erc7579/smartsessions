@@ -119,7 +119,8 @@ contract UniversalActionPolicyTest is BaseTest {
             sessionValidatorInitData: "mockInitData",
             userOpPolicies: new PolicyData[](0),
             erc7739Policies: _getEmptyERC7739Data("0", new PolicyData[](0)),
-            actions: actionDatas
+            actions: actionDatas,
+            canUsePaymaster: true
         });
 
         permissionId = smartSession.getPermissionId(session);
