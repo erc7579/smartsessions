@@ -149,4 +149,6 @@ interface ISmartSession {
     function getNonce(PermissionId permissionId, address account) external view returns (uint256);
     function getPermissionId(Session memory session) external pure returns (PermissionId permissionId);
     function isPermissionEnabled(PermissionId permissionId, address account) external view returns (bool);
+
+    function getPermissionIDs(address account) external view returns (PermissionId[] memory permissionIds);
 }

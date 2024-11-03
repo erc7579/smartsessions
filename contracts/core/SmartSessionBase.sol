@@ -68,6 +68,13 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
         _;
     }
 
+    function getPermissionIDs(address account) external view returns (PermissionId[] memory permissionIds) {
+        bytes32[] memory _permissionIds = $enabledSessions.values(account);
+        assembly {
+            permissionIds := _permissionIds
+        }
+    }
+
     /**
      * @notice Enable user operation policies for a specific permission
      * @dev This function allows adding or updating user operation policies
