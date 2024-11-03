@@ -49,6 +49,7 @@ interface ISmartSession {
     error UnsupportedPolicy(address policy);
     error UnsupportedSmartSessionMode(SmartSessionMode mode);
     error ForbiddenValidationData();
+    error PaymasterValidationNotEnabled(PermissionId permissionId);
 
     event NonceIterated(PermissionId permissionId, address account, uint256 newValue);
     event SessionValidatorEnabled(PermissionId permissionId, address sessionValidator, address smartAccount);

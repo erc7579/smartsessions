@@ -32,6 +32,8 @@ import { ValidationDataLib } from "./lib/ValidationDataLib.sol";
 import { IdLib } from "./lib/IdLib.sol";
 import { SmartSessionModeLib } from "./lib/SmartSessionModeLib.sol";
 
+import "forge-std/console2.sol";
+
 /**
  * @title SmartSession
  * @author [alphabetically] Filipp Makarov (Biconomy) & zeroknots.eth (Rhinestone)
@@ -257,8 +259,9 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
             // any
             // paymasters. Should this be the case, a UserOpPolicy must run, this could be a yes policy, or a specific
             // UserOpPolicy that can destructure the paymasterAndData and inspect it
-            if (userOp.paymasterAndData.length != 0 && $canUsePaymaster[permissionId][account]) {
-                minPolicies = 1;
+            if (userOp.paymasterAndData.length != 0) {
+                if ($canUsePaymaster[permissionId][account]) minPolicies = 1;
+                else revert PaymasterValidationNotEnabled(permissionId);
             }
             /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
             /*                    Check UserOp Policies                   */
