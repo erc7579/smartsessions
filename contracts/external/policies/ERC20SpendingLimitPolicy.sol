@@ -170,9 +170,10 @@ contract ERC20SpendingLimitPolicy is IActionPolicy {
             // otherwise it should spend the limit
             return (true, amount);
         } else if (functionSelector == IERC20.transferFrom.selector) {
-            (address from, address to, uint256 amount) = abi.decode(callData[4:], (address, address, uint256));
+            (, address to, uint256 amount) = abi.decode(callData[4:], (address, address, uint256));
             if (to == account) {
-                // Only count transfers FROM account TO others
+                // if transfer is from and to account, it should revert in the token contract
+                // if transfer is from somewhere to account, it should not spend the limit, so amount is 0
                 return (true, 0);
             }
             // from is account and to is not => spend tokens from account
