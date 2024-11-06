@@ -9,11 +9,11 @@ import { IERC165 } from "forge-std/interfaces/IERC165.sol";
 import { EnumerableSet } from "../../utils/EnumerableSet4337.sol";
 
 /**
- * @title ERC20SpendingLimitPolicy
- * @notice A policy that allows transferring and approving ERC20 tokens up to a certain limit.
+ * @title ERC20TransferLimitPolicy
+ * @notice A policy that allows transferring ERC20 tokens up to a certain limit.
  * @dev Every config can allow multiple tokens with its own limit each.
  */
-contract ERC20SpendingLimitPolicy is IActionPolicy {
+contract ERC20TransferLimitPolicy is IActionPolicy {
     using EnumerableSet for EnumerableSet.AddressSet;
 
     event TokenSpent(
@@ -25,7 +25,6 @@ contract ERC20SpendingLimitPolicy is IActionPolicy {
 
     struct TokenPolicyData {
         uint256 alreadySpent;
-        uint256 approvedAmount;
         uint256 spendingLimit;
     }
 
@@ -59,7 +58,6 @@ contract ERC20SpendingLimitPolicy is IActionPolicy {
                 // clear limit and spent
                 $.spendingLimit = 0;
                 $.alreadySpent = 0;
-                $.approvedAmount = 0;
             }
             // clear inited tokens
             $t.removeAll(account);
@@ -101,30 +99,19 @@ contract ERC20SpendingLimitPolicy is IActionPolicy {
         returns (uint256)
     {
         if (value != 0) return VALIDATION_FAILED;
-        (bool isTokenTransfer, uint256 amount) = _isTokenTransferOrApprove(account, callData);
+        (bool isTokenTransfer, uint256 amount) = _isTokenTransfer(account, callData);
         if (!isTokenTransfer) return VALIDATION_FAILED;
 
         TokenPolicyData storage $ = _getPolicy({ id: id, userOpSender: account, token: target });
-
-        if (
-            bytes4(callData[0:4]) == IERC20.approve.selector
-                || bytes4(callData[0:4]) == bytes4(keccak256("increaseAllowance(address,uint256)"))
-        ) {
-            //increase approval case
-            $.approvedAmount += amount;
-        } else {
-            // transfer or transferFrom case
-            $.alreadySpent += amount;
-        }
-
-        uint256 totalSpentAndApproved = $.alreadySpent + $.approvedAmount;
+        $.alreadySpent += amount;
+        uint256 totalSpent = $.alreadySpent;
         uint256 spendingLimit = $.spendingLimit;
 
-        if (totalSpentAndApproved > spendingLimit) {
+        if (totalSpent > spendingLimit) {
             return VALIDATION_FAILED;
         }
 
-        emit TokenSpent(id, msg.sender, target, account, amount, spendingLimit - totalSpentAndApproved);
+        emit TokenSpent(id, msg.sender, target, account, amount, spendingLimit - totalSpent);
         return VALIDATION_SUCCESS;
     }
 
@@ -136,7 +123,6 @@ contract ERC20SpendingLimitPolicy is IActionPolicy {
      * @param userOpSender The user operation sender address.
      * @return spendingLimit The spending limit.
      * @return alreadySpent The already spent amount.
-     * @return approvedAmount The approved amount.
      */
     function getPolicyData(
         ConfigId id,
@@ -146,14 +132,14 @@ contract ERC20SpendingLimitPolicy is IActionPolicy {
     )
         external
         view
-        returns (uint256 spendingLimit, uint256 alreadySpent, uint256 approvedAmount)
+        returns (uint256 spendingLimit, uint256 alreadySpent)
     {
         if (token == address(0)) revert InvalidTokenAddress(token);
         if (!$tokens[id][multiplexer].contains(userOpSender, token)) {
             revert InvalidTokenAddress(token);
         }
         TokenPolicyData memory $ = $policyData[id][multiplexer][token][userOpSender];
-        return ($.spendingLimit, $.alreadySpent, $.approvedAmount);
+        return ($.spendingLimit, $.alreadySpent);
     }
 
     /**
@@ -175,26 +161,10 @@ contract ERC20SpendingLimitPolicy is IActionPolicy {
      * @dev we do not check if the transfer is from self to self, as this should not be allowed by token itself
      * returns bool => isTransfer, amount spent
      */
-    function _isTokenTransferOrApprove(
-        address account,
-        bytes calldata callData
-    )
-        internal
-        pure
-        returns (bool, uint256)
-    {
+    function _isTokenTransfer(address account, bytes calldata callData) internal pure returns (bool, uint256) {
         bytes4 functionSelector = bytes4(callData[0:4]);
 
-        if (functionSelector == IERC20.approve.selector) {
-            (, uint256 amount) = abi.decode(callData[4:], (address, uint256));
-            // if approve is to account itself, it should revert in the token contract
-            // otherwise it should spend the limit
-            return (true, amount);
-        } else if (functionSelector == bytes4(keccak256("increaseAllowance(address,uint256)"))) {
-            // increase allowance is deprecated interface by OZ, can be used by some tokens
-            (, uint256 amount) = abi.decode(callData[4:], (address, uint256));
-            return (true, amount);
-        } else if (functionSelector == IERC20.transfer.selector) {
+        if (functionSelector == IERC20.transfer.selector) {
             (, uint256 amount) = abi.decode(callData[4:], (address, uint256));
             // if transfer is to account, it should revert in the token contract
             // otherwise it should spend the limit

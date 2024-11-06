@@ -6,15 +6,14 @@ import "contracts/lib/IdLib.sol";
 import "contracts/external/policies/ERC20SpendingLimitPolicy.sol";
 import "solmate/test/utils/mocks/MockERC20.sol";
 import "forge-std/interfaces/IERC20.sol";
-import { console2 as console } from "forge-std/console2.sol";
 
-contract SpendingLimitTest is BaseTest {
+contract ERC20SpendingLimitTest is BaseTest {
     using IdLib for *;
     using ModuleKitHelpers for *;
     using ModuleKitUserOp for *;
     using EncodeLib for PermissionId;
 
-    ERC20SpendingLimitPolicy spendingLimit;
+    ERC20SpendingLimitPolicy limit;
 
     MockERC20 token;
     PermissionId permissionId;
@@ -22,34 +21,25 @@ contract SpendingLimitTest is BaseTest {
     function setUp() public virtual override {
         super.setUp();
 
-        spendingLimit = new ERC20SpendingLimitPolicy();
+        limit = new ERC20SpendingLimitPolicy();
         token = new MockERC20("MockToken", "MTK", 18);
 
         token.mint(instance.account, 100 ether);
 
         address _target = address(token);
-        ActionId actionId = _target.toActionId(IERC20.transfer.selector);
 
-        address[] memory spendingLimitTokens = new address[](1);
-        uint256[] memory spendingLimitLimits = new uint256[](1);
-        spendingLimitTokens[0] = address(token);
-        spendingLimitLimits[0] = 3 ether;
+        address[] memory limitTokens = new address[](1);
+        uint256[] memory limitLimits = new uint256[](1);
+        limitTokens[0] = address(token);
+        limitLimits[0] = 3 ether;
 
         PolicyData[] memory policyDatas = new PolicyData[](1);
-        policyDatas[0] = PolicyData({
-            policy: address(spendingLimit),
-            initData: abi.encode(spendingLimitTokens, spendingLimitLimits)
-        });
+        policyDatas[0] = PolicyData({ policy: address(limit), initData: abi.encode(limitTokens, limitLimits) });
 
-        ActionData[] memory actionDatas = new ActionData[](2);
+        ActionData[] memory actionDatas = new ActionData[](1);
         actionDatas[0] = ActionData({
-            actionTarget: _target,
-            actionTargetSelector: IERC20.transfer.selector,
-            actionPolicies: policyDatas
-        });
-        actionDatas[1] = ActionData({
-            actionTarget: _target,
-            actionTargetSelector: IERC20.transferFrom.selector,
+            actionTarget: FALLBACK_TARGET_FLAG,
+            actionTargetSelector: FALLBACK_TARGET_SELECTOR_FLAG,
             actionPolicies: policyDatas
         });
 
@@ -71,63 +61,180 @@ contract SpendingLimitTest is BaseTest {
         smartSession.enableSessions(enableSessionsArray);
     }
 
-    function test_transferWithSession() public {
-        address recipient = makeAddr("recipient");
+    function test_approveWithSession() public {
+        address spender = makeAddr("spender");
 
         UserOpData memory userOpData = instance.getExecOps({
+            target: address(token),
+            value: 0,
+            callData: abi.encodeCall(IERC20.approve, (spender, 1 ether)),
+            txValidator: address(smartSession)
+        });
+        userOpData.userOp.signature = EncodeLib.encodeUse({ permissionId: permissionId, sig: hex"4141414141" });
+        userOpData.execUserOps();
+        assertEq(token.allowance(instance.account, spender), 1 ether);
+
+        userOpData = instance.getExecOps({
+            target: address(token),
+            value: 0,
+            callData: abi.encodeCall(IERC20.approve, (spender, 2.1 ether)),
+            txValidator: address(smartSession)
+        });
+        userOpData.userOp.signature = EncodeLib.encodeUse({ permissionId: permissionId, sig: hex"4141414141" });
+        instance.expect4337Revert();
+        userOpData.execUserOps();
+    }
+
+    function test_multipleApprovalsWithinLimit() public {
+        address spender1 = makeAddr("spender1");
+        address spender2 = makeAddr("spender2");
+
+        // First approval of 1 ether
+        UserOpData memory userOpData = instance.getExecOps({
+            target: address(token),
+            value: 0,
+            callData: abi.encodeCall(IERC20.approve, (spender1, 1 ether)),
+            txValidator: address(smartSession)
+        });
+        userOpData.userOp.signature = EncodeLib.encodeUse({ permissionId: permissionId, sig: hex"4141414141" });
+        userOpData.execUserOps();
+        assertEq(token.allowance(instance.account, spender1), 1 ether);
+
+        // Second approval of 1.5 ether
+        userOpData = instance.getExecOps({
+            target: address(token),
+            value: 0,
+            callData: abi.encodeCall(IERC20.approve, (spender2, 1.5 ether)),
+            txValidator: address(smartSession)
+        });
+        userOpData.userOp.signature = EncodeLib.encodeUse({ permissionId: permissionId, sig: hex"4141414141" });
+        userOpData.execUserOps();
+        assertEq(token.allowance(instance.account, spender2), 1.5 ether);
+
+        // Third approval should fail as it exceeds the 3 ether limit
+        userOpData = instance.getExecOps({
+            target: address(token),
+            value: 0,
+            callData: abi.encodeCall(IERC20.approve, (spender1, 0.6 ether)),
+            txValidator: address(smartSession)
+        });
+        userOpData.userOp.signature = EncodeLib.encodeUse({ permissionId: permissionId, sig: hex"4141414141" });
+        instance.expect4337Revert();
+        userOpData.execUserOps();
+    }
+
+    function test_transferAfterApprove() public {
+        address spender = makeAddr("spender");
+        address recipient = makeAddr("recipient");
+
+        // First approve 1 ether
+        UserOpData memory userOpData = instance.getExecOps({
+            target: address(token),
+            value: 0,
+            callData: abi.encodeCall(IERC20.approve, (spender, 1 ether)),
+            txValidator: address(smartSession)
+        });
+        userOpData.userOp.signature = EncodeLib.encodeUse({ permissionId: permissionId, sig: hex"4141414141" });
+        userOpData.execUserOps();
+        assertEq(token.allowance(instance.account, spender), 1 ether);
+
+        // Then transfer 1.5 ether
+        userOpData = instance.getExecOps({
+            target: address(token),
+            value: 0,
+            callData: abi.encodeCall(IERC20.transfer, (recipient, 1.5 ether)),
+            txValidator: address(smartSession)
+        });
+        userOpData.userOp.signature = EncodeLib.encodeUse({ permissionId: permissionId, sig: hex"4141414141" });
+        userOpData.execUserOps();
+        assertEq(token.balanceOf(recipient), 1.5 ether);
+
+        // Try to approve 0.6 more - should fail as total would be 3.1 ether
+        userOpData = instance.getExecOps({
+            target: address(token),
+            value: 0,
+            callData: abi.encodeCall(IERC20.approve, (spender, 0.6 ether)),
+            txValidator: address(smartSession)
+        });
+        userOpData.userOp.signature = EncodeLib.encodeUse({ permissionId: permissionId, sig: hex"4141414141" });
+        instance.expect4337Revert();
+        userOpData.execUserOps();
+    }
+
+    function test_approveAfterTransfer() public {
+        address recipient = makeAddr("recipient");
+        address spender = makeAddr("spender");
+
+        // First transfer 1.5 ether
+        UserOpData memory userOpData = instance.getExecOps({
+            target: address(token),
+            value: 0,
+            callData: abi.encodeCall(IERC20.transfer, (recipient, 1.5 ether)),
+            txValidator: address(smartSession)
+        });
+        userOpData.userOp.signature = EncodeLib.encodeUse({ permissionId: permissionId, sig: hex"4141414141" });
+        userOpData.execUserOps();
+        assertEq(token.balanceOf(recipient), 1.5 ether);
+
+        // Then approve 1 ether
+        userOpData = instance.getExecOps({
+            target: address(token),
+            value: 0,
+            callData: abi.encodeCall(IERC20.approve, (spender, 1 ether)),
+            txValidator: address(smartSession)
+        });
+        userOpData.userOp.signature = EncodeLib.encodeUse({ permissionId: permissionId, sig: hex"4141414141" });
+        userOpData.execUserOps();
+        assertEq(token.allowance(instance.account, spender), 1 ether);
+
+        // Try to transfer 0.6 more - should fail as total would be 3.1 ether
+        userOpData = instance.getExecOps({
+            target: address(token),
+            value: 0,
+            callData: abi.encodeCall(IERC20.transfer, (recipient, 0.6 ether)),
+            txValidator: address(smartSession)
+        });
+        userOpData.userOp.signature = EncodeLib.encodeUse({ permissionId: permissionId, sig: hex"4141414141" });
+        instance.expect4337Revert();
+        userOpData.execUserOps();
+    }
+
+    function test_approveTransferAndTransferFrom() public {
+        address spender = makeAddr("spender");
+        address recipient = makeAddr("recipient");
+
+        // First approve 1 ether to spender
+        UserOpData memory userOpData = instance.getExecOps({
+            target: address(token),
+            value: 0,
+            callData: abi.encodeCall(IERC20.approve, (spender, 1 ether)),
+            txValidator: address(smartSession)
+        });
+        userOpData.userOp.signature = EncodeLib.encodeUse({ permissionId: permissionId, sig: hex"4141414141" });
+        userOpData.execUserOps();
+        assertEq(token.allowance(instance.account, spender), 1 ether);
+
+        // Direct transfer of 1 ether
+        userOpData = instance.getExecOps({
             target: address(token),
             value: 0,
             callData: abi.encodeCall(IERC20.transfer, (recipient, 1 ether)),
             txValidator: address(smartSession)
         });
-        // session key signs the userOP NOTE: this is using encodeUse() since the session is already enabled
         userOpData.userOp.signature = EncodeLib.encodeUse({ permissionId: permissionId, sig: hex"4141414141" });
         userOpData.execUserOps();
         assertEq(token.balanceOf(recipient), 1 ether);
 
+        // TransferFrom via spender
+        vm.prank(spender);
+        token.transferFrom(instance.account, recipient, 0.5 ether);
+        assertEq(token.balanceOf(recipient), 1.5 ether);
+
+        // Try to approve 2 more - should fail as we're at limit
         userOpData = instance.getExecOps({
             target: address(token),
             value: 0,
-            callData: abi.encodeCall(IERC20.transfer, (recipient, 2.1 ether)),
-            txValidator: address(smartSession)
-        });
-
-        userOpData.userOp.signature = EncodeLib.encodeUse({ permissionId: permissionId, sig: hex"4141414141" });
-        instance.expect4337Revert();
-        userOpData.execUserOps();
-    }
-
-    function test_multipleTransfersWithinLimit() public {
-        address recipient1 = makeAddr("recipient1");
-        address recipient2 = makeAddr("recipient2");
-
-        // First transfer of 1 ether
-        UserOpData memory userOpData = instance.getExecOps({
-            target: address(token),
-            value: 0,
-            callData: abi.encodeCall(IERC20.transfer, (recipient1, 1 ether)),
-            txValidator: address(smartSession)
-        });
-        userOpData.userOp.signature = EncodeLib.encodeUse({ permissionId: permissionId, sig: hex"4141414141" });
-        userOpData.execUserOps();
-        assertEq(token.balanceOf(recipient1), 1 ether);
-
-        // Second transfer of 1.5 ether
-        userOpData = instance.getExecOps({
-            target: address(token),
-            value: 0,
-            callData: abi.encodeCall(IERC20.transfer, (recipient2, 1.5 ether)),
-            txValidator: address(smartSession)
-        });
-        userOpData.userOp.signature = EncodeLib.encodeUse({ permissionId: permissionId, sig: hex"4141414141" });
-        userOpData.execUserOps();
-        assertEq(token.balanceOf(recipient2), 1.5 ether);
-
-        // Third transfer should fail as it exceeds the 3 ether limit
-        userOpData = instance.getExecOps({
-            target: address(token),
-            value: 0,
-            callData: abi.encodeCall(IERC20.transfer, (recipient1, 0.6 ether)),
+            callData: abi.encodeCall(IERC20.approve, (spender, 2 ether)),
             txValidator: address(smartSession)
         });
         userOpData.userOp.signature = EncodeLib.encodeUse({ permissionId: permissionId, sig: hex"4141414141" });
@@ -135,31 +242,49 @@ contract SpendingLimitTest is BaseTest {
         userOpData.execUserOps();
     }
 
-    function test_transferFromWithSession() public {
-        address spender = makeAddr("spender");
+    function test_mixedOperationsUpToLimit() public {
+        address spender1 = makeAddr("spender1");
+        address spender2 = makeAddr("spender2");
         address recipient = makeAddr("recipient");
 
-        vm.prank(instance.account);
-        token.approve(instance.account, 10 ether);
-
+        // Approve 0.5 ether to spender1
         UserOpData memory userOpData = instance.getExecOps({
             target: address(token),
             value: 0,
-            callData: abi.encodeCall(IERC20.transferFrom, (instance.account, recipient, 1 ether)),
+            callData: abi.encodeCall(IERC20.approve, (spender1, 0.5 ether)),
             txValidator: address(smartSession)
         });
         userOpData.userOp.signature = EncodeLib.encodeUse({ permissionId: permissionId, sig: hex"4141414141" });
         userOpData.execUserOps();
-        assertEq(token.balanceOf(recipient), 1 ether);
 
+        // Transfer 1 ether
         userOpData = instance.getExecOps({
             target: address(token),
             value: 0,
-            callData: abi.encodeCall(IERC20.transferFrom, (instance.account, recipient, 2.1 ether)),
+            callData: abi.encodeCall(IERC20.transfer, (recipient, 1 ether)),
             txValidator: address(smartSession)
         });
         userOpData.userOp.signature = EncodeLib.encodeUse({ permissionId: permissionId, sig: hex"4141414141" });
-        instance.expect4337Revert();
+        userOpData.execUserOps();
+
+        // Increase allowance for spender2 by 0.5 ether
+        userOpData = instance.getExecOps({
+            target: address(token),
+            value: 0,
+            callData: abi.encodeCall(IERC20.approve, (spender2, 0.5 ether)),
+            txValidator: address(smartSession)
+        });
+        userOpData.userOp.signature = EncodeLib.encodeUse({ permissionId: permissionId, sig: hex"4141414141" });
+        userOpData.execUserOps();
+
+        // Transfer remaining 1 ether - should succeed as we're exactly at limit
+        userOpData = instance.getExecOps({
+            target: address(token),
+            value: 0,
+            callData: abi.encodeCall(IERC20.transfer, (recipient, 1 ether)),
+            txValidator: address(smartSession)
+        });
+        userOpData.userOp.signature = EncodeLib.encodeUse({ permissionId: permissionId, sig: hex"4141414141" });
         userOpData.execUserOps();
     }
 }
