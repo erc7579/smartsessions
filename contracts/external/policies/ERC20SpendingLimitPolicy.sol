@@ -104,12 +104,14 @@ contract ERC20SpendingLimitPolicy is IActionPolicy {
 
         TokenPolicyData storage $ = _getPolicy({ id: id, userOpSender: account, token: target });
         $.alreadySpent += amount;
+        uint256 alreadySpent = $.alreadySpent;
+        uint256 spendingLimit = $.spendingLimit;
 
-        if ($.alreadySpent > $.spendingLimit) {
+        if (alreadySpent > spendingLimit) {
             return VALIDATION_FAILED;
         }
 
-        emit TokenSpent(id, msg.sender, target, account, amount, $.spendingLimit - $.alreadySpent);
+        emit TokenSpent(id, msg.sender, target, account, amount, spendingLimit - alreadySpent);
         return VALIDATION_SUCCESS;
     }
 
@@ -169,11 +171,12 @@ contract ERC20SpendingLimitPolicy is IActionPolicy {
             return (true, amount);
         } else if (functionSelector == IERC20.transferFrom.selector) {
             (address from, address to, uint256 amount) = abi.decode(callData[4:], (address, address, uint256));
-            if (from != account || to == account) {
+            if (to == account) {
                 // Only count transfers FROM account TO others
                 return (true, 0);
             }
             // from is account and to is not => spend tokens from account
+            // or from is not account and to is not => spend approved tokens also considered as spending the limit
             return (true, amount);
         }
         return (false, 0);
