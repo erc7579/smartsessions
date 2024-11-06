@@ -104,14 +104,14 @@ contract ERC20SpendingLimitPolicy is IActionPolicy {
 
         TokenPolicyData storage $ = _getPolicy({ id: id, userOpSender: account, token: target });
         $.alreadySpent += amount;
-        uint256 alreadySpent = $.alreadySpent;
+        uint256 totalSpent = $.alreadySpent;
         uint256 spendingLimit = $.spendingLimit;
 
-        if (alreadySpent > spendingLimit) {
+        if (totalSpent > spendingLimit) {
             return VALIDATION_FAILED;
         }
 
-        emit TokenSpent(id, msg.sender, target, account, amount, spendingLimit - alreadySpent);
+        emit TokenSpent(id, msg.sender, target, account, amount, spendingLimit - totalSpent);
         return VALIDATION_SUCCESS;
     }
 
