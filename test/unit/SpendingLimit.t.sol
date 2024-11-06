@@ -7,13 +7,13 @@ import "contracts/external/policies/ERC20SpendingLimitPolicy.sol";
 import "solmate/test/utils/mocks/MockERC20.sol";
 import "forge-std/interfaces/IERC20.sol";
 
-contract ERC20SpendingLimitTest is BaseTest {
+contract SpendingLimitTest is BaseTest {
     using IdLib for *;
     using ModuleKitHelpers for *;
     using ModuleKitUserOp for *;
     using EncodeLib for PermissionId;
 
-    ERC20SpendingLimitPolicy limit;
+    ERC20SpendingLimitPolicy spendingLimit;
 
     MockERC20 token;
     PermissionId permissionId;
@@ -21,20 +21,23 @@ contract ERC20SpendingLimitTest is BaseTest {
     function setUp() public virtual override {
         super.setUp();
 
-        limit = new ERC20SpendingLimitPolicy();
+        spendingLimit = new ERC20SpendingLimitPolicy();
         token = new MockERC20("MockToken", "MTK", 18);
 
         token.mint(instance.account, 100 ether);
 
         address _target = address(token);
 
-        address[] memory limitTokens = new address[](1);
-        uint256[] memory limitLimits = new uint256[](1);
-        limitTokens[0] = address(token);
-        limitLimits[0] = 3 ether;
+        address[] memory spendingLimitTokens = new address[](1);
+        uint256[] memory spendingLimitLimits = new uint256[](1);
+        spendingLimitTokens[0] = address(token);
+        spendingLimitLimits[0] = 3 ether;
 
         PolicyData[] memory policyDatas = new PolicyData[](1);
-        policyDatas[0] = PolicyData({ policy: address(limit), initData: abi.encode(limitTokens, limitLimits) });
+        policyDatas[0] = PolicyData({
+            policy: address(spendingLimit),
+            initData: abi.encode(spendingLimitTokens, spendingLimitLimits)
+        });
 
         ActionData[] memory actionDatas = new ActionData[](1);
         actionDatas[0] = ActionData({
