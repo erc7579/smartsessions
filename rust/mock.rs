@@ -24,13 +24,10 @@ pub fn mock_action_data() -> ActionData {
 }
 
 pub fn mock_erc7739_context() -> ERC7739Context {
+
+    let app_domain_sep = fixed_bytes!("506da236a69b2f437f547d7900eb350f6a4cb145b6b850a499f29954b24c5739");
     ERC7739Context {
-        appDomainSeparator: EIP712Domain {
-            name: "Forge".to_string(),
-            version: "1".to_string(),
-            chainId: U256::from(1),
-            verifyingContract: address!("6605F8785E09a245DD558e55F9A0f4A508434503")
-        },
+        appDomainSeparator: app_domain_sep,
         contentName: vec!["mockContent".to_string()]
     }
 }

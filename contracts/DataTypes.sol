@@ -86,7 +86,10 @@ struct ActionData {
 }
 
 struct ERC7739Context {
-    EIP712Domain appDomainSeparator;
+    // we can not use a detailed EIP712Domain struct here.
+    // EIP712 specifies: Protocol designers only need to include the fields that make sense for their signing domain.
+    // Unused fields are left out of the struct type.
+    bytes32 appDomainSeparator;
     string[] contentNames;
 }
 
@@ -106,6 +109,11 @@ enum SmartSessionMode {
     USE,
     ENABLE,
     UNSAFE_ENABLE
+}
+
+struct ERC7739ContextHashes {
+    bytes32 appDomainSeparator;
+    bytes32[] contentNameHashes;
 }
 
 /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/

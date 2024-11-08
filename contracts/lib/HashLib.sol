@@ -5,16 +5,41 @@ import "../DataTypes.sol";
 import { EfficientHashLib } from "solady/utils/EfficientHashLib.sol";
 import { MessageHashUtils } from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
+///////  Custom EIP712 types  ////
+//  to keep the documentation of nested EIP712 hashes readable, we trunkated the EIP712 definitions of nested structs.
+// If you want to reproduce the hashes, you can use the following alloy helper tool:
+// https://github.com/erc7579/smartsessions/blob/main/rust/main.rs
+
+// PolicyData(address policy,bytes initData)
 bytes32 constant POLICY_DATA_TYPEHASH = 0xdddac12cd8b10a071bea04226e97ac9490698394e19224abc47a5cfeeeb6ee97;
+
+// ActionData(bytes4 actionTargetSelector,address actionTarget,PolicyData[] actionPolicies)
 bytes32 constant ACTION_DATA_TYPEHASH = 0x35809859dccf8877c407a59527c2f00fb81ca9c198ebcb0c832c3deaa38d3502;
-bytes32 constant EIP712_DOMAIN_TYPEHASH = 0x8b73c3c69bb8fe3d512ecc4cf759cc79239f7b179b0ffacaa9a75d522b39400f;
-bytes32 constant ERC7739_CONTEXT_TYPEHASH = 0xbd0e46d8b677722b4dee5c5ac1cc662ce3ed101a69180757a46296a5f8145637;
-bytes32 constant ERC7739_DATA_TYPEHASH = 0x9765606c364ca1d146d9ce40fd0e31bb17d940908efed36dd2cf76d797d40cee;
-bytes32 constant SESSION_TYPEHASH = 0x8a7e8ff36d259760d0a6d53492c1107d2a8c18ee2b07ab422654db3ce2be7486;
 
-bytes32 constant CHAIN_SESSION_TYPEHASH = 0x9c5d301c45209fe15c8bb85bc08d4234ac9e1d48c0d22b7ab701ae25e640086b;
+// ERC7739Context(bytes32 appDomainSeparator,string[] contentName)
+bytes32 constant ERC7739_CONTEXT_TYPEHASH = 0x006166b2b3a1edaf1da1ce02715d02d4979a4ab93755bff9ec054b0e6a96a1da;
 
-bytes32 constant MULTICHAIN_SESSION_TYPEHASH = 0x9af9262be547d4cc9dd06591bab37efd72d2b9d5fca173afd326b5b5410dac18;
+// ERC7739Data(ERC7739Context[] allowedERC7739Content,PolicyData[] erc1271Policies)
+bytes32 constant ERC7739_DATA_TYPEHASH = 0xdfd9b5718eebaa2484740b4ea6939e96189024c15848f16ccce901118114e152;
+
+// SignedSession(
+//      address account,
+//      address smartSession,
+//      uint8 mode,
+//      address sessionValidator,
+//      bytes32 salt,
+//      bytes sessionValidatorInitData,
+//      PolicyData[] userOpPolicies,
+//      ERC7739Data erc7739Policies,
+//      ActionData[] actions,
+//      uint256 nonce)
+bytes32 constant SESSION_TYPEHASH = 0xc1211ac69ffe18c099e596ce9a4395ae7a1400e7db4ae9a45fcdc0a67709ffa2;
+
+// ChainSession(uint64 chainId,Session session)
+bytes32 constant CHAIN_SESSION_TYPEHASH = 0xce180a7804b7aa8318434f77c9fa28e064a722408ea7b7874d9163732f3ba1d5;
+
+// MultiChainSession(ChainSession[] sessionsAndChainIds)
+bytes32 constant MULTICHAIN_SESSION_TYPEHASH = 0xb8891a1d91e981333b5a0f2583fadff6cb80006149b9f8407608eb4c0a130c7d;
 
 //0xb03948446334eb9b2196d5eb166f69b9d49403eb4a12f36de8d3f9f3cb8e15c3
 bytes32 constant _MULTICHAIN_DOMAIN_TYPEHASH = keccak256("EIP712Domain(string name,string version)");
@@ -178,23 +203,11 @@ library HashLib {
         return a.hash();
     }
 
-    function hashEIP712Domain(EIP712Domain memory erc7739Data) internal pure returns (bytes32) {
-        return keccak256(
-            abi.encode(
-                EIP712_DOMAIN_TYPEHASH,
-                keccak256(bytes(erc7739Data.name)),
-                keccak256(bytes(erc7739Data.version)),
-                erc7739Data.chainId,
-                erc7739Data.verifyingContract
-            )
-        );
-    }
-
     function hashERC7739Context(ERC7739Context memory erc7739Context) internal pure returns (bytes32) {
         return keccak256(
             abi.encode(
                 ERC7739_CONTEXT_TYPEHASH,
-                erc7739Context.appDomainSeparator.hashEIP712Domain(),
+                erc7739Context.appDomainSeparator,
                 hashStringArray(erc7739Context.contentNames)
             )
         );

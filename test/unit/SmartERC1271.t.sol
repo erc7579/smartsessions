@@ -52,7 +52,7 @@ contract SmartSessionERC1271Test is BaseTest {
             chainId: 1,
             verifyingContract: address(0x6605F8785E09a245DD558e55F9A0f4A508434503)
         });
-        appDomainSeparator = domain.hashEIP712Domain();
+        appDomainSeparator = hash(domain);
         Session memory session = Session({
             sessionValidator: ISessionValidator(address(simpleSessionValidator)),
             salt: keccak256("salt"),

@@ -60,7 +60,7 @@ sol! {
     #[allow(missing_docs)]
     #[derive(Serialize)]
     struct ERC7739Context {
-        EIP712Domain appDomainSeparator;
+        bytes32 appDomainSeparator;
         string[] contentName;
     }
 
@@ -103,14 +103,6 @@ sol!{
         bytes32 sessionDigest;
     }
 
-    #[allow(missing_docs)]
-    #[derive(Serialize)]
-    struct EIP712Domain {
-        string name;
-        string version;
-        uint256 chainId;
-        address verifyingContract;
-    }
 }
 
 

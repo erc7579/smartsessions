@@ -4,13 +4,12 @@ pragma solidity ^0.8.25;
 import "../DataTypes.sol";
 import { IPolicy, IUserOpPolicy, IActionPolicy, I1271Policy } from "../interfaces/IPolicy.sol";
 import { ISmartSession } from "../ISmartSession.sol";
-import { IRegistry, ModuleType } from "../interfaces/IRegistry.sol";
+import { ModuleType } from "../interfaces/IRegistry.sol";
 import { EnumerableMap } from "../utils/EnumerableMap4337.sol";
 import { IdLib } from "./IdLib.sol";
 import { HashLib } from "./HashLib.sol";
 import { EnumerableSet } from "../utils/EnumerableSet4337.sol";
 import { ERC165Checker } from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
-import "forge-std/console2.sol";
 
 library ConfigLib {
     using EnumerableMap for EnumerableMap.Bytes32ToBytes32Map;
@@ -180,12 +179,14 @@ library ConfigLib {
     {
         uint256 length = contexts.length;
         for (uint256 i; i < length; i++) {
-            bytes32 appDomainSeparator = contexts[i].appDomainSeparator.hashEIP712Domain();
+            bytes32 appDomainSeparator = contexts[i].appDomainSeparator;
 
             uint256 contentNamesLength = contexts[i].contentNames.length;
+            if (contentNamesLength != 0) {
+                $enabledERC7739.enabledDomainSeparators[permissionId].add(smartAccount, appDomainSeparator);
+            }
             for (uint256 y; y < contentNamesLength; y++) {
                 bytes32 contentHash = contexts[i].contentNames[y].hashERC7739Content();
-                $enabledERC7739.enabledDomainSeparators[permissionId].add(smartAccount, appDomainSeparator);
                 $enabledERC7739.enabledContentNames[permissionId][appDomainSeparator].add(smartAccount, contentHash);
             }
         }
@@ -299,7 +300,7 @@ library ConfigLib {
     {
         uint256 length = contexts.length;
         for (uint256 i; i < length; i++) {
-            bytes32 appDomainSeparator = contexts[i].appDomainSeparator.hashEIP712Domain();
+            bytes32 appDomainSeparator = contexts[i].appDomainSeparator;
 
             uint256 contentNamesLength = contexts[i].contentNames.length;
             for (uint256 y; y < contentNamesLength; y++) {
@@ -326,5 +327,7 @@ library ConfigLib {
             bytes32 appDomainSeparator = domainSeparators[i];
             $enabledERC7739.enabledContentNames[permissionId][appDomainSeparator].removeAll(smartAccount);
         }
+
+        $enabledERC7739.enabledDomainSeparators[permissionId].removeAll(smartAccount);
     }
 }
