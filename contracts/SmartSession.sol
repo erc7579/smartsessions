@@ -7,14 +7,7 @@ import { IERC7579Account } from "erc7579/interfaces/IERC7579Account.sol";
 import { IAccountExecute } from "modulekit/external/ERC4337.sol";
 import { PackedUserOperation } from "modulekit/external/ERC4337.sol";
 import { EIP1271_MAGIC_VALUE, IERC1271 } from "module-bases/interfaces/IERC1271.sol";
-import {
-    ModeCode as ExecutionMode,
-    ExecType,
-    CallType,
-    CALLTYPE_BATCH,
-    CALLTYPE_SINGLE,
-    EXECTYPE_DEFAULT
-} from "erc7579/lib/ModeLib.sol";
+import { ExecType, CallType, CALLTYPE_BATCH, CALLTYPE_SINGLE, EXECTYPE_DEFAULT } from "erc7579/lib/ModeLib.sol";
 
 import { ISmartSession } from "./ISmartSession.sol";
 import { SmartSessionBase } from "./core/SmartSessionBase.sol";
@@ -31,8 +24,6 @@ import { HashLib } from "./lib/HashLib.sol";
 import { ValidationDataLib } from "./lib/ValidationDataLib.sol";
 import { IdLib } from "./lib/IdLib.sol";
 import { SmartSessionModeLib } from "./lib/SmartSessionModeLib.sol";
-
-import "forge-std/console2.sol";
 
 /**
  * @title SmartSession

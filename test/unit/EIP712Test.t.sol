@@ -3,6 +3,8 @@ import "contracts/lib/HashLib.sol";
 import "contracts/DataTypes.sol";
 import { Solarray } from "solarray/Solarray.sol";
 
+bytes32 constant EIP712_DOMAIN_TYPEHASH = 0x8b73c3c69bb8fe3d512ecc4cf759cc79239f7b179b0ffacaa9a75d522b39400f;
+
 contract Helper {
     using HashLib for *;
 
@@ -95,12 +97,7 @@ contract EIP712Test is Test {
     function test_erc7739_hash() public pure {
         ERC7739Context[] memory contexts = new ERC7739Context[](1);
         contexts[0].contentNames = Solarray.strings("mockContent");
-        contexts[0].appDomainSeparator = EIP712Domain({
-            name: "Forge",
-            version: "1",
-            chainId: 1,
-            verifyingContract: address(0x6605F8785E09a245DD558e55F9A0f4A508434503)
-        });
+        contexts[0].appDomainSeparator = 0x506da236a69b2f437f547d7900eb350f6a4cb145b6b850a499f29954b24c5739;
 
         PolicyData[] memory policyDatas = new PolicyData[](1);
         policyDatas[0] = PolicyData({ policy: address(0), initData: "" });
@@ -108,11 +105,11 @@ contract EIP712Test is Test {
         ERC7739Data memory erc7739Data = ERC7739Data({ allowedERC7739Content: contexts, erc1271Policies: policyDatas });
 
         bytes32 contextHash = erc7739Data.allowedERC7739Content[0].hashERC7739Context();
-        bytes32 expected_hash = 0x506da236a69b2f437f547d7900eb350f6a4cb145b6b850a499f29954b24c5739;
+        bytes32 expected_hash = 0xa14177305407015f2a679ca5174b5eb5909103442ee0afc188c16de6b7639a90;
         assertEq(contextHash, expected_hash, "should be same content hash");
 
         bytes32 hash = erc7739Data.hashERC7739Data();
-        expected_hash = 0x48980e1d3e20a9058d6b8d77d1835f32f0c3ca7c5d3d4031749f335f768d4694;
+        expected_hash = 0xafb9c58316bd5fb3daaebf6b22549b226c400dab58a9e081fbb384de7cd73850;
         assertEq(hash, expected_hash, "should be same data hash");
     }
 
@@ -141,7 +138,7 @@ contract EIP712Test is Test {
         );
         assertEq(
             session.erc7739Policies.hashERC7739Data(),
-            0x48980e1d3e20a9058d6b8d77d1835f32f0c3ca7c5d3d4031749f335f768d4694,
+            0xafb9c58316bd5fb3daaebf6b22549b226c400dab58a9e081fbb384de7cd73850,
             "ERC7739Data hashing"
         );
 
@@ -153,7 +150,7 @@ contract EIP712Test is Test {
 
         console2.log("helper addr:", address(helper));
 
-        bytes32 expectedSessionHash = 0xba314bbd236c44d09b70fec50f4778864e550af840f8681de3e1fdd8ff0011d1;
+        bytes32 expectedSessionHash = 0x9cfbe8549fbdaef16de84e9e747fcbcc6063b38f7d30dc36ebea809dac67c240;
 
         bytes32 hash = helper.hash(session);
         // bytes32 expected_hash = 0x4e1b5958b515b1750b96d520eccbb89236e76222301abc68a037111e2efa6687;
@@ -169,12 +166,8 @@ contract EIP712Test is Test {
     {
         ERC7739Context[] memory contents = new ERC7739Context[](1);
         contents[0].contentNames = Solarray.strings("mockContent");
-        contents[0].appDomainSeparator = EIP712Domain({
-            name: "Forge",
-            version: "1",
-            chainId: 1,
-            verifyingContract: address(0x6605F8785E09a245DD558e55F9A0f4A508434503)
-        });
+
+        contents[0].appDomainSeparator = 0x506da236a69b2f437f547d7900eb350f6a4cb145b6b850a499f29954b24c5739;
         return ERC7739Data({ allowedERC7739Content: contents, erc1271Policies: erc1271Policies });
     }
 
@@ -185,5 +178,17 @@ contract EIP712Test is Test {
     function _getEmptyPolicyDatas(address policyContract) internal pure returns (PolicyData[] memory policyDatas) {
         policyDatas = new PolicyData[](1);
         policyDatas[0] = _getEmptyPolicyData(policyContract);
+    }
+
+    function hash(EIP712Domain memory erc7739Data) internal pure returns (bytes32) {
+        return keccak256(
+            abi.encode(
+                EIP712_DOMAIN_TYPEHASH,
+                keccak256(bytes(erc7739Data.name)),
+                keccak256(bytes(erc7739Data.version)),
+                erc7739Data.chainId,
+                erc7739Data.verifyingContract
+            )
+        );
     }
 }

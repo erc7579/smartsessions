@@ -571,14 +571,16 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
     function isERC7739ContentEnabled(
         address account,
         PermissionId permissionId,
+        bytes32 appDomainSeparator,
         string memory content
     )
         external
         view
         returns (bool)
     {
-        // TODO
-        // return $enabledERC7739[permissionId].contains(account, content.hashERC7739Content());
+        return $enabledERC7739.enabledContentNames[permissionId][appDomainSeparator].contains(
+            account, content.hashERC7739Content()
+        );
     }
 
     function getUserOpPolicies(address account, PermissionId permissionId) external view returns (address[] memory) {
@@ -611,10 +613,16 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
     )
         external
         view
-        returns (bytes32[] memory)
+        returns (ERC7739ContextHashes[] memory enabledERC7739ContentHashes)
     {
-        // TODO loop over all enabledDomainSeparators
-        // return $enabledERC7739Content[permissionId].values(account);
+        uint256 length = $enabledERC7739.enabledDomainSeparators[permissionId].length(account);
+        enabledERC7739ContentHashes = new ERC7739ContextHashes[](length);
+        for (uint256 i; i < length; i++) {
+            enabledERC7739ContentHashes[i].appDomainSeparator =
+                $enabledERC7739.enabledDomainSeparators[permissionId].at(account, i);
+            enabledERC7739ContentHashes[i].contentNameHashes = $enabledERC7739.enabledContentNames[permissionId][enabledERC7739ContentHashes[i]
+                .appDomainSeparator].values(account);
+        }
     }
 
     function getSessionValidatorAndConfig(
