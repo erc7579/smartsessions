@@ -44,11 +44,10 @@ contract TimeFramePolicy is IUserOpPolicy, IActionPolicy {
         return _checkTimeFrame(id, msg.sender, account);
     }
 
-    /*
     function check1271SignedAction(
-        bytes32 id,
-        address smartAccount,
+        ConfigId id,
         address,
+        address smartAccount,
         bytes32,
         bytes calldata
     )
@@ -56,8 +55,8 @@ contract TimeFramePolicy is IUserOpPolicy, IActionPolicy {
         view
         returns (bool)
     {
-        require(status[id][smartAccount] == Status.Live);
-        TimeFrameConfig storage config = timeFrameConfigs[id][smartAccount];
+        require(status[id][msg.sender][smartAccount] == Status.Live);
+        TimeFrameConfig storage config = timeFrameConfigs[id][msg.sender][smartAccount];
         if (config.validUntil == 0 && config.validAfter == 0) {
             revert("TimeFramePolicy: policy not installed");
         }
@@ -68,7 +67,6 @@ contract TimeFramePolicy is IUserOpPolicy, IActionPolicy {
         }
         return false;
     }
-    */
 
     function _checkTimeFrame(ConfigId id, address multiplexer, address smartAccount) internal view returns (uint256) {
         require(status[id][multiplexer][smartAccount] == Status.Live);
@@ -76,32 +74,32 @@ contract TimeFramePolicy is IUserOpPolicy, IActionPolicy {
         return _packValidationData(false, config.validUntil, config.validAfter);
     }
 
-    function _onInstallPolicy(ConfigId id, address opSender, bytes calldata _data) internal {
-        require(status[id][msg.sender][opSender] == Status.NA);
-        usedIds[msg.sender][opSender]++;
-        status[id][msg.sender][opSender] = Status.Live;
-        timeFrameConfigs[id][msg.sender][opSender].validUntil = uint48(uint128(bytes16(_data[0:16])));
-        timeFrameConfigs[id][msg.sender][opSender].validAfter = uint48(uint128(bytes16(_data[16:32])));
+    function _onInstallPolicy(ConfigId id, address mxer, address opSender, bytes calldata _data) internal {
+        usedIds[mxer][opSender]++;
+        status[id][mxer][opSender] = Status.Live;
+        timeFrameConfigs[id][mxer][opSender].validUntil = uint48(uint128(bytes16(_data[0:16])));
+        timeFrameConfigs[id][mxer][opSender].validAfter = uint48(uint128(bytes16(_data[16:32])));
     }
 
-    function _onUninstallPolicy(ConfigId id, address opSender, bytes calldata) internal {
-        require(status[id][msg.sender][opSender] == Status.Live);
-        status[id][msg.sender][opSender] = Status.Deprecated;
-        usedIds[msg.sender][opSender]--;
+    function _onUninstallPolicy(ConfigId id, address mxer, address opSender, bytes calldata) internal {
+        status[id][mxer][opSender] = Status.Deprecated;
+        usedIds[mxer][opSender]--;
     }
 
     function onInstall(bytes calldata data) external {
-        (ConfigId id, address opSender, bytes calldata _data) = data.parseInstallData();
-        _onInstallPolicy(id, opSender, _data);
+        (ConfigId id, bytes calldata _data) = data.parseInstallData();
+        require(status[id][msg.sender][msg.sender] == Status.NA);
+        _onInstallPolicy(id, msg.sender, msg.sender, _data);
     }
 
     function initializeWithMultiplexer(address account, ConfigId configId, bytes calldata initData) external {
-        _onInstallPolicy(configId, account, initData);
+        _onInstallPolicy(configId, msg.sender, account, initData);
     }
 
     function onUninstall(bytes calldata data) external {
-        (ConfigId id, address opSender, bytes calldata _data) = data.parseInstallData();
-        _onUninstallPolicy(id, opSender, _data);
+        (ConfigId id, bytes calldata _data) = data.parseInstallData();
+        require(status[id][msg.sender][msg.sender] == Status.Live);
+        _onUninstallPolicy(id, msg.sender, msg.sender, _data);
     }
 
     function isModuleType(uint256 id) external pure returns (bool) {
@@ -112,13 +110,9 @@ contract TimeFramePolicy is IUserOpPolicy, IActionPolicy {
         return usedIds[msg.sender][smartAccount] > 0;
     }
 
-    function isInitialized(address account, ConfigId id) external view override returns (bool) {
-        return status[id][account][account] == Status.Live;
-    }
-
-    function isInitialized(address account, address multiplexer, ConfigId id) external view override returns (bool) {
-        return status[id][multiplexer][account] == Status.Live;
-    }
+    // function isInitialized(address account, address multiplexer, ConfigId id) external view override returns (bool) {
+    //     return status[id][multiplexer][account] == Status.Live;
+    // }
 
     function supportsInterface(bytes4 interfaceID) external pure override returns (bool) {
         return true;

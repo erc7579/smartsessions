@@ -17,11 +17,12 @@ import { ISessionValidator } from "contracts/interfaces/ISessionValidator.sol";
 import { IRegistry } from "contracts/interfaces/IRegistry.sol";
 import "contracts/DataTypes.sol";
 import { EncodeLib } from "contracts/lib/EncodeLib.sol";
-import { YesSigner } from "./mock/YesSigner.sol";
+import { YesSessionValidator } from "./mock/YesSessionValidator.sol";
 import { MockTarget } from "./mock/MockTarget.sol";
 import { YesPolicy } from "./mock/YesPolicy.sol";
+import { SudoPolicy } from "contracts/external/policies/SudoPolicy.sol";
 import { MockRegistry } from "./mock/MockRegistry.sol";
-import { SimpleSigner } from "./mock/SimpleSigner.sol";
+import { SimpleSessionValidator } from "./mock/SimpleSessionValidator.sol";
 import { SimpleGasPolicy } from "./mock/SimpleGasPolicy.sol";
 import { TimeFramePolicy } from "./mock/TimeFramePolicy.sol";
 import { ValueLimitPolicy } from "./mock/ValueLimitPolicy.sol";
@@ -31,9 +32,15 @@ import { MockK1Validator } from "test/mock/MockK1Validator.sol";
 import { UserOperationBuilder } from "test/mock/erc7679/UserOpBuilder.sol";
 import { ModeLib, ModeCode as ExecutionMode } from "erc7579/lib/ModeLib.sol";
 import { HashLib } from "contracts/lib/HashLib.sol";
-import { TestHashLib } from "test/utils/TestHashLib.sol";
+import { TestHashLib } from "test/utils/lib/TestHashLib.sol";
+import { IntegrationEncodeLib } from "test/utils/lib/IntegrationEncodeLib.sol";
+import { IEntryPoint } from "account-abstraction/interfaces/IEntryPoint.sol";
+
+bytes32 constant EIP712_DOMAIN_TYPEHASH = 0x8b73c3c69bb8fe3d512ecc4cf759cc79239f7b179b0ffacaa9a75d522b39400f;
 
 import "forge-std/console2.sol";
+
+bytes32 constant APP_DOMAIN_SEPARATOR = keccak256("0x01");
 
 contract BaseTest is RhinestoneModuleKit, Test {
     using ModuleKitHelpers for *;
@@ -45,8 +52,9 @@ contract BaseTest is RhinestoneModuleKit, Test {
     AccountInstance internal instance;
     SmartSession internal smartSession;
     YesPolicy internal yesPolicy;
-    YesSigner internal yesSigner;
-    SimpleSigner internal simpleSigner;
+    SudoPolicy internal sudoPolicy;
+    YesSessionValidator internal yesSessionValidator;
+    SimpleSessionValidator internal simpleSessionValidator;
     SimpleGasPolicy internal simpleGasPolicy;
     TimeFramePolicy internal timeFramePolicy;
     ValueLimitPolicy internal valueLimitPolicy;
@@ -70,9 +78,10 @@ contract BaseTest is RhinestoneModuleKit, Test {
 
         smartSession = new SmartSession();
         target = new MockTarget();
-        yesSigner = new YesSigner();
+        yesSessionValidator = new YesSessionValidator();
         yesPolicy = new YesPolicy();
-        simpleSigner = new SimpleSigner();
+        sudoPolicy = new SudoPolicy();
+        simpleSessionValidator = new SimpleSessionValidator();
         simpleGasPolicy = new SimpleGasPolicy();
         timeFramePolicy = new TimeFramePolicy();
         valueLimitPolicy = new ValueLimitPolicy();
@@ -138,8 +147,16 @@ contract BaseTest is RhinestoneModuleKit, Test {
         internal
         returns (ERC7739Data memory)
     {
-        string[] memory contents = new string[](1);
-        contents[0] = content;
+        ERC7739Context[] memory contents = new ERC7739Context[](1);
+        contents[0].contentNames = Solarray.strings(content);
+        contents[0].appDomainSeparator = hash(
+            EIP712Domain({
+                name: "Forge",
+                version: "1",
+                chainId: 1,
+                verifyingContract: address(0x6605F8785E09a245DD558e55F9A0f4A508434503)
+            })
+        );
         return ERC7739Data({ allowedERC7739Content: contents, erc1271Policies: erc1271Policies });
     }
 
@@ -160,7 +177,7 @@ contract BaseTest is RhinestoneModuleKit, Test {
             mode: mode
         });
 
-        ChainDigest[] memory chainDigests = EncodeLib.encodeHashesAndChainIds(
+        ChainDigest[] memory chainDigests = IntegrationEncodeLib.encodeHashesAndChainIds(
             Solarray.uint64s(181_818, uint64(block.chainid), 777),
             Solarray.bytes32s(sessionDigest, sessionDigest, sessionDigest)
         );
@@ -171,5 +188,17 @@ contract BaseTest is RhinestoneModuleKit, Test {
             sessionToEnable: session,
             permissionEnableSig: ""
         });
+    }
+
+    function hash(EIP712Domain memory erc7739Data) internal pure returns (bytes32) {
+        return keccak256(
+            abi.encode(
+                EIP712_DOMAIN_TYPEHASH,
+                keccak256(bytes(erc7739Data.name)),
+                keccak256(bytes(erc7739Data.version)),
+                erc7739Data.chainId,
+                erc7739Data.verifyingContract
+            )
+        );
     }
 }

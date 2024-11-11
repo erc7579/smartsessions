@@ -37,7 +37,7 @@ library TestHashLib {
                 multichainSession.sessionsAndChainIds.hashChainSessionArray(modes, nonces, accounts, smartSessions)
             )
         );
-        return MessageHashUtils.toTypedDataHash(_DOMAIN_SEPARATOR, structHash);
+        return MessageHashUtils.toTypedDataHash(_MULTICHAIN_DOMAIN_SEPARATOR, structHash);
     }
 
     function hashChainSessionArray(

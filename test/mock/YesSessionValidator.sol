@@ -3,17 +3,11 @@
 pragma solidity ^0.8.23;
 
 import "contracts/DataTypes.sol";
-
 import { ISessionValidator } from "contracts/interfaces/ISessionValidator.sol";
-import { ECDSA } from "solady/utils/ECDSA.sol";
 
-// removing trusted forwarder dependency here as it is only required during onInstall/onUninstall
-// and not during usage (checkSignature)
-// import { TrustedForwarderWithId } from "contracts/utils/TrustedForwarders.sol";
-
-contract YesSigner is ISessionValidator /*, TrustedForwarderWithId*/ {
+contract YesSessionValidator is ISessionValidator {
     function isModuleType(uint256 id) external pure returns (bool) {
-        return id == 111;
+        return id == ERC7579_MODULE_TYPE_STATELESS_VALIDATOR;
     }
 
     function isInitialized(address multiplexer, address account, ConfigId id) external view returns (bool) {
@@ -25,10 +19,6 @@ contract YesSigner is ISessionValidator /*, TrustedForwarderWithId*/ {
     }
 
     function isInitialized(address multiplexer, address account) external view returns (bool) {
-        return true;
-    }
-
-    function supportsInterface(bytes4 interfaceID) external view returns (bool) {
         return true;
     }
 
@@ -44,4 +34,22 @@ contract YesSigner is ISessionValidator /*, TrustedForwarderWithId*/ {
     {
         return true;
     }
+
+    /**
+     * @dev This function is called by the smart account during installation of the module
+     * @param data arbitrary data that may be required on the module during `onInstall`
+     * initialization
+     *
+     * MUST revert on error (i.e. if module is already enabled)
+     */
+    function onInstall(bytes calldata data) external { }
+
+    /**
+     * @dev This function is called by the smart account during uninstallation of the module
+     * @param data arbitrary data that may be required on the module during `onUninstall`
+     * de-initialization
+     *
+     * MUST revert on error
+     */
+    function onUninstall(bytes calldata data) external { }
 }

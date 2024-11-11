@@ -26,6 +26,8 @@ interface ISmartSession {
     error HashMismatch(bytes32 providedHash, bytes32 computedHash);
     error InvalidData();
     error InvalidActionId();
+    error NoExecutionsInBatch();
+    error InvalidTarget();
     error InvalidEnableSignature(address account, bytes32 hash);
     error InvalidISessionValidator(ISessionValidator sessionValidator);
     error InvalidSelfCall();
@@ -33,24 +35,32 @@ interface ISmartSession {
     error InvalidSessionKeySignature(
         PermissionId permissionId, address sessionValidator, address account, bytes32 userOpHash
     );
+    error SmartSessionModuleAlreadyInstalled(address account);
     error InvalidPermissionId(PermissionId permissionId);
     error InvalidCallTarget();
+    error InvalidMode();
     error InvalidUserOpSender(address sender);
     error NoPoliciesSet(PermissionId permissionId);
     error PartlyEnabledActions();
     error PartlyEnabledPolicies();
-    error PermissionPartlyEnabled();
     error PolicyViolation(PermissionId permissionId, address policy);
     error SignerNotFound(PermissionId permissionId, address account);
     error UnsupportedExecutionType();
     error UnsupportedPolicy(address policy);
     error UnsupportedSmartSessionMode(SmartSessionMode mode);
+    error ForbiddenValidationData();
+    error PaymasterValidationNotEnabled(PermissionId permissionId);
 
     event NonceIterated(PermissionId permissionId, address account, uint256 newValue);
+    event SessionValidatorEnabled(PermissionId permissionId, address sessionValidator, address smartAccount);
+    event SessionValidatorDisabled(PermissionId permissionId, address sessionValidator, address smartAccount);
     event PolicyDisabled(PermissionId permissionId, PolicyType policyType, address policy, address smartAccount);
+    event ActionIdDisabled(PermissionId permissionId, ActionId actionId, address smartAccount);
     event PolicyEnabled(PermissionId permissionId, PolicyType policyType, address policy, address smartAccount);
     event SessionCreated(PermissionId permissionId, address account);
     event SessionRemoved(PermissionId permissionId, address smartAccount);
+
+    event PermissionIdCanUsePaymaster(PermissionId permissionId, address smartAccount, bool enabled);
 
     /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
     /*                           ERC7579                          */
@@ -58,8 +68,9 @@ interface ISmartSession {
 
     /**
      * ERC4337/ERC7579 validation function
-     * the primiary purpose of this function, is to validate if a userOp forwarded by a 7579 account is valid.
-     * This function will disect the userop.singature field, and parse out the provided PermissionId, which identifies a
+     * the primary purpose of this function, is to validate if a userOp forwarded by a 7579 account is valid.
+     * This function will dissect the userop.signature field, and parse out the provided PermissionId, which identifies
+     * a
      * unique ID of a dapp for a specific user. n Policies and one Signer contract are mapped to this Id and will be
      * checked. Only UserOps that pass policies and signer checks, are considered valid.
      * Enable Flow:
@@ -75,7 +86,7 @@ interface ISmartSession {
         returns (ValidationData vd);
     /**
      * ERC7579 compliant onInstall function.
-     * extected to abi.encode(Session[])  for the enable data
+     * expected to abi.encode(Session[]) for the enable data
      *
      * Note: It's possible to install the smartsession module with data = ""
      */
@@ -110,9 +121,14 @@ interface ISmartSession {
     function enableSessions(Session[] memory sessions) external returns (PermissionId[] memory permissionIds);
     function enableUserOpPolicies(PermissionId permissionId, PolicyData[] memory userOpPolicies) external;
     function disableActionPolicies(PermissionId permissionId, ActionId actionId, address[] memory policies) external;
-    function disableERC1271Policies(PermissionId permissionId, address[] memory policies) external;
+    function disableActionId(PermissionId permissionId, ActionId actionId) external;
+    function disableERC1271Policies(
+        PermissionId permissionId,
+        address[] memory policies,
+        ERC7739Context[] calldata contexts
+    )
+        external;
     function disableUserOpPolicies(PermissionId permissionId, address[] memory policies) external;
-
     function removeSession(PermissionId permissionId) external;
     function revokeEnableSignature(PermissionId permissionId) external;
 
@@ -132,16 +148,7 @@ interface ISmartSession {
 
     function getNonce(PermissionId permissionId, address account) external view returns (uint256);
     function getPermissionId(Session memory session) external pure returns (PermissionId permissionId);
-    function isPermissionEnabled(
-        PermissionId permissionId,
-        address account,
-        PolicyData[] memory userOpPolicies,
-        PolicyData[] memory erc1271Policies,
-        ActionData[] memory actions
-    )
-        external
-        view
-        returns (bool isEnabled);
-    function isSessionEnabled(PermissionId permissionId, address account) external view returns (bool);
-    function supportsNestedTypedDataSign() external view returns (bytes32 result);
+    function isPermissionEnabled(PermissionId permissionId, address account) external view returns (bool);
+
+    function getPermissionIDs(address account) external view returns (PermissionId[] memory permissionIds);
 }

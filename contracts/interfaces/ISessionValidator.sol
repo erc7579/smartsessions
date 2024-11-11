@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 pragma solidity ^0.8.23;
 
-import "forge-std/interfaces/IERC165.sol";
+import { IModule } from "erc7579/interfaces/IERC7579Module.sol";
 
 /**
  * ISessionValidator is a contract that validates signatures for a given session.
@@ -15,7 +15,7 @@ import "forge-std/interfaces/IERC165.sol";
  *  sig The signature of userOp
  *  data the config data that is used to validate the signature
  */
-interface ISessionValidator is IERC165 {
+interface ISessionValidator is IModule {
     function validateSignatureWithData(
         bytes32 hash,
         bytes calldata sig,

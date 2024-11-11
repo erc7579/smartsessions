@@ -10,7 +10,7 @@ solmate/=node_modules/solmate/src/
 account-abstraction/=node_modules/@ERC4337/account-abstraction/contracts/
 account-abstraction-v0.6/=node_modules/@ERC4337/account-abstraction-v0.6/contracts/
 
-@openzeppelin/=node_modules/@openzeppelin/
+@openzeppelin/=node_modules/@openzeppelin/contracts
 @safe-global/=node_modules/@safe-global/
 ds-test/=node_modules/ds-test/src/
 erc7579/=node_modules/erc7579/src/
@@ -21,3 +21,7 @@ solarray/=node_modules/solarray/src/
 freshcryptolib/=node_modules/freshcryptolib/solidity/src/
 kernel/=node_modules/@zerodev/kernel/src/
 ExcessivelySafeCall/=node_modules/excessively-safe-call/src/
+excessively-safe-call/=node_modules/excessively-safe-call/src/
+flatbytes/=node_modules/@rhinestone/flatbytes/src/
+@openzeppelin/contracts/=node_modules/@openzeppelin/contracts
+stringutils/=node_modules/stringutils/src/
