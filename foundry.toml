@@ -8,7 +8,7 @@
   fuzz = { runs = 1_000 }
   gas_reports = ["*"]
   optimizer = true
-  optimizer_runs = 10_000
+  optimizer_runs = 10_0
   out = "out"
   script = "script"
   solc = "0.8.27"
@@ -23,24 +23,17 @@
   bytecode_hash = "none"
   cbor_metadata = false
   optimize = true
-  runs = 1000
+  runs = 100000
   via-ir = true
   out = "out"
   src = "wc-cosigner"
   test = "none"
 
 [profile.ci]
-  fuzz = { runs = 10_000 }
+  fuzz = { runs = 10_00000 }
   verbosity = 4
 
 [etherscan]
-  #arbitrum = { key = "${API_KEY_ARBISCAN}" }
-  #avalanche = { key = "${API_KEY_SNOWTRACE}" }
-  #goerli = { key = "${API_KEY_ETHERSCAN}" }
-  #mainnet = { key = "${API_KEY_ETHERSCAN}" }
-  #optimism = { key = "${API_KEY_OPTIMISTIC_ETHERSCAN}" }
-  #polygon = { key = "${API_KEY_POLYGONSCAN}" }
-  sepolia = { key = "${API_KEY_ETHERSCAN}" }
 
 [fmt]
   bracket_spacing = true

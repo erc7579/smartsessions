@@ -1,0 +1,26 @@
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "main"
+  pull_request:
+
+jobs:
+  build:
+    uses: "rhinestonewtf/reusable-workflows/.github/workflows/forge-build.yaml@main"
+
+  release-artifacts:
+    needs: ["build"]
+    uses: "rhinestonewtf/reusable-workflows/.github/workflows/forge-release.yaml@main"
+    strategy:
+      matrix:
+        contract-name:
+          [
+            "SmartSession",
+            "ERC20SpendingLimitPolicy",
+            "SudoPolicy",
+            "UniActionPolicy",
+          ]
+    with:
+      contract-name: ${{ matrix.contract-name }}
+      store-artifacts: true
