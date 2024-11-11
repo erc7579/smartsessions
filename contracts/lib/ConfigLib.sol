@@ -4,39 +4,55 @@ pragma solidity ^0.8.25;
 import "../DataTypes.sol";
 import { IPolicy, IUserOpPolicy, IActionPolicy, I1271Policy } from "../interfaces/IPolicy.sol";
 import { ISmartSession } from "../ISmartSession.sol";
-import { AssociatedArrayLib } from "../utils/AssociatedArrayLib.sol";
-import { IRegistry, ModuleType } from "../interfaces/IRegistry.sol";
+import { ModuleType } from "../interfaces/IRegistry.sol";
+import { EnumerableMap } from "../utils/EnumerableMap4337.sol";
 import { IdLib } from "./IdLib.sol";
 import { HashLib } from "./HashLib.sol";
 import { EnumerableSet } from "../utils/EnumerableSet4337.sol";
+import { ERC165Checker } from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 
 library ConfigLib {
+    using EnumerableMap for EnumerableMap.Bytes32ToBytes32Map;
+    using ERC165Checker for address;
     using FlatBytesLib for FlatBytesLib.Bytes;
     using EnumerableSet for EnumerableSet.AddressSet;
     using EnumerableSet for EnumerableSet.Bytes32Set;
-    using HashLib for string;
-    using AssociatedArrayLib for AssociatedArrayLib.Bytes32Array;
+    using HashLib for *;
     using IdLib for *;
     using ConfigLib for *;
 
     error UnsupportedPolicy(address policy);
 
-    function requireSupportsInterface(address policy, PolicyType policyType) internal view {
-        bytes4 requiredSelector;
-        if (policy == address(0)) {
-            revert UnsupportedPolicy(policy);
-        } else if (policyType == PolicyType.USER_OP) {
-            requiredSelector = IUserOpPolicy.checkUserOpPolicy.selector;
+    function requirePolicyType(address policy, PolicyType policyType) internal view {
+        bool supportsInterface;
+        if (policyType == PolicyType.USER_OP) {
+            supportsInterface = policy.supportsInterface(type(IUserOpPolicy).interfaceId);
         } else if (policyType == PolicyType.ACTION) {
-            requiredSelector = IActionPolicy.checkAction.selector;
+            supportsInterface = policy.supportsInterface(type(IActionPolicy).interfaceId);
         } else if (policyType == PolicyType.ERC1271) {
-            requiredSelector = I1271Policy.check1271SignedAction.selector;
+            supportsInterface = policy.supportsInterface(type(I1271Policy).interfaceId);
         } else {
             revert UnsupportedPolicy(policy);
         }
 
-        if (!IPolicy(policy).supportsInterface(requiredSelector)) {
+        // Revert if the policy does not support the required interface
+        if (!supportsInterface) {
             revert UnsupportedPolicy(policy);
+        }
+    }
+
+    /**
+     * Helper function that ensures that the provided permission ID is enabled for the calling account.
+     */
+    function requirePermissionIdEnabled(
+        EnumerableSet.Bytes32Set storage set,
+        PermissionId permissionId
+    )
+        internal
+        view
+    {
+        if (!set.contains(msg.sender, PermissionId.unwrap(permissionId))) {
+            revert ISmartSession.InvalidPermissionId(permissionId);
         }
     }
 
@@ -48,7 +64,7 @@ library ConfigLib {
      *      adds it to the policy list, initializes it, and emits an event.
      *
      * @param $policy The storage reference to the Policy struct.
-     * @param policyType The type of policy being enabled (e.g., USER_OP, ACTION, ERC1271).
+     * @param policyType The type of policy being enabled defined as erc-7579 module type
      * @param permissionId The identifier of the permission for which policies are being enabled.
      * @param configId The configuration ID associated with the permission and policy type.
      * @param policyDatas An array of PolicyData structs containing policy addresses and initialization data.
@@ -71,17 +87,18 @@ library ConfigLib {
         for (uint256 i; i < lengthConfigs; i++) {
             address policy = policyDatas[i].policy;
 
-            policy.requireSupportsInterface(policyType);
+            policy.requirePolicyType(policyType);
 
             // this will revert if the policy is not attested to
             if (useRegistry) {
-                registry.checkForAccount({ smartAccount: smartAccount, module: policy, moduleType: POLICY_MODULE_TYPE });
+                registry.checkForAccount({ smartAccount: smartAccount, module: policy });
             }
 
             // Add the policy to the list for the given permission and smart account
             $policy.policyList[permissionId].add({ account: smartAccount, value: policy });
 
             // Initialize the policy with the provided configuration
+            // overwrites the config
             IPolicy(policy).initializeWithMultiplexer({
                 account: smartAccount,
                 configId: configId,
@@ -128,9 +145,6 @@ library ConfigLib {
             if (actionId == EMPTY_ACTIONID) revert ISmartSession.InvalidActionId();
 
             // Record the enabled action ID
-            $self.enabledActionIds[permissionId].push(smartAccount, ActionId.unwrap(actionId));
-
-            // Record the enabled action ID
             $self.actionPolicies[actionId].enable({
                 policyType: PolicyType.ACTION,
                 permissionId: permissionId,
@@ -139,6 +153,9 @@ library ConfigLib {
                 smartAccount: smartAccount,
                 useRegistry: useRegistry
             });
+
+            // Record the enabled action ID
+            $self.enabledActionIds[permissionId].add(smartAccount, ActionId.unwrap(actionId));
         }
     }
 
@@ -147,23 +164,31 @@ library ConfigLib {
      *
      * @dev This function marks the provided content as enabled for the specified configuration and smart account.
      *
-     * @param $enabledERC7739Content The storage mapping for enabled ERC7739 content.
-     * @param contents An array of strings representing the content to be enabled.
+     * @param $enabledERC7739 The storage mapping for enabled ERC7739 content.
+     * @param contexts An array of ERC7739Contexts
      * @param permissionId The configuration ID associated with the content.
      * @param smartAccount The address of the smart account for which the content is being enabled.
      */
     function enable(
-        mapping(PermissionId permissionId => EnumerableSet.Bytes32Set) storage $enabledERC7739Content,
-        string[] memory contents,
+        EnumerableERC7739Config storage $enabledERC7739,
+        ERC7739Context[] memory contexts,
         PermissionId permissionId,
         address smartAccount
     )
         internal
     {
-        uint256 length = contents.length;
+        uint256 length = contexts.length;
         for (uint256 i; i < length; i++) {
-            bytes32 contentHash = contents[i].hashERC7739Content();
-            $enabledERC7739Content[permissionId].add(smartAccount, contentHash);
+            bytes32 appDomainSeparator = contexts[i].appDomainSeparator;
+
+            uint256 contentNamesLength = contexts[i].contentNames.length;
+            if (contentNamesLength != 0) {
+                $enabledERC7739.enabledDomainSeparators[permissionId].add(smartAccount, appDomainSeparator);
+            }
+            for (uint256 y; y < contentNamesLength; y++) {
+                bytes32 contentHash = contexts[i].contentNames[y].hashERC7739Content();
+                $enabledERC7739.enabledContentNames[permissionId][appDomainSeparator].add(smartAccount, contentHash);
+            }
         }
     }
 
@@ -189,7 +214,7 @@ library ConfigLib {
         // Check if the sessionValidator is valid and supports the required interface
         if (
             address(sessionValidator) == address(0)
-                || !sessionValidator.supportsInterface(ISessionValidator.validateSignatureWithData.selector)
+                || !sessionValidator.isModuleType(ERC7579_MODULE_TYPE_STATELESS_VALIDATOR)
         ) {
             revert ISmartSession.InvalidISessionValidator(sessionValidator);
         }
@@ -199,7 +224,7 @@ library ConfigLib {
             registry.checkForAccount({
                 smartAccount: smartAccount,
                 module: address(sessionValidator),
-                moduleType: POLICY_MODULE_TYPE
+                moduleType: ModuleType.wrap(ERC7579_MODULE_TYPE_STATELESS_VALIDATOR)
             });
         }
 
@@ -210,15 +235,18 @@ library ConfigLib {
 
         // Store the signer configuration
         $conf.config.store(sessionValidatorConfig);
+        emit ISmartSession.SessionValidatorEnabled(permissionId, address(sessionValidator), smartAccount);
     }
 
     /**
      * Disables specified policies for a given permission ID and smart account.
      *
      * @dev This function removes the specified policies from the policy list and emits events for each disabled policy.
+     * @notice Cleaning state on policies is not required as on enable, initializeWithMultiplexer is called which MUST
+     *       overwrite the current state.
      *
      * @param $policy The storage reference to the Policy struct.
-     * @param policyType The type of policy being disabled (e.g., USER_OP, ACTION, ERC1271).
+     * @param policyType The type of policy being disabled defined as ERC-7579 module type
      * @param smartAccount The address of the smart account for which policies are being disabled.
      * @param permissionId The identifier of the permission for which policies are being disabled.
      * @param policies An array of policy addresses to be disabled.
@@ -235,8 +263,71 @@ library ConfigLib {
         uint256 length = policies.length;
         for (uint256 i; i < length; i++) {
             address policy = policies[i];
-            $policy.policyList[permissionId].remove(smartAccount, policy);
-            emit ISmartSession.PolicyDisabled(permissionId, policyType, address(policy), smartAccount);
+            if ($policy.policyList[permissionId].remove(smartAccount, policy)) {
+                emit ISmartSession.PolicyDisabled(permissionId, policyType, address(policy), smartAccount);
+            }
         }
+    }
+
+    function disable(
+        mapping(PermissionId permissionId => mapping(address smartAccount => SignerConf conf)) storage
+            $sessionValidators,
+        PermissionId permissionId,
+        address smartAccount
+    )
+        internal
+    {
+        // Get the storage reference for the signer configuration
+        SignerConf storage $conf = $sessionValidators[permissionId][smartAccount];
+
+        //emit event
+        emit ISmartSession.SessionValidatorDisabled(permissionId, address($conf.sessionValidator), smartAccount);
+
+        // Clear the session validator
+        delete $conf.sessionValidator;
+
+        // clear the signer configuration
+        $conf.config.clear();
+    }
+
+    function disable(
+        EnumerableERC7739Config storage $enabledERC7739,
+        ERC7739Context[] memory contexts,
+        PermissionId permissionId,
+        address smartAccount
+    )
+        internal
+    {
+        uint256 length = contexts.length;
+        for (uint256 i; i < length; i++) {
+            bytes32 appDomainSeparator = contexts[i].appDomainSeparator;
+
+            uint256 contentNamesLength = contexts[i].contentNames.length;
+            for (uint256 y; y < contentNamesLength; y++) {
+                bytes32 contentHash = contexts[i].contentNames[y].hashERC7739Content();
+                $enabledERC7739.enabledContentNames[permissionId][appDomainSeparator].remove(smartAccount, contentHash);
+            }
+
+            if ($enabledERC7739.enabledContentNames[permissionId][appDomainSeparator].length(smartAccount) == 0) {
+                $enabledERC7739.enabledDomainSeparators[permissionId].remove(smartAccount, appDomainSeparator);
+            }
+        }
+    }
+
+    function removeAll(
+        EnumerableERC7739Config storage $enabledERC7739,
+        PermissionId permissionId,
+        address smartAccount
+    )
+        internal
+    {
+        bytes32[] memory domainSeparators = $enabledERC7739.enabledDomainSeparators[permissionId].values(smartAccount);
+        uint256 length = domainSeparators.length;
+        for (uint256 i; i < length; i++) {
+            bytes32 appDomainSeparator = domainSeparators[i];
+            $enabledERC7739.enabledContentNames[permissionId][appDomainSeparator].removeAll(smartAccount);
+        }
+
+        $enabledERC7739.enabledDomainSeparators[permissionId].removeAll(smartAccount);
     }
 }

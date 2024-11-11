@@ -2,16 +2,14 @@
 pragma solidity ^0.8.23;
 
 import { Execution } from "erc7579/interfaces/IERC7579Account.sol";
-import { ModeCode as ExecutionMode } from "erc7579/lib/ModeLib.sol";
+import { CallType, ExecType, ModeCode as ExecutionMode } from "erc7579/lib/ModeLib.sol";
 
 /**
  * Helper Library for decoding Execution calldata
  * malloc for memory allocation is bad for gas. use this assembly instead
  */
 library ExecutionLib {
-    function decodeUserOpCallData(
-        bytes calldata userOpCallData
-    )
+    function decodeUserOpCallData(bytes calldata userOpCallData)
         internal
         pure
         returns (bytes calldata erc7579ExecutionCalldata)
@@ -26,6 +24,20 @@ library ExecutionLib {
 
     function get7579ExecutionMode(bytes calldata userOpCallData) internal pure returns (ExecutionMode mode) {
         mode = ExecutionMode.wrap(bytes32(userOpCallData[4:36]));
+    }
+
+    function get7579ExecutionTypes(bytes calldata userOpCallData)
+        internal
+        pure
+        returns (CallType callType, ExecType execType)
+    {
+        ExecutionMode mode = ExecutionMode.wrap(bytes32(userOpCallData[4:36]));
+
+        // solhint-disable-next-line no-inline-assembly
+        assembly {
+            callType := mode
+            execType := shl(8, mode)
+        }
     }
 
     function decodeBatch(bytes calldata callData) internal pure returns (Execution[] calldata executionBatch) {
@@ -50,9 +62,7 @@ library ExecutionLib {
         callData = abi.encode(executions);
     }
 
-    function decodeSingle(
-        bytes calldata executionCalldata
-    )
+    function decodeSingle(bytes calldata executionCalldata)
         internal
         pure
         returns (address target, uint256 value, bytes calldata callData)

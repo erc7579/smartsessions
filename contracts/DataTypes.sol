@@ -5,7 +5,8 @@ import "./utils/AssociatedArrayLib.sol";
 import { IRegistry, ModuleType } from "./interfaces/IRegistry.sol";
 import "./interfaces/ISessionValidator.sol";
 import { EnumerableSet } from "./utils/EnumerableSet4337.sol";
-import { FlatBytesLib } from "@rhinestone/flatbytes/src/BytesLib.sol";
+import { EnumerableMap } from "./utils/EnumerableMap4337.sol";
+import { FlatBytesLib } from "flatbytes/BytesLib.sol";
 
 /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
 /*                       Parameters                           */
@@ -59,6 +60,7 @@ struct Session {
     PolicyData[] userOpPolicies;
     ERC7739Data erc7739Policies;
     ActionData[] actions;
+    bool canUsePaymaster;
 }
 
 struct MultiChainSession {
@@ -83,8 +85,23 @@ struct ActionData {
     PolicyData[] actionPolicies;
 }
 
+struct ERC7739Context {
+    // we can not use a detailed EIP712Domain struct here.
+    // EIP712 specifies: Protocol designers only need to include the fields that make sense for their signing domain.
+    // Unused fields are left out of the struct type.
+    bytes32 appDomainSeparator;
+    string[] contentNames;
+}
+
+struct EIP712Domain {
+    string name;
+    string version;
+    uint256 chainId;
+    address verifyingContract;
+}
+
 struct ERC7739Data {
-    string[] allowedERC7739Content;
+    ERC7739Context[] allowedERC7739Content;
     PolicyData[] erc1271Policies;
 }
 
@@ -92,6 +109,11 @@ enum SmartSessionMode {
     USE,
     ENABLE,
     UNSAFE_ENABLE
+}
+
+struct ERC7739ContextHashes {
+    bytes32 appDomainSeparator;
+    bytes32[] contentNameHashes;
 }
 
 /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
@@ -109,17 +131,22 @@ struct Policy {
 
 struct EnumerableActionPolicy {
     mapping(ActionId => Policy) actionPolicies;
-    mapping(PermissionId => AssociatedArrayLib.Bytes32Array) enabledActionIds;
+    mapping(PermissionId => EnumerableSet.Bytes32Set) enabledActionIds;
 }
+
+struct EnumerableERC7739Config {
+    mapping(PermissionId => mapping(bytes32 appDomainSeparator => EnumerableSet.Bytes32Set)) enabledContentNames;
+    mapping(PermissionId => EnumerableSet.Bytes32Set) enabledDomainSeparators;
+}
+
+// struct EnumerableERC7739Config {
+//     mapping(PermissionId => EnumerableMap.Bytes32ToBytes32Map) erc1271Policies;
+// }
+// mapping(PermissionId => EnumerableSet.Bytes32Set) enabledDomainSeparators;
 
 /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
 /*                 Custom Types & Constants                   */
 /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
-enum PolicyType {
-    USER_OP,
-    ACTION,
-    ERC1271
-}
 
 type PermissionId is bytes32;
 
@@ -142,22 +169,50 @@ ActionPolicyId constant EMPTY_ACTIONPOLICYID = ActionPolicyId.wrap(bytes32(0));
 Erc1271PolicyId constant EMPTY_ERC1271POLICYID = Erc1271PolicyId.wrap(bytes32(0));
 ConfigId constant EMPTY_CONFIGID = ConfigId.wrap(bytes32(0));
 
-ValidationData constant ERC4377_VALIDATION_SUCCESS = ValidationData.wrap(0);
+ValidationData constant ERC4337_VALIDATION_SUCCESS = ValidationData.wrap(0);
 ValidationData constant ERC4337_VALIDATION_FAILED = ValidationData.wrap(1);
 bytes4 constant EIP1271_SUCCESS = 0x1626ba7e;
 bytes4 constant EIP1271_FAILED = 0xFFFFFFFF;
-
-IRegistry constant registry = IRegistry(0x000000000069E2a187AEFFb852bF3cCdC95151B2);
-ModuleType constant POLICY_MODULE_TYPE = ModuleType.wrap(7);
-ModuleType constant VALIDATOR_MODULE_TYPE = ModuleType.wrap(1);
 
 uint256 constant ERC7579_MODULE_TYPE_VALIDATOR = 1;
 uint256 constant ERC7579_MODULE_TYPE_EXECUTOR = 2;
 uint256 constant ERC7579_MODULE_TYPE_FALLBACK = 3;
 uint256 constant ERC7579_MODULE_TYPE_HOOK = 4;
+uint256 constant ERC7579_MODULE_TYPE_STATELESS_VALIDATOR = 7;
 
-// the module type is tbd, but for now we use 7, until a new module type via ERC7579 extension process is defined
-uint256 constant ERC7579_MODULE_TYPE_POLICY = 7;
+enum PolicyType {
+    NA,
+    USER_OP,
+    ACTION,
+    ERC1271
+}
+
+IRegistry constant registry = IRegistry(0x000000000069E2a187AEFFb852bF3cCdC95151B2);
+ModuleType constant VALIDATOR_MODULE_TYPE = ModuleType.wrap(ERC7579_MODULE_TYPE_VALIDATOR);
+
+// ActionId for a fallback action policy. This id will be used if both action
+// target and selector are set to 1. During validation if the current target and
+// selector does not have a set action policy, then the fallback will be used if
+// enabled.
+address constant FALLBACK_TARGET_FLAG = address(1);
+bytes4 constant FALLBACK_TARGET_SELECTOR_FLAG = 0x00000001;
+// 0xd884b6afa19f8ace90a388daca691e4e28f20cdac5aeefd46ad8bd1c074d28cf
+ActionId constant FALLBACK_ACTIONID =
+    ActionId.wrap(keccak256(abi.encodePacked(FALLBACK_TARGET_FLAG, FALLBACK_TARGET_SELECTOR_FLAG)));
+
+// A unique ValidationData value to retry a policy check with the FALLBACK_ACTIONID.
+ValidationData constant RETRY_WITH_FALLBACK = ValidationData.wrap(uint256(0x50FFBAAD));
+
+using { validationDataEq as == } for ValidationData global;
+using { validationDataNeq as != } for ValidationData global;
+
+function validationDataEq(ValidationData uid1, ValidationData uid2) pure returns (bool) {
+    return ValidationData.unwrap(uid1) == ValidationData.unwrap(uid2);
+}
+
+function validationDataNeq(ValidationData uid1, ValidationData uid2) pure returns (bool) {
+    return ValidationData.unwrap(uid1) != ValidationData.unwrap(uid2);
+}
 
 using { permissionIdEq as == } for PermissionId global;
 using { permissionIdNeq as != } for PermissionId global;

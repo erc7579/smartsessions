@@ -50,6 +50,18 @@ contract EnumerableSetTest is Test {
         assertTrue(values[0] == value2 || values[1] == value2);
     }
 
+    function testBytes32RemoveAllBug() public {
+        bytes32Set.add(ACCOUNT, bytes32(uint256(1)));
+        bytes32Set.add(ACCOUNT, bytes32(uint256(2)));
+
+        assertEq(bytes32Set.length(ACCOUNT), 2, "length");
+
+        bytes32Set.removeAll(ACCOUNT);
+
+        // This is a bug, the length would be expected to be 0
+        assertEq(bytes32Set.length(ACCOUNT), 0, "length should be 0");
+    }
+
     function testAddressSet() public {
         address value1 = address(0x5678);
         address value2 = address(0x9ABC);
@@ -112,9 +124,15 @@ contract EnumerableSetTest is Test {
         assertTrue(values[0] == value2 || values[1] == value2);
     }
 
-    function testFuzzBytes32Set(bytes32[] memory testValues) public {
+    function testFuzzBytes32Set(bytes32[] memory _testValues) public {
+        uint256 length = bound(_testValues.length, 0, 128);
+        bytes32[] memory testValues = new bytes32[](length);
+        for (uint256 j; j < length; j++) {
+            testValues[j] = _testValues[j];
+        }
+
         uint256 uniqueCount = 0;
-        for (uint256 i = 0; i < testValues.length; i++) {
+        for (uint256 i = 0; i < length; i++) {
             if (bytes32Set.add(ACCOUNT, testValues[i])) {
                 uniqueCount++;
             }
@@ -136,7 +154,13 @@ contract EnumerableSetTest is Test {
         assertEq(bytes32Set.length(ACCOUNT), 0);
     }
 
-    function testFuzzAddressSet(address[] memory testValues) public {
+    function testFuzzAddressSet(address[] memory _testValues) public {
+        uint256 length = bound(_testValues.length, 0, 128);
+        address[] memory testValues = new address[](length);
+        for (uint256 j; j < length; j++) {
+            testValues[j] = _testValues[j];
+        }
+
         uint256 uniqueCount = 0;
         for (uint256 i = 0; i < testValues.length; i++) {
             if (addressSet.add(ACCOUNT, testValues[i])) {
@@ -160,7 +184,13 @@ contract EnumerableSetTest is Test {
         assertEq(addressSet.length(ACCOUNT), 0);
     }
 
-    function testFuzzUintSet(uint256[] memory testValues) public {
+    function testFuzzUintSet(uint256[] memory _testValues) public {
+        uint256 length = bound(_testValues.length, 0, 128);
+        uint256[] memory testValues = new uint256[](length);
+        for (uint256 j; j < length; j++) {
+            testValues[j] = _testValues[j];
+        }
+
         uint256 uniqueCount = 0;
         for (uint256 i = 0; i < testValues.length; i++) {
             if (uintSet.add(ACCOUNT, testValues[i])) {
