@@ -93,7 +93,7 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
                 permissionId: permissionId,
                 userOpHash: userOpHash,
                 userOp: userOp,
-                decompressedSignature: packedSig.decodeUse(),
+                decompressedSignature: packedSig,
                 account: account
             });
         }
