@@ -10,8 +10,7 @@ import { ValidationDataLib } from "./ValidationDataLib.sol";
 import { IdLib } from "./IdLib.sol";
 import { EnumerableSet } from "../utils/EnumerableSet4337.sol";
 
-import { ERC7579ValidatorBase } from "modulekit/Modules.sol";
-import { PackedUserOperation } from "modulekit/external/ERC4337.sol";
+import { PackedUserOperation } from "account-abstraction/interfaces/PackedUserOperation.sol";
 import { CallType, CALLTYPE_DELEGATECALL, EXECTYPE_DEFAULT, EXECTYPE_TRY } from "erc7579/lib/ModeLib.sol";
 import { IERC7579Account } from "erc7579/interfaces/IERC7579Account.sol";
 import { ExcessivelySafeCall } from "excessively-safe-call/ExcessivelySafeCall.sol";

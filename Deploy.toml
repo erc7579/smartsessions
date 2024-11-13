@@ -1,7 +1,7 @@
 
 [deployments]
 rpcs = [
-    "http://localhost:8545",
+    "https://base-sepolia.g.alchemy.com/v2/UFjkvGA-mZ1AuvJaQjQYjpgw3WFqGNjr"
 ]
 
 
@@ -10,10 +10,6 @@ entrypoint = "0x0000000071727De22E5E9d8BAf0edAc6f37da032"
 proxy_admin = "0x0000000071727De22E5E9d8BAf0edAc6f37da032" #todo
 
 [deployments.module.SmartSession]
-gh_artifacts_url = "https://api.github.com/repos/erc7579/smartsessions/actions/artifacts/2171696454/zip"
-salt = "0x0000000000000000000000000000000000000000e5068a3f93a9e201a1832999"
+gh_artifacts_url = "https://api.github.com/repos/erc7579/smartsessions/actions/artifacts/2180128402/zip"
+salt = "0x0000000000000000000000000000000000000000e5068a3f93a9e201a1832998"
 
-[deployments.module.SudoPolicy]
-file = "./artifacts/SudoPolicy/SudoPolicy.json"
-source_file_url = "./artifacts/SudoPolicy/verify.json"
-salt = "0x0000000000000000000000000000000000000000e5068a3f93a9e201a1832997"
