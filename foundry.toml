@@ -17,6 +17,8 @@
   cache_path  = "cache_forge"
   libs = ["node_modules", "lib"]
   gas_reports_ignore = ["LockTest"]
+  fs_permissions = [{ access = "read", path = "out" }, { access = "read-write", path = "deployArtifacts" }, { access = "read", path = "node_modules" }]
+  allow_paths = ["*", "/", "./node_modules/"]
 
 
 [profile.cosigner]
@@ -45,14 +47,28 @@
   tab_width = 4
   wrap_comments = true
 
+
 [rpc_endpoints]
-  arbitrum = "https://arbitrum-mainnet.infura.io/v3/${API_KEY_INFURA}"
-  avalanche = "https://avalanche-mainnet.infura.io/v3/${API_KEY_INFURA}"
-  goerli = "https://goerli.infura.io/v3/${API_KEY_INFURA}"
-  localhost = "http://localhost:8545"
-  mainnet = "https://eth-mainnet.g.alchemy.com/v2/${API_KEY_ALCHEMY}"
-  optimism = "https://optimism-mainnet.infura.io/v3/${API_KEY_INFURA}"
-  polygon = "https://polygon-mainnet.infura.io/v3/${API_KEY_INFURA}"
-  # sepolia = "https://sepolia.infura.io/v3/${API_KEY_INFURA}"
-  sepolia = "https://eth-sepolia.g.alchemy.com/v2/${API_KEY_ALCHEMY}"
+arbitrum-sepolia = "https://arb-sepolia.g.alchemy.com/v2/${API_KEY_ALCHEMY}"
+avalanche = "https://avalanche-mainnet.infura.io/v3/${API_KEY_INFURA}"
+avalanche-fuji = "https://avalanche-fuji-c-chain-rpc.publicnode.com"
+#localhost = "http://localhost:8545"
+#mainnet = "https://eth-mainnet.g.alchemy.com/v2/${API_KEY_ALCHEMY}"
+optimism = "https://optimism-mainnet.infura.io/v3/${API_KEY_INFURA}"
+optimism-sepolia = "https://sepolia.optimism.io "
+polygon = "https://polygon-mainnet.infura.io/v3/${API_KEY_INFURA}"
+polygon-amoy = "https://polygon-amoy.drpc.org"
+sepolia = "https://sepolia.infura.io/v3/${API_KEY_INFURA}"
+gnosis = "https://gnosis-mainnet.g.alchemy.com/v2/${API_KEY_ALCHEMY}"
+gnosis-chidao = "https://gnosis-chiado.g.alchemy.com/v2/${API_KEY_ALCHEMY}"
+bsc-testnet = "https://bnb-testnet.g.alchemy.com/v2/${API_KEY_ALCHEMY}"
+bsc = "https://bnb-mainnet.g.alchemy.com/v2/${API_KEY_ALCHEMY}"
+base = "https://base-mainnet.g.alchemy.com/v2/${API_KEY_ALCHEMY}"
+base-sepolia = "https://base-sepolia.g.alchemy.com/v2/${API_KEY_ALCHEMY}"
+scroll-sepolia = "https://rpc.ankr.com/scroll_sepolia_testnet"
+scroll = "https://rpc.scroll.io"
+fuse = "https://explorer-node.fuse.io"
+fuse-spark = "https://rpc.fusespark.io/"
+celo = "https://celo.drpc.org"
+celo-alfajores = "https://alfajores-forno.celo-testnet.org"
 

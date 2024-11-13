@@ -1,6 +1,8 @@
 
 [deployments]
 rpcs = [
+#"http://localhost:8545",
+
 ]
 
 
@@ -8,7 +10,21 @@ rpcs = [
 entrypoint = "0x0000000071727De22E5E9d8BAf0edAc6f37da032"
 proxy_admin = "0x0000000071727De22E5E9d8BAf0edAc6f37da032" #todo
 
-[deployments.singleton.SmartSession]
-gh_artifacts_url = "https://api.github.com/repos/erc7579/smartsessions/actions/artifacts/2180153211/zip"
-salt = "0x0000000000000000000000000000000000000000e5068a3f93a9e201a1832997"
+[deployments.module.SmartSession]
+gh_artifacts_url = "https://api.github.com/repos/erc7579/smartsessions/actions/artifacts/2181512281/zip"
+salt = "0x000000000000000000000000000000000000000014e7155016040b01c80e1684"
+
+[deployments.module.ERC20SpendingPolicy]
+gh_artifacts_url = "https://api.github.com/repos/erc7579/smartsessions/actions/artifacts/2181512279/zip"
+salt = "0x0000000000000000000000000000000000000000d3d48fca7688b88b32020080"
+
+[deployments.module.SudoPolicy]
+gh_artifacts_url = "https://api.github.com/repos/erc7579/smartsessions/actions/artifacts/2181512283/zip"
+salt = "0x0000000000000000000000000000000000000000d3d48fca7688b88b32020080"
+
+[deployments.module.UniActionPolicy]
+gh_artifacts_url = "https://api.github.com/repos/erc7579/smartsessions/actions/artifacts/2181512286/zip"
+salt = "0x0000000000000000000000000000000000000000d3d48fca7688b88b32020080"
+
+
 

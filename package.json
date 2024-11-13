@@ -11,7 +11,8 @@
     "@rhinestone/modulekit": "0.4.8",
     "freshcryptolib": "github:rdubois-crypto/FreshCryptoLib",
     "solmate": "github:transmissions11/solmate",
-    "stringutils": "github:Arachnid/solidity-stringutils"
+    "stringutils": "github:Arachnid/solidity-stringutils",
+    "@rhinestone/deploy-sol": "github:zeroknots/deploy-sol"
   },
   "devDependencies": {
     "@changesets/cli": "^2.27.2",

@@ -17,6 +17,7 @@ jobs:
         contract-name:
           [
             "SmartSession",
+            "SmartSessionCompatibilityFallback",
             "ERC20SpendingLimitPolicy",
             "SudoPolicy",
             "UniActionPolicy",

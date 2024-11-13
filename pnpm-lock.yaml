@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@rhinestone/deploy-sol':
+        specifier: github:zeroknots/deploy-sol
+        version: deploy-sol@https://codeload.github.com/zeroknots/deploy-sol/tar.gz/47f4d7e3038bc13566ba5d85b277a3fe6027014f
       '@rhinestone/flatbytes':
         specifier: github:rhinestonewtf/flatbytes
         version: https://codeload.github.com/rhinestonewtf/flatbytes/tar.gz/8182dc7353bef886be234c54ae36b1e33d6bf8ee
@@ -876,6 +879,10 @@ packages:
   depd@2.0.0:
     resolution: {integrity: sha512-g7nH6P6dyDioJogAAGprGpCtVImJhpPk/roCzdb3fIh61/s/nPsfR6onyMwkCAR/OlC3yBC0lESvUoQEAssIrw==}
     engines: {node: '>= 0.8'}
+
+  deploy-sol@https://codeload.github.com/zeroknots/deploy-sol/tar.gz/47f4d7e3038bc13566ba5d85b277a3fe6027014f:
+    resolution: {tarball: https://codeload.github.com/zeroknots/deploy-sol/tar.gz/47f4d7e3038bc13566ba5d85b277a3fe6027014f}
+    version: 0.0.0
 
   detect-indent@6.1.0:
     resolution: {integrity: sha512-reYkTUJAZb9gUuZ2RvVCNhVHdg62RHnJ7WJl8ftMi4diZ6NWlciOzQN88pUhSELEwflJht4oQDv0F0BMlwaYtA==}
@@ -3508,6 +3515,8 @@ snapshots:
   delayed-stream@1.0.0: {}
 
   depd@2.0.0: {}
+
+  deploy-sol@https://codeload.github.com/zeroknots/deploy-sol/tar.gz/47f4d7e3038bc13566ba5d85b277a3fe6027014f: {}
 
   detect-indent@6.1.0: {}
 
