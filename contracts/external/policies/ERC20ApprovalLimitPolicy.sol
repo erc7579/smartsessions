@@ -22,19 +22,17 @@ contract ERC20ApprovalLimitPolicy is IActionPolicy {
 
     error InvalidTokenAddress(address token);
     error InvalidLimit(uint256 limit);
+    error AlreadyApprovedForSpender(ConfigId id, address spender, address account);
 
-    struct TokenPolicyData {
-        uint256 totalApproved;
-        uint256 approvalLimit;
+    struct ApprovalConfig {
+        mapping(address userOpSender => uint256 limit) limits;
+        mapping(address spender => mapping(address userOpSender => uint256 alreadyApproved)) approved;
+        EnumerableSet.AddressSet spenders;
+        mapping(address userOpSender => uint256 totalApproved) totalApproved;
     }
 
     mapping(ConfigId id => mapping(address multiplexer => EnumerableSet.AddressSet tokensEnabled)) internal $tokens;
-    mapping(
-        ConfigId id
-            => mapping(
-                address mulitplexer => mapping(address token => mapping(address userOpSender => TokenPolicyData))
-            )
-    ) internal $policyData;
+    mapping(ConfigId id => mapping(address multiplexer => mapping(address token => ApprovalConfig))) internal $policyData;
 
     /**
      * Initializes the policy to be used by given account through multiplexer (msg.sender) such as Smart Sessions.
@@ -53,11 +51,16 @@ contract ERC20ApprovalLimitPolicy is IActionPolicy {
         if (length_i > 0) {
             for (uint256 i; i < length_i; i++) {
                 // for all tokens which have been inited for a given configId and mxer
-                address token = $t.at(account, i);
-                TokenPolicyData storage $ = _getPolicy({ id: configId, userOpSender: account, token: token });
-                // clear limit and spent
-                $.approvalLimit = 0;
-                $.totalApproved = 0;
+                ApprovalConfig storage $ = _getApprovalConfig({ id: configId, multiplexer: msg.sender, token: $t.at(account, i) });
+                // clear limit
+                $.limits[account] = 0;
+                $.totalApproved[account] = 0;
+                // clear approved
+                uint256 len = $.spenders.length(account);
+                for (uint256 j; j < len; j++) {
+                    $.approved[$.spenders.at(account, j)][account] = 0;
+                }
+                $.spenders.removeAll(account);
             }
             // clear inited tokens
             $t.removeAll(account);
@@ -69,9 +72,9 @@ contract ERC20ApprovalLimitPolicy is IActionPolicy {
             uint256 limit = limits[i];
             if (token == address(0)) revert InvalidTokenAddress(token);
             if (limit == 0) revert InvalidLimit(limit);
-            TokenPolicyData storage $ = _getPolicy({ id: configId, userOpSender: account, token: token });
+            ApprovalConfig storage $ = _getApprovalConfig({ id: configId, multiplexer: msg.sender, token: token });
             // set limit
-            $.approvalLimit = limit;
+            $.limits[account] = limit;
             // mark token as inited
             $t.add(account, token);
         }
@@ -98,20 +101,38 @@ contract ERC20ApprovalLimitPolicy is IActionPolicy {
         override
         returns (uint256)
     {
+        // no eth value allowed
         if (value != 0) return VALIDATION_FAILED;
-        (bool isApproval, uint256 amount) = _isApproval(callData);
-        if (!isApproval) return VALIDATION_FAILED;
 
-        TokenPolicyData storage $ = _getPolicy({ id: id, userOpSender: account, token: target });
+        ApprovalConfig storage $ = _getApprovalConfig({ id: id, multiplexer: msg.sender, token: target });
 
-        // Increment the total approved amount
-        $.totalApproved += amount;
+        bytes4 functionSelector = bytes4(callData[0:4]);
+        address spender;
+        uint256 amount;
 
-        if ($.totalApproved > $.approvalLimit) {
+        if (functionSelector == IERC20.approve.selector) {
+            (spender, amount) = abi.decode(callData[4:], (address, uint256));
+            if ($.approved[spender][account] > 0) {
+                revert AlreadyApprovedForSpender(id, spender, account);
+            }
+        } else if (functionSelector == bytes4(keccak256("increaseAllowance(address,uint256)"))) {
+            (spender, amount) = abi.decode(callData[4:], (address, uint256));
+        } else {
             return VALIDATION_FAILED;
         }
 
-        emit TokenApproved(id, msg.sender, target, account, amount, $.approvalLimit - $.totalApproved);
+        uint256 _totalApproved = $.totalApproved[account] + amount;
+        uint256 _limit = $.limits[account];
+        if (_totalApproved > _limit) {
+            return VALIDATION_FAILED;
+        }
+        
+        // Increment the total approved amount
+        $.totalApproved[account] += amount;
+        $.approved[spender][account] = amount;
+        $.spenders.add(account, spender);
+
+        emit TokenApproved(id, msg.sender, target, account, amount, _limit - _totalApproved); 
         return VALIDATION_SUCCESS;
     }
 
@@ -138,8 +159,8 @@ contract ERC20ApprovalLimitPolicy is IActionPolicy {
         if (!$tokens[id][multiplexer].contains(userOpSender, token)) {
             revert InvalidTokenAddress(token);
         }
-        TokenPolicyData memory $ = $policyData[id][multiplexer][token][userOpSender];
-        return ($.approvalLimit, $.totalApproved);
+        ApprovalConfig storage $ = _getApprovalConfig({ id: id, multiplexer: multiplexer, token: token });
+        return ($.limits[userOpSender], $.totalApproved[userOpSender]);
     }
 
     /**
@@ -154,34 +175,16 @@ contract ERC20ApprovalLimitPolicy is IActionPolicy {
         );
     }
 
-    /**
-     * @notice Checks if the call is an approval.
-     * @param callData The call data.
-     * @dev returns bool => isApproval, amount of approval
-     */
-    function _isApproval(bytes calldata callData) internal pure returns (bool, uint256) {
-        bytes4 functionSelector = bytes4(callData[0:4]);
-
-        if (functionSelector == IERC20.approve.selector) {
-            (, uint256 amount) = abi.decode(callData[4:], (address, uint256));
-            return (true, amount);
-        } else if (functionSelector == bytes4(keccak256("increaseAllowance(address,uint256)"))) {
-            (, uint256 amount) = abi.decode(callData[4:], (address, uint256));
-            return (true, amount);
-        }
-        return (false, 0);
-    }
-
-    function _getPolicy(
+    function _getApprovalConfig(
         ConfigId id,
-        address userOpSender,
+        address multiplexer,
         address token
     )
         internal
         view
-        returns (TokenPolicyData storage s)
+        returns (ApprovalConfig storage s)
     {
         if (token == address(0)) revert InvalidTokenAddress(token);
-        s = $policyData[id][msg.sender][token][userOpSender];
+        s = $policyData[id][multiplexer][token];
     }
 }

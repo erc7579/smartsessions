@@ -36,6 +36,8 @@ contract OnInstallTest is BaseTest {
         Session[] memory sessions = new Session[](1);
         sessions[0] = session;
 
+        PermissionId permissionId = smartSession.getPermissionId(session);
+
         newInstance.installModule({
             moduleTypeId: MODULE_TYPE_VALIDATOR,
             module: address(smartSession),
@@ -45,10 +47,7 @@ contract OnInstallTest is BaseTest {
         assertTrue(newInstance.isModuleInstalled(MODULE_TYPE_VALIDATOR, address(smartSession)));
         assertTrue(smartSession.isInitialized(newInstance.account));
         assertTrue(
-            smartSession.isPermissionEnabled(
-                PermissionId.wrap(0x0d74975fdf356bd4556eb87e2599a8fce1f6dc2ec902fc5790451d6f2ee0c637),
-                newInstance.account
-            )
+            smartSession.isPermissionEnabled(permissionId, newInstance.account)
         );
     }
 }

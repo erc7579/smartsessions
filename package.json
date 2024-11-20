@@ -7,7 +7,7 @@
   },
   "dependencies": {
     "@rhinestone/flatbytes": "github:rhinestonewtf/flatbytes",
-    "@rhinestone/modulekit": "^0.4.10",
+    "@rhinestone/modulekit": "^0.4.17",
     "freshcryptolib": "github:rdubois-crypto/FreshCryptoLib",
     "solmate": "github:transmissions11/solmate",
     "stringutils": "github:Arachnid/solidity-stringutils"
