@@ -329,7 +329,7 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
                     smartAccount: msg.sender,
                     sessionValidator: session.sessionValidator,
                     sessionValidatorConfig: session.sessionValidatorInitData,
-                    useRegistry: true
+                    useRegistry: useRegistry
                 });
             }
             permissionIds[i] = permissionId;
