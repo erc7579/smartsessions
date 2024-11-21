@@ -10,7 +10,7 @@ import { EnumerableSet } from "../../utils/EnumerableSet4337.sol";
 
 /**
  * @title ERC20SpendingLimitPolicy
- * @notice A policy that allows transferring ERC20 tokens up to a certain limit.
+ * @notice A policy that allows transferring and approving ERC20 tokens up to a certain limit.
  * @dev Every config can allow multiple tokens with its own limit each.
  */
 contract ERC20SpendingLimitPolicy is IActionPolicy {
@@ -101,29 +101,28 @@ contract ERC20SpendingLimitPolicy is IActionPolicy {
         returns (uint256)
     {
         if (value != 0) return VALIDATION_FAILED;
-        (bool isTokenTransfer, uint256 amount) = _isTokenTransfer(account, callData);
+        (bool isTokenTransfer, uint256 amount) = _isTokenTransferOrApprove(account, callData);
         if (!isTokenTransfer) return VALIDATION_FAILED;
 
         TokenPolicyData storage $ = _getPolicy({ id: id, userOpSender: account, token: target });
 
-        if (bytes4(callData[0:4]) == IERC20.approve.selector) {
-            // if this is approval, it doesn't add, it replaces
-            $.approvedAmount = amount;
-            amount -= $.approvedAmount; //to emit correctly
-        } else if (bytes4(callData[0:4]) == bytes4(keccak256("increaseAllowance(address,uint256)"))) {
+        if (
+            bytes4(callData[0:4]) == IERC20.approve.selector
+                || bytes4(callData[0:4]) == bytes4(keccak256("increaseAllowance(address,uint256)"))
+        ) {
             //increase approval case
             $.approvedAmount += amount;
         } else {
             // transfer or transferFrom case
             $.alreadySpent += amount;
         }
-        
+
         uint256 totalSpentAndApproved = $.alreadySpent + $.approvedAmount;
         uint256 spendingLimit = $.spendingLimit;
 
         if (totalSpentAndApproved > spendingLimit) {
             return VALIDATION_FAILED;
-        } 
+        }
 
         emit TokenSpent(id, msg.sender, target, account, amount, spendingLimit - totalSpentAndApproved);
         return VALIDATION_SUCCESS;
@@ -139,7 +138,16 @@ contract ERC20SpendingLimitPolicy is IActionPolicy {
      * @return alreadySpent The already spent amount.
      * @return approvedAmount The approved amount.
      */
-    function getPolicyData(ConfigId id, address multiplexer, address token, address userOpSender) external view returns (uint256 spendingLimit, uint256 alreadySpent, uint256 approvedAmount) {
+    function getPolicyData(
+        ConfigId id,
+        address multiplexer,
+        address token,
+        address userOpSender
+    )
+        external
+        view
+        returns (uint256 spendingLimit, uint256 alreadySpent, uint256 approvedAmount)
+    {
         if (token == address(0)) revert InvalidTokenAddress(token);
         if (!$tokens[id][multiplexer].contains(userOpSender, token)) {
             revert InvalidTokenAddress(token);
@@ -167,13 +175,13 @@ contract ERC20SpendingLimitPolicy is IActionPolicy {
      * @dev we do not check if the transfer is from self to self, as this should not be allowed by token itself
      * returns bool => isTransfer, amount spent
      */
-    function _isTokenTransfer(
+    function _isTokenTransferOrApprove(
         address account,
         bytes calldata callData
     )
         internal
         pure
-        returns (bool, uint256) 
+        returns (bool, uint256)
     {
         bytes4 functionSelector = bytes4(callData[0:4]);
 
@@ -193,9 +201,9 @@ contract ERC20SpendingLimitPolicy is IActionPolicy {
             return (true, amount);
         } else if (functionSelector == IERC20.transferFrom.selector) {
             (, address to, uint256 amount) = abi.decode(callData[4:], (address, address, uint256));
-            if(to == account) {
+            if (to == account) {
                 // if transfer is from and to account, it should revert in the token contract
-                // if transfer is from somewhere to account, it should not spend the limit, so amount is 0            
+                // if transfer is from somewhere to account, it should not spend the limit, so amount is 0
                 return (true, 0);
             }
             // from is account and to is not => spend tokens from account
@@ -217,5 +225,4 @@ contract ERC20SpendingLimitPolicy is IActionPolicy {
         if (token == address(0)) revert InvalidTokenAddress(token);
         s = $policyData[id][msg.sender][token][userOpSender];
     }
-
 }
