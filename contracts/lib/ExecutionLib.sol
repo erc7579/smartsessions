@@ -17,7 +17,10 @@ library ExecutionLib {
         //bytes calldata data  = userOpCallData;
         assembly {
             let baseOffset := add(userOpCallData.offset, 0x24) //skip 4 bytes of selector and 32 bytes of execution mode
-            erc7579ExecutionCalldata.offset := add(baseOffset, calldataload(baseOffset))
+            let calldataLoadOffset := calldataload(baseOffset)
+            // check for potential overflow in calldataLoadOffset
+            if gt(calldataLoadOffset, 0xffffffffffffffff) { revert(0, 0) }
+            erc7579ExecutionCalldata.offset := add(baseOffset, calldataLoadOffset)
             erc7579ExecutionCalldata.length := calldataload(sub(erc7579ExecutionCalldata.offset, 0x20))
         }
     }

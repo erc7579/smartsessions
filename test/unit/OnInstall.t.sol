@@ -47,8 +47,6 @@ contract OnInstallTest is BaseTest {
 
         assertTrue(newInstance.isModuleInstalled(MODULE_TYPE_VALIDATOR, address(smartSession)));
         assertTrue(smartSession.isInitialized(newInstance.account));
-        assertTrue(
-            smartSession.isPermissionEnabled(permissionId, newInstance.account)
-        );
+        assertTrue(smartSession.isPermissionEnabled(permissionId, newInstance.account));
     }
 }
