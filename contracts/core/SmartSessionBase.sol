@@ -401,7 +401,9 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
 
         // equivalent of abi.decode(data,Session[])
         assembly ("memory-safe") {
-            let dataPointer := add(data.offset, calldataload(data.offset))
+            let calldataLoadOffset := calldataload(data.offset)
+            if gt(calldataLoadOffset, 0xffffffffffffffff) { revert(0, 0) }
+            let dataPointer := add(data.offset, calldataLoadOffset)
 
             sessions.offset := add(dataPointer, 32)
             sessions.length := calldataload(dataPointer)

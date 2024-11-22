@@ -53,7 +53,10 @@ library ExecutionLib {
          */
         // solhint-disable-next-line no-inline-assembly
         assembly ("memory-safe") {
-            let dataPointer := add(callData.offset, calldataload(callData.offset))
+            let calldataLoadOffset := calldataload(callData.offset)
+            // check for potential overflow in calldataLoadOffset
+            if gt(calldataLoadOffset, 0xffffffffffffffff) { revert(0, 0) }
+            let dataPointer := add(callData.offset, calldataLoadOffset)
 
             // Extract the ERC7579 Executions
             executionBatch.offset := add(dataPointer, 32)
