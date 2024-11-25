@@ -35,8 +35,8 @@ bytes32 constant ERC7739_DATA_TYPEHASH = 0xdfd9b5718eebaa2484740b4ea6939e9618902
  *     │   bool permitSmartSessionPolicyFallback,        // Allow policy fallback
  *     │   bool permitUnsafeSmartSessionPolicyFallback,  // Allow unsafe fallback (the action policy is permitted to
  *     │                                                 //   call administrative functions of smart session module). 
-*      │                                                 //   @dev frontends must be handled with great care, as this
-can be used for priviledge escalation
+ *     │                                                 //   @dev frontends must be handled with great care, as this
+ *     │                                                 //   can be used for priviledge escalation
  *     │   PolicyData[] userOpPolicies                   // UserOp policies array
  *     │   ├── address policy                            // Policy contract address
  *     │   └── bytes initData                            // Policy initialization data
