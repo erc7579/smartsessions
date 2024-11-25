@@ -39,6 +39,7 @@ pub fn main() {
 
     println!("TypeHashes");
     println!("SignedSession: {}", SignedSession::eip712_type_hash(&signed_session));
+    println!("SignedPermissions: {}", SignedPermissions::eip712_type_hash(&signed_session.permissions));
 
     println!("Policy: {}", PolicyData::eip712_type_hash(&session.userOpPolicies[0]));
     println!("ERC7739Data: {}", ERC7739Data::eip712_type_hash(&session.erc7739Policies));
@@ -55,13 +56,14 @@ pub fn main() {
     println!("ERC7739Data: {}", ERC7739Data::eip712_hash_struct(&foo));
 
 
-    println!("SignedSession: {}", SignedSession::eip712_hash_struct(&signed_session));
+    println!("!SignedSession: {}", SignedSession::eip712_hash_struct(&signed_session));
+    println!("!SignedPermission: {}", SignedPermissions::eip712_hash_struct(&signed_session.permissions));
     println!("Policy: {}", PolicyData::eip712_hash_struct(&session.userOpPolicies[0]));
     println!("ERC7739Data: {}", ERC7739Data::eip712_hash_struct(&session.erc7739Policies));
-    println!("Actions: {}", ActionData::eip712_hash_struct(&session.actions[0]));
 
     println!("Root");
     println!("SignedSession: {}", SignedSession::eip712_root_type());
+    println!("{:?}", SignedSession::eip712_components());
     println!("PolicyData: {}", PolicyData::eip712_root_type());
     println!("ActionData: {}", ActionData::eip712_root_type());
     println!("ERC7739Data: {}", ERC7739Data::eip712_root_type());

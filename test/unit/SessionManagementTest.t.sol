@@ -54,7 +54,7 @@ contract SessionManagementTest is BaseTest {
             userOpPolicies: _getEmptyPolicyDatas(address(yesPolicy)),
             erc7739Policies: _getEmptyERC7739Data("0", new PolicyData[](0)),
             actions: _getEmptyActionDatas(_target, MockTarget.setValue.selector, address(yesPolicy)),
-            canUsePaymaster: true
+            permit4337Paymaster: true
         });
 
         // predict permissionId correlating to EnableSession
@@ -112,7 +112,7 @@ contract SessionManagementTest is BaseTest {
             userOpPolicies: _getEmptyPolicyDatas(address(yesPolicy)),
             erc7739Policies: _getEmptyERC7739Data("0", new PolicyData[](0)),
             actions: _getEmptyActionDatas(_target, MockTarget.setValue.selector, address(yesPolicy)),
-            canUsePaymaster: true
+            permit4337Paymaster: true
         });
 
         permissionId = smartSession.getPermissionId(session);
@@ -166,7 +166,7 @@ contract SessionManagementTest is BaseTest {
             userOpPolicies: userOpPolicyData,
             erc7739Policies: _getEmptyERC7739Data("0", new PolicyData[](0)),
             actions: _getEmptyActionDatas(address(target), MockTarget.setValue.selector, address(yesPolicy2)),
-            canUsePaymaster: true
+            permit4337Paymaster: true
         });
 
         enableSessions = _makeMultiChainEnableData(permissionId, session, instance, SmartSessionMode.UNSAFE_ENABLE);
@@ -227,7 +227,7 @@ contract SessionManagementTest is BaseTest {
             userOpPolicies: _getEmptyPolicyDatas(address(yesPolicy)),
             erc7739Policies: _getEmptyERC7739Data("0", new PolicyData[](0)),
             actions: _getEmptyActionDatas(_target, MockTarget.setValue.selector, address(yesPolicy)),
-            canUsePaymaster: true
+            permit4337Paymaster: true
         });
 
         // predict permissionId correlating to EnableSession
@@ -272,7 +272,7 @@ contract SessionManagementTest is BaseTest {
             userOpPolicies: new PolicyData[](0),
             erc7739Policies: _getEmptyERC7739Data("0", new PolicyData[](0)),
             actions: actionData,
-            canUsePaymaster: true
+            permit4337Paymaster: true
         });
 
         PermissionId multiActionPermissionId = smartSession.getPermissionId(session);

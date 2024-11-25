@@ -49,7 +49,7 @@ contract SudoAndStrictPermissionTest is BaseTest {
             userOpPolicies: new PolicyData[](0),
             erc7739Policies: _getEmptyERC7739Data("0", new PolicyData[](0)),
             actions: actionDatas,
-            canUsePaymaster: true
+            permit4337Paymaster: true
         });
 
         permissionId_sudo = smartSession.getPermissionId(session);
@@ -69,7 +69,7 @@ contract SudoAndStrictPermissionTest is BaseTest {
             erc7739Policies: _getEmptyERC7739Data("0", new PolicyData[](0)),
             //actions: actionDatas
             actions: new ActionData[](0),
-            canUsePaymaster: true
+            permit4337Paymaster: true
         });
 
         permissionId_strict = smartSession.getPermissionId(session);
@@ -94,7 +94,7 @@ contract SudoAndStrictPermissionTest is BaseTest {
             userOpPolicies: _getEmptyPolicyDatas(address(yesPolicy)),
             erc7739Policies: _getEmptyERC7739Data("0", new PolicyData[](0)),
             actions: actionDatas,
-            canUsePaymaster: true
+            permit4337Paymaster: true
         });
 
         permissionId_strict2 = smartSession.getPermissionId(session);

@@ -22,24 +22,48 @@ bytes32 constant ERC7739_CONTEXT_TYPEHASH = 0x006166b2b3a1edaf1da1ce02715d02d497
 // ERC7739Data(ERC7739Context[] allowedERC7739Content,PolicyData[] erc1271Policies)
 bytes32 constant ERC7739_DATA_TYPEHASH = 0xdfd9b5718eebaa2484740b4ea6939e96189024c15848f16ccce901118114e152;
 
-// SignedSession(
-//      address account,
-//      address smartSession,
-//      uint8 mode,
-//      address sessionValidator,
-//      bytes32 salt,
-//      bytes sessionValidatorInitData,
-//      PolicyData[] userOpPolicies,
-//      ERC7739Data erc7739Policies,
-//      ActionData[] actions,
-//      uint256 nonce)
-bytes32 constant SESSION_TYPEHASH = 0xc1211ac69ffe18c099e596ce9a4395ae7a1400e7db4ae9a45fcdc0a67709ffa2;
+/*
+ * SignedSession(
+ *     address account,                                  // User account address
+ *     address smartSession,                             // Smart session contract address
+ *     uint8 mode,                                       // Session mode
+ *     address sessionValidator,                         // Validator contract address
+ *     bytes32 salt,                                     // Unique salt value
+ *     bytes sessionValidatorInitData,                   // Validator initialization data
+ *     SignedPermissions permissions,                    // Signed permissions struct
+ *     │   bool permit4337Paymaster,                     // Allow ERC-4337 paymaster
+ *     │   bool permitSmartSessionPolicyFallback,        // Allow policy fallback
+ *     │   bool permitUnsafeSmartSessionPolicyFallback,  // Allow unsafe fallback (the action policy is permitted to
+ *     │                                                 //   call administrative functions of smart session module). 
+*      │                                                 //   @dev frontends must be handled with great care, as this can be used for priviledge escalation
+ *     │   PolicyData[] userOpPolicies                   // UserOp policies array
+ *     │   ├── address policy                            // Policy contract address
+ *     │   └── bytes initData                            // Policy initialization data
+ *     │   ERC7739Data erc7739Policies                   // ERC7739 policies struct
+ *     │   ├── ERC7739Context[] allowedERC7739Content    // Allowed content array
+ *     │   │   ├── bytes32 appDomainSeparator            // Domain separator
+ *     │   │   └── string[] contentName                  // Content identifiers
+ *     │   └── PolicyData[] erc1271Policies              // ERC1271 policies array
+ *     │       ├── address policy                        // Policy address
+ *     │       └── bytes initData                        // Init data
+ *     │   ActionData[] actions                          // Actions array
+ *     │   ├── bytes4 actionTargetSelector               // Function selector
+ *     │   ├── address actionTarget                      // Target contract
+ *     │   └── PolicyData[] actionPolicies               // Action policies array
+ *     │       ├── address policy                        // Policy address
+ *     │       └── bytes initData                        // Init data
+ *     uint256 nonce                                     // Nonce value
+ * )
+ */
+bytes32 constant SESSION_TYPEHASH = 0x0500c32ca42600c22e13d5d25a4b3ea34fab8f58a2354b752261169e41f53a0a;
+
+bytes32 constant SIGNED_PERMISSIONS_TYPEHASH = 0x8b555fbd9ab4e86d5f76c378a05cdc20627cf57e79726ed8aea35c53c9a7bc9d;
 
 // ChainSession(uint64 chainId,Session session)
-bytes32 constant CHAIN_SESSION_TYPEHASH = 0xce180a7804b7aa8318434f77c9fa28e064a722408ea7b7874d9163732f3ba1d5;
+bytes32 constant CHAIN_SESSION_TYPEHASH = 0x13a13032cfad694a03d77d9bea55f3804dce53bfa00276e8c6856c88df5e8f82;
 
 // MultiChainSession(ChainSession[] sessionsAndChainIds)
-bytes32 constant MULTICHAIN_SESSION_TYPEHASH = 0xb8891a1d91e981333b5a0f2583fadff6cb80006149b9f8407608eb4c0a130c7d;
+bytes32 constant MULTICHAIN_SESSION_TYPEHASH = 0x0828d6a9964c51e9801f6efb4c13770a5d97e26770f9544d806a9306fd78166f;
 
 //0xb03948446334eb9b2196d5eb166f69b9d49403eb4a12f36de8d3f9f3cb8e15c3
 bytes32 constant _MULTICHAIN_DOMAIN_TYPEHASH = keccak256("EIP712Domain(string name,string version)");
@@ -150,21 +174,36 @@ library HashLib {
         pure
         returns (bytes32 _hash)
     {
-        // chainId is not needed as it is in the ChainSession
-        _hash = keccak256(
+        {
+            // chainId is not needed as it is in the ChainSession
+            _hash = keccak256(
+                abi.encode(
+                    SESSION_TYPEHASH,
+                    account,
+                    smartSession,
+                    uint8(mode), // Include mode as uint8
+                    address(session.sessionValidator),
+                    session.salt,
+                    keccak256(session.sessionValidatorInitData),
+                    hashPermissions(session),
+                    nonce
+                )
+            );
+        }
+    }
+
+    function hashPermissions(Session memory session) internal pure returns (bytes32) {
+        (bool permitFallback, bool permitUnsafeFallback, bytes32 actionDataArrayHash) =
+            session.actions.hashActionDataArray();
+        return keccak256(
             abi.encode(
-                SESSION_TYPEHASH,
-                account,
-                smartSession,
-                uint8(mode), // Include mode as uint8
-                address(session.sessionValidator),
-                session.salt,
-                keccak256(session.sessionValidatorInitData),
+                SIGNED_PERMISSIONS_TYPEHASH,
+                session.permit4337Paymaster,
+                permitFallback,
+                permitUnsafeFallback,
                 session.userOpPolicies.hashPolicyDataArray(),
                 session.erc7739Policies.hashERC7739Data(),
-                session.actions.hashActionDataArray(),
-                session.canUsePaymaster,
-                nonce
+                actionDataArrayHash
             )
         );
     }
@@ -183,8 +222,8 @@ library HashLib {
         return a.hash();
     }
 
-    function hashActionData(ActionData memory actionData) internal pure returns (bytes32) {
-        return keccak256(
+    function hashActionData(ActionData memory actionData) internal pure returns (bytes32 digest) {
+        digest = keccak256(
             abi.encode(
                 ACTION_DATA_TYPEHASH,
                 actionData.actionTargetSelector,
@@ -194,14 +233,29 @@ library HashLib {
         );
     }
 
-    function hashActionDataArray(ActionData[] memory actionDataArray) internal pure returns (bytes32) {
+    function hashActionDataArray(ActionData[] memory actionDataArray)
+        internal
+        pure
+        returns (bool permitFallback, bool permitUnsafeFallback, bytes32 _hash)
+    {
         uint256 length = actionDataArray.length;
         bytes32[] memory a = EfficientHashLib.malloc(length);
 
         for (uint256 i; i < length; i++) {
-            a.set(i, actionDataArray[i].hashActionData());
+            ActionData memory actionData = actionDataArray[i];
+            // if this action policy is a fallback action policy
+            if (actionData.actionTarget == FALLBACK_TARGET_FLAG) {
+                // only set the permitFallbackFlag if not previously set to true
+                permitFallback = permitFallback || (actionData.actionTargetSelector == FALLBACK_TARGET_SELECTOR_FLAG);
+
+                // only set the permitUnsafeFallbackFlag if not previously set to true
+                permitUnsafeFallback = permitUnsafeFallback
+                    || actionData.actionTargetSelector == FALLBACK_TARGET_SELECTOR_FLAG_PERMITTED_TO_CALL_SMARTSESSION;
+            }
+
+            a.set(i, actionData.hashActionData());
         }
-        return a.hash();
+        _hash = a.hash();
     }
 
     function hashERC7739Context(ERC7739Context memory erc7739Context) internal pure returns (bytes32) {

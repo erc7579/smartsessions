@@ -61,8 +61,6 @@ struct Session {
     ERC7739Data erc7739Policies;
     ActionData[] actions;
     bool permit4337Paymaster;
-    bool permitSmartSessionPolicyFallback;
-    bool permitUnsafeSmartSessionPolicyFallback;
 }
 
 struct MultiChainSession {

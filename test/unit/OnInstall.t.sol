@@ -32,7 +32,7 @@ contract OnInstallTest is BaseTest {
             userOpPolicies: _getEmptyPolicyDatas(address(yesPolicy)),
             erc7739Policies: _getEmptyERC7739Data("mockContent", _getEmptyPolicyDatas(address(yesPolicy))),
             actions: _getEmptyActionDatas(makeAddr("target"), bytes4(0x41414141), address(yesPolicy)),
-            canUsePaymaster: true
+            permit4337Paymaster: true
         });
         Session[] memory sessions = new Session[](1);
         sessions[0] = session;

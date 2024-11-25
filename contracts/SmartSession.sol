@@ -251,7 +251,7 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
             // paymasters. Should this be the case, a UserOpPolicy must run, this could be a yes policy, or a specific
             // UserOpPolicy that can destructure the paymasterAndData and inspect it
             if (userOp.paymasterAndData.length != 0) {
-                if ($canUsePaymaster[permissionId][account]) minPolicies = 1;
+                if ($permit4337Paymaster[permissionId][account]) minPolicies = 1;
                 else revert PaymasterValidationNotEnabled(permissionId);
             }
             /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/

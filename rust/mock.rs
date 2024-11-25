@@ -48,9 +48,7 @@ pub fn mock_session() -> Session {
         userOpPolicies: vec![mock_policy_data()],
         erc7739Policies: mock_erc7739_data(),
         actions: vec![mock_action_data()],
-        permit4337Paymaster: false,
-        permitSmartSessionPolicyFallback: false,
-        permitUnsafeSmartSessionPolicyFallback: false,
+        permit4337Paymaster: true
     }
 }
 

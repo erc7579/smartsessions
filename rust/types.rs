@@ -24,9 +24,21 @@ sol! {
         ERC7739Data erc7739Policies;
         ActionData[] actions;
         bool permit4337Paymaster;
+    }
+
+
+    #[allow(missing_docs)]
+    #[derive(Serialize)]
+    struct SignedPermissions {
+        bool permit4337Paymaster;
         bool permitSmartSessionPolicyFallback;
         bool permitUnsafeSmartSessionPolicyFallback;
+        PolicyData[] userOpPolicies;
+        ERC7739Data erc7739Policies;
+        ActionData[] actions;
     }
+
+
 
     #[allow(missing_docs)]
     #[derive(Serialize)]
@@ -37,12 +49,7 @@ sol! {
         address sessionValidator;
         bytes32 salt;
         bytes sessionValidatorInitData;
-        PolicyData[] userOpPolicies;
-        ERC7739Data erc7739Policies;
-        ActionData[] actions;
-        bool permit4337Paymaster;
-        bool permitSmartSessionPolicyFallback;
-        bool permitUnsafeSmartSessionPolicyFallback;
+        SignedPermissions permissions;
         uint256 nonce;
     }
 
@@ -122,6 +129,16 @@ impl From<ChainSession> for ChainDigest {
 }
 
 pub fn to_signed_session(session: Session, account: Address, smart_session: Address, mode: u8, nonce: U256) -> SignedSession {
+
+
+    let permissions = SignedPermissions{
+        permit4337Paymaster: session.permit4337Paymaster,
+        permitSmartSessionPolicyFallback: false,
+        permitUnsafeSmartSessionPolicyFallback: false,
+        userOpPolicies: session.userOpPolicies,
+        erc7739Policies: session.erc7739Policies,
+        actions: session.actions,
+    };
     SignedSession {
         account,
         smartSession: smart_session,
@@ -129,12 +146,7 @@ pub fn to_signed_session(session: Session, account: Address, smart_session: Addr
         sessionValidator: session.sessionValidator,
         salt: session.salt,
         sessionValidatorInitData: session.sessionValidatorInitData,
-        userOpPolicies: session.userOpPolicies,
-        erc7739Policies: session.erc7739Policies,
-        actions: session.actions,
-        permit4337Paymaster: session.permit4337Paymaster,
-        permitSmartSessionPolicyFallback: session.permitSmartSessionPolicyFallback,
-        permitUnsafeSmartSessionPolicyFallback: session.permitUnsafeSmartSessionPolicyFallback,
+        permissions,
         nonce
     }
 }
