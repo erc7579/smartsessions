@@ -3,7 +3,6 @@ pragma solidity ^0.8.25;
 
 import "../DataTypes.sol";
 import { LibZip } from "solady/utils/LibZip.sol";
-import { ModeCode as ExecutionMode } from "erc7579/lib/ModeLib.sol";
 import { SmartSessionModeLib } from "./SmartSessionModeLib.sol";
 
 library EncodeLib {

@@ -42,7 +42,7 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
     EnumerableSet.Bytes32Set internal $enabledSessions;
     EnumerableERC7739Config internal $enabledERC7739;
     mapping(PermissionId permissionId => mapping(address smartAccount => SignerConf conf)) internal $sessionValidators;
-    mapping(PermissionId permissionId => mapping(address smartAccount => bool permit4337Paymaster)) public
+    mapping(PermissionId permissionId => mapping(address smartAccount => bool permit4337Paymaster)) internal
         $permit4337Paymaster;
 
     /**

@@ -21,8 +21,6 @@ library ConfigLib {
     using IdLib for *;
     using ConfigLib for *;
 
-    error UnsupportedPolicy(address policy);
-
     function requirePolicyType(address policy, PolicyType policyType) internal view {
         bool supportsInterface;
         if (policyType == PolicyType.USER_OP) {
@@ -32,12 +30,12 @@ library ConfigLib {
         } else if (policyType == PolicyType.ERC1271) {
             supportsInterface = policy.supportsInterface(type(I1271Policy).interfaceId);
         } else {
-            revert UnsupportedPolicy(policy);
+            revert ISmartSession.UnsupportedPolicy(policy);
         }
 
         // Revert if the policy does not support the required interface
         if (!supportsInterface) {
-            revert UnsupportedPolicy(policy);
+            revert ISmartSession.UnsupportedPolicy(policy);
         }
     }
 
