@@ -207,7 +207,6 @@ ActionId constant FALLBACK_ACTIONID_SMARTSESSION_CALL = ActionId.wrap(
 
 // A unique ValidationData value to retry a policy check with the FALLBACK_ACTIONID.
 ValidationData constant RETRY_WITH_FALLBACK = ValidationData.wrap(uint256(0x50FFBAAD));
-ValidationData constant RETRY_WITH_FALLBACK_CALL_SMARTSESSION = ValidationData.wrap(uint256(0x50FFBAAF));
 
 using { validationDataEq as == } for ValidationData global;
 using { validationDataNeq as != } for ValidationData global;
