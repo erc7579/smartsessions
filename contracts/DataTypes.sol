@@ -60,7 +60,9 @@ struct Session {
     PolicyData[] userOpPolicies;
     ERC7739Data erc7739Policies;
     ActionData[] actions;
-    bool canUsePaymaster;
+    bool permit4337Paymaster;
+    bool permitSmartSessionPolicyFallback;
+    bool permitUnsafeSmartSessionPolicyFallback;
 }
 
 struct MultiChainSession {
@@ -196,12 +198,18 @@ ModuleType constant VALIDATOR_MODULE_TYPE = ModuleType.wrap(ERC7579_MODULE_TYPE_
 // enabled.
 address constant FALLBACK_TARGET_FLAG = address(1);
 bytes4 constant FALLBACK_TARGET_SELECTOR_FLAG = 0x00000001;
+bytes4 constant FALLBACK_TARGET_SELECTOR_FLAG_PERMITTED_TO_CALL_SMARTSESSION = 0x00000002;
 // 0xd884b6afa19f8ace90a388daca691e4e28f20cdac5aeefd46ad8bd1c074d28cf
 ActionId constant FALLBACK_ACTIONID =
     ActionId.wrap(keccak256(abi.encodePacked(FALLBACK_TARGET_FLAG, FALLBACK_TARGET_SELECTOR_FLAG)));
 
+ActionId constant FALLBACK_ACTIONID_SMARTSESSION_CALL = ActionId.wrap(
+    keccak256(abi.encodePacked(FALLBACK_TARGET_FLAG, FALLBACK_TARGET_SELECTOR_FLAG_PERMITTED_TO_CALL_SMARTSESSION))
+);
+
 // A unique ValidationData value to retry a policy check with the FALLBACK_ACTIONID.
 ValidationData constant RETRY_WITH_FALLBACK = ValidationData.wrap(uint256(0x50FFBAAD));
+ValidationData constant RETRY_WITH_FALLBACK_CALL_SMARTSESSION = ValidationData.wrap(uint256(0x50FFBAAF));
 
 using { validationDataEq as == } for ValidationData global;
 using { validationDataNeq as != } for ValidationData global;

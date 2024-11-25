@@ -23,6 +23,9 @@ sol! {
         PolicyData[] userOpPolicies;
         ERC7739Data erc7739Policies;
         ActionData[] actions;
+        bool permit4337Paymaster;
+        bool permitSmartSessionPolicyFallback;
+        bool permitUnsafeSmartSessionPolicyFallback;
     }
 
     #[allow(missing_docs)]
@@ -37,6 +40,9 @@ sol! {
         PolicyData[] userOpPolicies;
         ERC7739Data erc7739Policies;
         ActionData[] actions;
+        bool permit4337Paymaster;
+        bool permitSmartSessionPolicyFallback;
+        bool permitUnsafeSmartSessionPolicyFallback;
         uint256 nonce;
     }
 
@@ -115,7 +121,7 @@ impl From<ChainSession> for ChainDigest {
     }
 }
 
-pub fn to_signedSession(session: Session, account: Address, smart_session: Address, mode: u8, nonce: U256) -> SignedSession {
+pub fn to_signed_session(session: Session, account: Address, smart_session: Address, mode: u8, nonce: U256) -> SignedSession {
     SignedSession {
         account,
         smartSession: smart_session,
@@ -126,6 +132,9 @@ pub fn to_signedSession(session: Session, account: Address, smart_session: Addre
         userOpPolicies: session.userOpPolicies,
         erc7739Policies: session.erc7739Policies,
         actions: session.actions,
+        permit4337Paymaster: session.permit4337Paymaster,
+        permitSmartSessionPolicyFallback: session.permitSmartSessionPolicyFallback,
+        permitUnsafeSmartSessionPolicyFallback: session.permitUnsafeSmartSessionPolicyFallback,
         nonce
     }
 }

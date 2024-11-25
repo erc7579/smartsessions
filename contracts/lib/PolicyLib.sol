@@ -204,13 +204,40 @@ library PolicyLib {
         }
 
         // Prevent fallback action from being used directly
-        if (target == FALLBACK_TARGET_FLAG || target == address(this)) revert ISmartSession.InvalidTarget();
+        if (target == FALLBACK_TARGET_FLAG) revert ISmartSession.InvalidTarget();
 
-        // Generate the action ID based on the target and function selector
-        ActionId actionId = target.toActionId(targetSig);
+        // malloc for actionId
+        ActionId actionId;
 
-        // Check the relevant action policy
-        vd = $policies[actionId].tryCheck({
+        // should the target of this call be the smart session module itself, we will use the designated sentinel
+        // actionId for smartsession calls. The user has to explicitly set the smartsession call policy to allow this.
+        // @dev this is a special case, as a session key should normally not be utilized to configure other sessions
+        if (target == address(this)) {
+            actionId = FALLBACK_ACTIONID_SMARTSESSION_CALL;
+        }
+        // proceed with the normal flow
+        else {
+            // Generate the action ID based on the target and function selector
+            actionId = target.toActionId(targetSig);
+            // Check the relevant action policy
+            vd = $policies[actionId].tryCheck({
+                userOp: userOp,
+                permissionId: permissionId,
+                callOnIPolicy: abi.encodeCall(
+                    IActionPolicy.checkAction, (permissionId.toConfigId(actionId), userOp.sender, target, value, callData)
+                ),
+                minPolicies: minPolicies
+            });
+            // If tryCheck returns RETRY_WITH_FALLBACK magic value, that means not enough policies were configured
+            // for the actionId. Proceed with checking fallback action policies ($policies[FALLBACK_ACTIONID]).
+            if (vd == RETRY_WITH_FALLBACK) actionId = FALLBACK_ACTIONID;
+            // otherwise return the validation data
+            else return vd;
+        }
+        // call the fallback policy for either FALLBACK_ACTIONID or FALLBACK_ACTIONID_SMARTSESSION_CALL
+        // If no policies were configured for FALLBACK_ACTIONID or FALLBACK_ACTIONID_SMARTSESSION_CALL this call will
+        // revert
+        vd = $policies[actionId].check({
             userOp: userOp,
             permissionId: permissionId,
             callOnIPolicy: abi.encodeCall(
@@ -218,20 +245,6 @@ library PolicyLib {
             ),
             minPolicies: minPolicies
         });
-        // If tryCheck returns RETRY_WITH_FALLBACK magic value, that means not enough policies were configured
-        // for the actionId. Proceed with checking fallback action policies ($policies[FALLBACK_ACTIONID]).
-        if (vd == RETRY_WITH_FALLBACK) {
-            // If no policies were configured for FALLBACK_ACTIONID for this PermissionId, this will revert
-            vd = $policies[FALLBACK_ACTIONID].check({
-                userOp: userOp,
-                permissionId: permissionId,
-                callOnIPolicy: abi.encodeCall(
-                    IActionPolicy.checkAction,
-                    (permissionId.toConfigId(FALLBACK_ACTIONID), userOp.sender, target, value, callData)
-                ),
-                minPolicies: minPolicies
-            });
-        }
         return vd;
     }
 

@@ -163,6 +163,7 @@ library HashLib {
                 session.userOpPolicies.hashPolicyDataArray(),
                 session.erc7739Policies.hashERC7739Data(),
                 session.actions.hashActionDataArray(),
+                session.canUsePaymaster,
                 nonce
             )
         );

@@ -23,7 +23,7 @@ pub fn main() {
     let account = address!("6605F8785E09a245DD558e55F9A0f4A508434503");
     let smart_session = address!("6605F8785E09a245DD558e55F9A0f4A508434503");
     let mode = 1;
-    let signed_session = to_signedSession(session.clone(), account, smart_session, mode, U256::from(0));
+    let signed_session = to_signed_session(session.clone(), account, smart_session, mode, U256::from(0));
 
 
     let chain_session = ChainSession {
