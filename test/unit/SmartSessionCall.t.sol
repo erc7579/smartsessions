@@ -133,4 +133,63 @@ contract SmartSessionCallTest is BaseTest {
         instance.expect4337Revert();
         userOpData.execUserOps();
     }
+
+    function test_booleanFlags() public {
+        PolicyData[] memory policyDatas = new PolicyData[](1);
+        policyDatas[0] = PolicyData({ policy: address(sudoPolicy), initData: "" });
+        ActionData[] memory actionDatas;
+        ActionData memory unsafeFallback = ActionData({
+            actionTarget: FALLBACK_TARGET_FLAG,
+            actionTargetSelector: FALLBACK_TARGET_SELECTOR_FLAG_PERMITTED_TO_CALL_SMARTSESSION,
+            actionPolicies: policyDatas
+        });
+
+        ActionData memory regularFallabck = ActionData({
+            actionTarget: FALLBACK_TARGET_FLAG,
+            actionTargetSelector: FALLBACK_TARGET_SELECTOR_FLAG,
+            actionPolicies: policyDatas
+        });
+
+        ActionData memory normalAction = ActionData({
+            actionTarget: makeAddr("target"),
+            actionTargetSelector: this.test_booleanFlags.selector,
+            actionPolicies: policyDatas
+        });
+
+        actionDatas = new ActionData[](1);
+        actionDatas[0] = unsafeFallback;
+
+        bool permitFallback;
+        bool permitUnsafeFallback;
+
+        (permitFallback, permitUnsafeFallback,) = HashLib.hashActionDataArray(actionDatas);
+        assertEq(permitFallback, false);
+        assertEq(permitUnsafeFallback, true);
+
+        actionDatas = new ActionData[](1);
+        actionDatas[0] = regularFallabck;
+
+        (permitFallback, permitUnsafeFallback,) = HashLib.hashActionDataArray(actionDatas);
+        assertEq(permitFallback, true);
+        assertEq(permitUnsafeFallback, false);
+
+        actionDatas = new ActionData[](2);
+        actionDatas[0] = regularFallabck;
+        actionDatas[1] = unsafeFallback;
+
+        (permitFallback, permitUnsafeFallback,) = HashLib.hashActionDataArray(actionDatas);
+        assertEq(permitFallback, true);
+        assertEq(permitUnsafeFallback, true);
+
+        actionDatas = new ActionData[](4);
+
+        actionDatas[0] = normalAction;
+        actionDatas[1] = unsafeFallback;
+        actionDatas[2] = normalAction;
+        actionDatas[3] = regularFallabck;
+
+        (permitFallback, permitUnsafeFallback,) = HashLib.hashActionDataArray(actionDatas);
+        assertEq(permitFallback, true);
+        assertEq(permitUnsafeFallback, true);
+    }
 }
