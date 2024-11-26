@@ -62,7 +62,7 @@ library PolicyLib {
         returns (ValidationData vd)
     {
         // Get the list of policies for the given permissionId and account
-        address[] memory policies = $self.policyList[permissionId].values({ account: userOp.getSender() });
+        address[] memory policies = $self.policyList[permissionId].values({ account: msg.sender });
         uint256 length = policies.length;
 
         // Ensure the minimum number of policies is met.
@@ -105,7 +105,7 @@ library PolicyLib {
         returns (ValidationData vd)
     {
         // Get the list of policies for the given permissionId and account
-        address[] memory policies = $self.policyList[permissionId].values({ account: userOp.getSender() });
+        address[] memory policies = $self.policyList[permissionId].values({ account: msg.sender });
         uint256 length = policies.length;
 
         // Ensure the minimum number of policies is met. I.e. there are enough policies configured for given ActionId
@@ -199,7 +199,7 @@ library PolicyLib {
         }
 
         // Prevent potential bypass of policy checks through nested self executions
-        if (targetSig == IERC7579Account.execute.selector && target == userOp.getSender()) {
+        if (targetSig == IERC7579Account.execute.selector && target == msg.sender) {
             revert ISmartSession.InvalidSelfCall();
         }
 
@@ -224,8 +224,7 @@ library PolicyLib {
                 userOp: userOp,
                 permissionId: permissionId,
                 callOnIPolicy: abi.encodeCall(
-                    IActionPolicy.checkAction,
-                    (permissionId.toConfigId(actionId), userOp.getSender(), target, value, callData)
+                    IActionPolicy.checkAction, (permissionId.toConfigId(actionId), msg.sender, target, value, callData)
                 ),
                 minPolicies: minPolicies
             });
@@ -242,7 +241,7 @@ library PolicyLib {
             userOp: userOp,
             permissionId: permissionId,
             callOnIPolicy: abi.encodeCall(
-                IActionPolicy.checkAction, (permissionId.toConfigId(actionId), userOp.getSender(), target, value, callData)
+                IActionPolicy.checkAction, (permissionId.toConfigId(actionId), msg.sender, target, value, callData)
             ),
             minPolicies: minPolicies
         });
