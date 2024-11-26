@@ -8,6 +8,7 @@ import { IPolicy, IActionPolicy, I1271Policy } from "../interfaces/IPolicy.sol";
 import { Execution, ExecutionLib as ExecutionLib } from "./ExecutionLib.sol";
 import { ValidationDataLib } from "./ValidationDataLib.sol";
 import { IdLib } from "./IdLib.sol";
+import { EncodeLib } from "./EncodeLib.sol";
 import { EnumerableSet } from "../utils/EnumerableSet4337.sol";
 
 import { PackedUserOperation } from "modulekit/external/ERC4337.sol";
@@ -19,6 +20,7 @@ library PolicyLib {
     using ExecutionLib for *;
     using IdLib for *;
     using PolicyLib for *;
+    using EncodeLib for *;
     using ValidationDataLib for ValidationData;
     using ExcessivelySafeCall for address;
 
@@ -60,7 +62,7 @@ library PolicyLib {
         returns (ValidationData vd)
     {
         // Get the list of policies for the given permissionId and account
-        address[] memory policies = $self.policyList[permissionId].values({ account: userOp.sender });
+        address[] memory policies = $self.policyList[permissionId].values({ account: userOp.getSender() });
         uint256 length = policies.length;
 
         // Ensure the minimum number of policies is met.
@@ -103,7 +105,7 @@ library PolicyLib {
         returns (ValidationData vd)
     {
         // Get the list of policies for the given permissionId and account
-        address[] memory policies = $self.policyList[permissionId].values({ account: userOp.sender });
+        address[] memory policies = $self.policyList[permissionId].values({ account: userOp.getSender() });
         uint256 length = policies.length;
 
         // Ensure the minimum number of policies is met. I.e. there are enough policies configured for given ActionId
@@ -197,7 +199,7 @@ library PolicyLib {
         }
 
         // Prevent potential bypass of policy checks through nested self executions
-        if (targetSig == IERC7579Account.execute.selector && target == userOp.sender) {
+        if (targetSig == IERC7579Account.execute.selector && target == userOp.getSender()) {
             revert ISmartSession.InvalidSelfCall();
         }
 
@@ -222,7 +224,8 @@ library PolicyLib {
                 userOp: userOp,
                 permissionId: permissionId,
                 callOnIPolicy: abi.encodeCall(
-                    IActionPolicy.checkAction, (permissionId.toConfigId(actionId), userOp.sender, target, value, callData)
+                    IActionPolicy.checkAction,
+                    (permissionId.toConfigId(actionId), userOp.getSender(), target, value, callData)
                 ),
                 minPolicies: minPolicies
             });
@@ -239,7 +242,7 @@ library PolicyLib {
             userOp: userOp,
             permissionId: permissionId,
             callOnIPolicy: abi.encodeCall(
-                IActionPolicy.checkAction, (permissionId.toConfigId(actionId), userOp.sender, target, value, callData)
+                IActionPolicy.checkAction, (permissionId.toConfigId(actionId), userOp.getSender(), target, value, callData)
             ),
             minPolicies: minPolicies
         });

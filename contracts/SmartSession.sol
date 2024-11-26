@@ -78,7 +78,7 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
         // ensure that userOp.sender == msg.sender == account
         // SmartSession will sstore configs for a certain account,
         // so we have to ensure that unauthorized access is not possible
-        address account = userOp.sender;
+        address account = userOp.getSender();
         if (account != msg.sender) revert InvalidUserOpSender(account);
 
         // unpacking data packed in userOp.signature

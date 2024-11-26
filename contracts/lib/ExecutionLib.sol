@@ -17,8 +17,15 @@ library ExecutionLib {
         //bytes calldata data  = userOpCallData;
         assembly {
             let baseOffset := add(userOpCallData.offset, 0x24) //skip 4 bytes of selector and 32 bytes of execution mode
-            erc7579ExecutionCalldata.offset := add(baseOffset, calldataload(baseOffset))
+            let calldataLoadOffset := calldataload(baseOffset)
+            // check for potential overflow in calldataLoadOffset
+            if gt(calldataLoadOffset, 0xffffffffffffffff) { revert(0, 0) }
+            erc7579ExecutionCalldata.offset := add(baseOffset, calldataLoadOffset)
             erc7579ExecutionCalldata.length := calldataload(sub(erc7579ExecutionCalldata.offset, 0x20))
+            // TODO: check is sufficient
+            // forgefmt: disable-next-item
+            if lt(add(erc7579ExecutionCalldata.offset, erc7579ExecutionCalldata.length), 
+                  erc7579ExecutionCalldata.offset) { revert(0, 0) }
         }
     }
 
@@ -40,7 +47,7 @@ library ExecutionLib {
         }
     }
 
-    function decodeBatch(bytes calldata callData) internal pure returns (Execution[] calldata executionBatch) {
+    function _decodeBatch(bytes calldata executionData) internal pure returns (Execution[] calldata pointers) {
         /*
          * Batch Call Calldata Layout
          * Offset (in bytes)    | Length (in bytes) | Contents
@@ -49,12 +56,66 @@ library ExecutionLib {
         abi.encode(IERC7579Execution.Execution[])
          */
         // solhint-disable-next-line no-inline-assembly
-        assembly ("memory-safe") {
-            let dataPointer := add(callData.offset, calldataload(callData.offset))
+        /// @solidity memory-safe-assembly
+        assembly {
+            let u := calldataload(executionData.offset)
+            if or(shr(64, u), gt(0x20, executionData.length)) {
+                mstore(0x00, 0xba597e7e) // `DecodingError()`.
+                revert(0x1c, 0x04)
+            }
+            pointers.offset := add(add(executionData.offset, u), 0x20)
+            pointers.length := calldataload(add(executionData.offset, u))
+            if pointers.length {
+                let e := sub(add(executionData.offset, executionData.length), 0x20)
+                // Perform bounds checks on the decoded `pointers`.
+                // Does an out-of-gas revert.
+                for { let i := pointers.length } 1 { } {
+                    i := sub(i, 1)
+                    let p := calldataload(add(pointers.offset, shl(5, i)))
+                    let c := add(pointers.offset, p)
+                    let q := calldataload(add(c, 0x40))
+                    let o := add(c, q)
+                    // forgefmt: disable-next-item
+                    if or(shr(64, or(calldataload(o), or(p, q))),
+                        or(gt(add(c, 0x40), e), gt(add(o, calldataload(o)), e))) {
+                        mstore(0x00, 0xba597e7e) // `DecodingError()`.
+                        revert(0x1c, 0x04)
+                    }
+                    if iszero(i) { break }
+                }
+            }
+        }
+    }
 
-            // Extract the ERC7579 Executions
-            executionBatch.offset := add(dataPointer, 32)
-            executionBatch.length := calldataload(dataPointer)
+    function decodeBatch(bytes calldata executionData) internal pure returns (Execution[] calldata pointers) {
+        /// @solidity memory-safe-assembly
+        assembly {
+            let u := calldataload(executionData.offset)
+            if or(shr(64, u), gt(0x20, executionData.length)) {
+                mstore(0x00, 0xba597e7e) // `DecodingError()`.
+                revert(0x1c, 0x04)
+            }
+            pointers.offset := add(add(executionData.offset, u), 0x20)
+            pointers.length := calldataload(add(executionData.offset, u))
+            if pointers.length {
+                let e := sub(add(executionData.offset, executionData.length), 0x20)
+                // Perform bounds checks on the decoded `pointers`.
+                // Does an out-of-gas revert.
+                for { let i := pointers.length } 1 { } {
+                    i := sub(i, 1)
+                    let p := calldataload(add(pointers.offset, shl(5, i)))
+                    let c := add(pointers.offset, p)
+                    let q := calldataload(add(c, 0x40))
+                    let o := add(c, q)
+                    // forgefmt: disable-next-item
+                    if or(shr(64, or(calldataload(o), or(p, q))),
+                        or(gt(add(c, 0x40), e), gt(add(o, calldataload(o)), e))) {
+                        mstore(0x00, 0xba597e7e) // `DecodingError()`.
+                        revert(0x1c, 0x04)
+                    }
+                    if iszero(i) { break }
+                }
+            }
         }
     }
 
