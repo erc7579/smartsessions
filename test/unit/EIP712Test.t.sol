@@ -16,8 +16,15 @@ contract Helper {
         });
     }
 
-    function hashPermission(Session memory session) public pure returns (bytes32 hash) {
-        return session.hashPermissions();
+    function hashPermission(
+        Session memory session,
+        bool ignoreSecurityAttestations
+    )
+        public
+        pure
+        returns (bytes32 hash)
+    {
+        return session.hashPermissions(ignoreSecurityAttestations);
     }
 }
 
@@ -154,11 +161,11 @@ contract EIP712Test is Test {
 
         console2.log("helper addr:", address(helper));
 
-        bytes32 hashPermissions = session.hashPermissions();
-        bytes32 expectedPermissionsHash = 0x03d69a75f402e9e3f8fd7c787a2c7fdefa71a0a1f044450698da8a25431e23ca;
+        bytes32 hashPermissions = session.hashPermissions(false);
+        bytes32 expectedPermissionsHash = 0xc2d2c0d689188f83a8bcd8f712ac5d99592c650dd4b11aa3854069bd63e366ea;
         assertEq(hashPermissions, expectedPermissionsHash, "hash permission");
 
-        bytes32 expectedSessionHash = 0x3c26fafc2f5543f0b18742af85947749905378adb2b61838426ca8979c28566f;
+        bytes32 expectedSessionHash = 0xfe5ab8aab1e51d73d0ff471e7bc35458db292e47e8edcca72bab35a26bde6460;
 
         bytes32 hash = helper.hash(session);
         // bytes32 expected_hash = 0x4e1b5958b515b1750b96d520eccbb89236e76222301abc68a037111e2efa6687;
