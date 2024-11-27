@@ -110,7 +110,7 @@ contract PaymasterOptTest is BaseTest {
             userOpPolicies: new PolicyData[](0),
             erc7739Policies: _getEmptyERC7739Data("0", new PolicyData[](0)),
             actions: _getEmptyActionDatas(address(token), IERC20.transfer.selector, address(yesPolicy)),
-            permit4337Paymaster: true
+            permit4337Paymaster: false
         });
 
         permissionId = smartSession.getPermissionId(session);

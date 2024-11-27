@@ -60,7 +60,7 @@ interface ISmartSession {
     event SessionCreated(PermissionId permissionId, address account);
     event SessionRemoved(PermissionId permissionId, address smartAccount);
 
-    event PermissionIdpermit4337Paymaster(PermissionId permissionId, address smartAccount, bool enabled);
+    event PermissionIdPermit4337Paymaster(PermissionId permissionId, address smartAccount, bool enabled);
 
     /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
     /*                           ERC7579                          */

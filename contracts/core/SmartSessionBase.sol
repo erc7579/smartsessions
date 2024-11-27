@@ -121,10 +121,14 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
         });
     }
 
-    function setpermit4337Paymaster(PermissionId permissionId, bool enabled) external {
+    function setPermit4337Paymaster(PermissionId permissionId, bool enabled) external {
         $enabledSessions.requirePermissionIdEnabled(permissionId);
-        $permit4337Paymaster[permissionId][msg.sender] = true;
-        emit PermissionIdpermit4337Paymaster(permissionId, msg.sender, enabled);
+        _setPermit4337Paymaster(permissionId, enabled);
+    }
+
+    function _setPermit4337Paymaster(PermissionId permissionId, bool enabled) internal {
+        $permit4337Paymaster[permissionId][msg.sender] = enabled;
+        emit PermissionIdPermit4337Paymaster(permissionId, msg.sender, enabled);
     }
 
     /**
@@ -170,9 +174,8 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
         disableWithPermissionId(permissionId)
     {
         // Check if the session is enabled for the caller and the given permission
-        if ($enabledSessions.contains(msg.sender, PermissionId.unwrap(permissionId)) == false) {
-            revert InvalidSession(permissionId);
-        }
+        // forgefmt: disable-next-item
+        if (!$enabledSessions.contains(msg.sender, PermissionId.unwrap(permissionId))) revert InvalidSession(permissionId);
 
         $enabledERC7739.disable(contexts, permissionId, msg.sender);
 
@@ -321,7 +324,7 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
             // Add the session to the list of enabled sessions for the caller
             $enabledSessions.add({ account: msg.sender, value: PermissionId.unwrap(permissionId) });
 
-            if (session.permit4337Paymaster) $permit4337Paymaster[permissionId][msg.sender] = true;
+            _setPermit4337Paymaster(permissionId, session.permit4337Paymaster);
 
             // Enable the ISessionValidator for this session
             if (!_isISessionValidatorSet(permissionId, msg.sender)) {
@@ -385,9 +388,8 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
         // activating sessions that the user thought were terminated. This MUST be avoided.
         // if this case happens, it's not possible for the account to install the module again, unless the account calls
         // into the removreSession functions to disable all dangling permissions
-        if ($enabledSessions.length({ account: msg.sender }) > 0) {
-            revert SmartSessionModuleAlreadyInstalled(msg.sender);
-        }
+        // forgefmt: disable-next-item
+        if ($enabledSessions.length({ account: msg.sender }) != 0) revert SmartSessionModuleAlreadyInstalled(msg.sender);
         // It's allowed to install smartsessions on a ERC7579 account without any params
         if (data.length == 0) return;
 
@@ -425,8 +427,7 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
     }
 
     function isInitialized(address smartAccount) external view override returns (bool) {
-        uint256 configIdsCnt = $enabledSessions.length({ account: smartAccount });
-        return configIdsCnt > 0;
+        return $enabledSessions.length({ account: smartAccount }) != 0;
     }
 
     function isModuleType(uint256 typeID) external pure override returns (bool) {
