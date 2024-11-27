@@ -30,9 +30,10 @@ sol! {
     #[allow(missing_docs)]
     #[derive(Serialize)]
     struct SignedPermissions {
-        bool permit4337Paymaster;
-        bool permitSmartSessionPolicyFallback;
-        bool permitUnsafeSmartSessionPolicyFallback;
+        bool permitGenericPolicy;
+        bool permitAdminAccess;
+        bool ignoreSecurityAttestations;
+        bool permitERC4337Paymaster;
         PolicyData[] userOpPolicies;
         ERC7739Data erc7739Policies;
         ActionData[] actions;
@@ -44,12 +45,11 @@ sol! {
     #[derive(Serialize)]
     struct SignedSession {
         address account;
-        address smartSession;
-        uint8 mode;
-        address sessionValidator;
-        bytes32 salt;
-        bytes sessionValidatorInitData;
         SignedPermissions permissions;
+        address sessionValidator;
+        bytes sessionValidatorInitData;
+        bytes32 salt;
+        address smartSession;
         uint256 nonce;
     }
 
@@ -132,21 +132,21 @@ pub fn to_signed_session(session: Session, account: Address, smart_session: Addr
 
 
     let permissions = SignedPermissions{
-        permit4337Paymaster: session.permit4337Paymaster,
-        permitSmartSessionPolicyFallback: false,
-        permitUnsafeSmartSessionPolicyFallback: false,
+        permitGenericPolicy: false,
+        permitAdminAccess: false,
+        ignoreSecurityAttestations: false,
+        permitERC4337Paymaster: session.permit4337Paymaster,
         userOpPolicies: session.userOpPolicies,
         erc7739Policies: session.erc7739Policies,
         actions: session.actions,
     };
     SignedSession {
         account,
-        smartSession: smart_session,
-        mode,
-        sessionValidator: session.sessionValidator,
-        salt: session.salt,
-        sessionValidatorInitData: session.sessionValidatorInitData,
         permissions,
+        sessionValidator: session.sessionValidator,
+        sessionValidatorInitData: session.sessionValidatorInitData,
+        smartSession: smart_session,
+        salt: session.salt,
         nonce
     }
 }

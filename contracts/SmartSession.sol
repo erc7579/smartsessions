@@ -194,6 +194,8 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
             useRegistry: useRegistry
         });
 
+        _setPermit4337Paymaster(permissionId, enableData.sessionToEnable.permit4337Paymaster);
+
         // Enable mode can involve enabling ISessionValidator (new Permission)
         // or just adding policies (existing permission)
         // a) ISessionValidator is not set => enable ISessionValidator
@@ -260,7 +262,6 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
             // Check UserOp policies
             // This reverts if policies are violated
             vd = $userOpPolicies.check({
-                userOp: userOp,
                 permissionId: permissionId,
                 callOnIPolicy: abi.encodeCall(
                     IUserOpPolicy.checkUserOpPolicy, (permissionId.toUserOpPolicyId().toConfigId(), userOp)
@@ -300,7 +301,6 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
                     userOp.callData.decodeUserOpCallData().decodeSingle();
                 vd = vd.intersect(
                     $actionPolicies.actionPolicies.checkSingle7579Exec({
-                        userOp: userOp,
                         permissionId: permissionId,
                         target: target,
                         value: value,
@@ -329,7 +329,6 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
 
             vd = vd.intersect(
                 $actionPolicies.actionPolicies[actionId].check({
-                    userOp: userOp,
                     permissionId: permissionId,
                     callOnIPolicy: abi.encodeCall(
                         IActionPolicy.checkAction,
@@ -439,12 +438,13 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
         PermissionId permissionId = PermissionId.wrap(bytes32(signature[0:32]));
         signature = signature[32:];
 
-        // return false if the permissionId is not enabled
-        if (!$enabledSessions.contains(msg.sender, PermissionId.unwrap(permissionId))) return false;
-        // return false if the content is not enabled
-        if (!$enabledERC7739.enabledContentNames[permissionId][appDomainSeparator].contains(msg.sender, contentHash)) {
-            return false;
-        }
+        // forgefmt: disable-next-item
+        if (
+            // return false if the permissionId is not enabled
+            !$enabledSessions.contains(msg.sender, PermissionId.unwrap(permissionId))
+            // return false if the content is not enabled
+            || !$enabledERC7739.enabledContentNames[permissionId][appDomainSeparator].contains(msg.sender, contentHash)
+        ) return false;
 
         // check the ERC-1271 policy
         bool valid = $erc1271Policies.checkERC1271({
@@ -458,7 +458,7 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
         });
 
         // if the erc1271 policy check failed, return false
-        if (!valid) return false;
+        if (!valid) return valid;
         // this call reverts if the ISessionValidator is not set
         return $sessionValidators.isValidISessionValidator({
             hash: hash,

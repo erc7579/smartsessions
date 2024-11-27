@@ -134,13 +134,17 @@ library ConfigLib {
             // record every enabled actionId
             ActionData memory actionPolicyData = actionPolicyDatas[i];
 
-            // disallow actions to be set for address(0) or to the smartsession module itself
-            // sessionkeys that have access to smartsessions, may use this access to elevate their privileges
-            if (actionPolicyData.actionTarget == address(0) || actionPolicyData.actionTarget == address(this)) {
-                revert ISmartSession.InvalidActionId();
-            }
             ActionId actionId = actionPolicyData.actionTarget.toActionId(actionPolicyData.actionTargetSelector);
-            if (actionId == EMPTY_ACTIONID) revert ISmartSession.InvalidActionId();
+            {
+                address _cacheTarget = actionPolicyData.actionTarget;
+                // disallow actions to be set for address(0) or to the smartsession module itself
+                // sessionkeys that have access to smartsessions, may use this access to elevate their privileges
+                // forgefmt: disable-next-item
+                if (_cacheTarget == address(0) 
+                 || _cacheTarget == address(this) 
+                 || actionId == EMPTY_ACTIONID
+                ) revert ISmartSession.InvalidActionId();
+            }
 
             // Record the enabled action ID
             $self.actionPolicies[actionId].enable({
