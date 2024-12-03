@@ -1,4 +1,5 @@
 # Compiler files
+Deploy.toml
 cache/
 out/
 cache_forge/

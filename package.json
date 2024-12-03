@@ -1,16 +1,18 @@
 {
   "name": "smartsessions",
   "description": "ERC7579 SmartSession Module",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "author": {
     "name": "Biconomy & Rhinestone"
   },
   "dependencies": {
+    "erc7579": "github:erc7579/erc7579-implementation#b3f8bcb2df3aae3217213ffa8b7a87c1eb42ec56",
     "@rhinestone/flatbytes": "github:rhinestonewtf/flatbytes",
-    "@rhinestone/modulekit": "^0.4.10",
+    "@rhinestone/modulekit": "0.4.8",
     "freshcryptolib": "github:rdubois-crypto/FreshCryptoLib",
     "solmate": "github:transmissions11/solmate",
-    "stringutils": "github:Arachnid/solidity-stringutils"
+    "stringutils": "github:Arachnid/solidity-stringutils",
+    "@rhinestone/deploy-sol": "github:zeroknots/deploy-sol"
   },
   "devDependencies": {
     "@changesets/cli": "^2.27.2",
@@ -59,6 +61,5 @@
   ],
   "publishConfig": {
     "access": "public"
-  },
-  "packageManager": "pnpm@9.0.5+sha1.6db99351548f394a1d96aa1de98dec032aef8823"
+  }
 }

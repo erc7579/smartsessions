@@ -3,12 +3,12 @@
 [profile.default]
   auto_detect_solc = false
   block_timestamp = 1_680_220_800 # March 31, 2023 at 00:00 GMT
-  bytecode_hash = "none"
+  #bytecode_hash = "none"
   evm_version = "cancun"           # See https://www.evmdiff.com/features?name=PUSH0&kind=opcode
   fuzz = { runs = 1_000 }
   gas_reports = ["*"]
   optimizer = true
-  optimizer_runs = 10_000
+  optimizer_runs = 800
   out = "out"
   script = "script"
   solc = "0.8.27"
@@ -17,30 +17,25 @@
   cache_path  = "cache_forge"
   libs = ["node_modules", "lib"]
   gas_reports_ignore = ["LockTest"]
+  fs_permissions = [{ access = "read", path = "out" }, { access = "read-write", path = "deployArtifacts" }, { access = "read", path = "node_modules" }]
+  allow_paths = ["*", "/", "./node_modules/"]
 
 
 [profile.cosigner]
   bytecode_hash = "none"
   cbor_metadata = false
   optimize = true
-  runs = 1000
+  runs = 100000
   via-ir = true
   out = "out"
   src = "wc-cosigner"
   test = "none"
 
 [profile.ci]
-  fuzz = { runs = 10_000 }
+  fuzz = { runs = 10_00000 }
   verbosity = 4
 
 [etherscan]
-  #arbitrum = { key = "${API_KEY_ARBISCAN}" }
-  #avalanche = { key = "${API_KEY_SNOWTRACE}" }
-  #goerli = { key = "${API_KEY_ETHERSCAN}" }
-  #mainnet = { key = "${API_KEY_ETHERSCAN}" }
-  #optimism = { key = "${API_KEY_OPTIMISTIC_ETHERSCAN}" }
-  #polygon = { key = "${API_KEY_POLYGONSCAN}" }
-  sepolia = { key = "${API_KEY_ETHERSCAN}" }
 
 [fmt]
   bracket_spacing = true
@@ -52,14 +47,28 @@
   tab_width = 4
   wrap_comments = true
 
+
 [rpc_endpoints]
-  arbitrum = "https://arbitrum-mainnet.infura.io/v3/${API_KEY_INFURA}"
-  avalanche = "https://avalanche-mainnet.infura.io/v3/${API_KEY_INFURA}"
-  goerli = "https://goerli.infura.io/v3/${API_KEY_INFURA}"
-  localhost = "http://localhost:8545"
-  mainnet = "https://eth-mainnet.g.alchemy.com/v2/${API_KEY_ALCHEMY}"
-  optimism = "https://optimism-mainnet.infura.io/v3/${API_KEY_INFURA}"
-  polygon = "https://polygon-mainnet.infura.io/v3/${API_KEY_INFURA}"
-  # sepolia = "https://sepolia.infura.io/v3/${API_KEY_INFURA}"
-  sepolia = "https://eth-sepolia.g.alchemy.com/v2/${API_KEY_ALCHEMY}"
+arbitrum-sepolia = "https://arb-sepolia.g.alchemy.com/v2/${API_KEY_ALCHEMY}"
+avalanche = "https://avalanche-mainnet.infura.io/v3/${API_KEY_INFURA}"
+avalanche-fuji = "https://avalanche-fuji-c-chain-rpc.publicnode.com"
+#localhost = "http://localhost:8545"
+#mainnet = "https://eth-mainnet.g.alchemy.com/v2/${API_KEY_ALCHEMY}"
+optimism = "https://optimism-mainnet.infura.io/v3/${API_KEY_INFURA}"
+optimism-sepolia = "https://sepolia.optimism.io "
+polygon = "https://polygon-mainnet.infura.io/v3/${API_KEY_INFURA}"
+polygon-amoy = "https://polygon-amoy.drpc.org"
+sepolia = "https://sepolia.infura.io/v3/${API_KEY_INFURA}"
+gnosis = "https://gnosis-mainnet.g.alchemy.com/v2/${API_KEY_ALCHEMY}"
+gnosis-chidao = "https://gnosis-chiado.g.alchemy.com/v2/${API_KEY_ALCHEMY}"
+bsc-testnet = "https://bnb-testnet.g.alchemy.com/v2/${API_KEY_ALCHEMY}"
+bsc = "https://bnb-mainnet.g.alchemy.com/v2/${API_KEY_ALCHEMY}"
+base = "https://base-mainnet.g.alchemy.com/v2/${API_KEY_ALCHEMY}"
+base-sepolia = "https://base-sepolia.g.alchemy.com/v2/${API_KEY_ALCHEMY}"
+scroll-sepolia = "https://rpc.ankr.com/scroll_sepolia_testnet"
+scroll = "https://rpc.scroll.io"
+fuse = "https://explorer-node.fuse.io"
+fuse-spark = "https://rpc.fusespark.io/"
+celo = "https://celo.drpc.org"
+celo-alfajores = "https://alfajores-forno.celo-testnet.org"
 
