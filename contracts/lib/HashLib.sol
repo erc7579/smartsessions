@@ -203,7 +203,7 @@ library HashLib {
                 permitFallback, // permitGenericPolicy
                 permitUnsafeFallback, // permitAdminAccess
                 ignoreSecurityAttestations, // ignoreSecurityAttestations
-                session.permit4337Paymaster, // permitERC4337Paymaster
+                session.permitERC4337Paymaster, // permitERC4337Paymaster
                 session.userOpPolicies.hashPolicyDataArray(), // userOpPolicies
                 session.erc7739Policies.hashERC7739Data(), // erc7739Policies
                 actionDataArrayHash // actions

@@ -23,7 +23,7 @@ sol! {
         PolicyData[] userOpPolicies;
         ERC7739Data erc7739Policies;
         ActionData[] actions;
-        bool permit4337Paymaster;
+        bool permitERC4337Paymaster;
     }
 
 
@@ -135,7 +135,7 @@ pub fn to_signed_session(session: Session, account: Address, smart_session: Addr
         permitGenericPolicy: false,
         permitAdminAccess: false,
         ignoreSecurityAttestations: false,
-        permitERC4337Paymaster: session.permit4337Paymaster,
+        permitERC4337Paymaster: session.permitERC4337Paymaster,
         userOpPolicies: session.userOpPolicies,
         erc7739Policies: session.erc7739Policies,
         actions: session.actions,

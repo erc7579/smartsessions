@@ -22,7 +22,7 @@ contract Multichain712DigestTest is BaseTest {
             userOpPolicies: _getEmptyPolicyDatas(address(yesPolicy)),
             erc7739Policies: _getEmptyERC7739Data("0", new PolicyData[](0)),
             actions: _getEmptyActionDatas(makeAddr("target"), bytes4(0x41414141), address(yesPolicy)),
-            permit4337Paymaster: true
+            permitERC4337Paymaster: true
         });
 
         // Make sessionsAndChainIds

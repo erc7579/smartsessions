@@ -60,7 +60,7 @@ struct Session {
     PolicyData[] userOpPolicies;
     ERC7739Data erc7739Policies;
     ActionData[] actions;
-    bool permit4337Paymaster;
+    bool permitERC4337Paymaster;
 }
 
 struct MultiChainSession {

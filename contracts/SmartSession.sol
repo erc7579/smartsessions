@@ -194,7 +194,7 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
             useRegistry: useRegistry
         });
 
-        _setPermit4337Paymaster(permissionId, enableData.sessionToEnable.permit4337Paymaster);
+        _setPermit4337Paymaster(permissionId, enableData.sessionToEnable.permitERC4337Paymaster);
 
         // Enable mode can involve enabling ISessionValidator (new Permission)
         // or just adding policies (existing permission)
@@ -253,7 +253,7 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
             // paymasters. Should this be the case, a UserOpPolicy must run, this could be a yes policy, or a specific
             // UserOpPolicy that can destructure the paymasterAndData and inspect it
             if (userOp.paymasterAndData.length != 0) {
-                if ($permit4337Paymaster[permissionId][account]) minPolicies = 1;
+                if ($permitERC4337Paymaster[permissionId][account]) minPolicies = 1;
                 else revert PaymasterValidationNotEnabled(permissionId);
             }
             /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/

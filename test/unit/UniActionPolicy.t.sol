@@ -120,7 +120,7 @@ contract UniversalActionPolicyTest is BaseTest {
             userOpPolicies: new PolicyData[](0),
             erc7739Policies: _getEmptyERC7739Data("0", new PolicyData[](0)),
             actions: actionDatas,
-            permit4337Paymaster: true
+            permitERC4337Paymaster: true
         });
 
         permissionId = smartSession.getPermissionId(session);

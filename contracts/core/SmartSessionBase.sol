@@ -42,8 +42,8 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
     EnumerableSet.Bytes32Set internal $enabledSessions;
     EnumerableERC7739Config internal $enabledERC7739;
     mapping(PermissionId permissionId => mapping(address smartAccount => SignerConf conf)) internal $sessionValidators;
-    mapping(PermissionId permissionId => mapping(address smartAccount => bool permit4337Paymaster)) internal
-        $permit4337Paymaster;
+    mapping(PermissionId permissionId => mapping(address smartAccount => bool permitERC4337Paymaster)) internal
+        $permitERC4337Paymaster;
 
     /**
      * Before enabling policies, we need to check if the session is enabled for the caller and the given permission
@@ -127,7 +127,7 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
     }
 
     function _setPermit4337Paymaster(PermissionId permissionId, bool enabled) internal {
-        $permit4337Paymaster[permissionId][msg.sender] = enabled;
+        $permitERC4337Paymaster[permissionId][msg.sender] = enabled;
         emit PermissionIdPermit4337Paymaster(permissionId, msg.sender, enabled);
     }
 
@@ -324,7 +324,7 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
             // Add the session to the list of enabled sessions for the caller
             $enabledSessions.add({ account: msg.sender, value: PermissionId.unwrap(permissionId) });
 
-            _setPermit4337Paymaster(permissionId, session.permit4337Paymaster);
+            _setPermit4337Paymaster(permissionId, session.permitERC4337Paymaster);
 
             // Enable the ISessionValidator for this session
             if (!_isISessionValidatorSet(permissionId, msg.sender)) {
@@ -365,7 +365,7 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
         $actionPolicies.enabledActionIds[permissionId].removeAll(msg.sender);
 
         $sessionValidators.disable({ permissionId: permissionId, smartAccount: msg.sender });
-        delete $permit4337Paymaster[permissionId][msg.sender];
+        delete $permitERC4337Paymaster[permissionId][msg.sender];
 
         // Remove all ERC1271 policies for this session
         $enabledSessions.remove({ account: msg.sender, value: PermissionId.unwrap(permissionId) });
