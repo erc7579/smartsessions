@@ -165,15 +165,13 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
             permissionId: permissionId,
             configId: permissionId.toUserOpPolicyId().toConfigId(),
             policyDatas: enableData.sessionToEnable.userOpPolicies,
-            smartAccount: account,
             useRegistry: useRegistry
         });
 
         // Enable ERC1271 policies
         $enabledERC7739.enable({
             contexts: enableData.sessionToEnable.erc7739Policies.allowedERC7739Content,
-            permissionId: permissionId,
-            smartAccount: account
+            permissionId: permissionId
         });
 
         // Enabel ERC1271 policies
@@ -182,7 +180,6 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
             permissionId: permissionId,
             configId: permissionId.toErc1271PolicyId().toConfigId(),
             policyDatas: enableData.sessionToEnable.erc7739Policies.erc1271Policies,
-            smartAccount: account,
             useRegistry: useRegistry
         });
 
@@ -190,7 +187,6 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
         $actionPolicies.enable({
             permissionId: permissionId,
             actionPolicyDatas: enableData.sessionToEnable.actions,
-            smartAccount: account,
             useRegistry: useRegistry
         });
 
@@ -205,7 +201,6 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
         if (!_isISessionValidatorSet(permissionId, account)) {
             $sessionValidators.enable({
                 permissionId: permissionId,
-                smartAccount: account,
                 sessionValidator: enableData.sessionToEnable.sessionValidator,
                 sessionValidatorConfig: enableData.sessionToEnable.sessionValidatorInitData,
                 useRegistry: useRegistry
