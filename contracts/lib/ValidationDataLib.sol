@@ -2,7 +2,6 @@
 pragma solidity ^0.8.0;
 
 import { ValidationData } from "../DataTypes.sol";
-import { _packValidationData } from "@ERC4337/account-abstraction/contracts/core/Helpers.sol";
 // @author zeroknots rhinestone
 
 library ValidationDataLib {

@@ -3,7 +3,7 @@ pragma solidity ^0.8.25;
 
 import "../DataTypes.sol";
 import { LibZip } from "solady/utils/LibZip.sol";
-import { ModeCode as ExecutionMode } from "erc7579/lib/ModeLib.sol";
+import { PackedUserOperation } from "modulekit/external/ERC4337.sol";
 import { SmartSessionModeLib } from "./SmartSessionModeLib.sol";
 
 library EncodeLib {
@@ -12,6 +12,15 @@ library EncodeLib {
     using SmartSessionModeLib for SmartSessionMode;
 
     error ChainIdAndHashesLengthMismatch(uint256 chainIdsLength, uint256 hashesLength);
+
+    function getSender(PackedUserOperation calldata userOp) internal pure returns (address) {
+        address data;
+        //read sender from userOp, which is first userOp member (saves 800 gas...)
+        assembly {
+            data := calldataload(userOp)
+        }
+        return address(uint160(data));
+    }
 
     function unpackMode(bytes calldata packed)
         internal
