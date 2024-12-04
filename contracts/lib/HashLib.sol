@@ -9,6 +9,7 @@ import { MessageHashUtils } from "@openzeppelin/contracts/utils/cryptography/Mes
 //  to keep the documentation of nested EIP712 hashes readable, we trunkated the EIP712 definitions of nested structs.
 // If you want to reproduce the hashes, you can use the following alloy helper tool:
 // https://github.com/erc7579/smartsessions/blob/main/rust/main.rs
+// run cargo run to get the type hashes
 
 // PolicyData(address policy,bytes initData)
 bytes32 constant POLICY_DATA_TYPEHASH = 0xdddac12cd8b10a071bea04226e97ac9490698394e19224abc47a5cfeeeb6ee97;
