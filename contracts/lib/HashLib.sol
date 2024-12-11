@@ -61,11 +61,11 @@ bytes32 constant SESSION_TYPEHASH = 0xd44896e3cb83d70abc949a38dd6f9f75e675dc329d
 
 bytes32 constant SIGNED_PERMISSIONS_TYPEHASH = 0x871289c05e426554eb0f843c9aa542f9c2bc4eba7742ada6a5c014d3568674d4;
 
-// ChainSession(uint64 chainId,Session session)
-bytes32 constant CHAIN_SESSION_TYPEHASH = 0xb09059517bc0c1c07ba2eb85551b1f207f438d5a730869ab9ee43a0a9b1827df;
+// ChainSession(uint64 chainId,SignedSession session)
+bytes32 constant CHAIN_SESSION_TYPEHASH = 0x1ea7e4bc398fa0ccd68d92b5d8931a3fd93eebe1cf0391b4ba28935801af7c80;
 
 // MultiChainSession(ChainSession[] sessionsAndChainIds)
-bytes32 constant MULTICHAIN_SESSION_TYPEHASH = 0xaf8d28ab386f972c174afd2f0f3fdbdf876cb25c18dca8b61a2aa63bc087d9e3;
+bytes32 constant MULTICHAIN_SESSION_TYPEHASH = 0x0c9d02fb89a1da34d66ea2088dc9ee6a58efee71cef6f1bb849ed74fc6003d98;
 
 // keccak256("EIP712Domain(string name,string version)");
 bytes32 constant _MULTICHAIN_DOMAIN_TYPEHASH = 0xb03948446334eb9b2196d5eb166f69b9d49403eb4a12f36de8d3f9f3cb8e15c3;
