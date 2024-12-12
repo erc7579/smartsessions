@@ -2,7 +2,6 @@
 pragma solidity ^0.8.25;
 
 import "./DataTypes.sol";
-import { EIP712 } from "solady/utils/EIP712.sol";
 import { ERC7579FallbackBase } from "@rhinestone/module-bases/src/ERC7579FallbackBase.sol";
 import { IERC7579Account } from "erc7579/interfaces/IERC7579Account.sol";
 import { AccountIdLib } from "./lib/AccountIdLib.sol";

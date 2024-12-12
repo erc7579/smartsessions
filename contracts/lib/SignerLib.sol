@@ -2,17 +2,13 @@
 pragma solidity ^0.8.25;
 
 import "../DataTypes.sol";
+import { FlatBytesLib } from "flatbytes/BytesLib.sol";
 import { ISessionValidator } from "../interfaces/ISessionValidator.sol";
-import { IdLib } from "./IdLib.sol";
 
 library SignerLib {
-    using IdLib for *;
     using FlatBytesLib for *;
 
     error SignerNotFound(PermissionId permissionId, address account);
-    error InvalidSessionKeySignature(
-        PermissionId permissionId, ISessionValidator sessionValidator, address account, bytes32 userOpHash
-    );
 
     function isValidISessionValidator(
         mapping(PermissionId => mapping(address => SignerConf)) storage $sessionValidators,

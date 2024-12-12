@@ -54,7 +54,7 @@ contract SpendingLimitTest is BaseTest {
             userOpPolicies: _getEmptyPolicyDatas(address(yesPolicy)),
             erc7739Policies: _getEmptyERC7739Data("0", new PolicyData[](0)),
             actions: actionDatas,
-            canUsePaymaster: true
+            permitERC4337Paymaster: true
         });
 
         permissionId = smartSession.getPermissionId(session);
