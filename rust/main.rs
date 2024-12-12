@@ -28,7 +28,7 @@ pub fn main() {
 
     let chain_session = ChainSession {
         chainId: 1,
-        session: session.clone(),
+        session: signed_session.clone(),
     };
 
     let chain_digests:ChainDigest = chain_session.clone().into();

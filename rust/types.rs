@@ -91,7 +91,7 @@ sol!{
     #[derive(Serialize)]
     struct ChainSession {
         uint64 chainId;
-        Session session;
+        SignedSession session;
     }
 
     #[allow(missing_docs)]
