@@ -8,10 +8,10 @@
   fuzz = { runs = 1_000 }
   gas_reports = ["*"]
   optimizer = true
-  optimizer_runs = 10_000
+  optimizer_runs = 833
   out = "out"
   script = "script"
-  solc = "0.8.27"
+  solc = "0.8.28"
   src = "contracts"
   test = "test"
   cache_path  = "cache_forge"
