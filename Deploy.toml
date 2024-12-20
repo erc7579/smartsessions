@@ -1,0 +1,51 @@
+
+[deployments]
+rpcs = [
+    "http://localhost:8545",
+    #"http://localhost:8846",
+    #"http://localhost:8847",
+    #"http://localhost:8848",
+
+    # Mainnet
+    #"https://eth.llamarpc.com",
+    #"http://localhost:8545",
+    #"https://ethereum-sepolia-rpc.publicnode.com",
+
+    # Optimism
+    #"https://optimism.llamarpc.com",
+    #"https://sepolia.optimism.io",
+
+    # Base
+    #"https://base.llamarpc.com",
+    #"https://sepolia.base.org",
+
+    # Arbitrum
+    #"https://arbitrum.llamarpc.com",
+    #"https://public.stackup.sh/api/v1/node/arbitrum-sepolia",
+]
+
+[deployments.dependencies]
+entrypoint = "0x0000000071727De22E5E9d8BAf0edAc6f37da032"
+proxy_admin = "0x0000000071727De22E5E9d8BAf0edAc6f37da032" #todo
+
+
+[deployments.module.SmartSession]
+file = "./artifacts/SmartSession/SmartSession.json"
+source_file = "./artifacts/SmartSession/verify.json"
+salt = "0x0000000000000000000000000000000000000000b5064a4d93a9e201c1732219"
+
+
+[deployments.module.SudoPolicy]
+file = "./artifacts/SudoPolicy/SudoPolicy.json"
+source_file = "./artifacts/SudoPolicy/verify.json"
+salt = "0x0000000000000000000000000000000000000000b5064a4d93a9e201c1732219"
+
+[deployments.module.UniActionPolicy]
+file = "./artifacts/UniActionPolicy/UniActionPolicy.json"
+source_file = "./artifacts/UniActionPolicy/verify.json"
+salt = "0x0000000000000000000000000000000000000000b5064a4d93a9e201c1732219"
+
+[deployments.module.ERC20SpendingLimitPolicy]
+file = "./artifacts/ERC20SpendingLimitPolicy/ERC20SpendingLimitPolicy.json"
+source_file = "./artifacts/ERC20SpendingLimitPolicy/verify.json"
+salt = "0x0000000000000000000000000000000000000000b5064a4d93a9e201c1732219"
