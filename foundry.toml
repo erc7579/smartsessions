@@ -8,10 +8,10 @@
   fuzz = { runs = 1_000 }
   gas_reports = ["*"]
   optimizer = true
-  optimizer_runs = 10_000
+  optimizer_runs = 833
   out = "out"
   script = "script"
-  solc = "0.8.27"
+  solc = "0.8.28"
   src = "contracts"
   test = "test"
   cache_path  = "cache_forge"
@@ -40,7 +40,7 @@
   #mainnet = { key = "${API_KEY_ETHERSCAN}" }
   #optimism = { key = "${API_KEY_OPTIMISTIC_ETHERSCAN}" }
   #polygon = { key = "${API_KEY_POLYGONSCAN}" }
-  sepolia = { key = "${API_KEY_ETHERSCAN}" }
+  #sepolia = { key = "${API_KEY_ETHERSCAN}" }
 
 [fmt]
   bracket_spacing = true

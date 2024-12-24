@@ -31,7 +31,7 @@ import { EIP1271_MAGIC_VALUE, IERC1271 } from "module-bases/interfaces/IERC1271.
 import { MockK1Validator } from "test/mock/MockK1Validator.sol";
 import { UserOperationBuilder } from "test/mock/erc7679/UserOpBuilder.sol";
 import { ModeLib, ModeCode as ExecutionMode } from "erc7579/lib/ModeLib.sol";
-import { HashLib } from "contracts/lib/HashLib.sol";
+import { HashLib, _MULTICHAIN_DOMAIN_TYPEHASH, _MULTICHAIN_DOMAIN_SEPARATOR } from "contracts/lib/HashLib.sol";
 import { TestHashLib } from "test/utils/lib/TestHashLib.sol";
 import { IntegrationEncodeLib } from "test/utils/lib/IntegrationEncodeLib.sol";
 import { IEntryPoint } from "account-abstraction/interfaces/IEntryPoint.sol";
@@ -109,6 +109,26 @@ contract BaseTest is RhinestoneModuleKit, Test {
     function _getEmptyPolicyDatas(address policyContract) internal pure returns (PolicyData[] memory policyDatas) {
         policyDatas = new PolicyData[](1);
         policyDatas[0] = _getEmptyPolicyData(policyContract);
+    }
+
+    function test_constant() public {
+        ActionId fallbackActionId =
+            ActionId.wrap(keccak256(abi.encodePacked(FALLBACK_TARGET_FLAG, FALLBACK_TARGET_SELECTOR_FLAG)));
+
+        assertTrue(fallbackActionId == FALLBACK_ACTIONID);
+        console2.logBytes32(ActionId.unwrap(FALLBACK_ACTIONID));
+
+        fallbackActionId = ActionId.wrap(
+            keccak256(
+                abi.encodePacked(FALLBACK_TARGET_FLAG, FALLBACK_TARGET_SELECTOR_FLAG_PERMITTED_TO_CALL_SMARTSESSION)
+            )
+        );
+        console2.logBytes32(ActionId.unwrap(fallbackActionId));
+
+        assertTrue(FALLBACK_ACTIONID_SMARTSESSION_CALL == fallbackActionId);
+
+        console2.logBytes32(_MULTICHAIN_DOMAIN_TYPEHASH);
+        console2.logBytes32(_MULTICHAIN_DOMAIN_SEPARATOR);
     }
 
     function _getEmptyActionData(

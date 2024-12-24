@@ -23,12 +23,12 @@ pub fn main() {
     let account = address!("6605F8785E09a245DD558e55F9A0f4A508434503");
     let smart_session = address!("6605F8785E09a245DD558e55F9A0f4A508434503");
     let mode = 1;
-    let signed_session = to_signedSession(session.clone(), account, smart_session, mode, U256::from(0));
+    let signed_session = to_signed_session(session.clone(), account, smart_session, mode, U256::from(0));
 
 
     let chain_session = ChainSession {
         chainId: 1,
-        session: session.clone(),
+        session: signed_session.clone(),
     };
 
     let chain_digests:ChainDigest = chain_session.clone().into();
@@ -39,6 +39,7 @@ pub fn main() {
 
     println!("TypeHashes");
     println!("SignedSession: {}", SignedSession::eip712_type_hash(&signed_session));
+    println!("SignedPermissions: {}", SignedPermissions::eip712_type_hash(&signed_session.permissions));
 
     println!("Policy: {}", PolicyData::eip712_type_hash(&session.userOpPolicies[0]));
     println!("ERC7739Data: {}", ERC7739Data::eip712_type_hash(&session.erc7739Policies));
@@ -55,13 +56,14 @@ pub fn main() {
     println!("ERC7739Data: {}", ERC7739Data::eip712_hash_struct(&foo));
 
 
-    println!("SignedSession: {}", SignedSession::eip712_hash_struct(&signed_session));
+    println!("!SignedSession: {}", SignedSession::eip712_hash_struct(&signed_session));
+    println!("!SignedPermission: {}", SignedPermissions::eip712_hash_struct(&signed_session.permissions));
     println!("Policy: {}", PolicyData::eip712_hash_struct(&session.userOpPolicies[0]));
     println!("ERC7739Data: {}", ERC7739Data::eip712_hash_struct(&session.erc7739Policies));
-    println!("Actions: {}", ActionData::eip712_hash_struct(&session.actions[0]));
 
     println!("Root");
     println!("SignedSession: {}", SignedSession::eip712_root_type());
+    println!("{:?}", SignedSession::eip712_components());
     println!("PolicyData: {}", PolicyData::eip712_root_type());
     println!("ActionData: {}", ActionData::eip712_root_type());
     println!("ERC7739Data: {}", ERC7739Data::eip712_root_type());

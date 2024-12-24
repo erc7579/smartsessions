@@ -190,30 +190,4 @@ abstract contract SmartSessionERC7739 is ISmartSession {
         }
         result = _erc1271IsValidSignatureNowCalldata(sender, hash, signature, appDomainSeparator, contents);
     }
-
-    /// @dev For use in `_erc1271IsValidSignatureViaNestedEIP712`,
-    function _typedDataSignFields() private view returns (bytes32 m) {
-        (
-            bytes1 fields,
-            string memory name,
-            string memory version,
-            uint256 chainId,
-            address verifyingContract,
-            bytes32 salt,
-            uint256[] memory extensions
-        ) = EIP712(msg.sender).eip712Domain();
-        /// @solidity memory-safe-assembly
-        assembly {
-            m := mload(0x40) // Grab the free memory pointer.
-            mstore(0x40, add(m, 0x120)) // Allocate the memory.
-            // Skip 2 words for the `typedDataSignTypehash` and `contents` struct hash.
-            mstore(add(m, 0x40), shl(248, byte(0, fields)))
-            mstore(add(m, 0x60), keccak256(add(name, 0x20), mload(name)))
-            mstore(add(m, 0x80), keccak256(add(version, 0x20), mload(version)))
-            mstore(add(m, 0xa0), chainId)
-            mstore(add(m, 0xc0), shr(96, shl(96, verifyingContract)))
-            mstore(add(m, 0xe0), salt)
-            mstore(add(m, 0x100), keccak256(add(extensions, 0x20), shl(5, mload(extensions))))
-        }
-    }
 }

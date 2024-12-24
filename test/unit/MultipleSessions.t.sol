@@ -33,7 +33,7 @@ contract MultipleSessionsTest is BaseTest {
             userOpPolicies: _getEmptyPolicyDatas(address(yesPolicy)),
             erc7739Policies: _getEmptyERC7739Data("0", new PolicyData[](0)),
             actions: _getEmptyActionDatas(target, selector, address(yesPolicy)),
-            canUsePaymaster: true
+            permitERC4337Paymaster: true
         });
 
         // predict permissionId correlating to EnableSession

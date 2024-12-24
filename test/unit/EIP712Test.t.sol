@@ -15,6 +15,17 @@ contract Helper {
             nonce: 0
         });
     }
+
+    function hashPermission(
+        Session memory session,
+        bool ignoreSecurityAttestations
+    )
+        public
+        pure
+        returns (bytes32 hash)
+    {
+        return session.hashPermissions(ignoreSecurityAttestations);
+    }
 }
 
 bytes32 constant APP_DOMAIN_SEPARATOR = keccak256("0x01");
@@ -128,7 +139,7 @@ contract EIP712Test is Test {
             userOpPolicies: policyDatas,
             erc7739Policies: _getEmptyERC7739Data("mockContent", _getEmptyPolicyDatas(address(0))),
             actions: actions,
-            canUsePaymaster: true
+            permitERC4337Paymaster: true
         });
 
         assertEq(
@@ -150,7 +161,11 @@ contract EIP712Test is Test {
 
         console2.log("helper addr:", address(helper));
 
-        bytes32 expectedSessionHash = 0x9cfbe8549fbdaef16de84e9e747fcbcc6063b38f7d30dc36ebea809dac67c240;
+        bytes32 hashPermissions = session.hashPermissions(false);
+        bytes32 expectedPermissionsHash = 0xc2d2c0d689188f83a8bcd8f712ac5d99592c650dd4b11aa3854069bd63e366ea;
+        assertEq(hashPermissions, expectedPermissionsHash, "hash permission");
+
+        bytes32 expectedSessionHash = 0xfe5ab8aab1e51d73d0ff471e7bc35458db292e47e8edcca72bab35a26bde6460;
 
         bytes32 hash = helper.hash(session);
         // bytes32 expected_hash = 0x4e1b5958b515b1750b96d520eccbb89236e76222301abc68a037111e2efa6687;

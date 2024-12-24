@@ -23,20 +23,33 @@ sol! {
         PolicyData[] userOpPolicies;
         ERC7739Data erc7739Policies;
         ActionData[] actions;
+        bool permitERC4337Paymaster;
     }
+
+
+    #[allow(missing_docs)]
+    #[derive(Serialize)]
+    struct SignedPermissions {
+        bool permitGenericPolicy;
+        bool permitAdminAccess;
+        bool ignoreSecurityAttestations;
+        bool permitERC4337Paymaster;
+        PolicyData[] userOpPolicies;
+        ERC7739Data erc7739Policies;
+        ActionData[] actions;
+    }
+
+
 
     #[allow(missing_docs)]
     #[derive(Serialize)]
     struct SignedSession {
         address account;
-        address smartSession;
-        uint8 mode;
+        SignedPermissions permissions;
         address sessionValidator;
-        bytes32 salt;
         bytes sessionValidatorInitData;
-        PolicyData[] userOpPolicies;
-        ERC7739Data erc7739Policies;
-        ActionData[] actions;
+        bytes32 salt;
+        address smartSession;
         uint256 nonce;
     }
 
@@ -78,7 +91,7 @@ sol!{
     #[derive(Serialize)]
     struct ChainSession {
         uint64 chainId;
-        Session session;
+        SignedSession session;
     }
 
     #[allow(missing_docs)]
@@ -115,17 +128,25 @@ impl From<ChainSession> for ChainDigest {
     }
 }
 
-pub fn to_signedSession(session: Session, account: Address, smart_session: Address, mode: u8, nonce: U256) -> SignedSession {
-    SignedSession {
-        account,
-        smartSession: smart_session,
-        mode,
-        sessionValidator: session.sessionValidator,
-        salt: session.salt,
-        sessionValidatorInitData: session.sessionValidatorInitData,
+pub fn to_signed_session(session: Session, account: Address, smart_session: Address, mode: u8, nonce: U256) -> SignedSession {
+
+
+    let permissions = SignedPermissions{
+        permitGenericPolicy: false,
+        permitAdminAccess: false,
+        ignoreSecurityAttestations: false,
+        permitERC4337Paymaster: session.permitERC4337Paymaster,
         userOpPolicies: session.userOpPolicies,
         erc7739Policies: session.erc7739Policies,
         actions: session.actions,
+    };
+    SignedSession {
+        account,
+        permissions,
+        sessionValidator: session.sessionValidator,
+        sessionValidatorInitData: session.sessionValidatorInitData,
+        smartSession: smart_session,
+        salt: session.salt,
         nonce
     }
 }

@@ -78,7 +78,7 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
         // ensure that userOp.sender == msg.sender == account
         // SmartSession will sstore configs for a certain account,
         // so we have to ensure that unauthorized access is not possible
-        address account = userOp.sender;
+        address account = userOp.getSender();
         if (account != msg.sender) revert InvalidUserOpSender(account);
 
         // unpacking data packed in userOp.signature
@@ -165,15 +165,13 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
             permissionId: permissionId,
             configId: permissionId.toUserOpPolicyId().toConfigId(),
             policyDatas: enableData.sessionToEnable.userOpPolicies,
-            smartAccount: account,
             useRegistry: useRegistry
         });
 
         // Enable ERC1271 policies
         $enabledERC7739.enable({
             contexts: enableData.sessionToEnable.erc7739Policies.allowedERC7739Content,
-            permissionId: permissionId,
-            smartAccount: account
+            permissionId: permissionId
         });
 
         // Enabel ERC1271 policies
@@ -182,7 +180,6 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
             permissionId: permissionId,
             configId: permissionId.toErc1271PolicyId().toConfigId(),
             policyDatas: enableData.sessionToEnable.erc7739Policies.erc1271Policies,
-            smartAccount: account,
             useRegistry: useRegistry
         });
 
@@ -190,9 +187,10 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
         $actionPolicies.enable({
             permissionId: permissionId,
             actionPolicyDatas: enableData.sessionToEnable.actions,
-            smartAccount: account,
             useRegistry: useRegistry
         });
+
+        _setPermit4337Paymaster(permissionId, enableData.sessionToEnable.permitERC4337Paymaster);
 
         // Enable mode can involve enabling ISessionValidator (new Permission)
         // or just adding policies (existing permission)
@@ -203,7 +201,6 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
         if (!_isISessionValidatorSet(permissionId, account)) {
             $sessionValidators.enable({
                 permissionId: permissionId,
-                smartAccount: account,
                 sessionValidator: enableData.sessionToEnable.sessionValidator,
                 sessionValidatorConfig: enableData.sessionToEnable.sessionValidatorInitData,
                 useRegistry: useRegistry
@@ -251,7 +248,7 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
             // paymasters. Should this be the case, a UserOpPolicy must run, this could be a yes policy, or a specific
             // UserOpPolicy that can destructure the paymasterAndData and inspect it
             if (userOp.paymasterAndData.length != 0) {
-                if ($canUsePaymaster[permissionId][account]) minPolicies = 1;
+                if ($permitERC4337Paymaster[permissionId][account]) minPolicies = 1;
                 else revert PaymasterValidationNotEnabled(permissionId);
             }
             /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
@@ -260,7 +257,6 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
             // Check UserOp policies
             // This reverts if policies are violated
             vd = $userOpPolicies.check({
-                userOp: userOp,
                 permissionId: permissionId,
                 callOnIPolicy: abi.encodeCall(
                     IUserOpPolicy.checkUserOpPolicy, (permissionId.toUserOpPolicyId().toConfigId(), userOp)
@@ -300,7 +296,6 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
                     userOp.callData.decodeUserOpCallData().decodeSingle();
                 vd = vd.intersect(
                     $actionPolicies.actionPolicies.checkSingle7579Exec({
-                        userOp: userOp,
                         permissionId: permissionId,
                         target: target,
                         value: value,
@@ -329,7 +324,6 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
 
             vd = vd.intersect(
                 $actionPolicies.actionPolicies[actionId].check({
-                    userOp: userOp,
                     permissionId: permissionId,
                     callOnIPolicy: abi.encodeCall(
                         IActionPolicy.checkAction,
@@ -439,12 +433,13 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
         PermissionId permissionId = PermissionId.wrap(bytes32(signature[0:32]));
         signature = signature[32:];
 
-        // return false if the permissionId is not enabled
-        if (!$enabledSessions.contains(msg.sender, PermissionId.unwrap(permissionId))) return false;
-        // return false if the content is not enabled
-        if (!$enabledERC7739.enabledContentNames[permissionId][appDomainSeparator].contains(msg.sender, contentHash)) {
-            return false;
-        }
+        // forgefmt: disable-next-item
+        if (
+            // return false if the permissionId is not enabled
+            !$enabledSessions.contains(msg.sender, PermissionId.unwrap(permissionId))
+            // return false if the content is not enabled
+            || !$enabledERC7739.enabledContentNames[permissionId][appDomainSeparator].contains(msg.sender, contentHash)
+        ) return false;
 
         // check the ERC-1271 policy
         bool valid = $erc1271Policies.checkERC1271({
@@ -458,7 +453,7 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
         });
 
         // if the erc1271 policy check failed, return false
-        if (!valid) return false;
+        if (!valid) return valid;
         // this call reverts if the ISessionValidator is not set
         return $sessionValidators.isValidISessionValidator({
             hash: hash,
