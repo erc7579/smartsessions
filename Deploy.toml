@@ -32,20 +32,19 @@ proxy_admin = "0x0000000071727De22E5E9d8BAf0edAc6f37da032" #todo
 [deployments.module.SmartSession]
 file = "./artifacts/SmartSession/SmartSession.json"
 source_file = "./artifacts/SmartSession/verify.json"
-salt = "0x0000000000000000000000000000000000000000b5064a4d93a9e201c1732219"
-
+salt = "0x0000000000000000000000000000000000000000c93fe0497c457402a7e8ed95"
 
 [deployments.module.SudoPolicy]
 file = "./artifacts/SudoPolicy/SudoPolicy.json"
 source_file = "./artifacts/SudoPolicy/verify.json"
-salt = "0x0000000000000000000000000000000000000000b5064a4d93a9e201c1732219"
+salt = "0x00000000000000000000000000000000000000002e44d3e1fe056402d02e46b9"
 
 [deployments.module.UniActionPolicy]
 file = "./artifacts/UniActionPolicy/UniActionPolicy.json"
 source_file = "./artifacts/UniActionPolicy/verify.json"
-salt = "0x0000000000000000000000000000000000000000b5064a4d93a9e201c1732219"
+salt = "0x0000000000000000000000000000000000000000013a9fcb74b0b702f204c063"
 
 [deployments.module.ERC20SpendingLimitPolicy]
 file = "./artifacts/ERC20SpendingLimitPolicy/ERC20SpendingLimitPolicy.json"
 source_file = "./artifacts/ERC20SpendingLimitPolicy/verify.json"
-salt = "0x0000000000000000000000000000000000000000b5064a4d93a9e201c1732219"
+salt = "0x0000000000000000000000000000000000000000dd33829cc2cff403768e163e"
