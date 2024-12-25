@@ -44,7 +44,7 @@
     "foundry.toml",
     "remappings.txt"
   ],
-  "homepage": "https://___",
+  "homepage": "https://github.com/erc7579/smartsessions",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/erc7579/smartsessions.git"
