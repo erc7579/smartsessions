@@ -1,33 +1,54 @@
-
 [deployments]
 rpcs = [
-    "http://localhost:8545",
-    #"http://localhost:8846",
-    #"http://localhost:8847",
-    #"http://localhost:8848",
+    # "http://localhost:8545",
 
-    # Mainnet
-    #"https://eth.llamarpc.com",
-    #"http://localhost:8545",
-    #"https://ethereum-sepolia-rpc.publicnode.com",
+    # Ethereum 
+    "https://eth-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+    "https://eth-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
 
     # Optimism
-    #"https://optimism.llamarpc.com",
-    #"https://sepolia.optimism.io",
+    "https://opt-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+    "https://opt-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
 
     # Base
-    #"https://base.llamarpc.com",
-    #"https://sepolia.base.org",
+    "https://base-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+    "https://base-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
 
     # Arbitrum
-    #"https://arbitrum.llamarpc.com",
-    #"https://public.stackup.sh/api/v1/node/arbitrum-sepolia",
+    "https://arb-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+    "https://arb-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+
+    # Polygon
+    "https://polygon-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+    "https://polygon-amoy.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+
+    # Gnosis
+    "https://gnosis-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+    # "https://gnosis-chaido.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+
+    # Binance Smart Chain
+    "https://bnb-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+    "https://bnb-testnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+
+    # Avalanche
+    "https://avax-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+    "https://avax-fuji.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+
+    # Scroll
+    "https://scroll-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+    "https://scroll-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+
+    # Sonic
+    "https://sonic-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+    # "https://sonic-blaze.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+
+    # Fuse
+    "https://rpc.fuse.io",
+    "https://rpc.fusespark.io",
 ]
 
 [deployments.dependencies]
 entrypoint = "0x0000000071727De22E5E9d8BAf0edAc6f37da032"
-proxy_admin = "0x0000000071727De22E5E9d8BAf0edAc6f37da032" #todo
-
 
 [deployments.module.SmartSession]
 file = "./artifacts/SmartSession/SmartSession.json"
