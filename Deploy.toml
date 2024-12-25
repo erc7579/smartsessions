@@ -3,7 +3,7 @@ rpcs = [
     # "http://localhost:8545",
 
     # Ethereum 
-    "https://eth-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+    # "https://eth-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
     "https://eth-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
 
     # Optimism
