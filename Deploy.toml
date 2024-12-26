@@ -45,6 +45,9 @@ rpcs = [
     # Fuse
     "https://rpc.fuse.io",
     "https://rpc.fusespark.io",
+
+    # Odyssey
+    "https://odyssey.ithaca.xyz/",
 ]
 
 [deployments.dependencies]
