@@ -27,7 +27,6 @@ contract DeploySmartSession is Script {
         //_deploySmartSession();
         //_deployUOBuilder();
         //_deploySubModules();
-        //_deployWcCosigner();
         _deployValidators();
 
         vm.stopBroadcast();
@@ -45,21 +44,6 @@ contract DeploySmartSession is Script {
         console2.log("UserOperationBuilder Addr: ", address(uoBuilder));
 
         return address(uoBuilder);
-    }
-
-    function _deployWcCosigner() public returns (address) {
-        bytes memory bytecode = abi.encodePacked(vm.getCode("./out/MultiKeySigner.sol/MultiKeySigner.json"));
-
-        address anotherAddress;
-        address cosigner;
-        assembly {
-            anotherAddress := create(0, add(bytecode, 0x20), mload(bytecode))
-        }
-        cosigner = anotherAddress;
-        console2.log("WalletConnect CoSigner Addr: ", cosigner);
-        vm.label(cosigner, "WalletConnect CoSigner");
-
-        return anotherAddress;
     }
 
     function _deploySubModules() public returns (address) {
