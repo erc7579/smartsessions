@@ -15,10 +15,11 @@ contract SudoPolicyAndActionPolicyTest is BaseTest {
     using ModuleKitUserOp for *;
     using EncodeLib for PermissionId;
 
-    MockERC20 token1; // Token with spending limit policy
+    MockERC20 token1;
     MockERC20 token2;
-    MockERC20 token3; // Token without spending limit policy
+    MockERC20 token3;
     PermissionId permissionId;
+    PermissionId permissionId_onlyUserOpPolicy;
     ERC20SpendingLimitPolicy spendingLimit;
 
     function setUp() public virtual override {
@@ -49,7 +50,7 @@ contract SudoPolicyAndActionPolicyTest is BaseTest {
             initData: abi.encode(spendingLimitTokens, spendingLimitLimits)
         });
 
-        ActionData[] memory actionDatas = new ActionData[](2);
+        ActionData[] memory actionDatas = new ActionData[](3);
         actionDatas[0] = ActionData({
             actionTarget: address(token1),
             actionTargetSelector: IERC20.transfer.selector,
@@ -60,6 +61,12 @@ contract SudoPolicyAndActionPolicyTest is BaseTest {
         actionDatas[1] = ActionData({
             actionTarget: address(token2),
             actionTargetSelector: IERC20.transfer.selector,
+            actionPolicies: transferPolicyDatas
+        });
+
+        actionDatas[2] = ActionData({
+            actionTarget: address(token2),
+            actionTargetSelector: IERC20.approve.selector,
             actionPolicies: transferPolicyDatas
         });
 
@@ -82,6 +89,26 @@ contract SudoPolicyAndActionPolicyTest is BaseTest {
         Session[] memory enableSessionsArray = new Session[](1);
         enableSessionsArray[0] = session;
 
+        vm.prank(instance.account);
+        smartSession.enableSessions(enableSessionsArray);
+
+        // Create a session with only UserOp policy and no action data
+        PolicyData[] memory onlyUserOpPolicies = new PolicyData[](1);
+        onlyUserOpPolicies[0] = PolicyData({ policy: address(sudoPolicy), initData: "" });
+
+        Session memory userOpOnlySession = Session({
+            sessionValidator: ISessionValidator(address(yesSessionValidator)),
+            salt: keccak256("salt2"),
+            sessionValidatorInitData: "mockInitData",
+            userOpPolicies: onlyUserOpPolicies,
+            erc7739Policies: _getEmptyERC7739Data("0", new PolicyData[](0)),
+            actions: new ActionData[](0), // Empty action data array
+            permitERC4337Paymaster: true
+        });
+
+        permissionId_onlyUserOpPolicy = smartSession.getPermissionId(userOpOnlySession);
+
+        enableSessionsArray[0] = userOpOnlySession;
         vm.prank(instance.account);
         smartSession.enableSessions(enableSessionsArray);
     }
@@ -130,6 +157,29 @@ contract SudoPolicyAndActionPolicyTest is BaseTest {
         userOpData.execUserOps();
     }
 
+    function test_token3_transferWithNoActionData() public {
+        address recipient = makeAddr("recipient");
+
+        // Should revert with NoPoliciesSet since token3 has no action data
+        UserOpData memory userOpData = instance.getExecOps({
+            target: address(token3),
+            value: 0,
+            callData: abi.encodeCall(IERC20.transfer, (recipient, 1 ether)),
+            txValidator: address(smartSession)
+        });
+
+        userOpData.userOp.signature = EncodeLib.encodeUse({ permissionId: permissionId, sig: hex"4141414141" });
+
+        bytes memory expectedRevertReason = abi.encodeWithSelector(
+            IEntryPoint.FailedOpWithRevert.selector,
+            0,
+            "AA23 reverted",
+            abi.encodeWithSelector(ISmartSession.NoPoliciesSet.selector, permissionId)
+        );
+        vm.expectRevert(expectedRevertReason);
+        userOpData.execUserOps();
+    }
+
     function test_token2_approveWithSpendingLimit() public {
         address spender = makeAddr("spender");
 
@@ -146,19 +196,51 @@ contract SudoPolicyAndActionPolicyTest is BaseTest {
         userOpData.execUserOps();
     }
 
-    function test_token3_transferWithSpendingLimit() public {
+    function test_token1_transferWithOnlyUserOpPolicy() public {
         address recipient = makeAddr("recipient");
 
-        // Should succeed as token3 has no spending limit policy
+        // Should fail as the policy only has a UserOp policy and no action data
         UserOpData memory userOpData = instance.getExecOps({
-            target: address(token3),
+            target: address(token1),
             value: 0,
-            callData: abi.encodeCall(IERC20.transfer, (recipient, 50 ether)),
+            callData: abi.encodeCall(IERC20.transfer, (recipient, 1 ether)),
             txValidator: address(smartSession)
         });
 
-        userOpData.userOp.signature = EncodeLib.encodeUse({ permissionId: permissionId, sig: hex"4141414141" });
+        userOpData.userOp.signature =
+            EncodeLib.encodeUse({ permissionId: permissionId_onlyUserOpPolicy, sig: hex"4141414141" });
+
+        bytes memory expectedRevertReason = abi.encodeWithSelector(
+            IEntryPoint.FailedOpWithRevert.selector,
+            0,
+            "AA23 reverted",
+            abi.encodeWithSelector(ISmartSession.NoPoliciesSet.selector, permissionId_onlyUserOpPolicy)
+        );
+        vm.expectRevert(expectedRevertReason);
         userOpData.execUserOps();
-        assertEq(token3.balanceOf(recipient), 50 ether);
+    }
+
+    function test_token2_transferWithOnlyUserOpPolicy() public {
+        address recipient = makeAddr("recipient");
+
+        // Should fail as the policy only has a UserOp policy and no action data
+        UserOpData memory userOpData = instance.getExecOps({
+            target: address(token2),
+            value: 0,
+            callData: abi.encodeCall(IERC20.transfer, (recipient, 1 ether)),
+            txValidator: address(smartSession)
+        });
+
+        userOpData.userOp.signature =
+            EncodeLib.encodeUse({ permissionId: permissionId_onlyUserOpPolicy, sig: hex"4141414141" });
+
+        bytes memory expectedRevertReason = abi.encodeWithSelector(
+            IEntryPoint.FailedOpWithRevert.selector,
+            0,
+            "AA23 reverted",
+            abi.encodeWithSelector(ISmartSession.NoPoliciesSet.selector, permissionId_onlyUserOpPolicy)
+        );
+        vm.expectRevert(expectedRevertReason);
+        userOpData.execUserOps();
     }
 }
