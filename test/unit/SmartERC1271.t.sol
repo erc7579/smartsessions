@@ -51,15 +51,13 @@ contract SmartSessionERC1271Test is ERC1271TestBase {
         console2.log("using permissionId");
         console2.logBytes32(PermissionId.unwrap(permissionId));
 
-        _testIsValidSignature(
-            {
-                contentsType: "Permit(bytes32 stuff)",
-                contentsName: "Permit",
-                expectSuccess: true,
-                permissionId: permissionId,
-                is6492: true,
-                sessionSigner: sessionSigner1
-            }
-        );
+        _testIsValidSignature({
+            contentsType: "Permit(bytes32 stuff)",
+            contentsName: "Permit",
+            expectSuccess: true,
+            permissionId: permissionId,
+            is6492: true,
+            sessionSigner: sessionSigner1
+        });
     }
 }

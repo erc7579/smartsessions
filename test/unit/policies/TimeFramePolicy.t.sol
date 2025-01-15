@@ -108,13 +108,17 @@ contract TimeFramePolicyTest is PolicyTestBase {
 
     //test as 1271 policy
     function test_use_timeframe_policy_as_1271_policy_success() public returns (PermissionId permissionId) {
-        _testIsValidSignature("Permit(bytes32 stuff)", "Permit", true, permissionId_timeframed1271, false, sessionSigner1);
+        _testIsValidSignature(
+            "Permit(bytes32 stuff)", "Permit", true, permissionId_timeframed1271, false, sessionSigner1
+        );
     }
 
     //test as 1271 policy
     function test_use_timeframe_policy_as_1271_policy_fail() public returns (PermissionId permissionId) {
         vm.warp(block.timestamp + 11 minutes);
-        _testIsValidSignature("Permit(bytes32 stuff)", "Permit", false, permissionId_timeframed1271, false, sessionSigner1);
+        _testIsValidSignature(
+            "Permit(bytes32 stuff)", "Permit", false, permissionId_timeframed1271, false, sessionSigner1
+        );
     }
 
     //test as action policy

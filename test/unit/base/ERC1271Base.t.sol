@@ -56,14 +56,14 @@ contract ERC1271TestBase is BaseTest {
         bytes32 contents = keccak256(abi.encode("random", contentsType));
 
         _TestTemps memory t = _testTemps(sessionSigner);
-        (t.v, t.r, t.s) = vm.sign(
-            t.privateKey, _toERC1271Hash(address(t.account), contents, contentsType, contentsName)
-        );
+        (t.v, t.r, t.s) =
+            vm.sign(t.privateKey, _toERC1271Hash(address(t.account), contents, contentsType, contentsName));
 
         bytes memory contentsDescription = abi.encodePacked(contentsType, contentsName);
 
-        bytes memory signature =
-            abi.encodePacked(t.r, t.s, t.v, appDomainSeparator, contents, contentsDescription, uint16(contentsDescription.length));
+        bytes memory signature = abi.encodePacked(
+            t.r, t.s, t.v, appDomainSeparator, contents, contentsDescription, uint16(contentsDescription.length)
+        );
         signature = abi.encodePacked(permissionId, signature);
         if (is6492) {
             signature = _erc6492Wrap(signature);
