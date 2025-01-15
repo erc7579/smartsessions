@@ -7,7 +7,6 @@ import "contracts/DataTypes.sol";
 import "forge-std/console2.sol";
 
 contract YesPolicy is IUserOpPolicy, IActionPolicy, I1271Policy {
-
     mapping(ConfigId id => mapping(address msgSender => mapping(address userOpSender => uint256 calls))) public
         userOpState;
 

@@ -110,7 +110,14 @@ contract ERC20SpendingLimitPolicy is IActionPolicy {
             bytes4(callData[0:4]) == IERC20.approve.selector
                 || bytes4(callData[0:4]) == bytes4(keccak256("increaseAllowance(address,uint256)"))
         ) {
-            //increase approval case
+            // increase approval case
+            // if the amount is uint256 max (max alowance) and the $.approvedAmount is not 0, 
+            // it will overflow and revert. In theory this is not what should happen as the approval in erc20
+            // contract can be successfully set to max in this case, and if the previous approval was not yet spent,
+            // can be a valid case, however accounting for it will cause so many other edge cases and security considerations
+            // that we decided to stick with this approach and document the fact that the session key should never operate with max allowances
+            // in fact it has no reasons of doing this as the purpose of session key is that it can issue whatever ammount of signature, without 
+            // making UX worse for user. So it is recommended that a session key always permits the exact amount of tokens that is about to be spent by spender.
             $.approvedAmount += amount;
         } else {
             // transfer or transferFrom case

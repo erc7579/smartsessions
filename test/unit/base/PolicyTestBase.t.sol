@@ -21,7 +21,15 @@ contract PolicyTestBase is ERC1271TestBase {
         _value = 0;
     }
 
-    function _enableUserOpSession(address policy, bytes memory initData, AccountInstance memory instance, bytes32 salt) internal returns (PermissionId permissionId) {
+    function _enableUserOpSession(
+        address policy,
+        bytes memory initData,
+        AccountInstance memory instance,
+        bytes32 salt
+    )
+        internal
+        returns (PermissionId permissionId)
+    {
         PolicyData[] memory policyDatas = new PolicyData[](1);
         policyDatas[0] = PolicyData({ policy: address(sudoPolicy), initData: "" });
 
@@ -53,7 +61,15 @@ contract PolicyTestBase is ERC1271TestBase {
         permissionId = smartSession.getPermissionId(session);
     }
 
-    function _enableActionSession(address policy, bytes memory initData, AccountInstance memory instance, bytes32 salt) internal returns (PermissionId permissionId) {
+    function _enableActionSession(
+        address policy,
+        bytes memory initData,
+        AccountInstance memory instance,
+        bytes32 salt
+    )
+        internal
+        returns (PermissionId permissionId)
+    {
         PolicyData[] memory policyDatas = new PolicyData[](1);
         policyDatas[0] = PolicyData({ policy: policy, initData: initData });
 
@@ -82,7 +98,15 @@ contract PolicyTestBase is ERC1271TestBase {
         permissionId = smartSession.getPermissionId(session);
     }
 
-    function _enable1271Session(address policy, bytes memory initData, AccountInstance memory instance, bytes32 salt) internal returns (PermissionId permissionId) {
+    function _enable1271Session(
+        address policy,
+        bytes memory initData,
+        AccountInstance memory instance,
+        bytes32 salt
+    )
+        internal
+        returns (PermissionId permissionId)
+    {
         PolicyData[] memory erc1271PolicyDatas = new PolicyData[](1);
         erc1271PolicyDatas[0] = PolicyData({ policy: policy, initData: initData });
 
@@ -91,7 +115,7 @@ contract PolicyTestBase is ERC1271TestBase {
             salt: salt,
             sessionValidatorInitData: "mockInitData",
             userOpPolicies: new PolicyData[](0),
-            erc7739Policies: _getEmptyERC7739Data("Permit(bytes32 stuff)", erc1271PolicyDatas),
+            erc7739Policies: _getEmptyERC7739Data("Permit(bytes32 stuff)Permit", erc1271PolicyDatas),
             actions: new ActionData[](0),
             permitERC4337Paymaster: true
         });

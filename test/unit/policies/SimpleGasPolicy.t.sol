@@ -28,22 +28,21 @@ contract SimpleGasPolicyTest is PolicyTestBase {
 
     function using_simple_gas_policy_fails_not_initialized() public returns (PermissionId) {
         bytes memory callData = abi.encodeCall(MockTarget.setValue, (1337));
-        PermissionId invalidPermissionId = _enableUserOpSession(address(simpleGasPolicy), abi.encodePacked(uint256(0)), instance, keccak256("salt"));
-        UserOpData memory userOpData = instance.getExecOps({
-            target: _target,
-            value: 0,
-            callData: callData,
-            txValidator: address(smartSession)
-        });
+        PermissionId invalidPermissionId =
+            _enableUserOpSession(address(simpleGasPolicy), abi.encodePacked(uint256(0)), instance, keccak256("salt"));
+        UserOpData memory userOpData =
+            instance.getExecOps({ target: _target, value: 0, callData: callData, txValidator: address(smartSession) });
         userOpData.userOp.signature = EncodeLib.encodeUse({ permissionId: invalidPermissionId, sig: hex"4141414141" });
         bytes memory expectedRevertReason = abi.encodeWithSelector(
             IEntryPoint.FailedOpWithRevert.selector,
             0,
             "AA23 reverted",
             abi.encodePacked(
-                hex'f4270752', // `PolicyCheckReverted(bytes32)`
+                hex"f4270752", // `PolicyCheckReverted(bytes32)`
                 IPolicy.PolicyNotInitialized.selector,
-                bytes28(ConfigId.unwrap(IdLib.toConfigId(IdLib.toUserOpPolicyId(invalidPermissionId), instance.account)))
+                bytes28(
+                    ConfigId.unwrap(IdLib.toConfigId(IdLib.toUserOpPolicyId(invalidPermissionId), instance.account))
+                )
             )
         );
         vm.expectRevert(expectedRevertReason);
@@ -52,19 +51,19 @@ contract SimpleGasPolicyTest is PolicyTestBase {
         return invalidPermissionId;
     }
 
-    function use_simple_gas_policy_as_UserOp_policy_success_and_fails_if_exceeds_limit(PermissionId permissionId) public returns (PermissionId) {
+    function use_simple_gas_policy_as_UserOp_policy_success_and_fails_if_exceeds_limit(PermissionId permissionId)
+        public
+        returns (PermissionId)
+    {
         //re-initialize
-        PermissionId permissionIdReInited = _enableUserOpSession(address(simpleGasPolicy), simpleGasPolicyInitData, instance, keccak256("salt"));
+        PermissionId permissionIdReInited =
+            _enableUserOpSession(address(simpleGasPolicy), simpleGasPolicyInitData, instance, keccak256("salt"));
         assertEq(PermissionId.unwrap(permissionIdReInited), PermissionId.unwrap(permissionId));
         // use
         bytes memory callData = abi.encodeCall(MockTarget.setValue, (1337));
         // get userOp from ModuleKit
-        UserOpData memory userOpData = instance.getExecOps({
-            target: _target,
-            value: 0,
-            callData: callData,
-            txValidator: address(smartSession)
-        });
+        UserOpData memory userOpData =
+            instance.getExecOps({ target: _target, value: 0, callData: callData, txValidator: address(smartSession) });
         userOpData.userOp.signature = EncodeLib.encodeUse({ permissionId: permissionId, sig: hex"4141414141" });
         userOpData.userOp.preVerificationGas = 500_000;
         uint128 validationGasLimit = 250_000;
@@ -75,27 +74,21 @@ contract SimpleGasPolicyTest is PolicyTestBase {
 
         // try to exceed the limit, should fail
         userOpData.userOp.nonce++;
-        
-        bytes memory innerRevertReason = abi.encodeWithSelector(
-                ISmartSession.PolicyViolation.selector,
-                permissionId,
-                address(simpleGasPolicy)
-        );
 
-        bytes memory expectedRevertReason = abi.encodeWithSelector(
-            IEntryPoint.FailedOpWithRevert.selector,
-            0,
-            "AA23 reverted",
-            innerRevertReason
-        );      
+        bytes memory innerRevertReason =
+            abi.encodeWithSelector(ISmartSession.PolicyViolation.selector, permissionId, address(simpleGasPolicy));
+
+        bytes memory expectedRevertReason =
+            abi.encodeWithSelector(IEntryPoint.FailedOpWithRevert.selector, 0, "AA23 reverted", innerRevertReason);
         vm.expectRevert(expectedRevertReason);
         userOpData.execUserOps();
         return permissionIdReInited;
-    } 
+    }
 
     function gas_limit_policy_can_be_reinitialized(PermissionId permissionId) public returns (PermissionId) {
         // re-initialize with new limit, check that both limit and used are updated
-        PermissionId permissionIdReInited = _enableUserOpSession(address(simpleGasPolicy), simpleGasPolicyInitData, instance, keccak256("salt"));
+        PermissionId permissionIdReInited =
+            _enableUserOpSession(address(simpleGasPolicy), simpleGasPolicyInitData, instance, keccak256("salt"));
         assertEq(PermissionId.unwrap(permissionIdReInited), PermissionId.unwrap(permissionId));
         ConfigId configId = IdLib.toConfigId(IdLib.toUserOpPolicyId(permissionIdReInited), instance.account);
         assertEq(simpleGasPolicy.getGasLimit(configId, address(smartSession), instance.account), uint256(1_000_000));

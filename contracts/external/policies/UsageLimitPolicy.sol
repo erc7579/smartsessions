@@ -9,7 +9,6 @@ import "contracts/interfaces/IPolicy.sol";
  * @notice A policy that limits the total amount of actions/userOps that can be performed within a permission.
  */
 contract UsageLimitPolicy is IUserOpPolicy, IActionPolicy {
-
     struct UsageLimitConfig {
         uint128 limit;
         uint128 used;
@@ -56,7 +55,8 @@ contract UsageLimitPolicy is IUserOpPolicy, IActionPolicy {
     }
 
     /**
-     * @notice Initializes the policy to be used by given account through multiplexer (msg.sender) such as Smart Sessions.
+     * @notice Initializes the policy to be used by given account through multiplexer (msg.sender) such as Smart
+     * Sessions.
      * Overwrites state.
      * @notice ATTENTION: This method is called during permission installation as part of the enabling policies flow.
      * A secure policy would minimize external calls from this method (ideally, to 0) to prevent passing control flow to

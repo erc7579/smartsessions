@@ -8,9 +8,9 @@ import "contracts/interfaces/IPolicy.sol";
  * @title SimpleGasPolicy
  * @notice A simple gas policy that allows to set an aggregate limit on the gas usage for a permission.
  * For every validate userOp, the gas used is accounted and summed up.
- * If the total gas that is about to be used by a current userOp together with what was already used, 
+ * If the total gas that is about to be used by a current userOp together with what was already used,
  * exceeds the limit, the userOp is reverted.
- * Notice: the gas which is accounted is not the gas that userOp ends up using, but the gas that is available 
+ * Notice: the gas which is accounted is not the gas that userOp ends up using, but the gas that is available
  * for the userOp to use as per PackedUserOperation struct fields.
  */
 contract SimpleGasPolicy is IUserOpPolicy {
@@ -31,17 +31,16 @@ contract SimpleGasPolicy is IUserOpPolicy {
     function checkUserOpPolicy(ConfigId id, PackedUserOperation calldata userOp) external returns (uint256) {
         GasLimitConfig storage config = gasLimitConfigs[id][msg.sender][userOp.sender];
         require(config.gasLimit > 0, PolicyNotInitialized(id, msg.sender, userOp.sender));
-        
-        uint256 totalUserOpGasLimit = 
-            uint128(bytes16(userOp.accountGasLimits)) + // validation gas limit
-            uint128(uint256(userOp.accountGasLimits)) + // call gas limit
-            userOp.preVerificationGas; // pre verification gas
 
-        // paymasterAndData structure: 
+        uint256 totalUserOpGasLimit = uint128(bytes16(userOp.accountGasLimits)) // validation gas limit
+            + uint128(uint256(userOp.accountGasLimits)) // call gas limit
+            + userOp.preVerificationGas; // pre verification gas
+
+        // paymasterAndData structure:
         // 20 bytes paymaster address
         // 16 bytes paymasterVerificationGasLimit
         // 16 bytes postOp gas limit
-        // extra data 
+        // extra data
         if (userOp.paymasterAndData.length >= 36) {
             totalUserOpGasLimit += uint128(bytes16(userOp.paymasterAndData[20:36])); // paymasterVerificationGasLimit
         }
@@ -81,12 +80,20 @@ contract SimpleGasPolicy is IUserOpPolicy {
      * @param userOpSender The user operation sender address.
      * @return The gas limit.
      */
-    function getGasLimit(ConfigId configId, address multiplexer, address userOpSender) external view returns (uint256) {
+    function getGasLimit(
+        ConfigId configId,
+        address multiplexer,
+        address userOpSender
+    )
+        external
+        view
+        returns (uint256)
+    {
         return gasLimitConfigs[configId][multiplexer][userOpSender].gasLimit;
     }
 
     /**
-     * @notice Returns the gas used 
+     * @notice Returns the gas used
      * @param configId The config ID.
      * @param multiplexer The multiplexer address.
      * @param userOpSender The user operation sender address.

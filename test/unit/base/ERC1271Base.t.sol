@@ -25,8 +25,7 @@ contract ERC1271TestBase is BaseTest {
 
     SmartSessionCompatibilityFallback fallbackModule;
 
-    // By right, this should be a proper domain separator, but I'm lazy.
-    bytes32 internal constant _DOMAIN_SEP_B = 0xa1a044077d7677adbbfa892ded5390979b33993e0e2a457e3f974bbcda53821b;
+    bytes32 appDomainSeparator;
 
     function setUp() public virtual override {
         super.setUp();
@@ -34,16 +33,37 @@ contract ERC1271TestBase is BaseTest {
         fallbackModule = new SmartSessionCompatibilityFallback();
         bytes memory _fallback = abi.encode(EIP712.eip712Domain.selector, CALLTYPE_SINGLE, "");
         instance.installModule({ moduleTypeId: MODULE_TYPE_FALLBACK, module: address(fallbackModule), data: _fallback });
+
+        EIP712Domain memory domain = EIP712Domain({
+            name: "Forge",
+            version: "1",
+            chainId: 1,
+            verifyingContract: address(0x6605F8785E09a245DD558e55F9A0f4A508434503)
+        });
+        appDomainSeparator = hash(domain);
     }
 
-    function _testIsValidSignature(bytes memory contentsType, bool expectSuccess, PermissionId permissionId, bool is6492, Account memory sessionSigner) internal {
+    function _testIsValidSignature(
+        bytes memory contentsType,
+        bytes memory contentsName,
+        bool expectSuccess,
+        PermissionId permissionId,
+        bool is6492,
+        Account memory sessionSigner
+    )
+        internal
+    {
         bytes32 contents = keccak256(abi.encode("random", contentsType));
 
         _TestTemps memory t = _testTemps(sessionSigner);
-        (t.v, t.r, t.s) = vm.sign(t.privateKey, _toERC1271Hash(address(t.account), contents, contentsType));
+        (t.v, t.r, t.s) = vm.sign(
+            t.privateKey, _toERC1271Hash(address(t.account), contents, contentsType, contentsName)
+        );
+
+        bytes memory contentsDescription = abi.encodePacked(contentsType, contentsName);
 
         bytes memory signature =
-            abi.encodePacked(t.r, t.s, t.v, _DOMAIN_SEP_B, contents, contentsType, uint16(contentsType.length));
+            abi.encodePacked(t.r, t.s, t.v, appDomainSeparator, contents, contentsDescription, uint16(contentsDescription.length));
         signature = abi.encodePacked(permissionId, signature);
         if (is6492) {
             signature = _erc6492Wrap(signature);
@@ -68,7 +88,8 @@ contract ERC1271TestBase is BaseTest {
     function _toERC1271Hash(
         address account,
         bytes32 contents,
-        bytes memory contentsType
+        bytes memory contentsType,
+        bytes memory contentsName
     )
         internal
         view
@@ -76,10 +97,11 @@ contract ERC1271TestBase is BaseTest {
     {
         bytes32 parentStructHash = keccak256(
             abi.encodePacked(
-                abi.encode(_typedDataSignTypeHash(contentsType), contents), _accountDomainStructFields(account)
+                abi.encode(_typedDataSignTypeHash(contentsType, contentsName), contents),
+                _accountDomainStructFields(account)
             )
         );
-        return keccak256(abi.encodePacked("\x19\x01", _DOMAIN_SEP_B, parentStructHash));
+        return keccak256(abi.encodePacked("\x19\x01", appDomainSeparator, parentStructHash));
     }
 
     struct _AccountDomainStruct {
@@ -89,22 +111,30 @@ contract ERC1271TestBase is BaseTest {
         uint256 chainId;
         address verifyingContract;
         bytes32 salt;
-        uint256[] extensions;
     }
 
     function _accountDomainStructFields(address account) internal view returns (bytes memory) {
         _AccountDomainStruct memory t;
-        (t.fields, t.name, t.version, t.chainId, t.verifyingContract, t.salt, t.extensions) =
-            EIP712(account).eip712Domain();
+        (, t.name, t.version, t.chainId, t.verifyingContract, t.salt,) = EIP712(account).eip712Domain();
 
-        return abi.encode(
-            t.fields,
-            keccak256(bytes(t.name)),
-            keccak256(bytes(t.version)),
-            t.chainId,
-            t.verifyingContract,
-            t.salt,
-            keccak256(abi.encodePacked(t.extensions))
+        return abi.encode(keccak256(bytes(t.name)), keccak256(bytes(t.version)), t.chainId, t.verifyingContract, t.salt);
+    }
+
+    function _typedDataSignTypeHash(
+        bytes memory contentsType,
+        bytes memory contentsName
+    )
+        internal
+        pure
+        returns (bytes32)
+    {
+        return keccak256(
+            abi.encodePacked(
+                "TypedDataSign(",
+                contentsName,
+                " contents,string name,string version,uint256 chainId,address verifyingContract,bytes32 salt)",
+                contentsType
+            )
         );
     }
 
@@ -131,7 +161,7 @@ contract ERC1271TestBase is BaseTest {
         t.account = instance.account;
     }
 
-    function _toContentsHash(bytes32 contents) internal pure returns (bytes32) {
-        return keccak256(abi.encodePacked(hex"1901", _DOMAIN_SEP_B, contents));
+    function _toContentsHash(bytes32 contents) internal view returns (bytes32) {
+        return keccak256(abi.encodePacked(hex"1901", appDomainSeparator, contents));
     }
 }
