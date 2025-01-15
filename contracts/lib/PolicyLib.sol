@@ -8,11 +8,10 @@ import { IPolicy, IActionPolicy, I1271Policy } from "../interfaces/IPolicy.sol";
 import { Execution, ExecutionLib as ExecutionLib } from "./ExecutionLib.sol";
 import { ValidationDataLib } from "./ValidationDataLib.sol";
 import { IdLib } from "./IdLib.sol";
+import { EncodeLib } from "./EncodeLib.sol";
 import { EnumerableSet } from "../utils/EnumerableSet4337.sol";
 
-import { ERC7579ValidatorBase } from "modulekit/Modules.sol";
 import { PackedUserOperation } from "modulekit/external/ERC4337.sol";
-import { CallType, CALLTYPE_DELEGATECALL, EXECTYPE_DEFAULT, EXECTYPE_TRY } from "erc7579/lib/ModeLib.sol";
 import { IERC7579Account } from "erc7579/interfaces/IERC7579Account.sol";
 import { ExcessivelySafeCall } from "excessively-safe-call/ExcessivelySafeCall.sol";
 
@@ -21,6 +20,7 @@ library PolicyLib {
     using ExecutionLib for *;
     using IdLib for *;
     using PolicyLib for *;
+    using EncodeLib for *;
     using ValidationDataLib for ValidationData;
     using ExcessivelySafeCall for address;
 
@@ -44,7 +44,6 @@ library PolicyLib {
      *      It will revert if any policy check fails or if there are fewer policies than the specified minimum.
      *
      * @param $self The Policy storage struct containing the list of policies.
-     * @param userOp The PackedUserOperation to be validated.
      * @param permissionId The identifier for the permission being checked.
      * @param callOnIPolicy The encoded function call data to be executed on each policy contract.
      * @param minPolicies The minimum number of policies that must be present and checked.
@@ -53,7 +52,6 @@ library PolicyLib {
      */
     function check(
         Policy storage $self,
-        PackedUserOperation calldata userOp,
         PermissionId permissionId,
         bytes memory callOnIPolicy,
         uint256 minPolicies
@@ -62,7 +60,7 @@ library PolicyLib {
         returns (ValidationData vd)
     {
         // Get the list of policies for the given permissionId and account
-        address[] memory policies = $self.policyList[permissionId].values({ account: userOp.sender });
+        address[] memory policies = $self.policyList[permissionId].values({ account: msg.sender });
         uint256 length = policies.length;
 
         // Ensure the minimum number of policies is met.
@@ -84,7 +82,6 @@ library PolicyLib {
      * This allows a second check with the FALLBACK_ACTIONID.
      *
      * @param $self The Policy storage struct containing the list of policies.
-     * @param userOp The PackedUserOperation to be validated.
      * @param permissionId The identifier for the permission being checked.
      * @param callOnIPolicy The encoded function call data to be executed on each policy contract.
      * @param minPolicies The minimum number of policies that must be present and checked.
@@ -96,7 +93,6 @@ library PolicyLib {
      */
     function tryCheck(
         Policy storage $self,
-        PackedUserOperation calldata userOp,
         PermissionId permissionId,
         bytes memory callOnIPolicy,
         uint256 minPolicies
@@ -105,7 +101,7 @@ library PolicyLib {
         returns (ValidationData vd)
     {
         // Get the list of policies for the given permissionId and account
-        address[] memory policies = $self.policyList[permissionId].values({ account: userOp.sender });
+        address[] memory policies = $self.policyList[permissionId].values({ account: msg.sender });
         uint256 length = policies.length;
 
         // Ensure the minimum number of policies is met. I.e. there are enough policies configured for given ActionId
@@ -169,7 +165,6 @@ library PolicyLib {
      *      by disallowing self-calls to the execute function.
      *
      * @param $policies The storage mapping of action policies.
-     * @param userOp The packed user operation being validated.
      * @param permissionId The identifier for the permission being checked.
      * @param target The target address of the execution.
      * @param value The ETH value being sent with the execution.
@@ -180,7 +175,6 @@ library PolicyLib {
      */
     function checkSingle7579Exec(
         mapping(ActionId => Policy) storage $policies,
-        PackedUserOperation calldata userOp,
         PermissionId permissionId,
         address target,
         uint256 value,
@@ -199,39 +193,50 @@ library PolicyLib {
         }
 
         // Prevent potential bypass of policy checks through nested self executions
-        if (targetSig == IERC7579Account.execute.selector && target == userOp.sender) {
+        if (targetSig == IERC7579Account.execute.selector && target == msg.sender) {
             revert ISmartSession.InvalidSelfCall();
         }
 
         // Prevent fallback action from being used directly
-        if (target == FALLBACK_TARGET_FLAG || target == address(this)) revert ISmartSession.InvalidTarget();
+        if (target == FALLBACK_TARGET_FLAG) revert ISmartSession.InvalidTarget();
 
-        // Generate the action ID based on the target and function selector
-        ActionId actionId = target.toActionId(targetSig);
+        // malloc for actionId
+        ActionId actionId;
 
-        // Check the relevant action policy
-        vd = $policies[actionId].tryCheck({
-            userOp: userOp,
-            permissionId: permissionId,
-            callOnIPolicy: abi.encodeCall(
-                IActionPolicy.checkAction, (permissionId.toConfigId(actionId), userOp.sender, target, value, callData)
-            ),
-            minPolicies: minPolicies
-        });
-        // If tryCheck returns RETRY_WITH_FALLBACK magic value, that means not enough policies were configured
-        // for the actionId. Proceed with checking fallback action policies ($policies[FALLBACK_ACTIONID]).
-        if (vd == RETRY_WITH_FALLBACK) {
-            // If no policies were configured for FALLBACK_ACTIONID for this PermissionId, this will revert
-            vd = $policies[FALLBACK_ACTIONID].check({
-                userOp: userOp,
+        // should the target of this call be the smart session module itself, we will use the designated sentinel
+        // actionId for smartsession calls. The user has to explicitly set the smartsession call policy to allow this.
+        // @dev this is a special case, as a session key should normally not be utilized to configure other sessions
+        if (target == address(this)) {
+            actionId = FALLBACK_ACTIONID_SMARTSESSION_CALL;
+        }
+        // proceed with the normal flow
+        else {
+            // Generate the action ID based on the target and function selector
+            actionId = target.toActionId(targetSig);
+            // Check the relevant action policy
+            vd = $policies[actionId].tryCheck({
                 permissionId: permissionId,
                 callOnIPolicy: abi.encodeCall(
-                    IActionPolicy.checkAction,
-                    (permissionId.toConfigId(FALLBACK_ACTIONID), userOp.sender, target, value, callData)
+                    IActionPolicy.checkAction, (permissionId.toConfigId(actionId), msg.sender, target, value, callData)
                 ),
                 minPolicies: minPolicies
             });
+            // If tryCheck returns RETRY_WITH_FALLBACK magic value, that means not enough policies were configured
+            // for the actionId. Proceed with checking fallback action policies ($policies[FALLBACK_ACTIONID]).
+            if (vd == RETRY_WITH_FALLBACK) actionId = FALLBACK_ACTIONID;
+            // otherwise return the validation data
+            else return vd;
         }
+        // call the fallback policy for either FALLBACK_ACTIONID or FALLBACK_ACTIONID_SMARTSESSION_CALL
+        // If no policies were configured for FALLBACK_ACTIONID or FALLBACK_ACTIONID_SMARTSESSION_CALL this call will
+        // revert
+        vd = $policies[actionId].check({
+            permissionId: permissionId,
+            callOnIPolicy: abi.encodeCall(
+                IActionPolicy.checkAction, (permissionId.toConfigId(actionId), msg.sender, target, value, callData)
+            ),
+            minPolicies: minPolicies
+        });
         return vd;
     }
 
@@ -272,7 +277,6 @@ library PolicyLib {
             // Check policies for the current execution and intersect the result with previous checks
             ValidationData _vd = checkSingle7579Exec({
                 $policies: $policies,
-                userOp: userOp,
                 permissionId: permissionId,
                 target: execution.target,
                 value: execution.value,
@@ -329,7 +333,7 @@ library PolicyLib {
                 signature: signature
             });
             // If any policy check fails, return false immediately
-            if (!valid) return false;
+            if (!valid) return valid;
         }
     }
 
@@ -344,7 +348,7 @@ library PolicyLib {
      * @param smartAccount The address of the smart account.
      * @param policyDatas An array of PolicyData structs representing the policies to check.
      *
-     * @return bool Returns true if all policies are enabled, false if none are enabled.
+     * @return enabled Returns true if all policies are enabled, false if none are enabled.
      *              Reverts if policies are partially enabled.
      */
     function areEnabled(
@@ -355,10 +359,11 @@ library PolicyLib {
     )
         internal
         view
-        returns (bool)
+        returns (bool enabled)
     {
         uint256 length = policyDatas.length;
-        if (length == 0) return true; // 0 policies are always enabled lol
+        enabled = true;
+        if (length == 0) return enabled; // 0 policies are always enabled lol
         for (uint256 i; i < length; i++) {
             PolicyData memory policyData = policyDatas[i];
             IPolicy policy = IPolicy(policyData.policy);
@@ -367,7 +372,6 @@ library PolicyLib {
                 return false;
             }
         }
-        return true;
     }
 
     /**
@@ -380,7 +384,7 @@ library PolicyLib {
      * @param smartAccount The address of the smart account.
      * @param actionPolicyDatas An array of ActionData structs representing the action policies to check.
      *
-     * @return bool Returns true if all action policies are enabled, false if none are enabled.
+     * @return enabled Returns true if all action policies are enabled, false if none are enabled.
      *              Reverts if action policies are partially enabled.
      */
     function areEnabled(
@@ -391,10 +395,11 @@ library PolicyLib {
     )
         internal
         view
-        returns (bool)
+        returns (bool enabled)
     {
         uint256 length = actionPolicyDatas.length;
-        if (length == 0) return true; // 0 actions are always enabled
+        enabled = true;
+        if (length == 0) return enabled; // 0 actions are always enabled
         for (uint256 i; i < length; i++) {
             ActionData calldata actionPolicyData = actionPolicyDatas[i];
             ActionId actionId = actionPolicyData.actionTarget.toActionId(actionPolicyData.actionTargetSelector);
@@ -404,6 +409,5 @@ library PolicyLib {
                 return false;
             }
         }
-        return true;
     }
 }

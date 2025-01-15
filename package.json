@@ -1,7 +1,7 @@
 {
   "name": "smartsessions",
   "description": "ERC7579 SmartSession Module",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "author": {
     "name": "Biconomy & Rhinestone"
   },
@@ -21,7 +21,6 @@
     "build": "forge build",
     "fmt": "forge fmt",
     "fmt:check": "forge fmt --check",
-    "build:cosigner": "FOUNDRY_PROFILE=cosigner forge build",
     "clean": "rm -rf artifacts broadcast cache docs out out-optimized out-svg",
     "gas:report": "forge test --gas-report --mp \"./test/integration/**/*.sol\" --nmt \"test(Fuzz)?_RevertWhen_\\w{1,}?\"",
     "gas:snapshot": "forge snapshot --mp \"./test/integration/**/*.sol\" --nmt \"test(Fuzz)?_RevertWhen_\\w{1,}?\"",
@@ -44,7 +43,7 @@
     "foundry.toml",
     "remappings.txt"
   ],
-  "homepage": "https://___",
+  "homepage": "https://github.com/erc7579/smartsessions",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/erc7579/smartsessions.git"

@@ -4,6 +4,7 @@ pragma solidity ^0.8.25;
 import "../DataTypes.sol";
 import { ISmartSession } from "../ISmartSession.sol";
 import { EnumerableSet } from "../utils/EnumerableSet4337.sol";
+import { EnumerableMap } from "../utils/EnumerableMap4337.sol";
 import { ConfigLib } from "../lib/ConfigLib.sol";
 import { EncodeLib } from "../lib/EncodeLib.sol";
 import { PolicyLib } from "../lib/PolicyLib.sol";
@@ -14,6 +15,7 @@ import { NonceManager } from "./NonceManager.sol";
 import { FlatBytesLib } from "flatbytes/BytesLib.sol";
 
 abstract contract SmartSessionBase is ISmartSession, NonceManager {
+    using EnumerableMap for EnumerableMap.Bytes32ToBytes32Map;
     using EnumerableSet for EnumerableSet.Bytes32Set;
     using EnumerableSet for EnumerableSet.AddressSet;
     using SmartSessionModeLib for SmartSessionMode;
@@ -38,8 +40,10 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
     Policy internal $erc1271Policies;
     EnumerableActionPolicy internal $actionPolicies;
     EnumerableSet.Bytes32Set internal $enabledSessions;
-    mapping(PermissionId permissionId => EnumerableSet.Bytes32Set enabledContentHashes) internal $enabledERC7739Content;
+    EnumerableERC7739Config internal $enabledERC7739;
     mapping(PermissionId permissionId => mapping(address smartAccount => SignerConf conf)) internal $sessionValidators;
+    mapping(PermissionId permissionId => mapping(address smartAccount => bool permitERC4337Paymaster)) internal
+        $permitERC4337Paymaster;
 
     /**
      * Before enabling policies, we need to check if the session is enabled for the caller and the given permission
@@ -65,6 +69,13 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
         _;
     }
 
+    function getPermissionIDs(address account) external view returns (PermissionId[] memory permissionIds) {
+        bytes32[] memory _permissionIds = $enabledSessions.values(account);
+        assembly {
+            permissionIds := _permissionIds
+        }
+    }
+
     /**
      * @notice Enable user operation policies for a specific permission
      * @dev This function allows adding or updating user operation policies
@@ -84,7 +95,6 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
             permissionId: permissionId,
             configId: permissionId.toUserOpPolicyId().toConfigId(),
             policyDatas: userOpPolicies,
-            smartAccount: msg.sender,
             useRegistry: true
         });
     }
@@ -110,6 +120,16 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
         });
     }
 
+    function setPermit4337Paymaster(PermissionId permissionId, bool enabled) external {
+        $enabledSessions.requirePermissionIdEnabled(permissionId);
+        _setPermit4337Paymaster(permissionId, enabled);
+    }
+
+    function _setPermit4337Paymaster(PermissionId permissionId, bool enabled) internal {
+        $permitERC4337Paymaster[permissionId][msg.sender] = enabled;
+        emit PermissionIdPermit4337Paymaster(permissionId, msg.sender, enabled);
+    }
+
     /**
      * @notice Enable ERC1271 policies for a specific permission
      * @param permissionId The unique identifier for the permission
@@ -123,17 +143,12 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
         enableWithPermissionId(permissionId)
     {
         // Enable the ERC1271 policies
-        $enabledERC7739Content.enable({
-            contents: erc1271Policies.allowedERC7739Content,
-            permissionId: permissionId,
-            smartAccount: msg.sender
-        });
+        $enabledERC7739.enable({ contexts: erc1271Policies.allowedERC7739Content, permissionId: permissionId });
         $erc1271Policies.enable({
             policyType: PolicyType.ERC1271,
             permissionId: permissionId,
             configId: permissionId.toErc1271PolicyId().toConfigId(),
             policyDatas: erc1271Policies.erc1271Policies,
-            smartAccount: msg.sender,
             useRegistry: true
         });
     }
@@ -142,21 +157,21 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
      * @notice Disable specific ERC1271 policies and contents for a given permission
      * @param permissionId The unique identifier for the permission
      * @param policies An array of policy addresses to be disabled
-     * @param contents An array of 7739 contents to be disabled
+     * @param contexts An array of 7739 contents to be disabled
      */
     function disableERC1271Policies(
         PermissionId permissionId,
         address[] calldata policies,
-        string[] calldata contents
+        ERC7739Context[] calldata contexts
     )
         public
         disableWithPermissionId(permissionId)
     {
-        // Disable the specified ERC7739 contents
-        for (uint256 i; i < contents.length; ++i) {
-            bytes32 contentHash = HashLib.hashERC7739Content(contents[i]);
-            $enabledERC7739Content[permissionId].remove(msg.sender, contentHash);
-        }
+        // Check if the session is enabled for the caller and the given permission
+        // forgefmt: disable-next-item
+        if (!$enabledSessions.contains(msg.sender, PermissionId.unwrap(permissionId))) revert InvalidSession(permissionId);
+
+        $enabledERC7739.disable(contexts, permissionId, msg.sender);
 
         // Disable the specified ERC1271 policies
         $erc1271Policies.disable({
@@ -180,12 +195,7 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
         enableWithPermissionId(permissionId)
     {
         // Enable the action policies
-        $actionPolicies.enable({
-            permissionId: permissionId,
-            actionPolicyDatas: actionPolicies,
-            smartAccount: msg.sender,
-            useRegistry: true
-        });
+        $actionPolicies.enable({ permissionId: permissionId, actionPolicyDatas: actionPolicies, useRegistry: true });
     }
 
     /**
@@ -277,7 +287,6 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
                 permissionId: permissionId,
                 configId: permissionId.toUserOpPolicyId().toConfigId(),
                 policyDatas: session.userOpPolicies,
-                smartAccount: msg.sender,
                 useRegistry: useRegistry
             });
 
@@ -287,30 +296,29 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
                 permissionId: permissionId,
                 configId: permissionId.toErc1271PolicyId().toConfigId(),
                 policyDatas: session.erc7739Policies.erc1271Policies,
-                smartAccount: msg.sender,
                 useRegistry: useRegistry
             });
-            $enabledERC7739Content.enable(session.erc7739Policies.allowedERC7739Content, permissionId, msg.sender);
+            $enabledERC7739.enable(session.erc7739Policies.allowedERC7739Content, permissionId);
 
             // Enable Action policies
             $actionPolicies.enable({
                 permissionId: permissionId,
                 actionPolicyDatas: session.actions,
-                smartAccount: msg.sender,
                 useRegistry: useRegistry
             });
 
             // Add the session to the list of enabled sessions for the caller
             $enabledSessions.add({ account: msg.sender, value: PermissionId.unwrap(permissionId) });
 
+            _setPermit4337Paymaster(permissionId, session.permitERC4337Paymaster);
+
             // Enable the ISessionValidator for this session
             if (!_isISessionValidatorSet(permissionId, msg.sender)) {
                 $sessionValidators.enable({
                     permissionId: permissionId,
-                    smartAccount: msg.sender,
                     sessionValidator: session.sessionValidator,
                     sessionValidatorConfig: session.sessionValidatorInitData,
-                    useRegistry: true
+                    useRegistry: useRegistry
                 });
             }
             permissionIds[i] = permissionId;
@@ -342,10 +350,11 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
         $actionPolicies.enabledActionIds[permissionId].removeAll(msg.sender);
 
         $sessionValidators.disable({ permissionId: permissionId, smartAccount: msg.sender });
+        delete $permitERC4337Paymaster[permissionId][msg.sender];
 
         // Remove all ERC1271 policies for this session
         $enabledSessions.remove({ account: msg.sender, value: PermissionId.unwrap(permissionId) });
-        $enabledERC7739Content[permissionId].removeAll(msg.sender);
+        $enabledERC7739.removeAll({ permissionId: permissionId, smartAccount: msg.sender });
         emit SessionRemoved(permissionId, msg.sender);
     }
 
@@ -364,9 +373,8 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
         // activating sessions that the user thought were terminated. This MUST be avoided.
         // if this case happens, it's not possible for the account to install the module again, unless the account calls
         // into the removreSession functions to disable all dangling permissions
-        if ($enabledSessions.length({ account: msg.sender }) > 0) {
-            revert SmartSessionModuleAlreadyInstalled(msg.sender);
-        }
+        // forgefmt: disable-next-item
+        if ($enabledSessions.length({ account: msg.sender }) != 0) revert SmartSessionModuleAlreadyInstalled(msg.sender);
         // It's allowed to install smartsessions on a ERC7579 account without any params
         if (data.length == 0) return;
 
@@ -404,8 +412,7 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
     }
 
     function isInitialized(address smartAccount) external view override returns (bool) {
-        uint256 configIdsCnt = $enabledSessions.length({ account: smartAccount });
-        return configIdsCnt > 0;
+        return $enabledSessions.length({ account: smartAccount }) != 0;
     }
 
     function isModuleType(uint256 typeID) external pure override returns (bool) {
@@ -551,13 +558,16 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
     function isERC7739ContentEnabled(
         address account,
         PermissionId permissionId,
+        bytes32 appDomainSeparator,
         string memory content
     )
         external
         view
         returns (bool)
     {
-        return $enabledERC7739Content[permissionId].contains(account, content.hashERC7739Content());
+        return $enabledERC7739.enabledContentNames[permissionId][appDomainSeparator].contains(
+            account, content.hashERC7739Content()
+        );
     }
 
     function getUserOpPolicies(address account, PermissionId permissionId) external view returns (address[] memory) {
@@ -590,9 +600,16 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
     )
         external
         view
-        returns (bytes32[] memory)
+        returns (ERC7739ContextHashes[] memory enabledERC7739ContentHashes)
     {
-        return $enabledERC7739Content[permissionId].values(account);
+        uint256 length = $enabledERC7739.enabledDomainSeparators[permissionId].length(account);
+        enabledERC7739ContentHashes = new ERC7739ContextHashes[](length);
+        for (uint256 i; i < length; i++) {
+            enabledERC7739ContentHashes[i].appDomainSeparator =
+                $enabledERC7739.enabledDomainSeparators[permissionId].at(account, i);
+            enabledERC7739ContentHashes[i].contentNameHashes = $enabledERC7739.enabledContentNames[permissionId][enabledERC7739ContentHashes[i]
+                .appDomainSeparator].values(account);
+        }
     }
 
     function getSessionValidatorAndConfig(

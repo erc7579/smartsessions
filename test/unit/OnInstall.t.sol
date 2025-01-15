@@ -31,7 +31,8 @@ contract OnInstallTest is BaseTest {
             sessionValidatorInitData: "mockInitData",
             userOpPolicies: _getEmptyPolicyDatas(address(yesPolicy)),
             erc7739Policies: _getEmptyERC7739Data("mockContent", _getEmptyPolicyDatas(address(yesPolicy))),
-            actions: _getEmptyActionDatas(makeAddr("target"), bytes4(0x41414141), address(yesPolicy))
+            actions: _getEmptyActionDatas(makeAddr("target"), bytes4(0x41414141), address(yesPolicy)),
+            permitERC4337Paymaster: true
         });
         Session[] memory sessions = new Session[](1);
         sessions[0] = session;
@@ -42,13 +43,10 @@ contract OnInstallTest is BaseTest {
             data: abi.encodePacked(SmartSessionMode.ENABLE, abi.encode(sessions))
         });
 
+        PermissionId permissionId = smartSession.getPermissionId(session);
+
         assertTrue(newInstance.isModuleInstalled(MODULE_TYPE_VALIDATOR, address(smartSession)));
         assertTrue(smartSession.isInitialized(newInstance.account));
-        assertTrue(
-            smartSession.isPermissionEnabled(
-                PermissionId.wrap(0x0d74975fdf356bd4556eb87e2599a8fce1f6dc2ec902fc5790451d6f2ee0c637),
-                newInstance.account
-            )
-        );
+        assertTrue(smartSession.isPermissionEnabled(permissionId, newInstance.account));
     }
 }

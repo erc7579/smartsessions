@@ -4,22 +4,22 @@ pragma solidity ^0.8.25;
 import "../DataTypes.sol";
 import { IPolicy, IUserOpPolicy, IActionPolicy, I1271Policy } from "../interfaces/IPolicy.sol";
 import { ISmartSession } from "../ISmartSession.sol";
-import { IRegistry, ModuleType } from "../interfaces/IRegistry.sol";
+import { ModuleType } from "../interfaces/IRegistry.sol";
+import { EnumerableMap } from "../utils/EnumerableMap4337.sol";
 import { IdLib } from "./IdLib.sol";
 import { HashLib } from "./HashLib.sol";
 import { EnumerableSet } from "../utils/EnumerableSet4337.sol";
 import { ERC165Checker } from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 
 library ConfigLib {
+    using EnumerableMap for EnumerableMap.Bytes32ToBytes32Map;
     using ERC165Checker for address;
     using FlatBytesLib for FlatBytesLib.Bytes;
     using EnumerableSet for EnumerableSet.AddressSet;
     using EnumerableSet for EnumerableSet.Bytes32Set;
-    using HashLib for string;
+    using HashLib for *;
     using IdLib for *;
     using ConfigLib for *;
-
-    error UnsupportedPolicy(address policy);
 
     function requirePolicyType(address policy, PolicyType policyType) internal view {
         bool supportsInterface;
@@ -30,12 +30,12 @@ library ConfigLib {
         } else if (policyType == PolicyType.ERC1271) {
             supportsInterface = policy.supportsInterface(type(I1271Policy).interfaceId);
         } else {
-            revert UnsupportedPolicy(policy);
+            revert ISmartSession.UnsupportedPolicy(policy);
         }
 
         // Revert if the policy does not support the required interface
         if (!supportsInterface) {
-            revert UnsupportedPolicy(policy);
+            revert ISmartSession.UnsupportedPolicy(policy);
         }
     }
 
@@ -66,7 +66,6 @@ library ConfigLib {
      * @param permissionId The identifier of the permission for which policies are being enabled.
      * @param configId The configuration ID associated with the permission and policy type.
      * @param policyDatas An array of PolicyData structs containing policy addresses and initialization data.
-     * @param smartAccount The address of the smart account for which policies are being enabled.
      * @param useRegistry A boolean flag indicating whether to check policies against the registry.
      */
     function enable(
@@ -75,7 +74,6 @@ library ConfigLib {
         PermissionId permissionId,
         ConfigId configId,
         PolicyData[] memory policyDatas,
-        address smartAccount,
         bool useRegistry
     )
         internal
@@ -89,21 +87,21 @@ library ConfigLib {
 
             // this will revert if the policy is not attested to
             if (useRegistry) {
-                registry.checkForAccount({ smartAccount: smartAccount, module: policy });
+                registry.checkForAccount({ smartAccount: msg.sender, module: policy });
             }
 
             // Add the policy to the list for the given permission and smart account
-            $policy.policyList[permissionId].add({ account: smartAccount, value: policy });
+            $policy.policyList[permissionId].add({ account: msg.sender, value: policy });
 
             // Initialize the policy with the provided configuration
             // overwrites the config
             IPolicy(policy).initializeWithMultiplexer({
-                account: smartAccount,
+                account: msg.sender,
                 configId: configId,
                 initData: policyDatas[i].initData
             });
 
-            emit ISmartSession.PolicyEnabled(permissionId, policyType, policy, smartAccount);
+            emit ISmartSession.PolicyEnabled(permissionId, policyType, policy, msg.sender);
         }
     }
 
@@ -116,14 +114,12 @@ library ConfigLib {
      * @param $self The storage reference to the EnumerableActionPolicy struct.
      * @param permissionId The identifier of the permission for which action policies are being enabled.
      * @param actionPolicyDatas An array of ActionData structs containing action policy information.
-     * @param smartAccount The address of the smart account for which action policies are being enabled.
      * @param useRegistry A boolean flag indicating whether to check policies against the registry.
      */
     function enable(
         EnumerableActionPolicy storage $self,
         PermissionId permissionId,
         ActionData[] memory actionPolicyDatas,
-        address smartAccount,
         bool useRegistry
     )
         internal
@@ -134,13 +130,17 @@ library ConfigLib {
             // record every enabled actionId
             ActionData memory actionPolicyData = actionPolicyDatas[i];
 
-            // disallow actions to be set for address(0) or to the smartsession module itself
-            // sessionkeys that have access to smartsessions, may use this access to elevate their privileges
-            if (actionPolicyData.actionTarget == address(0) || actionPolicyData.actionTarget == address(this)) {
-                revert ISmartSession.InvalidActionId();
-            }
             ActionId actionId = actionPolicyData.actionTarget.toActionId(actionPolicyData.actionTargetSelector);
-            if (actionId == EMPTY_ACTIONID) revert ISmartSession.InvalidActionId();
+            {
+                address _cacheTarget = actionPolicyData.actionTarget;
+                // disallow actions to be set for address(0) or to the smartsession module itself
+                // sessionkeys that have access to smartsessions, may use this access to elevate their privileges
+                // forgefmt: disable-next-item
+                if (_cacheTarget == address(0) 
+                 || _cacheTarget == address(this) 
+                 || actionId == EMPTY_ACTIONID
+                ) revert ISmartSession.InvalidActionId();
+            }
 
             // Record the enabled action ID
             $self.actionPolicies[actionId].enable({
@@ -148,12 +148,11 @@ library ConfigLib {
                 permissionId: permissionId,
                 configId: permissionId.toConfigId(actionId),
                 policyDatas: actionPolicyData.actionPolicies,
-                smartAccount: smartAccount,
                 useRegistry: useRegistry
             });
 
             // Record the enabled action ID
-            $self.enabledActionIds[permissionId].add(smartAccount, ActionId.unwrap(actionId));
+            $self.enabledActionIds[permissionId].add(msg.sender, ActionId.unwrap(actionId));
         }
     }
 
@@ -162,23 +161,29 @@ library ConfigLib {
      *
      * @dev This function marks the provided content as enabled for the specified configuration and smart account.
      *
-     * @param $enabledERC7739Content The storage mapping for enabled ERC7739 content.
-     * @param contents An array of strings representing the content to be enabled.
+     * @param $enabledERC7739 The storage mapping for enabled ERC7739 content.
+     * @param contexts An array of ERC7739Contexts
      * @param permissionId The configuration ID associated with the content.
-     * @param smartAccount The address of the smart account for which the content is being enabled.
      */
     function enable(
-        mapping(PermissionId permissionId => EnumerableSet.Bytes32Set) storage $enabledERC7739Content,
-        string[] memory contents,
-        PermissionId permissionId,
-        address smartAccount
+        EnumerableERC7739Config storage $enabledERC7739,
+        ERC7739Context[] memory contexts,
+        PermissionId permissionId
     )
         internal
     {
-        uint256 length = contents.length;
+        uint256 length = contexts.length;
         for (uint256 i; i < length; i++) {
-            bytes32 contentHash = contents[i].hashERC7739Content();
-            $enabledERC7739Content[permissionId].add(smartAccount, contentHash);
+            bytes32 appDomainSeparator = contexts[i].appDomainSeparator;
+
+            uint256 contentNamesLength = contexts[i].contentNames.length;
+            if (contentNamesLength != 0) {
+                $enabledERC7739.enabledDomainSeparators[permissionId].add(msg.sender, appDomainSeparator);
+            }
+            for (uint256 y; y < contentNamesLength; y++) {
+                bytes32 contentHash = contexts[i].contentNames[y].hashERC7739Content();
+                $enabledERC7739.enabledContentNames[permissionId][appDomainSeparator].add(msg.sender, contentHash);
+            }
         }
     }
 
@@ -186,7 +191,6 @@ library ConfigLib {
      * @notice Enable and configure an ISessionValidator for a specific permission and account
      * @dev This function sets up the session validator and stores its configuration
      * @param permissionId The unique identifier for the permission
-     * @param smartAccount The account address for which the validator is being set
      * @param sessionValidator The ISessionValidator contract to be enabled
      * @param sessionValidatorConfig The configuration data for the session validator
      */
@@ -194,7 +198,6 @@ library ConfigLib {
         mapping(PermissionId permissionId => mapping(address smartAccount => SignerConf conf)) storage
             $sessionValidators,
         PermissionId permissionId,
-        address smartAccount,
         ISessionValidator sessionValidator,
         bytes memory sessionValidatorConfig,
         bool useRegistry
@@ -212,20 +215,20 @@ library ConfigLib {
         // this will revert if the policy is not attested to
         if (useRegistry) {
             registry.checkForAccount({
-                smartAccount: smartAccount,
+                smartAccount: msg.sender,
                 module: address(sessionValidator),
                 moduleType: ModuleType.wrap(ERC7579_MODULE_TYPE_STATELESS_VALIDATOR)
             });
         }
 
         // Get the storage reference for the signer configuration
-        SignerConf storage $conf = $sessionValidators[permissionId][smartAccount];
+        SignerConf storage $conf = $sessionValidators[permissionId][msg.sender];
         // Set the session validator
         $conf.sessionValidator = sessionValidator;
 
         // Store the signer configuration
         $conf.config.store(sessionValidatorConfig);
-        emit ISmartSession.SessionValidatorEnabled(permissionId, address(sessionValidator), smartAccount);
+        emit ISmartSession.SessionValidatorEnabled(permissionId, address(sessionValidator), msg.sender);
     }
 
     /**
@@ -278,5 +281,46 @@ library ConfigLib {
 
         // clear the signer configuration
         $conf.config.clear();
+    }
+
+    function disable(
+        EnumerableERC7739Config storage $enabledERC7739,
+        ERC7739Context[] memory contexts,
+        PermissionId permissionId,
+        address smartAccount
+    )
+        internal
+    {
+        uint256 length = contexts.length;
+        for (uint256 i; i < length; i++) {
+            bytes32 appDomainSeparator = contexts[i].appDomainSeparator;
+
+            uint256 contentNamesLength = contexts[i].contentNames.length;
+            for (uint256 y; y < contentNamesLength; y++) {
+                bytes32 contentHash = contexts[i].contentNames[y].hashERC7739Content();
+                $enabledERC7739.enabledContentNames[permissionId][appDomainSeparator].remove(smartAccount, contentHash);
+            }
+
+            if ($enabledERC7739.enabledContentNames[permissionId][appDomainSeparator].length(smartAccount) == 0) {
+                $enabledERC7739.enabledDomainSeparators[permissionId].remove(smartAccount, appDomainSeparator);
+            }
+        }
+    }
+
+    function removeAll(
+        EnumerableERC7739Config storage $enabledERC7739,
+        PermissionId permissionId,
+        address smartAccount
+    )
+        internal
+    {
+        bytes32[] memory domainSeparators = $enabledERC7739.enabledDomainSeparators[permissionId].values(smartAccount);
+        uint256 length = domainSeparators.length;
+        for (uint256 i; i < length; i++) {
+            bytes32 appDomainSeparator = domainSeparators[i];
+            $enabledERC7739.enabledContentNames[permissionId][appDomainSeparator].removeAll(smartAccount);
+        }
+
+        $enabledERC7739.enabledDomainSeparators[permissionId].removeAll(smartAccount);
     }
 }

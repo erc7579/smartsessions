@@ -1,0 +1,74 @@
+[deployments]
+rpcs = [
+    # "http://localhost:8545",
+
+    # Ethereum 
+    # "https://eth-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+    "https://eth-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+
+    # Optimism
+    "https://opt-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+    "https://opt-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+
+    # Base
+    "https://base-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+    "https://base-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+
+    # Arbitrum
+    "https://arb-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+    "https://arb-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+
+    # Polygon
+    "https://polygon-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+    "https://polygon-amoy.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+
+    # Gnosis
+    "https://gnosis-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+    # "https://gnosis-chaido.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+
+    # Binance Smart Chain
+    "https://bnb-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+    "https://bnb-testnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+
+    # Avalanche
+    "https://avax-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+    "https://avax-fuji.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+
+    # Scroll
+    "https://scroll-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+    "https://scroll-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+
+    # Sonic
+    "https://sonic-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+    # "https://sonic-blaze.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+
+    # Fuse
+    "https://rpc.fuse.io",
+    "https://rpc.fusespark.io",
+
+    # Odyssey
+    "https://odyssey.ithaca.xyz/",
+]
+
+[deployments.dependencies]
+entrypoint = "0x0000000071727De22E5E9d8BAf0edAc6f37da032"
+
+[deployments.module.SmartSession]
+file = "./artifacts/SmartSession/SmartSession.json"
+source_file = "./artifacts/SmartSession/verify.json"
+salt = "0x0000000000000000000000000000000000000000c93fe0497c457402a7e8ed95"
+
+[deployments.module.SudoPolicy]
+file = "./artifacts/SudoPolicy/SudoPolicy.json"
+source_file = "./artifacts/SudoPolicy/verify.json"
+salt = "0x00000000000000000000000000000000000000002e44d3e1fe056402d02e46b9"
+
+[deployments.module.UniActionPolicy]
+file = "./artifacts/UniActionPolicy/UniActionPolicy.json"
+source_file = "./artifacts/UniActionPolicy/verify.json"
+salt = "0x0000000000000000000000000000000000000000013a9fcb74b0b702f204c063"
+
+[deployments.module.ERC20SpendingLimitPolicy]
+file = "./artifacts/ERC20SpendingLimitPolicy/ERC20SpendingLimitPolicy.json"
+source_file = "./artifacts/ERC20SpendingLimitPolicy/verify.json"
+salt = "0x0000000000000000000000000000000000000000dd33829cc2cff403768e163e"
