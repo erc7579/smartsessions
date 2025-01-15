@@ -123,10 +123,8 @@ contract ValueLimitPolicyTest is PolicyTestBase {
         for (uint256 i = 0; i < batchSize; i++) {
             executions[i] = Execution({ target: _target, value: uint256(1e10), callData: callData });
         }
-        UserOpData memory userOpData = instance.getExecOps({
-            executions: executions,
-            txValidator: address(smartSession)
-        });
+        UserOpData memory userOpData =
+            instance.getExecOps({ executions: executions, txValidator: address(smartSession) });
         userOpData.userOp.signature = EncodeLib.encodeUse({ permissionId: permissionId, sig: hex"4141414141" });
         userOpData.execUserOps();
         assertEq(target.value(), 1337);
@@ -138,10 +136,7 @@ contract ValueLimitPolicyTest is PolicyTestBase {
         for (uint256 i = 0; i < batchSize; i++) {
             executions2[i] = Execution({ target: _target, value: uint256(1e20 / 2), callData: callData });
         }
-        userOpData = instance.getExecOps({
-            executions: executions2,
-            txValidator: address(smartSession)
-        });
+        userOpData = instance.getExecOps({ executions: executions2, txValidator: address(smartSession) });
         userOpData.userOp.signature = EncodeLib.encodeUse({ permissionId: permissionId, sig: hex"4141414141" });
         bytes memory innerRevertReason =
             abi.encodeWithSelector(ISmartSession.PolicyViolation.selector, permissionId, address(valueLimitPolicy));
@@ -150,7 +145,6 @@ contract ValueLimitPolicyTest is PolicyTestBase {
         vm.expectRevert(expectedRevertReason);
         userOpData.execUserOps();
     }
-
 
     function test_use_value_limit_policy_as_action_policy_success_and_fails_if_exceeds_limit() public {
         bytes memory callData = abi.encodeCall(MockTarget.setValue, (1337));
