@@ -4,13 +4,10 @@ pragma solidity ^0.8.23;
 
 import "contracts/interfaces/IPolicy.sol";
 import { _packValidationData } from "@ERC4337/account-abstraction/contracts/core/Helpers.sol";
-import "contracts/lib/SubModuleLib.sol";
 import "contracts/DataTypes.sol";
 import "forge-std/console2.sol";
 
 contract MockPolicy is IUserOpPolicy, IActionPolicy, I1271Policy {
-    using SubModuleLib for bytes;
-
     uint256 validationData = 1;
 
     mapping(ConfigId id => mapping(address msgSender => mapping(address userOpSender => uint256 calls))) public
