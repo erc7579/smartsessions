@@ -33,25 +33,27 @@ contract ContractWhitelistPolicyTest is PolicyTestBase {
             targets.push(newTarget);
             contractWhitelistPolicyInitData = abi.encodePacked(contractWhitelistPolicyInitData, newTarget);
         }
-        
+
         permissionId_contractWhitelistAction = _enableFallbackActionSession(
             address(contractWhitelistPolicy), contractWhitelistPolicyInitData, instance, keccak256("salt and pepper")
         );
-        
     }
 
     function test_contractWhitelist_policy_init_reinit_use() public {
         PermissionId permissionId = use_contractWhitelist_policy_success();
-        permissionId = use_contractWhitelist_policy_fail(permissionId);
+        //permissionId = use_contractWhitelist_policy_fail(permissionId);
         reinit_contractWhitelist_policy(permissionId);
     }
 
-    function test_contractWhitelist_policy_init_fails_with_invalid_init_data() public returns (PermissionId permissionId) {
+    function test_contractWhitelist_policy_init_fails_with_invalid_init_data()
+        public
+        returns (PermissionId permissionId)
+    {
         bytes memory invalidInitData = abi.encodePacked(uint256(0));
         vm.expectRevert(abi.encodeWithSelector(ContractWhitelistPolicy.InvalidInitData.selector));
         _enableFallbackActionSession(address(contractWhitelistPolicy), invalidInitData, instance, keccak256("salt"));
 
-        invalidInitData = abi.encodePacked(targets[0], uint32(123123));
+        invalidInitData = abi.encodePacked(targets[0], uint32(123_123));
         vm.expectRevert(abi.encodeWithSelector(ContractWhitelistPolicy.InvalidInitData.selector));
         _enableFallbackActionSession(address(contractWhitelistPolicy), invalidInitData, instance, keccak256("salt"));
 
@@ -61,44 +63,20 @@ contract ContractWhitelistPolicyTest is PolicyTestBase {
     }
 
     function use_contractWhitelist_policy_success() public returns (PermissionId) {
-        PermissionId permissionId =
-            _enableFallbackActionSession(address(contractWhitelistPolicy), contractWhitelistPolicyInitData, instance, keccak256("salt"));
-        
+        PermissionId permissionId = _enableFallbackActionSession(
+            address(contractWhitelistPolicy), contractWhitelistPolicyInitData, instance, keccak256("salt")
+        );
+
         bytes memory callData = abi.encodeCall(MockTarget.setValue, (1337));
         // get userOp from ModuleKit
         UserOpData memory userOpData =
             instance.getExecOps({ target: _target, value: 0, callData: callData, txValidator: address(smartSession) });
-        
+
         userOpData.userOp.signature = EncodeLib.encodeUse({ permissionId: permissionId, sig: hex"4141414141" });
-        
+
         // execute userOp with modulekit
         userOpData.execUserOps();
         assertEq(target.value(), 1337);
-        return permissionId;
-    }
-
-    function use_contractWhitelist_policy_fail(PermissionId permissionId) public returns (PermissionId) {
-        uint256 valueToSet = 1338;
-        address noWhitelistedTarget = address(new MockTarget());
-        uint256 targetValueBefore = MockTarget(noWhitelistedTarget).value();
-
-        bytes memory callData = abi.encodeCall(MockTarget.setValue, (valueToSet));
-        UserOpData memory userOpData =
-            instance.getExecOps({ target: noWhitelistedTarget, value: 0, callData: callData, txValidator: address(smartSession) });
-        userOpData.userOp.signature = EncodeLib.encodeUse({ permissionId: permissionId, sig: hex"4141414141" });
-        vm.warp(block.timestamp + 11 minutes);
-
-        bytes memory expectedRevertReason = abi.encodeWithSelector(
-            IEntryPoint.FailedOpWithRevert.selector,
-            0,
-            "AA23 reverted",
-            abi.encodeWithSelector(ISmartSession.PolicyViolation.selector, permissionId, address(contractWhitelistPolicy))
-        );
-
-        // this should revert as the limit has been reached
-        vm.expectRevert(expectedRevertReason);
-        userOpData.execUserOps();
-        assertEq(MockTarget(noWhitelistedTarget).value(), targetValueBefore);
         return permissionId;
     }
 
@@ -106,10 +84,11 @@ contract ContractWhitelistPolicyTest is PolicyTestBase {
         address newTarget = address(new MockTarget());
         targets.push(newTarget);
         bytes memory newContractWhitelistPolicyInitData = abi.encodePacked(contractWhitelistPolicyInitData, newTarget);
-        PermissionId permissionIdReInited =
-            _enableFallbackActionSession(address(contractWhitelistPolicy), newContractWhitelistPolicyInitData, instance, keccak256("salt"));
+        PermissionId permissionIdReInited = _enableFallbackActionSession(
+            address(contractWhitelistPolicy), newContractWhitelistPolicyInitData, instance, keccak256("salt")
+        );
         assertEq(PermissionId.unwrap(permissionIdReInited), PermissionId.unwrap(permissionId));
-        
+
         bool isWhitelisted;
 
         for (uint256 i; i < targets.length; i++) {
@@ -127,9 +106,11 @@ contract ContractWhitelistPolicyTest is PolicyTestBase {
         }
     }
 
-
     //test as action policy
-    function test_use_timeframe_policy_as_Action_policy_success(uint256 seed) public returns (PermissionId permissionId) {
+    function test_use_contractWhitelist_policy_as_Action_policy_success(uint256 seed)
+        public
+        returns (PermissionId permissionId)
+    {
         // remove last target from targets as it was not enabled in the setUp()
         targets.pop();
 
@@ -137,26 +118,46 @@ contract ContractWhitelistPolicyTest is PolicyTestBase {
         for (uint256 i; i < targets.length; i++) {
             address currentTarget = targets[i];
             bytes memory callData = abi.encodeWithSelector(randomSelector);
-            UserOpData memory userOpData = instance.getExecOps({ target: currentTarget, value: 0, callData: callData, txValidator: address(smartSession) });
-            userOpData.userOp.signature = EncodeLib.encodeUse({ permissionId: permissionId_contractWhitelistAction, sig: hex"4141414141" });
+            UserOpData memory userOpData = instance.getExecOps({
+                target: currentTarget,
+                value: 0,
+                callData: callData,
+                txValidator: address(smartSession)
+            });
+            userOpData.userOp.signature =
+                EncodeLib.encodeUse({ permissionId: permissionId_contractWhitelistAction, sig: hex"4141414141" });
             vm.expectEmit(true, true, true, true, currentTarget);
             emit FallbackEvent(randomSelector);
             userOpData.execUserOps();
         }
     }
 
-    //test as action policy
-/*     function test_use_timeframe_policy_as_Action_policy_fail() public returns (PermissionId permissionId) {
-        bytes memory callData = abi.encodeCall(MockTarget.setValue, (1337));
-        UserOpData memory userOpData =
-            instance.getExecOps({ target: _target, value: 0, callData: callData, txValidator: address(smartSession) });
-        userOpData.userOp.signature =
-            EncodeLib.encodeUse({ permissionId: permissionId_timeframedAction, sig: hex"4141414141" });
-        vm.warp(block.timestamp + 11 minutes);
-        bytes memory expectedRevertReason =
-            abi.encodeWithSelector(IEntryPoint.FailedOp.selector, 0, "AA22 expired or not due");
+    function test_use_contractWhitelist_policy_fail() public {
+        uint256 valueToSet = 1338;
+        address noWhitelistedTarget = address(new MockTarget());
+        uint256 targetValueBefore = MockTarget(noWhitelistedTarget).value();
+
+        bytes memory callData = abi.encodeCall(MockTarget.setValue, (valueToSet));
+        UserOpData memory userOpData = instance.getExecOps({
+            target: noWhitelistedTarget,
+            value: 0,
+            callData: callData,
+            txValidator: address(smartSession)
+        });
+        userOpData.userOp.signature = EncodeLib.encodeUse({ permissionId: permissionId_contractWhitelistAction, sig: hex"4141414141" });
+
+        bytes memory expectedRevertReason = abi.encodeWithSelector(
+            IEntryPoint.FailedOpWithRevert.selector,
+            0,
+            "AA23 reverted",
+            abi.encodeWithSelector(
+                ISmartSession.PolicyViolation.selector, permissionId_contractWhitelistAction, address(contractWhitelistPolicy)
+            )
+        );
+
+        // this should revert as the limit has been reached
         vm.expectRevert(expectedRevertReason);
         userOpData.execUserOps();
-        assertEq(target.value(), 0);
-    } */
+        assertEq(MockTarget(noWhitelistedTarget).value(), targetValueBefore);
+    }
 }

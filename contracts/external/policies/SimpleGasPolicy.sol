@@ -19,7 +19,7 @@ contract SimpleGasPolicy is IUserOpPolicy {
         uint256 gasUsed;
     }
 
-    mapping(ConfigId id => mapping(address msgSender => mapping(address userOpSender => GasLimitConfig))) internal 
+    mapping(ConfigId id => mapping(address msgSender => mapping(address userOpSender => GasLimitConfig))) internal
         gasLimitConfigs;
 
     /**

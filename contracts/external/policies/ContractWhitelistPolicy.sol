@@ -7,14 +7,13 @@ import { IActionPolicy, IPolicy, VALIDATION_SUCCESS, VALIDATION_FAILED } from ".
 import { EnumerableSet } from "../../utils/EnumerableSet4337.sol";
 import { IERC165 } from "forge-std/interfaces/IERC165.sol";
 
-import { console2 } from "forge-std/console2.sol";
 /**
  * @title ContractWhitelistPolicy | ActionPolicy
  * @notice This policy checks if the target is whitelisted.
  *         Should be used as a fallback action policy.
  */
-contract ContractWhitelistPolicy is IPolicy, IActionPolicy {
 
+contract ContractWhitelistPolicy is IPolicy, IActionPolicy {
     error InvalidInitData();
 
     using EnumerableSet for EnumerableSet.AddressSet;
@@ -55,11 +54,10 @@ contract ContractWhitelistPolicy is IPolicy, IActionPolicy {
      */
     function initializeWithMultiplexer(address account, ConfigId configId, bytes calldata initData) external {
         EnumerableSet.AddressSet storage $targets = whitelistedTargets[configId][msg.sender];
-        console2.log("initData.length", initData.length);
         require(initData.length % 20 == 0 && initData.length > 0, InvalidInitData());
         uint256 targetsLength = initData.length / 20;
         for (uint256 i = 0; i < targetsLength; i++) {
-            address target = address(uint160(bytes20(initData[i * 20: (i + 1) * 20])));
+            address target = address(uint160(bytes20(initData[i * 20:(i + 1) * 20])));
             require(target != address(0), InvalidInitData());
             $targets.add(account, target);
         }

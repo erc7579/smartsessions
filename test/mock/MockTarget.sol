@@ -2,7 +2,6 @@
 pragma solidity ^0.8.23;
 
 contract MockTarget {
-
     event FallbackEvent(bytes4 sig);
 
     uint256 public value;
@@ -34,7 +33,7 @@ contract MockTarget {
         returnData = new bytes[](1);
     }
 
-    function fallback() external {
+    fallback() external {
         emit FallbackEvent(msg.sig);
     }
 }
