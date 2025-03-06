@@ -99,8 +99,8 @@ contract PolicyTestBase is ERC1271TestBase {
     }
 
     function _enableFallbackActionSession(
-        address policy,
-        bytes memory initData,
+        address fallbackPolicy,
+        bytes memory fallbackInitData,
         AccountInstance memory instance,
         bytes32 salt
     )
@@ -108,13 +108,61 @@ contract PolicyTestBase is ERC1271TestBase {
         returns (PermissionId permissionId)
     {
         PolicyData[] memory policyDatas = new PolicyData[](1);
-        policyDatas[0] = PolicyData({ policy: policy, initData: initData });
+        policyDatas[0] = PolicyData({ policy: fallbackPolicy, initData: fallbackInitData });
 
         ActionData[] memory actionDatas = new ActionData[](1);
         actionDatas[0] = ActionData({
             actionTarget: FALLBACK_TARGET_FLAG,
             actionTargetSelector: FALLBACK_TARGET_SELECTOR_FLAG,
             actionPolicies: policyDatas
+        });
+
+        Session memory session = Session({
+            sessionValidator: ISessionValidator(address(yesSessionValidator)),
+            salt: salt,
+            sessionValidatorInitData: "mockInitData",
+            userOpPolicies: new PolicyData[](0),
+            erc7739Policies: _getEmptyERC7739Data("Permit(bytes32 stuff)", new PolicyData[](0)),
+            actions: actionDatas,
+            permitERC4337Paymaster: true
+        });
+
+        Session[] memory enableSessionsArray = new Session[](1);
+        enableSessionsArray[0] = session;
+        vm.prank(instance.account);
+        smartSession.enableSessions(enableSessionsArray);
+
+        permissionId = smartSession.getPermissionId(session);
+    }
+
+    function _enable_Action_and_FallbackActionSession(
+        address fallbackPolicy,
+        address actionPolicy,
+        bytes memory fallbackInitData,
+        bytes memory actionInitData,
+        AccountInstance memory instance,
+        bytes32 salt
+    )
+        internal
+        returns (PermissionId permissionId)
+    {
+        PolicyData[] memory policyDatas = new PolicyData[](1);
+        policyDatas[0] = PolicyData({ policy: fallbackPolicy, initData: fallbackInitData });
+
+        PolicyData[] memory policyDatas2 = new PolicyData[](1);
+        policyDatas2[0] = PolicyData({ policy: actionPolicy, initData: actionInitData });
+
+        ActionData[] memory actionDatas = new ActionData[](2);
+        actionDatas[0] = ActionData({
+            actionTarget: FALLBACK_TARGET_FLAG,
+            actionTargetSelector: FALLBACK_TARGET_SELECTOR_FLAG,
+            actionPolicies: policyDatas
+        });
+
+        actionDatas[1] = ActionData({
+            actionTarget: _target,
+            actionTargetSelector: target.setValue.selector,
+            actionPolicies: policyDatas2
         });
 
         Session memory session = Session({

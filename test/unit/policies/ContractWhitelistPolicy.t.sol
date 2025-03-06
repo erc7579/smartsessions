@@ -4,6 +4,7 @@ import "solady/utils/ECDSA.sol";
 import "contracts/lib/IdLib.sol";
 import "../base/PolicyTestBase.t.sol";
 import { ContractWhitelistPolicy } from "contracts/external/policies/ContractWhitelistPolicy.sol";
+import { MockPolicy } from "test/mock/MockPolicy.sol";
 
 contract ContractWhitelistPolicyTest is PolicyTestBase {
     using IdLib for *;
@@ -107,7 +108,7 @@ contract ContractWhitelistPolicyTest is PolicyTestBase {
     }
 
     //test as action policy
-    function test_use_contractWhitelist_policy_as_Action_policy_success(uint256 seed)
+    function test_use_contractWhitelist_policy_as_Fallback_policy_success(uint256 seed)
         public
         returns (PermissionId permissionId)
     {
@@ -162,5 +163,53 @@ contract ContractWhitelistPolicyTest is PolicyTestBase {
         vm.expectRevert(expectedRevertReason);
         userOpData.execUserOps();
         assertEq(MockTarget(noWhitelistedTarget).value(), targetValueBefore);
+    }
+
+    function test_use_contractWhitelist_policy_as_fallback_and_other_policy_success(uint256 seed) public {
+        MockPolicy mockPolicy = new MockPolicy();
+        mockPolicy.setValidationData(0);
+        PermissionId permissionId = _enable_Action_and_FallbackActionSession(
+            address(contractWhitelistPolicy), address(mockPolicy), contractWhitelistPolicyInitData, abi.encodePacked(),
+            instance, keccak256("salt")
+        );
+
+        uint256 valueBefore = MockTarget(_target).value();
+        uint256 valueToSet = valueBefore + 1;
+
+        // mockPolicy should be used for target.setValue
+        bytes memory callData = abi.encodeWithSelector(MockTarget.setValue.selector, valueToSet);
+        UserOpData memory userOpData = instance.getExecOps({
+            target: _target,
+            value: 0,
+            callData: callData,
+            txValidator: address(smartSession)
+        });
+        userOpData.userOp.signature = EncodeLib.encodeUse({ permissionId: permissionId, sig: hex"4141414141" });
+        userOpData.execUserOps();
+        assertEq(MockTarget(_target).value(), valueToSet);
+        uint256 actionState = mockPolicy.actionState(
+            IdLib.toConfigId({
+                permissionId: permissionId,
+                actionId: IdLib.toActionId(_target, MockTarget.setValue.selector),
+                account: instance.account
+            }),
+            address(smartSession),
+            instance.account
+        );
+        assertEq(actionState, 1);
+
+        // contractWhitelistPolicy should be used for other methods
+        bytes4 randomSelector = bytes4(keccak256(abi.encodePacked(seed)));
+        callData = abi.encodeWithSelector(randomSelector);
+        userOpData = instance.getExecOps({
+            target: _target,
+            value: 0,
+            callData: callData,
+            txValidator: address(smartSession)
+        });
+        userOpData.userOp.signature = EncodeLib.encodeUse({ permissionId: permissionId, sig: hex"4141414141" });
+        vm.expectEmit(true, true, true, true, _target);
+        emit FallbackEvent(randomSelector);
+        userOpData.execUserOps();
     }
 }
