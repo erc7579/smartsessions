@@ -2,6 +2,9 @@
 pragma solidity ^0.8.23;
 
 contract MockTarget {
+
+    event FallbackEvent(bytes4 sig);
+
     uint256 public value;
 
     bytes32 public hash;
@@ -29,5 +32,9 @@ contract MockTarget {
         value = _value;
         hash = keccak256(callData);
         returnData = new bytes[](1);
+    }
+
+    function fallback() external {
+        emit FallbackEvent(msg.sig);
     }
 }

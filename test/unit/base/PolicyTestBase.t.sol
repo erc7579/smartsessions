@@ -98,6 +98,43 @@ contract PolicyTestBase is ERC1271TestBase {
         permissionId = smartSession.getPermissionId(session);
     }
 
+    function _enableFallbackActionSession(
+        address policy,
+        bytes memory initData,
+        AccountInstance memory instance,
+        bytes32 salt
+    )
+        internal
+        returns (PermissionId permissionId)
+    {
+        PolicyData[] memory policyDatas = new PolicyData[](1);
+        policyDatas[0] = PolicyData({ policy: policy, initData: initData });
+
+        ActionData[] memory actionDatas = new ActionData[](1);
+        actionDatas[0] = ActionData({
+            actionTarget: FALLBACK_TARGET_FLAG,
+            actionTargetSelector: FALLBACK_TARGET_SELECTOR_FLAG,
+            actionPolicies: policyDatas
+        });
+
+        Session memory session = Session({
+            sessionValidator: ISessionValidator(address(yesSessionValidator)),
+            salt: salt,
+            sessionValidatorInitData: "mockInitData",
+            userOpPolicies: new PolicyData[](0),
+            erc7739Policies: _getEmptyERC7739Data("Permit(bytes32 stuff)", new PolicyData[](0)),
+            actions: actionDatas,
+            permitERC4337Paymaster: true
+        });
+
+        Session[] memory enableSessionsArray = new Session[](1);
+        enableSessionsArray[0] = session;
+        vm.prank(instance.account);
+        smartSession.enableSessions(enableSessionsArray);
+
+        permissionId = smartSession.getPermissionId(session);
+    }
+
     function _enable1271Session(
         address policy,
         bytes memory initData,
