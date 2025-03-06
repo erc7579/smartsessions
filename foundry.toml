@@ -17,6 +17,7 @@
   cache_path  = "cache_forge"
   libs = ["node_modules", "lib"]
   gas_reports_ignore = ["LockTest"]
+  allow_internal_expect_revert = true
 
 [profile.ci]
   fuzz = { runs = 10_000 }

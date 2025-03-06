@@ -50,6 +50,17 @@ contract EnumerableSetTest is Test {
         assertTrue(values[0] == value2 || values[1] == value2);
     }
 
+    function test_Bytes32SetBulk() public {
+        for (uint256 i; i < 128; i++) {
+            bytes32Set.add(ACCOUNT, bytes32(uint256(i)));
+        }
+        assertEq(bytes32Set.length(ACCOUNT), 128);
+
+        bytes memory revertReason = abi.encodeWithSignature("AssociatedArray_OutOfBounds(uint256)", uint256(128));
+        vm.expectRevert(revertReason);
+        bytes32Set.add(ACCOUNT, bytes32(uint256(128)));
+    }
+
     function testBytes32RemoveAllBug() public {
         bytes32Set.add(ACCOUNT, bytes32(uint256(1)));
         bytes32Set.add(ACCOUNT, bytes32(uint256(2)));
