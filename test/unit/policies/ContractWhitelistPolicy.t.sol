@@ -144,14 +144,17 @@ contract ContractWhitelistPolicyTest is PolicyTestBase {
             callData: callData,
             txValidator: address(smartSession)
         });
-        userOpData.userOp.signature = EncodeLib.encodeUse({ permissionId: permissionId_contractWhitelistAction, sig: hex"4141414141" });
+        userOpData.userOp.signature =
+            EncodeLib.encodeUse({ permissionId: permissionId_contractWhitelistAction, sig: hex"4141414141" });
 
         bytes memory expectedRevertReason = abi.encodeWithSelector(
             IEntryPoint.FailedOpWithRevert.selector,
             0,
             "AA23 reverted",
             abi.encodeWithSelector(
-                ISmartSession.PolicyViolation.selector, permissionId_contractWhitelistAction, address(contractWhitelistPolicy)
+                ISmartSession.PolicyViolation.selector,
+                permissionId_contractWhitelistAction,
+                address(contractWhitelistPolicy)
             )
         );
 

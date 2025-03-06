@@ -12,7 +12,6 @@ import { IERC165 } from "forge-std/interfaces/IERC165.sol";
  * @notice This policy checks if the target is whitelisted.
  *         Should be used as a fallback action policy.
  */
-
 contract ContractWhitelistPolicy is IPolicy, IActionPolicy {
     error InvalidInitData();
 
@@ -57,7 +56,10 @@ contract ContractWhitelistPolicy is IPolicy, IActionPolicy {
         require(initData.length % 20 == 0 && initData.length > 0, InvalidInitData());
         uint256 targetsLength = initData.length / 20;
         for (uint256 i = 0; i < targetsLength; i++) {
-            address target = address(uint160(bytes20(initData[i * 20:(i + 1) * 20])));
+            address target;
+            assembly {
+                target := shr(96, calldataload(add(initData.offset, mul(i, 0x14))))
+            }
             require(target != address(0), InvalidInitData());
             $targets.add(account, target);
         }
