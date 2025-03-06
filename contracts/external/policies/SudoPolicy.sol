@@ -17,8 +17,7 @@ import { EnumerableSet } from "../../utils/EnumerableSet4337.sol";
 import { PackedUserOperation } from "modulekit/external/ERC4337.sol";
 
 contract SudoPolicy is IUserOpPolicy, IActionPolicy, I1271Policy {
-    
-        /**
+    /**
      * Initializes the policy to be used by given account through multiplexer (msg.sender) such as Smart Sessions.
      * Overwrites state.
      * @notice ATTENTION: This method is called during permission installation as part of the enabling policies flow.
@@ -56,10 +55,10 @@ contract SudoPolicy is IUserOpPolicy, IActionPolicy, I1271Policy {
     }
 
     function check1271SignedAction(
-        ConfigId /*id*/,
-        address /*requestSender*/,
-        address /*account*/,
-        bytes32 /*hash*/,
+        ConfigId, /*id*/
+        address, /*requestSender*/
+        address, /*account*/
+        bytes32, /*hash*/
         bytes calldata /*signature*/
     )
         external
