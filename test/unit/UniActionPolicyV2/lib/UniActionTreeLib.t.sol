@@ -167,7 +167,7 @@ contract StorageAccessHelper {
     }
 }
 
-contract UniActionTreeLibTest is BaseTest {
+contract UniActionTreeLibUnitTest is BaseTest {
     /*//////////////////////////////////////////////////////////////
                                LIBRARIES
     //////////////////////////////////////////////////////////////*/
