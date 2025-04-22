@@ -27,7 +27,7 @@ library UniActionTreeLib {
                                CONSTANTS
     //////////////////////////////////////////////////////////////*/
 
-    // Node type constants - only need 2 bits
+    // Node type constants
     uint8 constant NODE_TYPE_RULE = 0; // Leaf node referencing a rule
     uint8 constant NODE_TYPE_NOT = 1; // NOT operator (unary)
     uint8 constant NODE_TYPE_AND = 2; // AND operator (binary)
