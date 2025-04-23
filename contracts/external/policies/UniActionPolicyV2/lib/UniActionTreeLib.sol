@@ -236,7 +236,7 @@ library UniActionTreeLib {
     }
 
     /*//////////////////////////////////////////////////////////////
-                                 CREATE
+                                  FILL
     //////////////////////////////////////////////////////////////*/
 
     /**
@@ -263,6 +263,10 @@ library UniActionTreeLib {
             $config.paramRules.packedNodes.push(config.paramRules.packedNodes[i]);
         }
     }
+
+    /*//////////////////////////////////////////////////////////////
+                                HELPERS
+    //////////////////////////////////////////////////////////////*/
 
     /**
      * @notice Creates a packed rule node
@@ -307,10 +311,6 @@ library UniActionTreeLib {
         return uint256(NODE_TYPE_OR) | (uint256(leftChildIndex) << LEFT_CHILD_SHIFT)
             | (uint256(rightChildIndex) << RIGHT_CHILD_SHIFT);
     }
-
-    /*//////////////////////////////////////////////////////////////
-                                  GET
-    //////////////////////////////////////////////////////////////*/
 
     /**
      * @notice Extracts the node type from a packed node
