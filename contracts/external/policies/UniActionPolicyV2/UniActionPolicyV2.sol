@@ -27,17 +27,13 @@ struct ActionConfig {
 
 /// @title ParamRules - Container for rules and expression tree
 /// @notice Stores the rules and their logical relationships
-/// @param ruleCount Number of rules defined
-/// @param nodeCount Number of nodes in the expression tree
 /// @param rootNodeIndex Index of the root node in the expression tree
 /// @param rules Actual parameter rules
 /// @param packedNodes Bit-packed nodes of the expression tree
 struct ParamRules {
-    uint8 ruleCount;
-    uint8 nodeCount;
     uint8 rootNodeIndex;
-    ParamRule[16] rules;
-    uint256[32] packedNodes;
+    ParamRule[] rules;
+    uint256[] packedNodes;
 }
 
 /// @title ParamRule - Rule for checking a parameter in the calldata
@@ -142,7 +138,7 @@ contract UniActionPolicyV2 is IActionPolicy {
         ActionConfig storage config = actionConfigs[id][msg.sender][account];
 
         // Check if policy is initialized
-        if (config.paramRules.ruleCount == 0 || config.paramRules.nodeCount == 0) {
+        if (config.paramRules.rules.length == 0 || config.paramRules.packedNodes.length == 0) {
             revert PolicyNotInitialized(id, msg.sender, account);
         }
 

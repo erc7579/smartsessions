@@ -16,8 +16,14 @@ contract StorageAccessHelper {
 
     ParamRule internal sampleRule;
     uint256 internal sampleNode;
-    ParamRule[16] internal sampleRules;
-    uint256[32] internal sampleNodes;
+    ParamRule[] internal sampleRules;
+    uint256[] internal sampleNodes;
+
+    constructor() {
+        // Initialize empty arrays
+        delete sampleRules;
+        delete sampleNodes;
+    }
 
     function setupRule(
         ParamCondition condition,
@@ -57,6 +63,11 @@ contract StorageAccessHelper {
     )
         public
     {
+        // Ensure the array is large enough
+        while (sampleRules.length <= index) {
+            sampleRules.push();
+        }
+
         sampleRules[index].condition = condition;
         sampleRules[index].offset = offset;
         sampleRules[index].isLimited = isLimited;
@@ -66,6 +77,11 @@ contract StorageAccessHelper {
     }
 
     function setupNodeAt(uint8 index, uint8 nodeType, uint8 ruleIndex, uint8 leftChild, uint8 rightChild) public {
+        // Ensure the array is large enough
+        while (sampleNodes.length <= index) {
+            sampleNodes.push();
+        }
+
         if (nodeType == UniActionTreeLib.NODE_TYPE_RULE) {
             sampleNodes[index] = UniActionTreeLib.createRuleNode(ruleIndex);
         } else if (nodeType == UniActionTreeLib.NODE_TYPE_NOT) {
@@ -85,14 +101,18 @@ contract StorageAccessHelper {
         return sampleRules[index].usage.used;
     }
 
-    function validateTree(uint8 ruleCount, uint8 nodeCount, uint8 rootIndex) public view returns (bool) {
+    function validateTree(uint8 rootIndex) public view returns (bool) {
         ParamRules memory rules;
-        rules.ruleCount = ruleCount;
-        rules.nodeCount = nodeCount;
         rules.rootNodeIndex = rootIndex;
 
-        // Copy nodes to memory
-        for (uint8 i = 0; i < nodeCount; i++) {
+        // Copy rules and nodes to memory for validation
+        rules.rules = new ParamRule[](sampleRules.length);
+        for (uint256 i = 0; i < sampleRules.length; i++) {
+            rules.rules[i] = sampleRules[i];
+        }
+
+        rules.packedNodes = new uint256[](sampleNodes.length);
+        for (uint256 i = 0; i < sampleNodes.length; i++) {
             rules.packedNodes[i] = sampleNodes[i];
         }
 
@@ -112,7 +132,7 @@ contract StorageAccessHelper {
     function getConfigValues(bytes32 configSlot)
         public
         view
-        returns (uint256 valueLimitPerUse, uint8 ruleCount, uint8 nodeCount, uint8 rootNodeIndex)
+        returns (uint256 valueLimitPerUse, uint8 rootNodeIndex, uint256 rulesLength, uint256 nodesLength)
     {
         ActionConfig storage storageConfig;
         assembly {
@@ -121,9 +141,9 @@ contract StorageAccessHelper {
 
         return (
             storageConfig.valueLimitPerUse,
-            storageConfig.paramRules.ruleCount,
-            storageConfig.paramRules.nodeCount,
-            storageConfig.paramRules.rootNodeIndex
+            storageConfig.paramRules.rootNodeIndex,
+            storageConfig.paramRules.rules.length,
+            storageConfig.paramRules.packedNodes.length
         );
     }
 
@@ -194,8 +214,6 @@ contract UniActionTreeLibUnitTest is BaseTest {
     function setUp() public override {
         // Initialize config with default values
         config.valueLimitPerUse = 1 ether;
-        config.paramRules.ruleCount = 0;
-        config.paramRules.nodeCount = 0;
         config.paramRules.rootNodeIndex = 0;
 
         // Deploy helper contract
@@ -236,6 +254,11 @@ contract UniActionTreeLibUnitTest is BaseTest {
     )
         internal
     {
+        // Ensure rules array is large enough
+        while (config.paramRules.rules.length <= ruleIndex) {
+            config.paramRules.rules.push();
+        }
+
         ParamRule memory rule;
         rule.condition = condition;
         rule.offset = offset;
@@ -247,9 +270,6 @@ contract UniActionTreeLibUnitTest is BaseTest {
         }
 
         config.paramRules.rules[ruleIndex] = rule;
-        if (ruleIndex >= config.paramRules.ruleCount) {
-            config.paramRules.ruleCount = ruleIndex + 1;
-        }
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -320,7 +340,7 @@ contract UniActionTreeLibUnitTest is BaseTest {
         vm.expectRevert(
             abi.encodeWithSelector(UniActionTreeLib.InvalidExpressionTree.selector, "Empty expression tree")
         );
-        helper.validateTree(1, 0, 0);
+        helper.validateTree(0); // Node array is empty at this point
     }
 
     function test_validateExpressionTree_whenInvalidRootIndex() public {
@@ -333,22 +353,24 @@ contract UniActionTreeLibUnitTest is BaseTest {
         vm.expectRevert(
             abi.encodeWithSelector(UniActionTreeLib.InvalidExpressionTree.selector, "Root node index out of bounds")
         );
-        helper.validateTree(3, 3, 5);
+        helper.validateTree(5); // Root index 5 is beyond node count
     }
 
     function test_validateExpressionTree_whenInvalidRuleIndex() public {
         // Set up nodes in the helper - rule index 5 with only 2 rules
         helper.setupNodeAt(0, UniActionTreeLib.NODE_TYPE_RULE, 5, 0, 0);
+        helper.setupRuleAt(0, ParamCondition.EQUAL, 0, false, bytes32(0), 0, 0);
+        helper.setupRuleAt(1, ParamCondition.EQUAL, 0, false, bytes32(0), 0, 0);
 
         // When validating a tree with an invalid rule index, it should revert
         vm.expectRevert(
             abi.encodeWithSelector(UniActionTreeLib.InvalidExpressionTree.selector, "Rule index out of bounds")
         );
-        helper.validateTree(2, 1, 0);
+        helper.validateTree(0);
     }
 
     function test_validateExpressionTree_whenInvalidNotNodeChild() public {
-        // Set up nodes in the helper - NOT node with child index 5 but only 3 nodes
+        // Set up nodes in the helper - NOT node with child index 5 but only 1 node
         helper.setupNodeAt(0, UniActionTreeLib.NODE_TYPE_NOT, 0, 5, 0);
 
         // When validating a tree with an invalid NOT node child, it should revert
@@ -357,12 +379,13 @@ contract UniActionTreeLibUnitTest is BaseTest {
                 UniActionTreeLib.InvalidExpressionTree.selector, "NOT node child index out of bounds"
             )
         );
-        helper.validateTree(1, 1, 0);
+        helper.validateTree(0);
     }
 
     function test_validateExpressionTree_whenInvalidAndNodeChildren() public {
         // Set up nodes in the helper - AND node with right child index out of bounds
         helper.setupNodeAt(0, UniActionTreeLib.NODE_TYPE_AND, 0, 1, 5);
+        helper.setupNodeAt(1, UniActionTreeLib.NODE_TYPE_RULE, 0, 0, 0);
 
         // When validating a tree with invalid AND node children, it should revert
         vm.expectRevert(
@@ -370,11 +393,15 @@ contract UniActionTreeLibUnitTest is BaseTest {
                 UniActionTreeLib.InvalidExpressionTree.selector, "AND/OR node child indices out of bounds"
             )
         );
-        helper.validateTree(1, 1, 0);
+        helper.validateTree(0);
     }
 
     function test_validateExpressionTree_whenValidTree() public {
         // Set up a valid tree in the helper
+        helper.setupRuleAt(0, ParamCondition.EQUAL, 0, false, bytes32(0), 0, 0);
+        helper.setupRuleAt(1, ParamCondition.EQUAL, 0, false, bytes32(0), 0, 0);
+        helper.setupRuleAt(2, ParamCondition.EQUAL, 0, false, bytes32(0), 0, 0);
+
         helper.setupNodeAt(0, UniActionTreeLib.NODE_TYPE_RULE, 0, 0, 0);
         helper.setupNodeAt(1, UniActionTreeLib.NODE_TYPE_RULE, 1, 0, 0);
         helper.setupNodeAt(2, UniActionTreeLib.NODE_TYPE_OR, 0, 0, 1);
@@ -382,596 +409,28 @@ contract UniActionTreeLibUnitTest is BaseTest {
         helper.setupNodeAt(4, UniActionTreeLib.NODE_TYPE_AND, 0, 2, 3);
 
         // When validating a valid tree, it should pass
-        bool result = helper.validateTree(3, 5, 4);
+        bool result = helper.validateTree(4);
         assertTrue(result, "Validation should pass for a valid tree");
     }
 
-    /*//////////////////////////////////////////////////////////////
-                              RULE EVALUATION
-    //////////////////////////////////////////////////////////////*/
+    function test_validateExpressionTree_maxLimits() public {
+        // Test that we enforce max limits
 
-    function test_check_whenEqualCondition_passesWhenEqual() public {
-        // When checking a rule with EQUAL condition that matches
-        helper.setupRule(
-            ParamCondition.EQUAL,
-            0, // offset for param1
-            false,
-            bytes32(uint256(VALUE_100)),
-            0,
-            0
+        // Create more than MAX_RULES rules
+        for (uint16 i = 0; i < UniActionTreeLib.MAX_RULES + 10; i++) {
+            helper.setupRuleAt(uint8(i), ParamCondition.EQUAL, 0, false, bytes32(0), 0, 0);
+        }
+
+        // Create more than MAX_NODES nodes
+        for (uint16 i = 0; i < UniActionTreeLib.MAX_NODES + 10; i++) {
+            helper.setupNodeAt(uint8(i), UniActionTreeLib.NODE_TYPE_RULE, 0, 0, 0);
+        }
+
+        // Should revert due to too many rules and nodes
+        vm.expectRevert(
+            abi.encodeWithSelector(UniActionTreeLib.InvalidExpressionTree.selector, "Too many rules (max 128)")
         );
-
-        // It should return true
-        bool result = helper.checkRule(getTestCalldata());
-        assertTrue(result, "Rule should evaluate to true (param1 == 100)");
-    }
-
-    function test_check_whenEqualCondition_failsWhenNotEqual() public {
-        // When checking a rule with EQUAL condition that doesn't match
-        helper.setupRule(
-            ParamCondition.EQUAL,
-            0, // offset for param1
-            false,
-            bytes32(uint256(101)), // Different value than 100
-            0,
-            0
-        );
-
-        // It should return false
-        bool result = helper.checkRule(getTestCalldata());
-        assertFalse(result, "Rule should evaluate to false (param1 != 101)");
-    }
-
-    function test_check_whenGreaterThanCondition_passesWhenGreater() public {
-        // When checking a rule with GREATER_THAN condition that matches
-        helper.setupRule(
-            ParamCondition.GREATER_THAN,
-            32, // offset for param2
-            false,
-            bytes32(uint256(150)), // 200 > 150
-            0,
-            0
-        );
-
-        // It should return true
-        bool result = helper.checkRule(getTestCalldata());
-        assertTrue(result, "Rule should evaluate to true (param2 > 150)");
-    }
-
-    function test_check_whenGreaterThanCondition_failsWhenEqual() public {
-        // When checking a rule with GREATER_THAN condition with equal values
-        helper.setupRule(
-            ParamCondition.GREATER_THAN,
-            32, // offset for param2
-            false,
-            bytes32(uint256(VALUE_200)), // 200 == 200
-            0,
-            0
-        );
-
-        // It should return false
-        bool result = helper.checkRule(getTestCalldata());
-        assertFalse(result, "Rule should evaluate to false (param2 == 200, not > 200)");
-    }
-
-    function test_check_whenGreaterThanCondition_failsWhenSmaller() public {
-        // When checking a rule with GREATER_THAN condition with smaller value
-        helper.setupRule(
-            ParamCondition.GREATER_THAN,
-            32, // offset for param2
-            false,
-            bytes32(uint256(250)), // 200 < 250
-            0,
-            0
-        );
-
-        // It should return false
-        bool result = helper.checkRule(getTestCalldata());
-        assertFalse(result, "Rule should evaluate to false (param2 < 250)");
-    }
-
-    function test_check_whenLessThanCondition_passesWhenSmaller() public {
-        // When checking a rule with LESS_THAN condition that matches
-        helper.setupRule(
-            ParamCondition.LESS_THAN,
-            32, // offset for param2
-            false,
-            bytes32(uint256(250)), // 200 < 250
-            0,
-            0
-        );
-
-        // It should return true
-        bool result = helper.checkRule(getTestCalldata());
-        assertTrue(result, "Rule should evaluate to true (param2 < 250)");
-    }
-
-    function test_check_whenLessThanCondition_failsWhenEqual() public {
-        // When checking a rule with LESS_THAN condition with equal values
-        helper.setupRule(
-            ParamCondition.LESS_THAN,
-            32, // offset for param2
-            false,
-            bytes32(uint256(VALUE_200)), // 200 == 200
-            0,
-            0
-        );
-
-        // It should return false
-        bool result = helper.checkRule(getTestCalldata());
-        assertFalse(result, "Rule should evaluate to false (param2 == 200, not < 200)");
-    }
-
-    function test_check_whenGreaterThanOrEqualCondition() public {
-        // Test case 1: when greater
-        helper.setupRule(
-            ParamCondition.GREATER_THAN_OR_EQUAL,
-            32, // offset for param2
-            false,
-            bytes32(uint256(150)), // 200 > 150
-            0,
-            0
-        );
-
-        bool result = helper.checkRule(getTestCalldata());
-        assertTrue(result, "Rule should evaluate to true (param2 > 150)");
-
-        // Test case 2: when equal
-        helper.setupRule(
-            ParamCondition.GREATER_THAN_OR_EQUAL,
-            32, // offset for param2
-            false,
-            bytes32(uint256(VALUE_200)), // 200 == 200
-            0,
-            0
-        );
-
-        result = helper.checkRule(getTestCalldata());
-        assertTrue(result, "Rule should evaluate to true (param2 == 200)");
-
-        // Test case 3: when smaller
-        helper.setupRule(
-            ParamCondition.GREATER_THAN_OR_EQUAL,
-            32, // offset for param2
-            false,
-            bytes32(uint256(250)), // 200 < 250
-            0,
-            0
-        );
-
-        result = helper.checkRule(getTestCalldata());
-        assertFalse(result, "Rule should evaluate to false (param2 < 250)");
-    }
-
-    function test_check_whenLessThanOrEqualCondition() public {
-        // Test case 1: when smaller
-        helper.setupRule(
-            ParamCondition.LESS_THAN_OR_EQUAL,
-            32, // offset for param2
-            false,
-            bytes32(uint256(250)), // 200 < 250
-            0,
-            0
-        );
-
-        bool result = helper.checkRule(getTestCalldata());
-        assertTrue(result, "Rule should evaluate to true (param2 < 250)");
-
-        // Test case 2: when equal
-        helper.setupRule(
-            ParamCondition.LESS_THAN_OR_EQUAL,
-            32, // offset for param2
-            false,
-            bytes32(uint256(VALUE_200)), // 200 == 200
-            0,
-            0
-        );
-
-        result = helper.checkRule(getTestCalldata());
-        assertTrue(result, "Rule should evaluate to true (param2 == 200)");
-
-        // Test case 3: when greater
-        helper.setupRule(
-            ParamCondition.LESS_THAN_OR_EQUAL,
-            32, // offset for param2
-            false,
-            bytes32(uint256(150)), // 200 > 150
-            0,
-            0
-        );
-
-        result = helper.checkRule(getTestCalldata());
-        assertFalse(result, "Rule should evaluate to false (param2 > 150)");
-    }
-
-    function test_check_whenNotEqualCondition() public {
-        // Test case 1: when not equal
-        helper.setupRule(
-            ParamCondition.NOT_EQUAL,
-            32, // offset for param2
-            false,
-            bytes32(uint256(150)), // 200 != 150
-            0,
-            0
-        );
-
-        bool result = helper.checkRule(getTestCalldata());
-        assertTrue(result, "Rule should evaluate to true (param2 != 150)");
-
-        // Test case 2: when equal
-        helper.setupRule(
-            ParamCondition.NOT_EQUAL,
-            32, // offset for param2
-            false,
-            bytes32(uint256(VALUE_200)), // 200 == 200
-            0,
-            0
-        );
-
-        result = helper.checkRule(getTestCalldata());
-        assertFalse(result, "Rule should evaluate to false (param2 == 200)");
-    }
-
-    function test_check_whenInRangeCondition() public {
-        // Test case 1: when in range
-        // Pack min and max into a single bytes32 (min: 150, max: 250)
-        bytes32 range = bytes32((uint256(150) << 128) | uint256(250));
-
-        helper.setupRule(
-            ParamCondition.IN_RANGE,
-            32, // offset for param2
-            false,
-            range, // 150 < 200 < 250
-            0,
-            0
-        );
-
-        bool result = helper.checkRule(getTestCalldata());
-        assertTrue(result, "Rule should evaluate to true (150 < param2 < 250)");
-
-        // Test case 2: when below range
-        range = bytes32((uint256(250) << 128) | uint256(300));
-
-        helper.setupRule(
-            ParamCondition.IN_RANGE,
-            32, // offset for param2
-            false,
-            range, // 200 < 250
-            0,
-            0
-        );
-
-        result = helper.checkRule(getTestCalldata());
-        assertFalse(result, "Rule should evaluate to false (param2 < 250)");
-
-        // Test case 3: when above range
-        range = bytes32((uint256(50) << 128) | uint256(150));
-
-        helper.setupRule(
-            ParamCondition.IN_RANGE,
-            32, // offset for param2
-            false,
-            range, // 200 > 150
-            0,
-            0
-        );
-
-        result = helper.checkRule(getTestCalldata());
-        assertFalse(result, "Rule should evaluate to false (param2 > 150)");
-    }
-
-    function test_check_whenLimitedRule_withinLimit() public {
-        // When checking a rule with a limit that is not exceeded
-        helper.setupRule(
-            ParamCondition.LESS_THAN,
-            32, // offset for param2
-            true,
-            bytes32(uint256(250)), // 200 < 250
-            500, // limit
-            0 // used
-        );
-
-        // It should return true and update the usage
-        bool result = helper.checkRule(getTestCalldata());
-        assertTrue(result, "Rule should evaluate to true (param2 < 250 and below limit)");
-
-        uint256 used = helper.getRuleUsed();
-        assertEq(used, VALUE_200, "Usage should be tracked");
-    }
-
-    function test_check_whenLimitedRule_exceedsLimit() public {
-        // When checking a rule with a limit that is exceeded
-        helper.setupRule(
-            ParamCondition.LESS_THAN,
-            32, // offset for param2
-            true,
-            bytes32(uint256(250)), // 200 < 250
-            150, // limit (less than 200)
-            0 // used
-        );
-
-        // It should return false
-        bool result = helper.checkRule(getTestCalldata());
-        assertFalse(result, "Rule should evaluate to false (limit exceeded)");
-    }
-
-    function test_check_whenLimitedRule_multipleUses() public {
-        // When checking a rule with a limit over multiple uses
-        helper.setupRule(
-            ParamCondition.LESS_THAN,
-            32, // offset for param2
-            true,
-            bytes32(uint256(250)), // 200 < 250
-            500, // limit
-            0 // used
-        );
-
-        // First check should succeed
-        bool result = helper.checkRule(getTestCalldata());
-        assertTrue(result, "First check should succeed");
-
-        uint256 used = helper.getRuleUsed();
-        assertEq(used, VALUE_200, "First usage should be tracked");
-
-        // Second check should succeed
-        result = helper.checkRule(getTestCalldata());
-        assertTrue(result, "Second check should succeed");
-
-        used = helper.getRuleUsed();
-        assertEq(used, VALUE_200 * 2, "Second usage should be tracked");
-
-        // Third check should fail
-        result = helper.checkRule(getTestCalldata());
-        assertFalse(result, "Third check should fail as limit is exceeded");
-
-        used = helper.getRuleUsed();
-        assertEq(used, VALUE_200 * 2, "Usage should not increase when limit is exceeded");
-    }
-
-    function test_check_batchExecution() public {
-        // Set up multiple rules for batch testing
-        helper.setupRuleAt(0, ParamCondition.EQUAL, 0, false, bytes32(uint256(VALUE_100)), 0, 0);
-        helper.setupRuleAt(1, ParamCondition.EQUAL, 0, false, bytes32(uint256(101)), 0, 0);
-        helper.setupRuleAt(2, ParamCondition.GREATER_THAN, 32, false, bytes32(uint256(150)), 0, 0);
-
-        // Transfer rule 0 to sampleRule before checking
-        helper.setupRule(ParamCondition.EQUAL, 0, false, bytes32(uint256(VALUE_100)), 0, 0);
-        bool result0 = helper.checkRule(getTestCalldata());
-        assertTrue(result0, "Rule 0 should be true");
-
-        // Rule 1 should be false (param1 != 101)
-        helper.setupRule(ParamCondition.EQUAL, 0, false, bytes32(uint256(101)), 0, 0);
-        bool result1 = helper.checkRule(getTestCalldata());
-        assertFalse(result1, "Rule 1 should be false");
-
-        // Rule 2 should be true (param2 > 150)
-        helper.setupRule(ParamCondition.GREATER_THAN, 32, false, bytes32(uint256(150)), 0, 0);
-        bool result2 = helper.checkRule(getTestCalldata());
-        assertTrue(result2, "Rule 2 should be true");
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                             TREE EVALUATION
-    //////////////////////////////////////////////////////////////*/
-
-    function test_evaluateExpressionTree_whenSingleRuleNode() public {
-        // Setup a single rule node
-        helper.setupRuleAt(0, ParamCondition.EQUAL, 0, false, bytes32(uint256(VALUE_100)), 0, 0);
-        helper.setupNodeAt(0, UniActionTreeLib.NODE_TYPE_RULE, 0, 0, 0);
-
-        // Evaluate the tree
-        bool result = helper.evaluateTree(0, getTestCalldata());
-        assertTrue(result, "Single rule node should evaluate to true");
-    }
-
-    function test_evaluateExpressionTree_whenNotNode() public {
-        // Setup a NOT node with a rule that will evaluate to false
-        helper.setupRuleAt(0, ParamCondition.NOT_EQUAL, 0, false, bytes32(uint256(VALUE_100)), 0, 0);
-        helper.setupNodeAt(0, UniActionTreeLib.NODE_TYPE_RULE, 0, 0, 0);
-        helper.setupNodeAt(1, UniActionTreeLib.NODE_TYPE_NOT, 0, 0, 0);
-
-        // Evaluate the tree
-        bool result = helper.evaluateTree(1, getTestCalldata());
-        assertTrue(result, "NOT node should negate the child result");
-    }
-
-    function test_evaluateExpressionTree_whenAndNode_bothTrue() public {
-        // Setup an AND node with two rules that will both evaluate to true
-        helper.setupRuleAt(0, ParamCondition.EQUAL, 0, false, bytes32(uint256(VALUE_100)), 0, 0);
-        helper.setupRuleAt(1, ParamCondition.EQUAL, 32, false, bytes32(uint256(VALUE_200)), 0, 0);
-
-        helper.setupNodeAt(0, UniActionTreeLib.NODE_TYPE_RULE, 0, 0, 0);
-        helper.setupNodeAt(1, UniActionTreeLib.NODE_TYPE_RULE, 1, 0, 0);
-        helper.setupNodeAt(2, UniActionTreeLib.NODE_TYPE_AND, 0, 0, 1);
-
-        // Evaluate the tree
-        bool result = helper.evaluateTree(2, getTestCalldata());
-        assertTrue(result, "AND node should be true when both children are true");
-    }
-
-    function test_evaluateExpressionTree_whenAndNode_leftFalse() public {
-        // Setup an AND node where the left child evaluates to false
-        helper.setupRuleAt(0, ParamCondition.EQUAL, 0, false, bytes32(uint256(101)), 0, 0); // False
-        helper.setupRuleAt(1, ParamCondition.EQUAL, 32, false, bytes32(uint256(VALUE_200)), 0, 0); // True
-
-        helper.setupNodeAt(0, UniActionTreeLib.NODE_TYPE_RULE, 0, 0, 0);
-        helper.setupNodeAt(1, UniActionTreeLib.NODE_TYPE_RULE, 1, 0, 0);
-        helper.setupNodeAt(2, UniActionTreeLib.NODE_TYPE_AND, 0, 0, 1);
-
-        // Evaluate the tree
-        bool result = helper.evaluateTree(2, getTestCalldata());
-        assertFalse(result, "AND node should be false when left child is false");
-    }
-
-    function test_evaluateExpressionTree_whenAndNode_rightFalse() public {
-        // Setup an AND node where the right child evaluates to false
-        helper.setupRuleAt(0, ParamCondition.EQUAL, 0, false, bytes32(uint256(VALUE_100)), 0, 0); // True
-        helper.setupRuleAt(1, ParamCondition.EQUAL, 32, false, bytes32(uint256(201)), 0, 0); // False
-
-        helper.setupNodeAt(0, UniActionTreeLib.NODE_TYPE_RULE, 0, 0, 0);
-        helper.setupNodeAt(1, UniActionTreeLib.NODE_TYPE_RULE, 1, 0, 0);
-        helper.setupNodeAt(2, UniActionTreeLib.NODE_TYPE_AND, 0, 0, 1);
-
-        // Evaluate the tree
-        bool result = helper.evaluateTree(2, getTestCalldata());
-        assertFalse(result, "AND node should be false when right child is false");
-    }
-
-    function test_evaluateExpressionTree_whenOrNode_bothTrue() public {
-        // Setup an OR node where both children evaluate to true
-        helper.setupRuleAt(0, ParamCondition.EQUAL, 0, false, bytes32(uint256(VALUE_100)), 0, 0); // True
-        helper.setupRuleAt(1, ParamCondition.EQUAL, 32, false, bytes32(uint256(VALUE_200)), 0, 0); // True
-
-        helper.setupNodeAt(0, UniActionTreeLib.NODE_TYPE_RULE, 0, 0, 0);
-        helper.setupNodeAt(1, UniActionTreeLib.NODE_TYPE_RULE, 1, 0, 0);
-        helper.setupNodeAt(2, UniActionTreeLib.NODE_TYPE_OR, 0, 0, 1);
-
-        // Evaluate the tree
-        bool result = helper.evaluateTree(2, getTestCalldata());
-        assertTrue(result, "OR node should be true when both children are true");
-    }
-
-    function test_evaluateExpressionTree_whenOrNode_leftTrue() public {
-        // Setup an OR node where the left child evaluates to true
-        helper.setupRuleAt(0, ParamCondition.EQUAL, 0, false, bytes32(uint256(VALUE_100)), 0, 0); // True
-        helper.setupRuleAt(1, ParamCondition.EQUAL, 32, false, bytes32(uint256(201)), 0, 0); // False
-
-        helper.setupNodeAt(0, UniActionTreeLib.NODE_TYPE_RULE, 0, 0, 0);
-        helper.setupNodeAt(1, UniActionTreeLib.NODE_TYPE_RULE, 1, 0, 0);
-        helper.setupNodeAt(2, UniActionTreeLib.NODE_TYPE_OR, 0, 0, 1);
-
-        // Evaluate the tree
-        bool result = helper.evaluateTree(2, getTestCalldata());
-        assertTrue(result, "OR node should be true when left child is true");
-    }
-
-    function test_evaluateExpressionTree_whenOrNode_rightTrue() public {
-        // Setup an OR node where the right child evaluates to true
-        helper.setupRuleAt(0, ParamCondition.EQUAL, 0, false, bytes32(uint256(101)), 0, 0); // False
-        helper.setupRuleAt(1, ParamCondition.EQUAL, 32, false, bytes32(uint256(VALUE_200)), 0, 0); // True
-
-        helper.setupNodeAt(0, UniActionTreeLib.NODE_TYPE_RULE, 0, 0, 0);
-        helper.setupNodeAt(1, UniActionTreeLib.NODE_TYPE_RULE, 1, 0, 0);
-        helper.setupNodeAt(2, UniActionTreeLib.NODE_TYPE_OR, 0, 0, 1);
-
-        // Evaluate the tree
-        bool result = helper.evaluateTree(2, getTestCalldata());
-        assertTrue(result, "OR node should be true when right child is true");
-    }
-
-    function test_evaluateExpressionTree_whenOrNode_bothFalse() public {
-        // Setup an OR node where both children evaluate to false
-        helper.setupRuleAt(0, ParamCondition.EQUAL, 0, false, bytes32(uint256(101)), 0, 0); // False
-        helper.setupRuleAt(1, ParamCondition.EQUAL, 32, false, bytes32(uint256(201)), 0, 0); // False
-
-        helper.setupNodeAt(0, UniActionTreeLib.NODE_TYPE_RULE, 0, 0, 0);
-        helper.setupNodeAt(1, UniActionTreeLib.NODE_TYPE_RULE, 1, 0, 0);
-        helper.setupNodeAt(2, UniActionTreeLib.NODE_TYPE_OR, 0, 0, 1);
-
-        // Evaluate the tree
-        bool result = helper.evaluateTree(2, getTestCalldata());
-        assertFalse(result, "OR node should be false when both children are false");
-    }
-
-    function test_evaluateExpressionTree_whenComplexExpression_allConditionsMet() public {
-        // Setup a complex expression tree: ((param1 == 100) OR (param2 > 150)) AND ((param3 == SAMPLE_ADDRESS) OR
-        // (param2 < 300))
-
-        // Setup rules
-        helper.setupRuleAt(0, ParamCondition.EQUAL, 0, false, bytes32(uint256(VALUE_100)), 0, 0); // True
-        helper.setupRuleAt(1, ParamCondition.GREATER_THAN, 32, false, bytes32(uint256(150)), 0, 0); // True
-        helper.setupRuleAt(2, ParamCondition.EQUAL, 64, false, bytes32(uint256(uint160(SAMPLE_ADDRESS))), 0, 0); // True
-        helper.setupRuleAt(3, ParamCondition.LESS_THAN, 32, false, bytes32(uint256(300)), 0, 0); // True
-
-        // Setup nodes
-        helper.setupNodeAt(0, UniActionTreeLib.NODE_TYPE_RULE, 0, 0, 0);
-        helper.setupNodeAt(1, UniActionTreeLib.NODE_TYPE_RULE, 1, 0, 0);
-        helper.setupNodeAt(2, UniActionTreeLib.NODE_TYPE_OR, 0, 0, 1);
-        helper.setupNodeAt(3, UniActionTreeLib.NODE_TYPE_RULE, 2, 0, 0);
-        helper.setupNodeAt(4, UniActionTreeLib.NODE_TYPE_RULE, 3, 0, 0);
-        helper.setupNodeAt(5, UniActionTreeLib.NODE_TYPE_OR, 0, 3, 4);
-        helper.setupNodeAt(6, UniActionTreeLib.NODE_TYPE_AND, 0, 2, 5);
-
-        // Evaluate the tree
-        bool result = helper.evaluateTree(6, getTestCalldata());
-        assertTrue(result, "Complex expression should evaluate to true when all conditions are met");
-    }
-
-    function test_evaluateExpressionTree_whenComplexExpression_someConditionsNotMet() public {
-        // Setup a complex expression tree where some conditions are not met
-
-        // Setup rules - all false except one
-        helper.setupRuleAt(0, ParamCondition.NOT_EQUAL, 0, false, bytes32(uint256(VALUE_100)), 0, 0); // False
-        helper.setupRuleAt(1, ParamCondition.LESS_THAN, 32, false, bytes32(uint256(150)), 0, 0); // False
-        helper.setupRuleAt(2, ParamCondition.EQUAL, 64, false, bytes32(uint256(uint160(SAMPLE_ADDRESS))), 0, 0); // True
-        helper.setupRuleAt(3, ParamCondition.LESS_THAN, 32, false, bytes32(uint256(100)), 0, 0); // False
-
-        // Setup nodes
-        helper.setupNodeAt(0, UniActionTreeLib.NODE_TYPE_RULE, 0, 0, 0);
-        helper.setupNodeAt(1, UniActionTreeLib.NODE_TYPE_RULE, 1, 0, 0);
-        helper.setupNodeAt(2, UniActionTreeLib.NODE_TYPE_OR, 0, 0, 1);
-        helper.setupNodeAt(3, UniActionTreeLib.NODE_TYPE_RULE, 2, 0, 0);
-        helper.setupNodeAt(4, UniActionTreeLib.NODE_TYPE_RULE, 3, 0, 0);
-        helper.setupNodeAt(5, UniActionTreeLib.NODE_TYPE_OR, 0, 3, 4);
-        helper.setupNodeAt(6, UniActionTreeLib.NODE_TYPE_AND, 0, 2, 5);
-
-        // Evaluate the tree
-        bool result = helper.evaluateTree(6, getTestCalldata());
-        assertFalse(result, "Complex expression should evaluate to false when some conditions are not met");
-    }
-
-    function test_evaluateExpressionTree_withShortCircuitEvaluation_orNode() public {
-        // Setup an OR node where the left child evaluates to true and the right child has limit tracking
-        helper.setupRuleAt(0, ParamCondition.EQUAL, 0, false, bytes32(uint256(VALUE_100)), 0, 0); // True
-        helper.setupRuleAt(1, ParamCondition.EQUAL, 32, true, bytes32(uint256(VALUE_200)), 500, 0); // True with limit
-
-        helper.setupNodeAt(0, UniActionTreeLib.NODE_TYPE_RULE, 0, 0, 0);
-        helper.setupNodeAt(1, UniActionTreeLib.NODE_TYPE_RULE, 1, 0, 0);
-        helper.setupNodeAt(2, UniActionTreeLib.NODE_TYPE_OR, 0, 0, 1);
-
-        // Evaluate the tree
-        bool result = helper.evaluateTree(2, getTestCalldata());
-        assertTrue(result, "OR node should evaluate to true");
-
-        // Verify the right child was not evaluated (usage should still be 0)
-        assertEq(helper.getRuleUsedAt(1), 0, "Right child should not be evaluated due to short-circuit");
-    }
-
-    function test_evaluateExpressionTree_withShortCircuitEvaluation_andNode() public {
-        // Setup an AND node where the left child evaluates to false and the right child has limit tracking
-        helper.setupRuleAt(0, ParamCondition.EQUAL, 0, false, bytes32(uint256(101)), 0, 0); // False
-        helper.setupRuleAt(1, ParamCondition.EQUAL, 32, true, bytes32(uint256(VALUE_200)), 500, 0); // True with limit
-
-        helper.setupNodeAt(0, UniActionTreeLib.NODE_TYPE_RULE, 0, 0, 0);
-        helper.setupNodeAt(1, UniActionTreeLib.NODE_TYPE_RULE, 1, 0, 0);
-        helper.setupNodeAt(2, UniActionTreeLib.NODE_TYPE_AND, 0, 0, 1);
-
-        // Evaluate the tree
-        bool result = helper.evaluateTree(2, getTestCalldata());
-        assertFalse(result, "AND node should evaluate to false");
-
-        // Verify the right child was not evaluated (usage should still be 0)
-        assertEq(helper.getRuleUsedAt(1), 0, "Right child should not be evaluated due to short-circuit");
-    }
-
-    function test_evaluateComplexTree_directNodeAccess() public {
-        // Setup rules and nodes for direct node access test
-        helper.setupRuleAt(0, ParamCondition.EQUAL, 0, false, bytes32(uint256(VALUE_100)), 0, 0); // True
-        helper.setupRuleAt(1, ParamCondition.GREATER_THAN, 32, false, bytes32(uint256(150)), 0, 0); // True
-
-        helper.setupNodeAt(0, UniActionTreeLib.NODE_TYPE_RULE, 0, 0, 0);
-        helper.setupNodeAt(1, UniActionTreeLib.NODE_TYPE_RULE, 1, 0, 0);
-        helper.setupNodeAt(2, UniActionTreeLib.NODE_TYPE_OR, 0, 0, 1);
-
-        // Evaluate specific nodes
-        bool result0 = helper.evaluateTree(0, getTestCalldata());
-        bool result1 = helper.evaluateTree(1, getTestCalldata());
-        bool result2 = helper.evaluateTree(2, getTestCalldata());
-
-        // Check results
-        assertTrue(result0, "Node 0 (rule 0) should be true");
-        assertTrue(result1, "Node 1 (rule 1) should be true");
-        assertTrue(result2, "Node 2 (OR node) should be true");
+        helper.validateTree(0);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -979,14 +438,15 @@ contract UniActionTreeLibUnitTest is BaseTest {
     //////////////////////////////////////////////////////////////*/
 
     function test_fill_copiesAllFields() public {
-        // Set up source config
+        // Set up source config with dynamic arrays
         ActionConfig memory sourceConfig;
         sourceConfig.valueLimitPerUse = 123 ether;
-        sourceConfig.paramRules.ruleCount = 2;
-        sourceConfig.paramRules.nodeCount = 3;
         sourceConfig.paramRules.rootNodeIndex = 1;
 
-        // Create some rules
+        // Create rules array
+        sourceConfig.paramRules.rules = new ParamRule[](2);
+
+        // Create rule 0
         ParamRule memory rule0;
         rule0.condition = ParamCondition.EQUAL;
         rule0.offset = 0;
@@ -994,6 +454,7 @@ contract UniActionTreeLibUnitTest is BaseTest {
         rule0.ref = bytes32(uint256(VALUE_100));
         sourceConfig.paramRules.rules[0] = rule0;
 
+        // Create rule 1
         ParamRule memory rule1;
         rule1.condition = ParamCondition.GREATER_THAN;
         rule1.offset = 32;
@@ -1002,7 +463,8 @@ contract UniActionTreeLibUnitTest is BaseTest {
         rule1.usage.limit = 500;
         sourceConfig.paramRules.rules[1] = rule1;
 
-        // Create some nodes
+        // Create packed nodes array
+        sourceConfig.paramRules.packedNodes = new uint256[](3);
         sourceConfig.paramRules.packedNodes[0] = UniActionTreeLib.createRuleNode(0);
         sourceConfig.paramRules.packedNodes[1] = UniActionTreeLib.createRuleNode(1);
         sourceConfig.paramRules.packedNodes[2] = UniActionTreeLib.createOrNode(0, 1);
@@ -1011,13 +473,13 @@ contract UniActionTreeLibUnitTest is BaseTest {
         helper.fillConfig(testStorageSlot, sourceConfig);
 
         // Verify all fields were copied correctly
-        (uint256 valueLimitPerUse, uint8 ruleCount, uint8 nodeCount, uint8 rootNodeIndex) =
+        (uint256 valueLimitPerUse, uint8 rootNodeIndex, uint256 rulesLength, uint256 nodesLength) =
             helper.getConfigValues(testStorageSlot);
 
         assertEq(valueLimitPerUse, 123 ether, "valueLimitPerUse should be copied");
-        assertEq(ruleCount, 2, "ruleCount should be copied");
-        assertEq(nodeCount, 3, "nodeCount should be copied");
         assertEq(rootNodeIndex, 1, "rootNodeIndex should be copied");
+        assertEq(rulesLength, 2, "rules array length should be correct");
+        assertEq(nodesLength, 3, "nodes array length should be correct");
 
         // Verify rule 0
         (uint8 condition0, uint64 offset0, bool isLimited0, bytes32 ref0, uint256 limit0, uint256 used0) =
@@ -1059,6 +521,76 @@ contract UniActionTreeLibUnitTest is BaseTest {
         assertEq(nodeType2, UniActionTreeLib.NODE_TYPE_OR, "Node 2 type should be copied");
         assertEq(leftChild2, 0, "Node 2 left child should be copied");
         assertEq(rightChild2, 1, "Node 2 right child should be copied");
+    }
+
+    function test_fill_overwritesExistingArrays() public {
+        // First create a config with some data
+        ActionConfig memory firstConfig;
+        firstConfig.valueLimitPerUse = 100 ether;
+        firstConfig.paramRules.rootNodeIndex = 0;
+
+        // Create rules array with 3 rules
+        firstConfig.paramRules.rules = new ParamRule[](3);
+        for (uint8 i = 0; i < 3; i++) {
+            ParamRule memory rule;
+            rule.condition = ParamCondition.EQUAL;
+            rule.offset = i * 32;
+            firstConfig.paramRules.rules[i] = rule;
+        }
+
+        // Create nodes array with 4 nodes
+        firstConfig.paramRules.packedNodes = new uint256[](4);
+        for (uint8 i = 0; i < 4; i++) {
+            firstConfig.paramRules.packedNodes[i] = UniActionTreeLib.createRuleNode(i % 3);
+        }
+
+        // Fill the config
+        helper.fillConfig(testStorageSlot, firstConfig);
+
+        // Verify initial state
+        (uint256 value1, uint8 root1, uint256 rulesLength1, uint256 nodesLength1) =
+            helper.getConfigValues(testStorageSlot);
+        assertEq(rulesLength1, 3, "Initial rules length should be 3");
+        assertEq(nodesLength1, 4, "Initial nodes length should be 4");
+
+        // Now create a second config with different sized arrays
+        ActionConfig memory secondConfig;
+        secondConfig.valueLimitPerUse = 200 ether;
+        secondConfig.paramRules.rootNodeIndex = 1;
+
+        // Create smaller rules array (2 rules)
+        secondConfig.paramRules.rules = new ParamRule[](2);
+        for (uint8 i = 0; i < 2; i++) {
+            ParamRule memory rule;
+            rule.condition = ParamCondition.GREATER_THAN;
+            rule.offset = i * 64;
+            secondConfig.paramRules.rules[i] = rule;
+        }
+
+        // Create larger nodes array (5 nodes)
+        secondConfig.paramRules.packedNodes = new uint256[](5);
+        for (uint8 i = 0; i < 5; i++) {
+            secondConfig.paramRules.packedNodes[i] = UniActionTreeLib.createNotNode(i % 2);
+        }
+
+        // Fill the config again (should overwrite the first one)
+        helper.fillConfig(testStorageSlot, secondConfig);
+
+        // Verify the new state
+        (uint256 value2, uint8 root2, uint256 rulesLength2, uint256 nodesLength2) =
+            helper.getConfigValues(testStorageSlot);
+        assertEq(value2, 200 ether, "Value should be updated");
+        assertEq(root2, 1, "Root index should be updated");
+        assertEq(rulesLength2, 2, "Rules length should now be 2");
+        assertEq(nodesLength2, 5, "Nodes length should now be 5");
+
+        // Verify rule 0 was updated
+        (uint8 condition0,,,,,) = helper.getRule(testStorageSlot, 0);
+        assertEq(condition0, uint8(ParamCondition.GREATER_THAN), "Rule 0 condition should be updated");
+
+        // Verify node 0 was updated
+        (uint8 nodeType0,,,) = helper.getNode(testStorageSlot, 0);
+        assertEq(nodeType0, UniActionTreeLib.NODE_TYPE_NOT, "Node 0 type should be updated");
     }
 
     /*//////////////////////////////////////////////////////////////

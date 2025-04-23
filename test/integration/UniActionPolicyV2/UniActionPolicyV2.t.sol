@@ -292,66 +292,17 @@ contract UniActionPolicyV2IntegrationTest is BaseTest {
             usage: LimitUsage({ limit: uint256(refBytes32) + 1, used: 0 })
         });
 
+        // Create dynamic arrays
+        ParamRule[] memory rules = new ParamRule[](1);
+        rules[0] = bytes32Rule;
+
+        uint256[] memory packedNodes = new uint256[](1);
+        packedNodes[0] = UniActionTreeLib.createRuleNode(0);
+
         // Set up the rules in the ActionConfig
         ActionConfig memory config = ActionConfig({
             valueLimitPerUse: 1e21,
-            paramRules: ParamRules({
-                ruleCount: 1,
-                nodeCount: 1,
-                rootNodeIndex: 0,
-                rules: [
-                    bytes32Rule,
-                    ParamRule(ParamCondition.EQUAL, 0, false, bytes32(0), LimitUsage(0, 0)),
-                    ParamRule(ParamCondition.EQUAL, 0, false, bytes32(0), LimitUsage(0, 0)),
-                    ParamRule(ParamCondition.EQUAL, 0, false, bytes32(0), LimitUsage(0, 0)),
-                    ParamRule(ParamCondition.EQUAL, 0, false, bytes32(0), LimitUsage(0, 0)),
-                    ParamRule(ParamCondition.EQUAL, 0, false, bytes32(0), LimitUsage(0, 0)),
-                    ParamRule(ParamCondition.EQUAL, 0, false, bytes32(0), LimitUsage(0, 0)),
-                    ParamRule(ParamCondition.EQUAL, 0, false, bytes32(0), LimitUsage(0, 0)),
-                    ParamRule(ParamCondition.EQUAL, 0, false, bytes32(0), LimitUsage(0, 0)),
-                    ParamRule(ParamCondition.EQUAL, 0, false, bytes32(0), LimitUsage(0, 0)),
-                    ParamRule(ParamCondition.EQUAL, 0, false, bytes32(0), LimitUsage(0, 0)),
-                    ParamRule(ParamCondition.EQUAL, 0, false, bytes32(0), LimitUsage(0, 0)),
-                    ParamRule(ParamCondition.EQUAL, 0, false, bytes32(0), LimitUsage(0, 0)),
-                    ParamRule(ParamCondition.EQUAL, 0, false, bytes32(0), LimitUsage(0, 0)),
-                    ParamRule(ParamCondition.EQUAL, 0, false, bytes32(0), LimitUsage(0, 0)),
-                    ParamRule(ParamCondition.EQUAL, 0, false, bytes32(0), LimitUsage(0, 0))
-                ],
-                packedNodes: [
-                    UniActionTreeLib.createRuleNode(0), // Node 2: Bytes32 rule (root)
-                    uint256(0),
-                    uint256(0),
-                    uint256(0),
-                    uint256(0),
-                    uint256(0),
-                    uint256(0),
-                    uint256(0),
-                    uint256(0),
-                    uint256(0),
-                    uint256(0),
-                    uint256(0),
-                    uint256(0),
-                    uint256(0),
-                    uint256(0),
-                    uint256(0),
-                    uint256(0),
-                    uint256(0),
-                    uint256(0),
-                    uint256(0),
-                    uint256(0),
-                    uint256(0),
-                    uint256(0),
-                    uint256(0),
-                    uint256(0),
-                    uint256(0),
-                    uint256(0),
-                    uint256(0),
-                    uint256(0),
-                    uint256(0),
-                    uint256(0),
-                    uint256(0)
-                ]
-            })
+            paramRules: ParamRules({ rootNodeIndex: 0, rules: rules, packedNodes: packedNodes })
         });
 
         policyInitData = abi.encode(config);
@@ -390,67 +341,24 @@ contract UniActionPolicyV2IntegrationTest is BaseTest {
             usage: LimitUsage({ limit: 0, used: 0 })
         });
 
-        // Set up the rules in the ActionConfig with a complex expression tree
+        // Create dynamic arrays
+        ParamRule[] memory rules = new ParamRule[](3);
+        rules[0] = addrRule;
+        rules[1] = uint256Rule;
+        rules[2] = bytes32Rule;
+
+        uint256[] memory packedNodes = new uint256[](5);
+        packedNodes[0] = UniActionTreeLib.createRuleNode(0); // Node 0: Address rule
+        packedNodes[1] = UniActionTreeLib.createRuleNode(1); // Node 1: Uint256 rule
+        packedNodes[2] = UniActionTreeLib.createOrNode(0, 1); // Node 2: OR node (addrRule OR uint256Rule)
+        packedNodes[3] = UniActionTreeLib.createRuleNode(2); // Node 3: Bytes32 rule
+        packedNodes[4] = UniActionTreeLib.createAndNode(2, 3); // Node 4: AND node (root) - (addrRule OR uint256Rule)
+            // AND bytes32Rule
+
         // Logic: (addrRule OR uint256Rule) AND bytes32Rule
         ActionConfig memory config = ActionConfig({
             valueLimitPerUse: 1e21,
-            paramRules: ParamRules({
-                ruleCount: 3,
-                nodeCount: 5,
-                rootNodeIndex: 4,
-                rules: [
-                    addrRule,
-                    uint256Rule,
-                    bytes32Rule,
-                    ParamRule(ParamCondition.EQUAL, 0, false, bytes32(0), LimitUsage(0, 0)),
-                    ParamRule(ParamCondition.EQUAL, 0, false, bytes32(0), LimitUsage(0, 0)),
-                    ParamRule(ParamCondition.EQUAL, 0, false, bytes32(0), LimitUsage(0, 0)),
-                    ParamRule(ParamCondition.EQUAL, 0, false, bytes32(0), LimitUsage(0, 0)),
-                    ParamRule(ParamCondition.EQUAL, 0, false, bytes32(0), LimitUsage(0, 0)),
-                    ParamRule(ParamCondition.EQUAL, 0, false, bytes32(0), LimitUsage(0, 0)),
-                    ParamRule(ParamCondition.EQUAL, 0, false, bytes32(0), LimitUsage(0, 0)),
-                    ParamRule(ParamCondition.EQUAL, 0, false, bytes32(0), LimitUsage(0, 0)),
-                    ParamRule(ParamCondition.EQUAL, 0, false, bytes32(0), LimitUsage(0, 0)),
-                    ParamRule(ParamCondition.EQUAL, 0, false, bytes32(0), LimitUsage(0, 0)),
-                    ParamRule(ParamCondition.EQUAL, 0, false, bytes32(0), LimitUsage(0, 0)),
-                    ParamRule(ParamCondition.EQUAL, 0, false, bytes32(0), LimitUsage(0, 0)),
-                    ParamRule(ParamCondition.EQUAL, 0, false, bytes32(0), LimitUsage(0, 0))
-                ],
-                packedNodes: [
-                    UniActionTreeLib.createRuleNode(0), // Node 0: Address rule
-                    UniActionTreeLib.createRuleNode(1), // Node 1: Uint256 rule
-                    UniActionTreeLib.createOrNode(0, 1), // Node 2: OR node (addrRule OR uint256Rule)
-                    UniActionTreeLib.createRuleNode(2), // Node 3: Bytes32 rule
-                    UniActionTreeLib.createAndNode(2, 3), // Node 4: AND node (root) - (addrRule OR uint256Rule) AND bytes32Rule
-                    uint256(0),
-                    uint256(0),
-                    uint256(0),
-                    uint256(0),
-                    uint256(0),
-                    uint256(0),
-                    uint256(0),
-                    uint256(0),
-                    uint256(0),
-                    uint256(0),
-                    uint256(0),
-                    uint256(0),
-                    uint256(0),
-                    uint256(0),
-                    uint256(0),
-                    uint256(0),
-                    uint256(0),
-                    uint256(0),
-                    uint256(0),
-                    uint256(0),
-                    uint256(0),
-                    uint256(0),
-                    uint256(0),
-                    uint256(0),
-                    uint256(0),
-                    uint256(0),
-                    uint256(0)
-                ]
-            })
+            paramRules: ParamRules({ rootNodeIndex: 4, rules: rules, packedNodes: packedNodes })
         });
 
         policyInitData = abi.encode(config);

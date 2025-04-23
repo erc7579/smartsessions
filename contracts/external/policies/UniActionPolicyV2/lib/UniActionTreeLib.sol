@@ -44,6 +44,10 @@ library UniActionTreeLib {
     uint256 constant LEFT_CHILD_MASK = 0xFF; // 8 bits (child index 0-255)
     uint256 constant RIGHT_CHILD_MASK = 0xFF; // 8 bits (child index 0-255)
 
+    // Maximum number of rules and nodes
+    uint256 constant MAX_RULES = 128; // Maximum number of rules
+    uint256 constant MAX_NODES = 256; // Maximum number of nodes
+
     /*//////////////////////////////////////////////////////////////
                                 VALIDATE
     //////////////////////////////////////////////////////////////*/
@@ -97,29 +101,41 @@ library UniActionTreeLib {
      * @param rules The ParamRules struct containing the expression tree
      */
     function validateExpressionTree(ParamRules memory rules) internal pure {
-        if (rules.nodeCount == 0) {
+        // Cache length
+        uint256 nodeCount = rules.packedNodes.length;
+        uint256 ruleCount = rules.rules.length;
+
+        if (nodeCount == 0) {
             revert InvalidExpressionTree("Empty expression tree");
         }
 
-        if (rules.rootNodeIndex >= rules.nodeCount) {
+        if (rules.rootNodeIndex >= nodeCount) {
             revert InvalidExpressionTree("Root node index out of bounds");
         }
 
+        if (ruleCount > MAX_RULES) {
+            revert InvalidExpressionTree("Too many rules (max 128)");
+        }
+
+        if (nodeCount > MAX_NODES) {
+            revert InvalidExpressionTree("Too many nodes (max 256)");
+        }
+
         // Check each node in the tree
-        for (uint8 i = 0; i < rules.nodeCount; i++) {
+        for (uint8 i = 0; i < nodeCount; i++) {
             uint256 node = rules.packedNodes[i];
             uint8 nodeType = uint8(node & NODE_TYPE_MASK);
 
             if (nodeType == NODE_TYPE_RULE) {
                 // Rule nodes must reference a valid rule
                 uint8 ruleIndex = uint8((node >> RULE_INDEX_SHIFT) & RULE_INDEX_MASK);
-                if (ruleIndex >= rules.ruleCount) {
+                if (ruleIndex >= ruleCount) {
                     revert InvalidExpressionTree("Rule index out of bounds");
                 }
             } else if (nodeType == NODE_TYPE_NOT) {
                 // NOT nodes must have a valid child
                 uint8 childIndex = uint8((node >> LEFT_CHILD_SHIFT) & LEFT_CHILD_MASK);
-                if (childIndex >= rules.nodeCount) {
+                if (childIndex >= nodeCount) {
                     revert InvalidExpressionTree("NOT node child index out of bounds");
                 }
             } else {
@@ -128,7 +144,7 @@ library UniActionTreeLib {
                 uint8 leftChildIndex = uint8((node >> LEFT_CHILD_SHIFT) & LEFT_CHILD_MASK);
                 uint8 rightChildIndex = uint8((node >> RIGHT_CHILD_SHIFT) & RIGHT_CHILD_MASK);
 
-                if (leftChildIndex >= rules.nodeCount || rightChildIndex >= rules.nodeCount) {
+                if (leftChildIndex >= nodeCount || rightChildIndex >= nodeCount) {
                     revert InvalidExpressionTree("AND/OR node child indices out of bounds");
                 }
             }
@@ -160,9 +176,9 @@ library UniActionTreeLib {
      * @return Result of evaluating this node and its children
      */
     function evaluateNode(
-        uint256[32] storage packedNodes,
+        uint256[] storage packedNodes,
         uint8 nodeIndex,
-        ParamRule[16] storage rules,
+        ParamRule[] storage rules,
         bytes calldata data
     )
         internal
@@ -225,24 +241,26 @@ library UniActionTreeLib {
 
     /**
      * @notice Fills the storage config with the provided memory config
-     * @dev Copies all elements from memory to storage
+     * @dev Uses the delete approach for simplicity and clean slate
      * @param $config The storage configuration to fill
      * @param config The memory configuration to copy from
      */
     function fill(ActionConfig storage $config, ActionConfig memory config) internal {
+        // Set scalar values
         $config.valueLimitPerUse = config.valueLimitPerUse;
-        $config.paramRules.ruleCount = config.paramRules.ruleCount;
-        $config.paramRules.nodeCount = config.paramRules.nodeCount;
         $config.paramRules.rootNodeIndex = config.paramRules.rootNodeIndex;
 
-        // Copy rules
-        for (uint8 i; i < config.paramRules.ruleCount; i++) {
-            $config.paramRules.rules[i] = config.paramRules.rules[i];
-        }
+        // Clear existing rules and packed nodes just in case
+        delete $config.paramRules.rules;
+        delete $config.paramRules.packedNodes;
 
-        // Copy packed nodes
-        for (uint8 i; i < config.paramRules.nodeCount; i++) {
-            $config.paramRules.packedNodes[i] = config.paramRules.packedNodes[i];
+        // Add new rules
+        for (uint256 i = 0; i < config.paramRules.rules.length; i++) {
+            $config.paramRules.rules.push(config.paramRules.rules[i]);
+        }
+        // Add new packed nodes
+        for (uint256 i = 0; i < config.paramRules.packedNodes.length; i++) {
+            $config.paramRules.packedNodes.push(config.paramRules.packedNodes[i]);
         }
     }
 

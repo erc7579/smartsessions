@@ -57,9 +57,12 @@ contract UniActionPolicyV2UnitTest is BaseTest {
     function createSimpleConfig(uint256 valueLimit) internal pure returns (ActionConfig memory) {
         ActionConfig memory config;
         config.valueLimitPerUse = valueLimit;
-        config.paramRules.ruleCount = 0;
-        config.paramRules.nodeCount = 0;
         config.paramRules.rootNodeIndex = 0;
+
+        // Initialize empty dynamic arrays
+        config.paramRules.rules = new ParamRule[](0);
+        config.paramRules.packedNodes = new uint256[](0);
+
         return config;
     }
 
@@ -72,12 +75,12 @@ contract UniActionPolicyV2UnitTest is BaseTest {
         returns (ActionConfig memory)
     {
         // Set the rule
+        config.paramRules.rules = new ParamRule[](1);
         config.paramRules.rules[0] = rule;
-        config.paramRules.ruleCount = 1;
 
         // Create a single rule node
+        config.paramRules.packedNodes = new uint256[](1);
         config.paramRules.packedNodes[0] = UniActionTreeLib.createRuleNode(0);
-        config.paramRules.nodeCount = 1;
         config.paramRules.rootNodeIndex = 0;
 
         return config;
@@ -94,19 +97,19 @@ contract UniActionPolicyV2UnitTest is BaseTest {
         require(rules.length >= 3, "At least 3 rules required for complex tree");
 
         // Set up rules
+        config.paramRules.rules = new ParamRule[](rules.length);
         for (uint8 i = 0; i < rules.length; i++) {
             config.paramRules.rules[i] = rules[i];
         }
-        config.paramRules.ruleCount = uint8(rules.length);
 
         // Create nodes: (rule0 OR rule1) AND rule2
+        config.paramRules.packedNodes = new uint256[](5);
         config.paramRules.packedNodes[0] = UniActionTreeLib.createRuleNode(0); // Rule 0
         config.paramRules.packedNodes[1] = UniActionTreeLib.createRuleNode(1); // Rule 1
         config.paramRules.packedNodes[2] = UniActionTreeLib.createOrNode(0, 1); // OR node
         config.paramRules.packedNodes[3] = UniActionTreeLib.createRuleNode(2); // Rule 2
         config.paramRules.packedNodes[4] = UniActionTreeLib.createAndNode(2, 3); // AND node (root)
 
-        config.paramRules.nodeCount = 5;
         config.paramRules.rootNodeIndex = 4;
 
         return config;
@@ -173,12 +176,12 @@ contract UniActionPolicyV2UnitTest is BaseTest {
         ParamRule memory rule = createSimpleRule(ParamCondition.EQUAL, 0, bytes32(uint256(VALUE_100)), false, 0);
 
         // Set the rule
+        config.paramRules.rules = new ParamRule[](1);
         config.paramRules.rules[0] = rule;
-        config.paramRules.ruleCount = 1;
 
         // Create a single rule node
+        config.paramRules.packedNodes = new uint256[](1);
         config.paramRules.packedNodes[0] = UniActionTreeLib.createRuleNode(0);
-        config.paramRules.nodeCount = 1;
         config.paramRules.rootNodeIndex = 10; // Invalid index
 
         // Initialize policy - should revert
