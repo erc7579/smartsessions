@@ -14,8 +14,18 @@ library UniActionTreeLib {
                                  ERRORS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Error thrown when the expression tree has an invalid structure
-    error InvalidExpressionTree(string reason);
+    /// @notice Error thrown when the expression tree is empty
+    error EmptyExpressionTree();
+    /// @notice Error thrown when the root node index is out of bounds
+    error RootNodeIndexOutOfBounds();
+    /// @notice Error thrown when there are too many rules
+    error TooManyRules();
+    /// @notice Error thrown when there are too many nodes
+    error TooManyNodes();
+    /// @notice Error thrown when a node child index is out of bounds
+    error NodeChildIndexOutOfBounds();
+    /// @notice Error thrown when a rule index is out of bounds
+    error RuleIndexOutOfBounds();
 
     /*//////////////////////////////////////////////////////////////
                                LIBRARIES
@@ -60,26 +70,40 @@ library UniActionTreeLib {
      * @return True if the rule passes, false otherwise
      */
     function check(ParamRule storage rule, bytes calldata data) internal returns (bool) {
-        bytes32 param = bytes32(data[4 + rule.offset:4 + rule.offset + 32]);
+        // Cache the offset
+        uint64 offset = rule.offset;
+        // Cache the condition
+        ParamCondition condition = rule.condition;
+        // Extract 32 bytes from calldata at the specified offset
+        // First 4 bytes are the function selector, so we add 4 to the offset
+        bytes32 param = bytes32(data[4 + offset:4 + offset + 32]);
 
         // CHECK Param Condition
-        if (rule.condition == ParamCondition.EQUAL && param != rule.ref) {
+        if (condition == ParamCondition.EQUAL && param != rule.ref) {
+            // Fails if parameter is not equal to reference value
             return false;
-        } else if (rule.condition == ParamCondition.GREATER_THAN && param <= rule.ref) {
+        } else if (condition == ParamCondition.GREATER_THAN && param <= rule.ref) {
+            // Fails if parameter is not greater than reference value
             return false;
-        } else if (rule.condition == ParamCondition.LESS_THAN && param >= rule.ref) {
+        } else if (condition == ParamCondition.LESS_THAN && param >= rule.ref) {
+            // Fails if parameter is not less than reference value
             return false;
-        } else if (rule.condition == ParamCondition.GREATER_THAN_OR_EQUAL && param < rule.ref) {
+        } else if (condition == ParamCondition.GREATER_THAN_OR_EQUAL && param < rule.ref) {
+            // Fails if parameter is not greater than or equal to reference value
             return false;
-        } else if (rule.condition == ParamCondition.LESS_THAN_OR_EQUAL && param > rule.ref) {
+        } else if (condition == ParamCondition.LESS_THAN_OR_EQUAL && param > rule.ref) {
+            // Fails if parameter is not less than or equal to reference value
             return false;
-        } else if (rule.condition == ParamCondition.NOT_EQUAL && param == rule.ref) {
+        } else if (condition == ParamCondition.NOT_EQUAL && param == rule.ref) {
+            // Fails if parameter equals reference value (should be different)
             return false;
-        } else if (rule.condition == ParamCondition.IN_RANGE) {
-            // in this case rule.ref is abi.encodePacked(uint128(min), uint128(max))
+        } else if (condition == ParamCondition.IN_RANGE) {
+            // For IN_RANGE condition, rule.ref contains both min and max values
+            // rule.ref format: first 128 bits = min value, last 128 bits = max value
             if (
-                param < (rule.ref >> 128)
-                    || param > (rule.ref & 0x00000000000000000000000000000000ffffffffffffffffffffffffffffffff)
+                param < (rule.ref >> 128) // Check if param is less than min value (high 128 bits)
+                    || param > (rule.ref & 0x00000000000000000000000000000000ffffffffffffffffffffffffffffffff) // Check if
+                    // param is greater than max value (low 128 bits)
             ) {
                 return false;
             }
@@ -87,9 +111,11 @@ library UniActionTreeLib {
 
         // CHECK Param Limit
         if (rule.isLimited) {
+            // Check if adding this parameter's value would exceed the defined usage limit
             if (rule.usage.used + uint256(param) > rule.usage.limit) {
                 return false;
             }
+            // Update the usage counter by adding the parameter value
             rule.usage.used += uint256(param);
         }
         return true;
@@ -105,48 +131,37 @@ library UniActionTreeLib {
         uint256 nodeCount = rules.packedNodes.length;
         uint256 ruleCount = rules.rules.length;
 
-        if (nodeCount == 0) {
-            revert InvalidExpressionTree("Empty expression tree");
-        }
-
-        if (rules.rootNodeIndex >= nodeCount) {
-            revert InvalidExpressionTree("Root node index out of bounds");
-        }
-
-        if (ruleCount > MAX_RULES) {
-            revert InvalidExpressionTree("Too many rules (max 128)");
-        }
-
-        if (nodeCount > MAX_NODES) {
-            revert InvalidExpressionTree("Too many nodes (max 256)");
-        }
+        // Check if the expression tree is empty
+        require(nodeCount != 0, EmptyExpressionTree());
+        // Check if the root node index is within bounds
+        require(rules.rootNodeIndex < nodeCount, RootNodeIndexOutOfBounds());
+        // Check if the number of rules exceeds the maximum allowed
+        require(ruleCount <= MAX_RULES, TooManyRules());
+        // Check if the number of nodes exceeds the maximum allowed
+        require(nodeCount <= MAX_NODES, TooManyNodes());
 
         // Check each node in the tree
         for (uint8 i = 0; i < nodeCount; i++) {
             uint256 node = rules.packedNodes[i];
-            uint8 nodeType = uint8(node & NODE_TYPE_MASK);
+            uint8 nodeType = node.getNodeType();
 
             if (nodeType == NODE_TYPE_RULE) {
                 // Rule nodes must reference a valid rule
-                uint8 ruleIndex = uint8((node >> RULE_INDEX_SHIFT) & RULE_INDEX_MASK);
-                if (ruleIndex >= ruleCount) {
-                    revert InvalidExpressionTree("Rule index out of bounds");
-                }
+                uint8 ruleIndex = node.getRuleIndex();
+                // Check if the rule index is within bounds
+                require(ruleIndex < ruleCount, RuleIndexOutOfBounds());
             } else if (nodeType == NODE_TYPE_NOT) {
                 // NOT nodes must have a valid child
-                uint8 childIndex = uint8((node >> LEFT_CHILD_SHIFT) & LEFT_CHILD_MASK);
-                if (childIndex >= nodeCount) {
-                    revert InvalidExpressionTree("NOT node child index out of bounds");
-                }
+                uint8 childIndex = node.getLeftChildIndex();
+                // Check if the child index is within bounds
+                require(childIndex < nodeCount, NodeChildIndexOutOfBounds());
             } else {
                 // AND or OR nodes
                 // Must have valid left and right children
-                uint8 leftChildIndex = uint8((node >> LEFT_CHILD_SHIFT) & LEFT_CHILD_MASK);
-                uint8 rightChildIndex = uint8((node >> RIGHT_CHILD_SHIFT) & RIGHT_CHILD_MASK);
-
-                if (leftChildIndex >= nodeCount || rightChildIndex >= nodeCount) {
-                    revert InvalidExpressionTree("AND/OR node child indices out of bounds");
-                }
+                uint8 leftChildIndex = node.getLeftChildIndex();
+                uint8 rightChildIndex = node.getRightChildIndex();
+                // Check if the left and right child indices are within bounds
+                require(leftChildIndex < nodeCount && rightChildIndex < nodeCount, NodeChildIndexOutOfBounds());
             }
         }
     }
@@ -187,46 +202,38 @@ library UniActionTreeLib {
         // Load the packed node from storage (single SLOAD operation)
         uint256 node = packedNodes[nodeIndex];
 
-        // Extract node type (first 2 bits)
-        uint8 nodeType = uint8(node & NODE_TYPE_MASK);
+        // Extract node type
+        uint8 nodeType = node.getNodeType();
 
         // Evaluate based on node type
         if (nodeType == NODE_TYPE_RULE) {
             // Extract rule index
-            uint8 ruleIndex = uint8((node >> RULE_INDEX_SHIFT) & RULE_INDEX_MASK);
+            uint8 ruleIndex = node.getRuleIndex();
             return rules[ruleIndex].check(data);
         } else if (nodeType == NODE_TYPE_NOT) {
             // Extract child index
-            uint8 childIndex = uint8((node >> LEFT_CHILD_SHIFT) & LEFT_CHILD_MASK);
+            uint8 childIndex = node.getLeftChildIndex();
             return !evaluateNode(packedNodes, childIndex, rules, data);
         } else if (nodeType == NODE_TYPE_AND) {
             // Extract left child index
-            uint8 leftChildIndex = uint8((node >> LEFT_CHILD_SHIFT) & LEFT_CHILD_MASK);
-
+            uint8 leftChildIndex = node.getLeftChildIndex();
             // Evaluate left child first
             bool leftResult = evaluateNode(packedNodes, leftChildIndex, rules, data);
-
             // Short-circuit: if left result is false, the AND result is false
             if (!leftResult) return false;
-
             // Extract right child index
-            uint8 rightChildIndex = uint8((node >> RIGHT_CHILD_SHIFT) & RIGHT_CHILD_MASK);
-
+            uint8 rightChildIndex = node.getRightChildIndex();
             // Evaluate right child and return result
             return evaluateNode(packedNodes, rightChildIndex, rules, data);
         } else if (nodeType == NODE_TYPE_OR) {
             // Extract left child index
-            uint8 leftChildIndex = uint8((node >> LEFT_CHILD_SHIFT) & LEFT_CHILD_MASK);
-
+            uint8 leftChildIndex = node.getLeftChildIndex();
             // Evaluate left child first
             bool leftResult = evaluateNode(packedNodes, leftChildIndex, rules, data);
-
             // Short-circuit: if left result is true, the OR result is true
             if (leftResult) return true;
-
             // Extract right child index
-            uint8 rightChildIndex = uint8((node >> RIGHT_CHILD_SHIFT) & RIGHT_CHILD_MASK);
-
+            uint8 rightChildIndex = node.getRightChildIndex();
             // Evaluate right child and return result
             return evaluateNode(packedNodes, rightChildIndex, rules, data);
         }

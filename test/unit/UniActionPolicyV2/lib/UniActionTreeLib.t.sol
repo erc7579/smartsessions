@@ -333,13 +333,8 @@ contract UniActionTreeLibUnitTest is BaseTest {
     //////////////////////////////////////////////////////////////*/
 
     function test_validateExpressionTree_whenEmptyTree() public {
-        // Set up nodes in the helper
-        helper.setupNodeAt(0, UniActionTreeLib.NODE_TYPE_RULE, 0, 0, 0);
-
         // When validating an empty tree, it should revert
-        vm.expectRevert(
-            abi.encodeWithSelector(UniActionTreeLib.InvalidExpressionTree.selector, "Empty expression tree")
-        );
+        vm.expectRevert(UniActionTreeLib.EmptyExpressionTree.selector);
         helper.validateTree(0); // Node array is empty at this point
     }
 
@@ -350,9 +345,7 @@ contract UniActionTreeLibUnitTest is BaseTest {
         helper.setupNodeAt(2, UniActionTreeLib.NODE_TYPE_RULE, 2, 0, 0);
 
         // When validating a tree with an invalid root index, it should revert
-        vm.expectRevert(
-            abi.encodeWithSelector(UniActionTreeLib.InvalidExpressionTree.selector, "Root node index out of bounds")
-        );
+        vm.expectRevert(UniActionTreeLib.RootNodeIndexOutOfBounds.selector);
         helper.validateTree(5); // Root index 5 is beyond node count
     }
 
@@ -363,9 +356,7 @@ contract UniActionTreeLibUnitTest is BaseTest {
         helper.setupRuleAt(1, ParamCondition.EQUAL, 0, false, bytes32(0), 0, 0);
 
         // When validating a tree with an invalid rule index, it should revert
-        vm.expectRevert(
-            abi.encodeWithSelector(UniActionTreeLib.InvalidExpressionTree.selector, "Rule index out of bounds")
-        );
+        vm.expectRevert(UniActionTreeLib.RuleIndexOutOfBounds.selector);
         helper.validateTree(0);
     }
 
@@ -374,11 +365,7 @@ contract UniActionTreeLibUnitTest is BaseTest {
         helper.setupNodeAt(0, UniActionTreeLib.NODE_TYPE_NOT, 0, 5, 0);
 
         // When validating a tree with an invalid NOT node child, it should revert
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                UniActionTreeLib.InvalidExpressionTree.selector, "NOT node child index out of bounds"
-            )
-        );
+        vm.expectRevert(UniActionTreeLib.NodeChildIndexOutOfBounds.selector);
         helper.validateTree(0);
     }
 
@@ -388,11 +375,7 @@ contract UniActionTreeLibUnitTest is BaseTest {
         helper.setupNodeAt(1, UniActionTreeLib.NODE_TYPE_RULE, 0, 0, 0);
 
         // When validating a tree with invalid AND node children, it should revert
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                UniActionTreeLib.InvalidExpressionTree.selector, "AND/OR node child indices out of bounds"
-            )
-        );
+        vm.expectRevert(UniActionTreeLib.NodeChildIndexOutOfBounds.selector);
         helper.validateTree(0);
     }
 
@@ -427,9 +410,7 @@ contract UniActionTreeLibUnitTest is BaseTest {
         }
 
         // Should revert due to too many rules and nodes
-        vm.expectRevert(
-            abi.encodeWithSelector(UniActionTreeLib.InvalidExpressionTree.selector, "Too many rules (max 128)")
-        );
+        vm.expectRevert(UniActionTreeLib.TooManyRules.selector);
         helper.validateTree(0);
     }
 
