@@ -78,16 +78,19 @@ enum ParamCondition {
 }
 
 /**
- * @title ArgPolicy: Enhanced Universal Action Policy
+ * @title ArgPolicy: Argument Policy
  * @author highskore
- * @notice A policy that allows defining complex logical expressions for action validation
- * @dev An upgraded version of UniActionPolicy that supports AND, OR, NOT operations
- *      with arbitrary nesting using a node structure.
+ * @notice A policy that allows defining complex logical expressions for calldata argument validation
+ * @dev Implements a flexible rule system for validating function arguments in calldata using a tree-based
+ *      logical expression evaluator that supports AND, OR, NOT operations with arbitrary nesting.
  *
- * The policy can express conditions like:
+ * The policy enables sophisticated argument validation with expressions like:
  * - (rule1 OR rule2) AND rule3
  * - rule1 AND (NOT rule2)
  * - (rule1 OR rule2) AND (rule3 OR (NOT rule4))
+ *
+ * Each rule can check a specific argument in the calldata against various conditions
+ * (equality, ranges, thresholds) and can also enforce usage limits on arguments.
  */
 contract ArgPolicy is IActionPolicy {
     /*//////////////////////////////////////////////////////////////
