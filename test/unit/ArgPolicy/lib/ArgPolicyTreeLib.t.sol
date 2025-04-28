@@ -2,17 +2,17 @@
 pragma solidity ^0.8.27;
 
 import "../../../Base.t.sol";
-import { UniActionTreeLib } from "contracts/external/policies/UniActionPolicyV2/lib/UniActionTreeLib.sol";
+import { ArgPolicyTreeLib } from "contracts/external/policies/ArgPolicy/lib/ArgPolicyTreeLib.sol";
 import {
     ParamRule,
     ParamRules,
     ActionConfig,
     ParamCondition,
     LimitUsage
-} from "contracts/external/policies/UniActionPolicyV2/UniActionPolicyV2.sol";
+} from "contracts/external/policies/ArgPolicy/ArgPolicy.sol";
 
 contract StorageAccessHelper {
-    using UniActionTreeLib for *;
+    using ArgPolicyTreeLib for *;
 
     ParamRule internal sampleRule;
     uint256 internal sampleNode;
@@ -82,19 +82,19 @@ contract StorageAccessHelper {
             sampleNodes.push();
         }
 
-        if (nodeType == UniActionTreeLib.NODE_TYPE_RULE) {
-            sampleNodes[index] = UniActionTreeLib.createRuleNode(ruleIndex);
-        } else if (nodeType == UniActionTreeLib.NODE_TYPE_NOT) {
-            sampleNodes[index] = UniActionTreeLib.createNotNode(leftChild);
-        } else if (nodeType == UniActionTreeLib.NODE_TYPE_AND) {
-            sampleNodes[index] = UniActionTreeLib.createAndNode(leftChild, rightChild);
-        } else if (nodeType == UniActionTreeLib.NODE_TYPE_OR) {
-            sampleNodes[index] = UniActionTreeLib.createOrNode(leftChild, rightChild);
+        if (nodeType == ArgPolicyTreeLib.NODE_TYPE_RULE) {
+            sampleNodes[index] = ArgPolicyTreeLib.createRuleNode(ruleIndex);
+        } else if (nodeType == ArgPolicyTreeLib.NODE_TYPE_NOT) {
+            sampleNodes[index] = ArgPolicyTreeLib.createNotNode(leftChild);
+        } else if (nodeType == ArgPolicyTreeLib.NODE_TYPE_AND) {
+            sampleNodes[index] = ArgPolicyTreeLib.createAndNode(leftChild, rightChild);
+        } else if (nodeType == ArgPolicyTreeLib.NODE_TYPE_OR) {
+            sampleNodes[index] = ArgPolicyTreeLib.createOrNode(leftChild, rightChild);
         }
     }
 
     function evaluateTree(uint8 rootIndex, bytes calldata data) public returns (bool) {
-        return UniActionTreeLib.evaluateNode(sampleNodes, rootIndex, sampleRules, data);
+        return ArgPolicyTreeLib.evaluateNode(sampleNodes, rootIndex, sampleRules, data);
     }
 
     function getRuleUsedAt(uint8 index) public view returns (uint256) {
@@ -117,7 +117,7 @@ contract StorageAccessHelper {
         }
 
         // This will revert if invalid
-        UniActionTreeLib.validateExpressionTree(rules);
+        ArgPolicyTreeLib.validateExpressionTree(rules);
         return true;
     }
 
@@ -179,20 +179,20 @@ contract StorageAccessHelper {
 
         uint256 node = storageConfig.paramRules.packedNodes[nodeIndex];
         return (
-            UniActionTreeLib.getNodeType(node),
-            UniActionTreeLib.getRuleIndex(node),
-            UniActionTreeLib.getLeftChildIndex(node),
-            UniActionTreeLib.getRightChildIndex(node)
+            ArgPolicyTreeLib.getNodeType(node),
+            ArgPolicyTreeLib.getRuleIndex(node),
+            ArgPolicyTreeLib.getLeftChildIndex(node),
+            ArgPolicyTreeLib.getRightChildIndex(node)
         );
     }
 }
 
-contract UniActionTreeLibUnitTest is BaseTest {
+contract ArgPolicyTreeLibUnitTest is BaseTest {
     /*//////////////////////////////////////////////////////////////
                                LIBRARIES
     //////////////////////////////////////////////////////////////*/
 
-    using UniActionTreeLib for *;
+    using ArgPolicyTreeLib for *;
 
     /*//////////////////////////////////////////////////////////////
                                TEST STORAGE
@@ -279,53 +279,53 @@ contract UniActionTreeLibUnitTest is BaseTest {
     function test_createRuleNode() public {
         // When creating a rule node
         uint8 ruleIndex = 7;
-        uint256 node = UniActionTreeLib.createRuleNode(ruleIndex);
+        uint256 node = ArgPolicyTreeLib.createRuleNode(ruleIndex);
 
         // It should have the correct node type
-        assertEq(UniActionTreeLib.getNodeType(node), UniActionTreeLib.NODE_TYPE_RULE, "Node type should be RULE");
+        assertEq(ArgPolicyTreeLib.getNodeType(node), ArgPolicyTreeLib.NODE_TYPE_RULE, "Node type should be RULE");
 
         // It should have the correct rule index
-        assertEq(UniActionTreeLib.getRuleIndex(node), ruleIndex, "Rule index should match");
+        assertEq(ArgPolicyTreeLib.getRuleIndex(node), ruleIndex, "Rule index should match");
     }
 
     function test_createNotNode() public {
         // When creating a NOT node
         uint8 childIndex = 3;
-        uint256 node = UniActionTreeLib.createNotNode(childIndex);
+        uint256 node = ArgPolicyTreeLib.createNotNode(childIndex);
 
         // It should have the correct node type
-        assertEq(UniActionTreeLib.getNodeType(node), UniActionTreeLib.NODE_TYPE_NOT, "Node type should be NOT");
+        assertEq(ArgPolicyTreeLib.getNodeType(node), ArgPolicyTreeLib.NODE_TYPE_NOT, "Node type should be NOT");
 
         // It should have the correct child index
-        assertEq(UniActionTreeLib.getLeftChildIndex(node), childIndex, "Child index should match");
+        assertEq(ArgPolicyTreeLib.getLeftChildIndex(node), childIndex, "Child index should match");
     }
 
     function test_createAndNode() public {
         // When creating an AND node
         uint8 leftChildIndex = 1;
         uint8 rightChildIndex = 2;
-        uint256 node = UniActionTreeLib.createAndNode(leftChildIndex, rightChildIndex);
+        uint256 node = ArgPolicyTreeLib.createAndNode(leftChildIndex, rightChildIndex);
 
         // It should have the correct node type
-        assertEq(UniActionTreeLib.getNodeType(node), UniActionTreeLib.NODE_TYPE_AND, "Node type should be AND");
+        assertEq(ArgPolicyTreeLib.getNodeType(node), ArgPolicyTreeLib.NODE_TYPE_AND, "Node type should be AND");
 
         // It should have the correct child indices
-        assertEq(UniActionTreeLib.getLeftChildIndex(node), leftChildIndex, "Left child index should match");
-        assertEq(UniActionTreeLib.getRightChildIndex(node), rightChildIndex, "Right child index should match");
+        assertEq(ArgPolicyTreeLib.getLeftChildIndex(node), leftChildIndex, "Left child index should match");
+        assertEq(ArgPolicyTreeLib.getRightChildIndex(node), rightChildIndex, "Right child index should match");
     }
 
     function test_createOrNode() public {
         // When creating an OR node
         uint8 leftChildIndex = 4;
         uint8 rightChildIndex = 5;
-        uint256 node = UniActionTreeLib.createOrNode(leftChildIndex, rightChildIndex);
+        uint256 node = ArgPolicyTreeLib.createOrNode(leftChildIndex, rightChildIndex);
 
         // It should have the correct node type
-        assertEq(UniActionTreeLib.getNodeType(node), UniActionTreeLib.NODE_TYPE_OR, "Node type should be OR");
+        assertEq(ArgPolicyTreeLib.getNodeType(node), ArgPolicyTreeLib.NODE_TYPE_OR, "Node type should be OR");
 
         // It should have the correct child indices
-        assertEq(UniActionTreeLib.getLeftChildIndex(node), leftChildIndex, "Left child index should match");
-        assertEq(UniActionTreeLib.getRightChildIndex(node), rightChildIndex, "Right child index should match");
+        assertEq(ArgPolicyTreeLib.getLeftChildIndex(node), leftChildIndex, "Left child index should match");
+        assertEq(ArgPolicyTreeLib.getRightChildIndex(node), rightChildIndex, "Right child index should match");
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -334,48 +334,48 @@ contract UniActionTreeLibUnitTest is BaseTest {
 
     function test_validateExpressionTree_whenEmptyTree() public {
         // When validating an empty tree, it should revert
-        vm.expectRevert(UniActionTreeLib.EmptyExpressionTree.selector);
+        vm.expectRevert(ArgPolicyTreeLib.EmptyExpressionTree.selector);
         helper.validateTree(0); // Node array is empty at this point
     }
 
     function test_validateExpressionTree_whenInvalidRootIndex() public {
         // Set up nodes in the helper
-        helper.setupNodeAt(0, UniActionTreeLib.NODE_TYPE_RULE, 0, 0, 0);
-        helper.setupNodeAt(1, UniActionTreeLib.NODE_TYPE_RULE, 1, 0, 0);
-        helper.setupNodeAt(2, UniActionTreeLib.NODE_TYPE_RULE, 2, 0, 0);
+        helper.setupNodeAt(0, ArgPolicyTreeLib.NODE_TYPE_RULE, 0, 0, 0);
+        helper.setupNodeAt(1, ArgPolicyTreeLib.NODE_TYPE_RULE, 1, 0, 0);
+        helper.setupNodeAt(2, ArgPolicyTreeLib.NODE_TYPE_RULE, 2, 0, 0);
 
         // When validating a tree with an invalid root index, it should revert
-        vm.expectRevert(UniActionTreeLib.RootNodeIndexOutOfBounds.selector);
+        vm.expectRevert(ArgPolicyTreeLib.RootNodeIndexOutOfBounds.selector);
         helper.validateTree(5); // Root index 5 is beyond node count
     }
 
     function test_validateExpressionTree_whenInvalidRuleIndex() public {
         // Set up nodes in the helper - rule index 5 with only 2 rules
-        helper.setupNodeAt(0, UniActionTreeLib.NODE_TYPE_RULE, 5, 0, 0);
+        helper.setupNodeAt(0, ArgPolicyTreeLib.NODE_TYPE_RULE, 5, 0, 0);
         helper.setupRuleAt(0, ParamCondition.EQUAL, 0, false, bytes32(0), 0, 0);
         helper.setupRuleAt(1, ParamCondition.EQUAL, 0, false, bytes32(0), 0, 0);
 
         // When validating a tree with an invalid rule index, it should revert
-        vm.expectRevert(UniActionTreeLib.RuleIndexOutOfBounds.selector);
+        vm.expectRevert(ArgPolicyTreeLib.RuleIndexOutOfBounds.selector);
         helper.validateTree(0);
     }
 
     function test_validateExpressionTree_whenInvalidNotNodeChild() public {
         // Set up nodes in the helper - NOT node with child index 5 but only 1 node
-        helper.setupNodeAt(0, UniActionTreeLib.NODE_TYPE_NOT, 0, 5, 0);
+        helper.setupNodeAt(0, ArgPolicyTreeLib.NODE_TYPE_NOT, 0, 5, 0);
 
         // When validating a tree with an invalid NOT node child, it should revert
-        vm.expectRevert(UniActionTreeLib.NodeChildIndexOutOfBounds.selector);
+        vm.expectRevert(ArgPolicyTreeLib.NodeChildIndexOutOfBounds.selector);
         helper.validateTree(0);
     }
 
     function test_validateExpressionTree_whenInvalidAndNodeChildren() public {
         // Set up nodes in the helper - AND node with right child index out of bounds
-        helper.setupNodeAt(0, UniActionTreeLib.NODE_TYPE_AND, 0, 1, 5);
-        helper.setupNodeAt(1, UniActionTreeLib.NODE_TYPE_RULE, 0, 0, 0);
+        helper.setupNodeAt(0, ArgPolicyTreeLib.NODE_TYPE_AND, 0, 1, 5);
+        helper.setupNodeAt(1, ArgPolicyTreeLib.NODE_TYPE_RULE, 0, 0, 0);
 
         // When validating a tree with invalid AND node children, it should revert
-        vm.expectRevert(UniActionTreeLib.NodeChildIndexOutOfBounds.selector);
+        vm.expectRevert(ArgPolicyTreeLib.NodeChildIndexOutOfBounds.selector);
         helper.validateTree(0);
     }
 
@@ -385,11 +385,11 @@ contract UniActionTreeLibUnitTest is BaseTest {
         helper.setupRuleAt(1, ParamCondition.EQUAL, 0, false, bytes32(0), 0, 0);
         helper.setupRuleAt(2, ParamCondition.EQUAL, 0, false, bytes32(0), 0, 0);
 
-        helper.setupNodeAt(0, UniActionTreeLib.NODE_TYPE_RULE, 0, 0, 0);
-        helper.setupNodeAt(1, UniActionTreeLib.NODE_TYPE_RULE, 1, 0, 0);
-        helper.setupNodeAt(2, UniActionTreeLib.NODE_TYPE_OR, 0, 0, 1);
-        helper.setupNodeAt(3, UniActionTreeLib.NODE_TYPE_RULE, 2, 0, 0);
-        helper.setupNodeAt(4, UniActionTreeLib.NODE_TYPE_AND, 0, 2, 3);
+        helper.setupNodeAt(0, ArgPolicyTreeLib.NODE_TYPE_RULE, 0, 0, 0);
+        helper.setupNodeAt(1, ArgPolicyTreeLib.NODE_TYPE_RULE, 1, 0, 0);
+        helper.setupNodeAt(2, ArgPolicyTreeLib.NODE_TYPE_OR, 0, 0, 1);
+        helper.setupNodeAt(3, ArgPolicyTreeLib.NODE_TYPE_RULE, 2, 0, 0);
+        helper.setupNodeAt(4, ArgPolicyTreeLib.NODE_TYPE_AND, 0, 2, 3);
 
         // When validating a valid tree, it should pass
         bool result = helper.validateTree(4);
@@ -400,17 +400,17 @@ contract UniActionTreeLibUnitTest is BaseTest {
         // Test that we enforce max limits
 
         // Create more than MAX_RULES rules
-        for (uint16 i = 0; i < UniActionTreeLib.MAX_RULES + 10; i++) {
+        for (uint16 i = 0; i < ArgPolicyTreeLib.MAX_RULES + 10; i++) {
             helper.setupRuleAt(uint8(i), ParamCondition.EQUAL, 0, false, bytes32(0), 0, 0);
         }
 
         // Create more than MAX_NODES nodes
-        for (uint16 i = 0; i < UniActionTreeLib.MAX_NODES + 10; i++) {
-            helper.setupNodeAt(uint8(i), UniActionTreeLib.NODE_TYPE_RULE, 0, 0, 0);
+        for (uint16 i = 0; i < ArgPolicyTreeLib.MAX_NODES + 10; i++) {
+            helper.setupNodeAt(uint8(i), ArgPolicyTreeLib.NODE_TYPE_RULE, 0, 0, 0);
         }
 
         // Should revert due to too many rules and nodes
-        vm.expectRevert(UniActionTreeLib.TooManyRules.selector);
+        vm.expectRevert(ArgPolicyTreeLib.TooManyRules.selector);
         helper.validateTree(0);
     }
 
@@ -446,9 +446,9 @@ contract UniActionTreeLibUnitTest is BaseTest {
 
         // Create packed nodes array
         sourceConfig.paramRules.packedNodes = new uint256[](3);
-        sourceConfig.paramRules.packedNodes[0] = UniActionTreeLib.createRuleNode(0);
-        sourceConfig.paramRules.packedNodes[1] = UniActionTreeLib.createRuleNode(1);
-        sourceConfig.paramRules.packedNodes[2] = UniActionTreeLib.createOrNode(0, 1);
+        sourceConfig.paramRules.packedNodes[0] = ArgPolicyTreeLib.createRuleNode(0);
+        sourceConfig.paramRules.packedNodes[1] = ArgPolicyTreeLib.createRuleNode(1);
+        sourceConfig.paramRules.packedNodes[2] = ArgPolicyTreeLib.createOrNode(0, 1);
 
         // Fill the config through helper
         helper.fillConfig(testStorageSlot, sourceConfig);
@@ -487,19 +487,19 @@ contract UniActionTreeLibUnitTest is BaseTest {
         // Verify node 0
         (uint8 nodeType0, uint8 ruleIndex0, uint8 leftChild0, uint8 rightChild0) = helper.getNode(testStorageSlot, 0);
 
-        assertEq(nodeType0, UniActionTreeLib.NODE_TYPE_RULE, "Node 0 type should be copied");
+        assertEq(nodeType0, ArgPolicyTreeLib.NODE_TYPE_RULE, "Node 0 type should be copied");
         assertEq(ruleIndex0, 0, "Node 0 rule index should be copied");
 
         // Verify node 1
         (uint8 nodeType1, uint8 ruleIndex1, uint8 leftChild1, uint8 rightChild1) = helper.getNode(testStorageSlot, 1);
 
-        assertEq(nodeType1, UniActionTreeLib.NODE_TYPE_RULE, "Node 1 type should be copied");
+        assertEq(nodeType1, ArgPolicyTreeLib.NODE_TYPE_RULE, "Node 1 type should be copied");
         assertEq(ruleIndex1, 1, "Node 1 rule index should be copied");
 
         // Verify node 2
         (uint8 nodeType2, uint8 ruleIndex2, uint8 leftChild2, uint8 rightChild2) = helper.getNode(testStorageSlot, 2);
 
-        assertEq(nodeType2, UniActionTreeLib.NODE_TYPE_OR, "Node 2 type should be copied");
+        assertEq(nodeType2, ArgPolicyTreeLib.NODE_TYPE_OR, "Node 2 type should be copied");
         assertEq(leftChild2, 0, "Node 2 left child should be copied");
         assertEq(rightChild2, 1, "Node 2 right child should be copied");
     }
@@ -522,7 +522,7 @@ contract UniActionTreeLibUnitTest is BaseTest {
         // Create nodes array with 4 nodes
         firstConfig.paramRules.packedNodes = new uint256[](4);
         for (uint8 i = 0; i < 4; i++) {
-            firstConfig.paramRules.packedNodes[i] = UniActionTreeLib.createRuleNode(i % 3);
+            firstConfig.paramRules.packedNodes[i] = ArgPolicyTreeLib.createRuleNode(i % 3);
         }
 
         // Fill the config
@@ -551,7 +551,7 @@ contract UniActionTreeLibUnitTest is BaseTest {
         // Create larger nodes array (5 nodes)
         secondConfig.paramRules.packedNodes = new uint256[](5);
         for (uint8 i = 0; i < 5; i++) {
-            secondConfig.paramRules.packedNodes[i] = UniActionTreeLib.createNotNode(i % 2);
+            secondConfig.paramRules.packedNodes[i] = ArgPolicyTreeLib.createNotNode(i % 2);
         }
 
         // Fill the config again (should overwrite the first one)
@@ -571,7 +571,7 @@ contract UniActionTreeLibUnitTest is BaseTest {
 
         // Verify node 0 was updated
         (uint8 nodeType0,,,) = helper.getNode(testStorageSlot, 0);
-        assertEq(nodeType0, UniActionTreeLib.NODE_TYPE_NOT, "Node 0 type should be updated");
+        assertEq(nodeType0, ArgPolicyTreeLib.NODE_TYPE_NOT, "Node 0 type should be updated");
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -584,27 +584,27 @@ contract UniActionTreeLibUnitTest is BaseTest {
         uint8 leftChild = 2;
         uint8 rightChild = 3;
 
-        uint256 ruleNode = UniActionTreeLib.createRuleNode(ruleIndex);
-        uint256 notNode = UniActionTreeLib.createNotNode(leftChild);
-        uint256 andNode = UniActionTreeLib.createAndNode(leftChild, rightChild);
-        uint256 orNode = UniActionTreeLib.createOrNode(leftChild, rightChild);
+        uint256 ruleNode = ArgPolicyTreeLib.createRuleNode(ruleIndex);
+        uint256 notNode = ArgPolicyTreeLib.createNotNode(leftChild);
+        uint256 andNode = ArgPolicyTreeLib.createAndNode(leftChild, rightChild);
+        uint256 orNode = ArgPolicyTreeLib.createOrNode(leftChild, rightChild);
 
         // Test getNodeType
-        assertEq(UniActionTreeLib.getNodeType(ruleNode), UniActionTreeLib.NODE_TYPE_RULE, "Should be RULE type");
-        assertEq(UniActionTreeLib.getNodeType(notNode), UniActionTreeLib.NODE_TYPE_NOT, "Should be NOT type");
-        assertEq(UniActionTreeLib.getNodeType(andNode), UniActionTreeLib.NODE_TYPE_AND, "Should be AND type");
-        assertEq(UniActionTreeLib.getNodeType(orNode), UniActionTreeLib.NODE_TYPE_OR, "Should be OR type");
+        assertEq(ArgPolicyTreeLib.getNodeType(ruleNode), ArgPolicyTreeLib.NODE_TYPE_RULE, "Should be RULE type");
+        assertEq(ArgPolicyTreeLib.getNodeType(notNode), ArgPolicyTreeLib.NODE_TYPE_NOT, "Should be NOT type");
+        assertEq(ArgPolicyTreeLib.getNodeType(andNode), ArgPolicyTreeLib.NODE_TYPE_AND, "Should be AND type");
+        assertEq(ArgPolicyTreeLib.getNodeType(orNode), ArgPolicyTreeLib.NODE_TYPE_OR, "Should be OR type");
 
         // Test getRuleIndex
-        assertEq(UniActionTreeLib.getRuleIndex(ruleNode), ruleIndex, "Rule index should match");
+        assertEq(ArgPolicyTreeLib.getRuleIndex(ruleNode), ruleIndex, "Rule index should match");
 
         // Test getLeftChildIndex
-        assertEq(UniActionTreeLib.getLeftChildIndex(notNode), leftChild, "NOT node left child should match");
-        assertEq(UniActionTreeLib.getLeftChildIndex(andNode), leftChild, "AND node left child should match");
-        assertEq(UniActionTreeLib.getLeftChildIndex(orNode), leftChild, "OR node left child should match");
+        assertEq(ArgPolicyTreeLib.getLeftChildIndex(notNode), leftChild, "NOT node left child should match");
+        assertEq(ArgPolicyTreeLib.getLeftChildIndex(andNode), leftChild, "AND node left child should match");
+        assertEq(ArgPolicyTreeLib.getLeftChildIndex(orNode), leftChild, "OR node left child should match");
 
         // Test getRightChildIndex
-        assertEq(UniActionTreeLib.getRightChildIndex(andNode), rightChild, "AND node right child should match");
-        assertEq(UniActionTreeLib.getRightChildIndex(orNode), rightChild, "OR node right child should match");
+        assertEq(ArgPolicyTreeLib.getRightChildIndex(andNode), rightChild, "AND node right child should match");
+        assertEq(ArgPolicyTreeLib.getRightChildIndex(orNode), rightChild, "OR node right child should match");
     }
 }

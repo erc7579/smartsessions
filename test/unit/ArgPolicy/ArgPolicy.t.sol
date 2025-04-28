@@ -3,20 +3,20 @@ pragma solidity ^0.8.27;
 
 import "../../Base.t.sol";
 import {
-    UniActionPolicyV2,
+    ArgPolicy,
     ActionConfig,
     ParamRules,
     ParamRule,
     ParamCondition,
     LimitUsage
-} from "contracts/external/policies/UniActionPolicyV2/UniActionPolicyV2.sol";
-import { UniActionTreeLib } from "contracts/external/policies/UniActionPolicyV2/lib/UniActionTreeLib.sol";
+} from "contracts/external/policies/ArgPolicy/ArgPolicy.sol";
+import { ArgPolicyTreeLib } from "contracts/external/policies/ArgPolicy/lib/ArgPolicyTreeLib.sol";
 import { IActionPolicy, IPolicy, VALIDATION_SUCCESS, VALIDATION_FAILED } from "contracts/interfaces/IPolicy.sol";
 import { ConfigId, ActionData, PolicyData, PermissionId } from "contracts/DataTypes.sol";
 import { IERC165 } from "forge-std/interfaces/IERC165.sol";
 
-contract UniActionPolicyV2UnitTest is BaseTest {
-    UniActionPolicyV2 public policy;
+contract ArgPolicyUnitTest is BaseTest {
+    ArgPolicy public policy;
 
     // Test constants
     address constant ACCOUNT = address(0x1234);
@@ -80,7 +80,7 @@ contract UniActionPolicyV2UnitTest is BaseTest {
 
         // Create a single rule node
         config.paramRules.packedNodes = new uint256[](1);
-        config.paramRules.packedNodes[0] = UniActionTreeLib.createRuleNode(0);
+        config.paramRules.packedNodes[0] = ArgPolicyTreeLib.createRuleNode(0);
         config.paramRules.rootNodeIndex = 0;
 
         return config;
@@ -104,11 +104,11 @@ contract UniActionPolicyV2UnitTest is BaseTest {
 
         // Create nodes: (rule0 OR rule1) AND rule2
         config.paramRules.packedNodes = new uint256[](5);
-        config.paramRules.packedNodes[0] = UniActionTreeLib.createRuleNode(0); // Rule 0
-        config.paramRules.packedNodes[1] = UniActionTreeLib.createRuleNode(1); // Rule 1
-        config.paramRules.packedNodes[2] = UniActionTreeLib.createOrNode(0, 1); // OR node
-        config.paramRules.packedNodes[3] = UniActionTreeLib.createRuleNode(2); // Rule 2
-        config.paramRules.packedNodes[4] = UniActionTreeLib.createAndNode(2, 3); // AND node (root)
+        config.paramRules.packedNodes[0] = ArgPolicyTreeLib.createRuleNode(0); // Rule 0
+        config.paramRules.packedNodes[1] = ArgPolicyTreeLib.createRuleNode(1); // Rule 1
+        config.paramRules.packedNodes[2] = ArgPolicyTreeLib.createOrNode(0, 1); // OR node
+        config.paramRules.packedNodes[3] = ArgPolicyTreeLib.createRuleNode(2); // Rule 2
+        config.paramRules.packedNodes[4] = ArgPolicyTreeLib.createAndNode(2, 3); // AND node (root)
 
         config.paramRules.rootNodeIndex = 4;
 
@@ -117,7 +117,7 @@ contract UniActionPolicyV2UnitTest is BaseTest {
 
     function setUp() public override {
         // Deploy contracts
-        policy = new UniActionPolicyV2();
+        policy = new ArgPolicy();
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -181,7 +181,7 @@ contract UniActionPolicyV2UnitTest is BaseTest {
 
         // Create a single rule node
         config.paramRules.packedNodes = new uint256[](1);
-        config.paramRules.packedNodes[0] = UniActionTreeLib.createRuleNode(0);
+        config.paramRules.packedNodes[0] = ArgPolicyTreeLib.createRuleNode(0);
         config.paramRules.rootNodeIndex = 10; // Invalid index
 
         // Initialize policy - should revert
@@ -199,9 +199,7 @@ contract UniActionPolicyV2UnitTest is BaseTest {
         // Try to check an action without initializing
         vm.prank(MULTIPLEXER);
         vm.expectRevert(
-            abi.encodeWithSelector(
-                UniActionPolicyV2.PolicyNotInitialized.selector, TEST_CONFIG_ID, MULTIPLEXER, ACCOUNT
-            )
+            abi.encodeWithSelector(ArgPolicy.PolicyNotInitialized.selector, TEST_CONFIG_ID, MULTIPLEXER, ACCOUNT)
         );
         policy.checkAction(TEST_CONFIG_ID, ACCOUNT, address(0), 0, getTestCalldata());
     }
@@ -219,7 +217,7 @@ contract UniActionPolicyV2UnitTest is BaseTest {
 
         // Try to check with value higher than limit
         vm.prank(MULTIPLEXER);
-        vm.expectRevert(abi.encodeWithSelector(UniActionPolicyV2.ValueLimitExceeded.selector, TEST_CONFIG_ID, 200, 100));
+        vm.expectRevert(abi.encodeWithSelector(ArgPolicy.ValueLimitExceeded.selector, TEST_CONFIG_ID, 200, 100));
         policy.checkAction(TEST_CONFIG_ID, ACCOUNT, address(0), 200, getTestCalldata());
     }
 
@@ -520,9 +518,7 @@ contract UniActionPolicyV2UnitTest is BaseTest {
         // Account 1 should fail with too much value
         vm.prank(MULTIPLEXER);
         vm.expectRevert(
-            abi.encodeWithSelector(
-                UniActionPolicyV2.ValueLimitExceeded.selector, TEST_CONFIG_ID, ONE_ETHER + 1, ONE_ETHER
-            )
+            abi.encodeWithSelector(ArgPolicy.ValueLimitExceeded.selector, TEST_CONFIG_ID, ONE_ETHER + 1, ONE_ETHER)
         );
         policy.checkAction(TEST_CONFIG_ID, account1, address(0), ONE_ETHER + 1, getTestCalldata());
 
@@ -530,7 +526,7 @@ contract UniActionPolicyV2UnitTest is BaseTest {
         vm.prank(MULTIPLEXER);
         vm.expectRevert(
             abi.encodeWithSelector(
-                UniActionPolicyV2.ValueLimitExceeded.selector, TEST_CONFIG_ID, ONE_ETHER / 2 + 1, ONE_ETHER / 2
+                ArgPolicy.ValueLimitExceeded.selector, TEST_CONFIG_ID, ONE_ETHER / 2 + 1, ONE_ETHER / 2
             )
         );
         policy.checkAction(TEST_CONFIG_ID, account2, address(0), ONE_ETHER / 2 + 1, getTestCalldata());
@@ -563,7 +559,7 @@ contract UniActionPolicyV2UnitTest is BaseTest {
 
         // Config 2 should fail with same value
         vm.prank(MULTIPLEXER);
-        vm.expectRevert(abi.encodeWithSelector(UniActionPolicyV2.ValueLimitExceeded.selector, configId2, 500, 200));
+        vm.expectRevert(abi.encodeWithSelector(ArgPolicy.ValueLimitExceeded.selector, configId2, 500, 200));
         policy.checkAction(configId2, ACCOUNT, address(0), 500, getTestCalldata());
     }
 }

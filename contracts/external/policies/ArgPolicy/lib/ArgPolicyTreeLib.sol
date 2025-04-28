@@ -2,14 +2,14 @@
 pragma solidity ^0.8.27;
 
 // Types
-import { ParamRule, ParamRules, ActionConfig, ParamCondition } from "../UniActionPolicyV2.sol";
+import { ParamRule, ParamRules, ActionConfig, ParamCondition } from "../ArgPolicy.sol";
 
 /**
- * @title UniActionTreeLib
- * @notice Library implementing the parameter rules validation and expression tree evaluation for UniActionPolicyV2
+ * @title ArgPolicyTreeLib
+ * @notice Library implementing the parameter rules validation and expression tree evaluation for ArgPolicy
  * @dev Contains functions for checking rules, evaluating expression trees, and manipulating nodes
  */
-library UniActionTreeLib {
+library ArgPolicyTreeLib {
     /*//////////////////////////////////////////////////////////////
                                  ERRORS
     //////////////////////////////////////////////////////////////*/
@@ -31,7 +31,7 @@ library UniActionTreeLib {
                                LIBRARIES
     //////////////////////////////////////////////////////////////*/
 
-    using UniActionTreeLib for *;
+    using ArgPolicyTreeLib for *;
 
     /*//////////////////////////////////////////////////////////////
                                CONSTANTS

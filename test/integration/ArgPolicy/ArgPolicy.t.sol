@@ -5,36 +5,33 @@ import "../../Base.t.sol";
 import "contracts/core/SmartSessionBase.sol";
 import "solady/utils/ECDSA.sol";
 import "contracts/lib/IdLib.sol";
-import "contracts/external/policies/UniActionPolicyV2/UniActionPolicyV2.sol";
-import "contracts/external/policies/UniActionPolicyV2/lib/UniActionTreeLib.sol";
+import "contracts/external/policies/ArgPolicy/ArgPolicy.sol";
+import "contracts/external/policies/ArgPolicy/lib/ArgPolicyTreeLib.sol";
 
-contract UniActionPolicyV2IntegrationTest is BaseTest {
+contract ArgPolicyIntegrationTest is BaseTest {
     using IdLib for *;
     using ModuleKitHelpers for *;
     using ModuleKitUserOp for *;
     using EncodeLib for PermissionId;
-    using UniActionTreeLib for *;
+    using ArgPolicyTreeLib for *;
 
-    UniActionPolicyV2 internal uniPolicyV2;
+    ArgPolicy internal uniPolicyV2;
     MockCallee internal mockCallee;
 
     function setUp() public virtual override {
         super.setUp();
-        uniPolicyV2 = new UniActionPolicyV2();
+        uniPolicyV2 = new ArgPolicy();
         mockCallee = new MockCallee();
     }
 
-    function test_use_universal_action_policy_v2_simple_rule_success(bytes32 salt)
-        public
-        returns (PermissionId permissionId)
-    {
+    function test_use_arg_policy_simple_rule_success(bytes32 salt) public returns (PermissionId permissionId) {
         uint256 valToAdd = 2517;
         bytes32 valToAdd32 = bytes32(uint256(0xdecaf));
         (uint256 prevBal, bytes32 prevBal32) = mockCallee.bals(instance.account);
         assertEq(prevBal, 0);
         assertEq(prevBal32, 0);
 
-        permissionId = _enableSessionWithUniActionPolicyV2Simple(salt, instance.account, 1e32, valToAdd32);
+        permissionId = _enableSessionWithArgPolicySimple(salt, instance.account, 1e32, valToAdd32);
         bytes memory callData = abi.encodeCall(MockCallee.addBalance, (instance.account, valToAdd, valToAdd32));
 
         // get userOp from ModuleKit
@@ -55,17 +52,14 @@ contract UniActionPolicyV2IntegrationTest is BaseTest {
         assertEq(postBal32, valToAdd32);
     }
 
-    function test_use_universal_action_policy_v2_complex_tree_success(bytes32 salt)
-        public
-        returns (PermissionId permissionId)
-    {
+    function test_use_arg_policy_complex_tree_success(bytes32 salt) public returns (PermissionId permissionId) {
         uint256 valToAdd = 2517;
         bytes32 valToAdd32 = bytes32(uint256(0xdecaf));
         (uint256 prevBal, bytes32 prevBal32) = mockCallee.bals(instance.account);
         assertEq(prevBal, 0);
         assertEq(prevBal32, 0);
 
-        permissionId = _enableSessionWithUniActionPolicyV2Complex(salt, instance.account, valToAdd, valToAdd32);
+        permissionId = _enableSessionWithArgPolicyComplex(salt, instance.account, valToAdd, valToAdd32);
         bytes memory callData = abi.encodeCall(MockCallee.addBalance, (instance.account, valToAdd, valToAdd32));
 
         // get userOp from ModuleKit
@@ -86,15 +80,11 @@ contract UniActionPolicyV2IntegrationTest is BaseTest {
         assertEq(postBal32, valToAdd32);
     }
 
-    function test_use_universal_action_policy_v2_fails_because_of_limit(bytes32 salt)
-        public
-        returns (PermissionId permissionId)
-    {
+    function test_use_arg_policy_fails_because_of_limit(bytes32 salt) public returns (PermissionId permissionId) {
         uint256 valToAdd = 2517;
         bytes32 valToAdd32 = bytes32(uint256(0xdecaf));
 
-        permissionId =
-            _enableSessionWithUniActionPolicyV2Simple(salt, instance.account, (valToAdd + 1), bytes32(valToAdd32));
+        permissionId = _enableSessionWithArgPolicySimple(salt, instance.account, (valToAdd + 1), bytes32(valToAdd32));
         bytes memory callData = abi.encodeCall(MockCallee.addBalance, (instance.account, valToAdd, valToAdd32));
 
         // get userOp from ModuleKit
@@ -131,15 +121,11 @@ contract UniActionPolicyV2IntegrationTest is BaseTest {
         userOpData.execUserOps();
     }
 
-    function test_use_universal_action_policy_v2_fails_with_complex_tree(bytes32 salt)
-        public
-        returns (PermissionId permissionId)
-    {
+    function test_use_arg_policy_fails_with_complex_tree(bytes32 salt) public returns (PermissionId permissionId) {
         uint256 valToAdd = 2517;
         bytes32 valToAdd32 = bytes32(uint256(0xaabbcc)); // Different from the expected value in the rule
 
-        permissionId =
-            _enableSessionWithUniActionPolicyV2Complex(salt, instance.account, 1e32, bytes32(uint256(0xdecaf)));
+        permissionId = _enableSessionWithArgPolicyComplex(salt, instance.account, 1e32, bytes32(uint256(0xdecaf)));
         bytes memory callData = abi.encodeCall(MockCallee.addBalance, (instance.account, valToAdd, valToAdd32));
 
         // get userOp from ModuleKit
@@ -164,14 +150,11 @@ contract UniActionPolicyV2IntegrationTest is BaseTest {
         userOpData.execUserOps();
     }
 
-    function test_use_universal_action_policy_v2_value_limit_exceeded(bytes32 salt)
-        public
-        returns (PermissionId permissionId)
-    {
+    function test_use_arg_policy_value_limit_exceeded(bytes32 salt) public returns (PermissionId permissionId) {
         uint256 valToAdd = 2517;
         bytes32 valToAdd32 = bytes32(uint256(0xdecaf));
 
-        permissionId = _enableSessionWithUniActionPolicyV2Simple(salt, instance.account, 1e32, bytes32(uint256(0x01)));
+        permissionId = _enableSessionWithArgPolicySimple(salt, instance.account, 1e32, bytes32(uint256(0x01)));
         bytes memory callData = abi.encodeCall(MockCallee.addBalance, (instance.account, valToAdd, valToAdd32));
 
         // get userOp from ModuleKit with value exceeding the limit
@@ -193,7 +176,7 @@ contract UniActionPolicyV2IntegrationTest is BaseTest {
                          HELPER FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function _enableSessionWithUniActionPolicyV2Simple(
+    function _enableSessionWithArgPolicySimple(
         bytes32 salt,
         address refAddressRef,
         uint256 refUint256,
@@ -233,7 +216,7 @@ contract UniActionPolicyV2IntegrationTest is BaseTest {
         smartSession.enableSessions(enableSessionsArray);
     }
 
-    function _enableSessionWithUniActionPolicyV2Complex(
+    function _enableSessionWithArgPolicyComplex(
         bytes32 salt,
         address refAddressRef,
         uint256 refUint256,
@@ -297,7 +280,7 @@ contract UniActionPolicyV2IntegrationTest is BaseTest {
         rules[0] = bytes32Rule;
 
         uint256[] memory packedNodes = new uint256[](1);
-        packedNodes[0] = UniActionTreeLib.createRuleNode(0);
+        packedNodes[0] = ArgPolicyTreeLib.createRuleNode(0);
 
         // Set up the rules in the ActionConfig
         ActionConfig memory config = ActionConfig({
@@ -348,11 +331,11 @@ contract UniActionPolicyV2IntegrationTest is BaseTest {
         rules[2] = bytes32Rule;
 
         uint256[] memory packedNodes = new uint256[](5);
-        packedNodes[0] = UniActionTreeLib.createRuleNode(0); // Node 0: Address rule
-        packedNodes[1] = UniActionTreeLib.createRuleNode(1); // Node 1: Uint256 rule
-        packedNodes[2] = UniActionTreeLib.createOrNode(0, 1); // Node 2: OR node (addrRule OR uint256Rule)
-        packedNodes[3] = UniActionTreeLib.createRuleNode(2); // Node 3: Bytes32 rule
-        packedNodes[4] = UniActionTreeLib.createAndNode(2, 3); // Node 4: AND node (root) - (addrRule OR uint256Rule)
+        packedNodes[0] = ArgPolicyTreeLib.createRuleNode(0); // Node 0: Address rule
+        packedNodes[1] = ArgPolicyTreeLib.createRuleNode(1); // Node 1: Uint256 rule
+        packedNodes[2] = ArgPolicyTreeLib.createOrNode(0, 1); // Node 2: OR node (addrRule OR uint256Rule)
+        packedNodes[3] = ArgPolicyTreeLib.createRuleNode(2); // Node 3: Bytes32 rule
+        packedNodes[4] = ArgPolicyTreeLib.createAndNode(2, 3); // Node 4: AND node (root) - (addrRule OR uint256Rule)
             // AND bytes32Rule
 
         // Logic: (addrRule OR uint256Rule) AND bytes32Rule

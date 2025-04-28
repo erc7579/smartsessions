@@ -7,7 +7,7 @@ import { IERC165 } from "forge-std/interfaces/IERC165.sol";
 
 // Libraries
 import { SubModuleLib } from "../../../lib/SubModuleLib.sol";
-import { UniActionTreeLib } from "./lib/UniActionTreeLib.sol";
+import { ArgPolicyTreeLib } from "./lib/ArgPolicyTreeLib.sol";
 
 // Types
 import { ConfigId, ActionData, PolicyData, PermissionId } from "../../../DataTypes.sol";
@@ -16,7 +16,7 @@ import { ConfigId, ActionData, PolicyData, PermissionId } from "../../../DataTyp
                             STRUCTS
 //////////////////////////////////////////////////////////////*/
 
-/// @title ActionConfig - Configuration structure for UniActionPolicyV2
+/// @title ActionConfig - Configuration structure for ArgPolicy
 /// @notice Stores the value limit and parameter rules for a policy
 /// @param valueLimitPerUse Maximum value allowed per action
 /// @param paramRules Rules and expression tree for evaluation
@@ -78,7 +78,7 @@ enum ParamCondition {
 }
 
 /**
- * @title UniActionPolicyV2: Enhanced Universal Action Policy
+ * @title ArgPolicy: Enhanced Universal Action Policy
  * @author highskore
  * @notice A policy that allows defining complex logical expressions for action validation
  * @dev An upgraded version of UniActionPolicy that supports AND, OR, NOT operations
@@ -89,13 +89,13 @@ enum ParamCondition {
  * - rule1 AND (NOT rule2)
  * - (rule1 OR rule2) AND (rule3 OR (NOT rule4))
  */
-contract UniActionPolicyV2 is IActionPolicy {
+contract ArgPolicy is IActionPolicy {
     /*//////////////////////////////////////////////////////////////
                                LIBRARIES
     //////////////////////////////////////////////////////////////*/
 
     using SubModuleLib for bytes;
-    using UniActionTreeLib for *;
+    using ArgPolicyTreeLib for *;
 
     /*//////////////////////////////////////////////////////////////
                                  ERRORS
@@ -164,7 +164,7 @@ contract UniActionPolicyV2 is IActionPolicy {
         ActionConfig memory config = abi.decode(_data, (ActionConfig));
 
         // Validate the expression tree
-        UniActionTreeLib.validateExpressionTree(config.paramRules);
+        ArgPolicyTreeLib.validateExpressionTree(config.paramRules);
 
         // Fill the storage with the provided config
         actionConfigs[id][mxer][opSender].fill(config);
