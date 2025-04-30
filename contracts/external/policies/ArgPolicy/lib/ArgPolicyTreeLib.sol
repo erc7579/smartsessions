@@ -74,35 +74,37 @@ library ArgPolicyTreeLib {
         uint64 offset = rule.offset;
         // Cache the condition
         ParamCondition condition = rule.condition;
+        // Cache the reference value
+        bytes32 ref = rule.ref;
         // Extract 32 bytes from calldata at the specified offset
         // First 4 bytes are the function selector, so we add 4 to the offset
         bytes32 param = bytes32(data[4 + offset:4 + offset + 32]);
 
         // CHECK Param Condition
-        if (condition == ParamCondition.EQUAL && param != rule.ref) {
+        if (condition == ParamCondition.EQUAL && param != ref) {
             // Fails if parameter is not equal to reference value
             return false;
-        } else if (condition == ParamCondition.GREATER_THAN && param <= rule.ref) {
+        } else if (condition == ParamCondition.GREATER_THAN && param <= ref) {
             // Fails if parameter is not greater than reference value
             return false;
-        } else if (condition == ParamCondition.LESS_THAN && param >= rule.ref) {
+        } else if (condition == ParamCondition.LESS_THAN && param >= ref) {
             // Fails if parameter is not less than reference value
             return false;
-        } else if (condition == ParamCondition.GREATER_THAN_OR_EQUAL && param < rule.ref) {
+        } else if (condition == ParamCondition.GREATER_THAN_OR_EQUAL && param < ref) {
             // Fails if parameter is not greater than or equal to reference value
             return false;
-        } else if (condition == ParamCondition.LESS_THAN_OR_EQUAL && param > rule.ref) {
+        } else if (condition == ParamCondition.LESS_THAN_OR_EQUAL && param > ref) {
             // Fails if parameter is not less than or equal to reference value
             return false;
-        } else if (condition == ParamCondition.NOT_EQUAL && param == rule.ref) {
+        } else if (condition == ParamCondition.NOT_EQUAL && param == ref) {
             // Fails if parameter equals reference value (should be different)
             return false;
         } else if (condition == ParamCondition.IN_RANGE) {
             // For IN_RANGE condition, rule.ref contains both min and max values
             // rule.ref format: first 128 bits = min value, last 128 bits = max value
             if (
-                param < (rule.ref >> 128) // Check if param is less than min value (high 128 bits)
-                    || param > (rule.ref & 0x00000000000000000000000000000000ffffffffffffffffffffffffffffffff) // Check if
+                param < (ref >> 128) // Check if param is less than min value (high 128 bits)
+                    || param > (ref & 0x00000000000000000000000000000000ffffffffffffffffffffffffffffffff) // Check if
                     // param is greater than max value (low 128 bits)
             ) {
                 return false;
