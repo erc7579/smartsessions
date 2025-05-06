@@ -89,7 +89,7 @@ contract UniActionPolicy is IActionPolicy {
         require(value <= config.valueLimitPerUse, ValueLimitExceeded(id, value, config.valueLimitPerUse));
         uint256 length = config.paramRules.length;
         for (uint256 i = 0; i < length; i++) {
-            if (!config.paramRules.rules[i].check(data)) return VALIDATION_FAILED;
+            if (!config.paramRules.rules[i].check(data, id, account)) return VALIDATION_FAILED;
         }
 
         return VALIDATION_SUCCESS;
@@ -121,12 +121,14 @@ contract UniActionPolicy is IActionPolicy {
 }
 
 library UniActionLib {
+    event ActionLimitUsed(ConfigId id, address indexed account, uint256 value, uint256 remaining);
+
     /**
      * @dev parses the function arg from the calldata based on the offset
      * and compares it to the reference value based on the condition.
      * Also checks if the limit is reached/exceeded.
      */
-    function check(ParamRule storage rule, bytes calldata data) internal returns (bool) {
+    function check(ParamRule storage rule, bytes calldata data, ConfigId id, address account) internal returns (bool) {
         bytes32 param = bytes32(data[4 + rule.offset:4 + rule.offset + 32]);
 
         // CHECK ParamCondition
@@ -158,6 +160,7 @@ library UniActionLib {
                 return false;
             }
             rule.usage.used += uint256(param);
+            emit ActionLimitUsed(id, account, uint256(param), rule.usage.limit - rule.usage.used);
         }
         return true;
     }
