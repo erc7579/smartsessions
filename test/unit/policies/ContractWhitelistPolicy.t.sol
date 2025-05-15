@@ -169,8 +169,12 @@ contract ContractWhitelistPolicyTest is PolicyTestBase {
         MockPolicy mockPolicy = new MockPolicy();
         mockPolicy.setValidationData(0);
         PermissionId permissionId = _enable_Action_and_FallbackActionSession(
-            address(contractWhitelistPolicy), address(mockPolicy), contractWhitelistPolicyInitData, abi.encodePacked(),
-            instance, keccak256("salt")
+            address(contractWhitelistPolicy),
+            address(mockPolicy),
+            contractWhitelistPolicyInitData,
+            abi.encodePacked(),
+            instance,
+            keccak256("salt")
         );
 
         uint256 valueBefore = MockTarget(_target).value();
@@ -178,12 +182,8 @@ contract ContractWhitelistPolicyTest is PolicyTestBase {
 
         // mockPolicy should be used for target.setValue
         bytes memory callData = abi.encodeWithSelector(MockTarget.setValue.selector, valueToSet);
-        UserOpData memory userOpData = instance.getExecOps({
-            target: _target,
-            value: 0,
-            callData: callData,
-            txValidator: address(smartSession)
-        });
+        UserOpData memory userOpData =
+            instance.getExecOps({ target: _target, value: 0, callData: callData, txValidator: address(smartSession) });
         userOpData.userOp.signature = EncodeLib.encodeUse({ permissionId: permissionId, sig: hex"4141414141" });
         userOpData.execUserOps();
         assertEq(MockTarget(_target).value(), valueToSet);
@@ -201,12 +201,8 @@ contract ContractWhitelistPolicyTest is PolicyTestBase {
         // contractWhitelistPolicy should be used for other methods
         bytes4 randomSelector = bytes4(keccak256(abi.encodePacked(seed)));
         callData = abi.encodeWithSelector(randomSelector);
-        userOpData = instance.getExecOps({
-            target: _target,
-            value: 0,
-            callData: callData,
-            txValidator: address(smartSession)
-        });
+        userOpData =
+            instance.getExecOps({ target: _target, value: 0, callData: callData, txValidator: address(smartSession) });
         userOpData.userOp.signature = EncodeLib.encodeUse({ permissionId: permissionId, sig: hex"4141414141" });
         vm.expectEmit(true, true, true, true, _target);
         emit FallbackEvent(randomSelector);
