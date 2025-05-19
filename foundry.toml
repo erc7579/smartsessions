@@ -17,6 +17,7 @@
   cache_path  = "cache_forge"
   libs = ["node_modules", "lib"]
   gas_reports_ignore = ["LockTest"]
+  fs_permissions = [{ access = "read", path = "test/fixtures" }]
 
 [profile.ci]
   fuzz = { runs = 10_000 }
