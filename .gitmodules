@@ -1,0 +1,3 @@
+[submodule "lib/webauthn-sol"]
+	path = lib/webauthn-sol
+	url = https://github.com/base/webauthn-sol
