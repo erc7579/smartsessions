@@ -95,7 +95,7 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
             permissionId: permissionId,
             configId: permissionId.toUserOpPolicyId().toConfigId(),
             policyDatas: userOpPolicies,
-            useRegistry: true
+            useRegistry: false
         });
     }
 
@@ -149,7 +149,7 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
             permissionId: permissionId,
             configId: permissionId.toErc1271PolicyId().toConfigId(),
             policyDatas: erc1271Policies.erc1271Policies,
-            useRegistry: true
+            useRegistry: false
         });
     }
 
@@ -195,7 +195,7 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
         enableWithPermissionId(permissionId)
     {
         // Enable the action policies
-        $actionPolicies.enable({ permissionId: permissionId, actionPolicyDatas: actionPolicies, useRegistry: true });
+        $actionPolicies.enable({ permissionId: permissionId, actionPolicyDatas: actionPolicies, useRegistry: false });
     }
 
     /**

@@ -12,7 +12,8 @@ library SmartSessionModeLib {
         return (mode == SmartSessionMode.ENABLE || mode == SmartSessionMode.UNSAFE_ENABLE);
     }
 
-    function useRegistry(SmartSessionMode mode) internal pure returns (bool) {
-        return (mode == SmartSessionMode.ENABLE);
+    function useRegistry(SmartSessionMode) internal pure returns (bool) {
+        return false;
+        // return (mode == SmartSessionMode.ENABLE);
     }
 }

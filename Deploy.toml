@@ -1,67 +1,75 @@
 [deployments]
 rpcs = [
-    # "http://localhost:8545",
-
-    # Ethereum 
-    # "https://eth-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
-    "https://eth-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
-
-    # Optimism
-    "https://opt-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
-    "https://opt-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
-
-    # Base
-    "https://base-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
-    "https://base-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
-
-    # Arbitrum
-    "https://arb-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
-    "https://arb-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
-
-    # Polygon
-    "https://polygon-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
-    "https://polygon-amoy.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
-
-    # Gnosis
-    "https://gnosis-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
-    # "https://gnosis-chaido.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
-
-    # Binance Smart Chain
-    "https://bnb-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
-    "https://bnb-testnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
-
-    # Avalanche
-    "https://avax-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
-    "https://avax-fuji.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
-
-    # Scroll
-    "https://scroll-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
-    "https://scroll-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
-
-    # Sonic
-    "https://sonic-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
-    # "https://sonic-blaze.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
-
-    # Fuse
-    "https://rpc.fuse.io",
-    "https://rpc.fusespark.io",
-
-    # Odyssey
-    "https://odyssey.ithaca.xyz/",
+"https://eth-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+# "https://eth-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+# "https://opt-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+# "https://opt-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+# "https://base-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+# "https://base-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+# "https://arb-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+# "https://arb-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+# "https://polygon-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+# "https://polygon-amoy.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+# "https://gnosis-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+# "https://bnb-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+# "https://bnb-testnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+# "https://avax-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+# "https://avax-fuji.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+# "https://scroll-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+# "https://scroll-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+# "https://sonic-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+# "https://sonic-blaze.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+# "https://rpc.fuse.io",
+# "https://rpc.fusespark.io",
+# "https://odyssey.ithaca.xyz",
+# "https://rpc.garnetchain.com",
+# "https://holesky.drpc.org",
+# "https://berchain-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+# "https://berachain-bartio.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+# "https://blast-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+# "https://blast-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+# "https://worldchain-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+# "https://worldchain-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+# "https://abstract-testnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+# "https://taiko-mainnet.gateway.tenderly.co",
+# "https://taiko-hekla.gateway.tenderly.co",
+# "https://build.onbeam.com/rpc",
+# "https://build.onbeam.com/rpc/testnet",
+# "https://testnet-rpc.monad.xyz",
+# "https://network.ambrosus.io",
+# "https://network.ambrosus-test.io",
+# "https://json-rpc.evm.iotaledger.net",
+# "https://json-rpc.evm.testnet.iotaledger.net",
+# "https://rpc.soneium.org",
+# "https://rpc.minato.soneium.org",
+# "https://carrot.megaeth.com/rpc",
+# "https://rpc.mantle.xyz",
+# "https://rpc.testnet.mantle.xyz",
+# "https://ink-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+# "https://ink-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+# "https://linea-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+# "https://linea-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+# "https://unichain-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+# "https://zora-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+# "https://zora-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}"
 ]
 
 [deployments.dependencies]
-entrypoint = "0x0000000071727De22E5E9d8BAf0edAc6f37da032"
 
 [deployments.module.SmartSession]
 file = "./artifacts/SmartSession/SmartSession.json"
 source_file = "./artifacts/SmartSession/verify.json"
 salt = "0x0000000000000000000000000000000000000000c93fe0497c457402a7e8ed95"
 
+[deployments.module.SmartSessionCompatibilityFallback]
+file = "./artifacts/SmartSessionCompatibilityFallback/SmartSessionCompatibilityFallback.json"
+source_file = "./artifacts/SmartSessionCompatibilityFallback/verify.json"
+salt = "0x0000000000000000000000000000000000000000c93fe0497c457402a7e8ed95"
+
 [deployments.module.SudoPolicy]
 file = "./artifacts/SudoPolicy/SudoPolicy.json"
 source_file = "./artifacts/SudoPolicy/verify.json"
-salt = "0x00000000000000000000000000000000000000002e44d3e1fe056402d02e46b9"
+salt = "0x0000000000000000000000000000000000000000c65c746f32e5ce0248900fe6"
 
 [deployments.module.UniActionPolicy]
 file = "./artifacts/UniActionPolicy/UniActionPolicy.json"
