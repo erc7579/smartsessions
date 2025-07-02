@@ -15,7 +15,6 @@ import { ExecutionLib } from "contracts/lib/ExecutionLib.sol";
  * in a permission or for all userOps in a permission.
  */
 contract ValueLimitPolicy is IActionPolicy, IUserOpPolicy {
-
     using ExecutionLib for bytes;
 
     struct ValueLimitConfig {
@@ -37,9 +36,9 @@ contract ValueLimitPolicy is IActionPolicy, IUserOpPolicy {
         require($config.valueLimit != 0, PolicyNotInitialized(id, msg.sender, op.sender));
         bytes4 selector = bytes4(op.callData[0:4]);
         if (selector == IERC7579Account.execute.selector) {
-            (CallType callType, ) = op.callData.get7579ExecutionTypes();
+            (CallType callType,) = op.callData.get7579ExecutionTypes();
             if (callType == CALLTYPE_SINGLE) {
-                (, uint256 value, ) = op.callData.decodeUserOpCallData().decodeSingle();
+                (, uint256 value,) = op.callData.decodeUserOpCallData().decodeSingle();
                 if (!_checkAndAdjustLimit($config, value)) return VALIDATION_FAILED;
             } else if (callType == CALLTYPE_BATCH) {
                 Execution[] calldata executions = op.callData.decodeUserOpCallData().decodeBatch();
@@ -49,10 +48,8 @@ contract ValueLimitPolicy is IActionPolicy, IUserOpPolicy {
                     totalValue += executions[i].value;
                 }
                 if (!_checkAndAdjustLimit($config, totalValue)) return VALIDATION_FAILED;
-            } else if (callType == CALLTYPE_DELEGATECALL) {
-                // delegatecall does not transfer value
-                return VALIDATION_SUCCESS;
             } else {
+                // CALLTYPE_STATIC and CALLTYPE_DELEGATECALL are not supported
                 // it doesn't return validation failed to express that validation was not possible
                 revert ISmartSession.UnsupportedCallType(callType);
             }
@@ -72,7 +69,7 @@ contract ValueLimitPolicy is IActionPolicy, IUserOpPolicy {
         address account,
         address,
         uint256 value,
-        bytes calldata 
+        bytes calldata
     )
         external
         returns (uint256)
@@ -96,7 +93,8 @@ contract ValueLimitPolicy is IActionPolicy, IUserOpPolicy {
     }
 
     /**
-     * @notice Initializes the policy to be used by given account through multiplexer (msg.sender) such as Smart Sessions.
+     * @notice Initializes the policy to be used by given account through multiplexer (msg.sender) such as Smart
+     * Sessions.
      * Overwrites state.
      * @notice ATTENTION: This method is called during permission installation as part of the enabling policies flow.
      * A secure policy would minimize external calls from this method (ideally, to 0) to prevent passing control flow to
@@ -128,7 +126,15 @@ contract ValueLimitPolicy is IActionPolicy, IUserOpPolicy {
      * @param userOpSender The user operation sender.
      * @return The value limit.
      */
-    function getValueLimit(ConfigId configId, address msgSender, address userOpSender) external view returns (uint256) {
+    function getValueLimit(
+        ConfigId configId,
+        address msgSender,
+        address userOpSender
+    )
+        external
+        view
+        returns (uint256)
+    {
         return valueLimitConfigs[configId][msgSender][userOpSender].valueLimit;
     }
 
