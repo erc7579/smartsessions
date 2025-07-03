@@ -36,7 +36,15 @@ contract ERC1271TestBase is BaseTest {
         instance.installModule({ moduleTypeId: MODULE_TYPE_FALLBACK, module: address(fallbackModule), data: _fallback });
     }
 
-    function _testIsValidSignature(bytes memory contentsType, bool expectSuccess, PermissionId permissionId, bool is6492, Account memory sessionSigner) internal {
+    function _testIsValidSignature(
+        bytes memory contentsType,
+        bool expectSuccess,
+        PermissionId permissionId,
+        bool is6492,
+        Account memory sessionSigner
+    )
+        internal
+    {
         bytes32 contents = keccak256(abi.encode("random", contentsType));
 
         _TestTemps memory t = _testTemps(sessionSigner);

@@ -16,6 +16,7 @@ import "forge-std/interfaces/IERC165.sol";
  */
 interface IPolicy is IERC165 {
     event PolicySet(ConfigId id, address multiplexer, address account);
+
     error PolicyNotInitialized(ConfigId id, address multiplexer, address account);
     /**
      * This function may be called by the multiplexer (SmartSessions) without deinitializing first.

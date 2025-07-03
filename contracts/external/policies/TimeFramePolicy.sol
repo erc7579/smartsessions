@@ -3,7 +3,14 @@
 pragma solidity ^0.8.23;
 
 import "../../DataTypes.sol";
-import { IActionPolicy, I1271Policy, IUserOpPolicy, IPolicy, VALIDATION_SUCCESS, VALIDATION_FAILED } from "../../interfaces/IPolicy.sol";
+import {
+    IActionPolicy,
+    I1271Policy,
+    IUserOpPolicy,
+    IPolicy,
+    VALIDATION_SUCCESS,
+    VALIDATION_FAILED
+} from "../../interfaces/IPolicy.sol";
 import { PackedUserOperation, _packValidationData } from "@rhinestone/modulekit/src/external/ERC4337.sol";
 import { IERC165 } from "forge-std/interfaces/IERC165.sol";
 
@@ -18,7 +25,6 @@ type TimeFrameConfig is uint256;
  * It packs the valid time frame into validation data to be returned to the EntryPoint.
  */
 contract TimeFramePolicy is IPolicy, IUserOpPolicy, IActionPolicy, I1271Policy {
-
     using TimeFrameConfigLib for TimeFrameConfig;
 
     mapping(ConfigId id => mapping(address msgSender => mapping(address opSender => TimeFrameConfig))) public
@@ -69,21 +75,29 @@ contract TimeFramePolicy is IPolicy, IUserOpPolicy, IActionPolicy, I1271Policy {
         returns (bool)
     {
         TimeFrameConfig config = timeFrameConfigs[id][msg.sender][smartAccount];
-        require(config.validUntil() != 0 || config.validAfter() != 0, PolicyNotInitialized(id, msg.sender, smartAccount));
-        if ((block.timestamp < config.validUntil() || config.validUntil() == 0) && block.timestamp >= config.validAfter()) {
+        require(
+            config.validUntil() != 0 || config.validAfter() != 0, PolicyNotInitialized(id, msg.sender, smartAccount)
+        );
+        if (
+            (block.timestamp < config.validUntil() || config.validUntil() == 0)
+                && block.timestamp >= config.validAfter()
+        ) {
             return true;
         }
         return false;
     }
 
     function _checkTimeFrame(ConfigId id, address multiplexer, address smartAccount) internal view returns (uint256) {
-        TimeFrameConfig config = timeFrameConfigs[id][multiplexer][smartAccount];    
-        require(config.validUntil() != 0 || config.validAfter() != 0, PolicyNotInitialized(id, multiplexer, smartAccount));
-        return _packValidationData({sigFailed:false, validUntil: config.validUntil(), validAfter: config.validAfter()});
+        TimeFrameConfig config = timeFrameConfigs[id][multiplexer][smartAccount];
+        require(
+            config.validUntil() != 0 || config.validAfter() != 0, PolicyNotInitialized(id, multiplexer, smartAccount)
+        );
+        return
+            _packValidationData({ sigFailed: false, validUntil: config.validUntil(), validAfter: config.validAfter() });
     }
 
     /**
-     * @notice Initializes the policy. 
+     * @notice Initializes the policy.
      * Overwrites state.
      * @notice ATTENTION: This method is called during permission installation as part of the enabling policies flow.
      * A secure policy would minimize external calls from this method (ideally, to 0) to prevent passing control flow to
@@ -104,7 +118,15 @@ contract TimeFramePolicy is IPolicy, IUserOpPolicy, IActionPolicy, I1271Policy {
      * @param smartAccount The smart account.
      * @return The time frame config.
      */
-    function getTimeFrameConfig(ConfigId id, address multiplexer, address smartAccount) external view returns (TimeFrameConfig) {
+    function getTimeFrameConfig(
+        ConfigId id,
+        address multiplexer,
+        address smartAccount
+    )
+        external
+        view
+        returns (TimeFrameConfig)
+    {
         return timeFrameConfigs[id][multiplexer][smartAccount];
     }
 

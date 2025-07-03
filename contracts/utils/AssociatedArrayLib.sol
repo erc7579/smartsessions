@@ -2,11 +2,10 @@
 pragma solidity ^0.8.20;
 
 /**
-  ERC-4337 / ERC-7562 Compatible array lib.
-  This array can be used as mapping value in mappings such as (address account => Bytes32Array array) 
-  Array size should not exceed 128.
-*/
-
+ * ERC-4337 / ERC-7562 Compatible array lib.
+ *   This array can be used as mapping value in mappings such as (address account => Bytes32Array array)
+ *   Array size should not exceed 128.
+ */
 library AssociatedArrayLib {
     using AssociatedArrayLib for *;
 
