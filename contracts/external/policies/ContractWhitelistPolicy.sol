@@ -53,6 +53,7 @@ contract ContractWhitelistPolicy is IPolicy, IActionPolicy {
      */
     function initializeWithMultiplexer(address account, ConfigId configId, bytes calldata initData) external {
         EnumerableSet.AddressSet storage $targets = whitelistedTargets[configId][msg.sender];
+        $targets.removeAll(account);
         require(initData.length % 20 == 0 && initData.length > 0, InvalidInitData());
         uint256 targetsLength = initData.length / 20;
         for (uint256 i = 0; i < targetsLength; i++) {
@@ -67,11 +68,11 @@ contract ContractWhitelistPolicy is IPolicy, IActionPolicy {
     }
 
     /**
-     * @notice Returns the time frame config.
+     * @notice Returns the whitelisted targets for the given config ID and multiplexer.
      * @param id The config ID.
      * @param multiplexer The multiplexer.
      * @param smartAccount The smart account.
-     * @return The time frame config.
+     * @return The array of whitelisted targets.
      */
     function isContractWhitelisted(
         ConfigId id,
