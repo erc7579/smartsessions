@@ -129,7 +129,7 @@ contract ERC20SpendingLimitPolicy is IActionPolicy {
             // that we decided to stick with this approach and document the fact that the session key should never
             // operate with max allowances
             // in fact it has no reasons of doing this as the purpose of session key is that it can issue whatever
-            // ammount of signature, without
+            // amount of signature, without
             // making UX worse for user. So it is recommended that a session key always permits the exact amount of
             // tokens that is about to be spent by spender.
             newData.approvedAmount += amount;
