@@ -1,3 +1,7 @@
+mod types;
+mod mock;
+
+use crate::types::*;
 
 use alloy::{
     dyn_abi::SolType,
@@ -10,181 +14,62 @@ use alloy::{
 use hex;
 use clap::{App, Arg, SubCommand};
 use eyre::Result;
+use mock::mock_erc7739_data;
 use serde::Serialize;
 
-sol! {
-    #[allow(missing_docs)]
-    #[derive(Serialize)]
-    struct EnableSession {
-        uint8 chainDigestIndex;
-        ChainDigest[] hashesAndChainIds;
-        SessionConf sessionToEnable;
-        bytes permissionEnableSig;
-    }
 
-    #[allow(missing_docs)]
-    #[derive(Serialize)]
-    struct ChainDigest {
-        uint64 chainId;
-        bytes32 sessionDigest;
-    }
-
-    #[allow(missing_docs)]
-    #[derive(Serialize)]
-    struct SessionConf {
-        address sessionValidator;
-        bytes sessionValidatorInitData;
-        bytes32 salt;
-        PolicyData[] userOpPolicies;
-        ERC7739Data erc7739Policies;
-        ActionData[] actions;
-    }
+pub fn main() {
+    let session = mock::mock_session();
+    let account = address!("6605F8785E09a245DD558e55F9A0f4A508434503");
+    let smart_session = address!("6605F8785E09a245DD558e55F9A0f4A508434503");
+    let mode = 1;
+    let signed_session = to_signed_session(session.clone(), account, smart_session, mode, U256::from(0));
 
 
-    #[allow(missing_docs)]
-    #[derive(Serialize)]
-    struct PolicyData {
-        address policy;
-        bytes initData;
-    }
-
-    #[allow(missing_docs)]
-    #[derive(Serialize)]
-    struct ActionData {
-        bytes4 actionTargetSelector;
-        address actionTarget;
-        PolicyData[] actionPolicies;
-    }
-
-    #[allow(missing_docs)]
-    #[derive(Serialize)]
-    struct ERC7739Data {
-        string[] allowedERC7739Content;
-        PolicyData[] erc1271Policies;
-    }
-}
-
-sol! {
-
-    #[allow(missing_docs)]
-    #[derive(Serialize)]
-    struct SessionEIP712 {
-        address account;
-        address smartSession;
-        uint8 mode;
-        address sessionValidator;
-        bytes32 salt;
-        bytes sessionValidatorInitData;
-        PolicyData[] userOpPolicies;
-        ERC7739Data erc7739Policies;
-        ActionData[] actions;
-        uint256 nonce;
-    }
-
-    #[allow(missing_docs)]
-    #[derive(Serialize)]
-    struct ChainSessionEIP712 {
-        uint64 chainId;
-        SessionEIP712 session;
-    }
-
-    #[allow(missing_docs)]
-    #[derive(Serialize)]
-    struct MultiChainSessionEIP712 {
-        ChainSessionEIP712[] sessionsAndChainIds;
-    }
-
-}
-
-fn get_policy() {
-    let data = PolicyData {
-        policy: address!("f022051bEB9E8848e99f47D3eD1397CEEfBF3d4F"),
-        initData: bytes!(""),
+    let chain_session = ChainSession {
+        chainId: 1,
+        session: signed_session.clone(),
     };
 
-    // // let encoded =bytes!("0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000f022051beb9e8848e99f47d3ed1397ceefbf3d4f00000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000000");
-    //
-    // let data = PolicyData::abi_decode(&param, true).unwrap();
+    let chain_digests:ChainDigest = chain_session.clone().into();
 
-    println!("policy type: {:?}", data.eip712_type_hash());
-    println!("policy data: {:?}", data.eip712_hash_struct());
-
-}
-
-fn get_action() {
-    let action = ActionData {
-        actionTarget: address!("7227dcfb0c5ec7a5f539f97b18be261c49687ed6"),
-        actionTargetSelector: fixed_bytes!("9cfd7cff"),
-        actionPolicies: vec![PolicyData {
-            policy: address!("f022051bEB9E8848e99f47D3eD1397CEEfBF3d4F"),
-            initData: bytes!(""),
-        }],
+    let multi_chain_session = MultiChainSession {
+        sessionsAndChainIds: vec![chain_session.clone()],
     };
 
-    println!("action type: {:?}", action.eip712_type_hash());
-    println!("action data: {:?}", action.eip712_hash_struct());
-}
+    println!("TypeHashes");
+    println!("SignedSession: {}", SignedSession::eip712_type_hash(&signed_session));
+    println!("SignedPermissions: {}", SignedPermissions::eip712_type_hash(&signed_session.permissions));
 
-fn get_erc7739() {
-    let erc7739 = ERC7739Data {
-        allowedERC7739Content: vec![],
-        erc1271Policies: vec![],
-    };
+    println!("Policy: {}", PolicyData::eip712_type_hash(&session.userOpPolicies[0]));
+    println!("ERC7739Data: {}", ERC7739Data::eip712_type_hash(&session.erc7739Policies));
+    println!("Actions: {}", ActionData::eip712_type_hash(&session.actions[0]));
+    println!("ChainSession: {}", ChainSession::eip712_type_hash(&chain_session));
+    println!("CHainDigest: {}", ChainDigest::eip712_type_hash(&chain_digests));
+    println!("MultiChainSession: {}", MultiChainSession::eip712_type_hash(&multi_chain_session));
 
-    println!("erc7739 type: {:?}", erc7739.eip712_type_hash());
-    println!("erc7739 data: {:?}", erc7739.eip712_hash_struct());
-}
+    let foo = mock_erc7739_data();
+    println!("ERC7739Context: {}", ERC7739Context::eip712_type_hash(&foo.allowedERC7739Content[0]));
 
-fn get_session() {
-    let data = PolicyData {
-        policy: address!("f022051bEB9E8848e99f47D3eD1397CEEfBF3d4F"),
-        initData: bytes!(""),
-    };
-    let session = SessionEIP712 {
-        sessionValidator: address!("6605F8785E09a245DD558e55F9A0f4A508434503"),
-        sessionValidatorInitData: bytes!("0000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000010000000000000000000000002dc2fb2f4f11dee1d6a2054ffcbf102d09b62be2"),
-        salt: b256!("3200000000000000000000000000000000000000000000000000000000000000"),
-        userOpPolicies: vec![],
-        erc7739Policies: ERC7739Data {
-            allowedERC7739Content: vec![],
-            erc1271Policies: vec![],
-        },
-        actions: vec![ActionData {
-            actionTarget: address!("7227dcfb0c5ec7a5f539f97b18be261c49687ed6"),
-            actionTargetSelector: fixed_bytes!("9cfd7cff"),
-            actionPolicies: vec![data],
-        }],
-        account: address!("6605F8785E09a245DD558e55F9A0f4A508434503"),
-        mode: 1,
-        nonce: U256::from(0),
-        smartSession: address!("6605F8785E09a245DD558e55F9A0f4A508434503"),
-    };
-
-    println!("session712 type: {:?}", session.eip712_type_hash());
-    println!("session712 data: {:?}", session.eip712_hash_struct());
-}
-
- fn main() {
-
-    // let domain = eip712_domain! {
-    //     name: "Uniswap V2",
-    //     version: "1",
-    //     chain_id: 1,
-    //     verifying_contract: address!("B4e16d0168e52d35CaCD2c6185b44281Ec28C9Dc"),
-    //     salt: keccak256("test")
-    // };
-
-    get_policy();
-    get_action();
-    get_erc7739();
-    get_session();
+    println!("DataHashes");
+    println!("ERC7739Context: {}", ERC7739Context::eip712_hash_struct(&foo.allowedERC7739Content[0]));
+    println!("ERC7739Data: {}", ERC7739Data::eip712_hash_struct(&foo));
 
 
-    println!("{:?}", SessionEIP712::eip712_root_type());
-    println!("{:?}", SessionEIP712::eip712_components());
-    println!("encode data: {:?}", SessionEIP712::eip712_encode_type());
+    println!("!SignedSession: {}", SignedSession::eip712_hash_struct(&signed_session));
+    println!("!SignedPermission: {}", SignedPermissions::eip712_hash_struct(&signed_session.permissions));
+    println!("Policy: {}", PolicyData::eip712_hash_struct(&session.userOpPolicies[0]));
+    println!("ERC7739Data: {}", ERC7739Data::eip712_hash_struct(&session.erc7739Policies));
+
+    println!("Root");
+    println!("SignedSession: {}", SignedSession::eip712_root_type());
+    println!("{:?}", SignedSession::eip712_components());
+    println!("PolicyData: {}", PolicyData::eip712_root_type());
+    println!("ActionData: {}", ActionData::eip712_root_type());
+    println!("ERC7739Data: {}", ERC7739Data::eip712_root_type());
+    println!("ERC7739Context: {}", ERC7739Context::eip712_root_type());
+    println!("Chain_Session: {}", ChainSession::eip712_root_type());
+    println!("MultiChainSession: {}", MultiChainSession::eip712_root_type());
 
 }
-
-
 

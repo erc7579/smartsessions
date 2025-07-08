@@ -14,8 +14,6 @@ import {
 import { PackedUserOperation, _packValidationData } from "@rhinestone/modulekit/src/external/ERC4337.sol";
 import { IERC165 } from "forge-std/interfaces/IERC165.sol";
 
-import "forge-std/console2.sol";
-
 type TimeFrameConfig is uint256;
 
 /**

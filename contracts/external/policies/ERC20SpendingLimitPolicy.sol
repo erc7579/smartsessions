@@ -10,7 +10,7 @@ import { EnumerableSet } from "../../utils/EnumerableSet4337.sol";
 
 /**
  * @title ERC20SpendingLimitPolicy
- * @notice A policy that allows transferring ERC20 tokens up to a certain limit.
+ * @notice A policy that allows transferring and approving ERC20 tokens up to a certain limit.
  * @dev Every config can allow multiple tokens with its own limit each.
  */
 contract ERC20SpendingLimitPolicy is IActionPolicy {
@@ -103,7 +103,7 @@ contract ERC20SpendingLimitPolicy is IActionPolicy {
         returns (uint256)
     {
         if (value != 0) return VALIDATION_FAILED;
-        (bool isTokenTransfer, uint256 amount) = _isTokenTransfer(account, callData);
+        (bool isTokenTransfer, uint256 amount) = _isTokenTransferOrApprove(account, callData);
         if (!isTokenTransfer) return VALIDATION_FAILED;
 
         TokenPolicyData storage $ = _getPolicy({ id: id, userOpSender: account, token: target });
@@ -115,43 +115,50 @@ contract ERC20SpendingLimitPolicy is IActionPolicy {
             spendingLimit: $.spendingLimit
         });
 
-        bytes4 selector = bytes4(callData[0:4]);
-        uint256 emittedAmount = amount;
+        uint256 totalSpentAndApproved;
 
-        if (selector == IERC20.approve.selector) {
-            // if this is approval, it doesn't add, it replaces
-            emittedAmount = amount - newData.approvedAmount; // to emit correctly
-            newData.approvedAmount = amount;
-        } else if (
-            // increaseAllowance(address,uint256)
-            selector == bytes4(0x39509351)
+        if (
+            bytes4(callData[0:4]) == IERC20.approve.selector || bytes4(callData[0:4]) == bytes4(0x39509351) // increaseAllowance(address,uint256)
         ) {
             // increase approval case
+            // if the amount is uint256 max (max alowance) and the $.approvedAmount is not 0,
+            // it will overflow and revert. In theory this is not what should happen as the approval in erc20
+            // contract can be successfully set to max in this case, and if the previous approval was not yet spent,
+            // can be a valid case, however accounting for it will cause so many other edge cases and security
+            // considerations
+            // that we decided to stick with this approach and document the fact that the session key should never
+            // operate with max allowances
+            // in fact it has no reasons of doing this as the purpose of session key is that it can issue whatever
+            // ammount of signature, without
+            // making UX worse for user. So it is recommended that a session key always permits the exact amount of
+            // tokens that is about to be spent by spender.
             newData.approvedAmount += amount;
+            totalSpentAndApproved = newData.alreadySpent + newData.approvedAmount;
+            // Validate before updating storage, early return if the total spent and approved exceeds the limit
+            if (totalSpentAndApproved > newData.spendingLimit) {
+                return VALIDATION_FAILED;
+            }
+            // Only update storage after validation passes
+            $.approvedAmount = newData.approvedAmount;
         } else {
             // transfer or transferFrom case
             newData.alreadySpent += amount;
+            totalSpentAndApproved = newData.alreadySpent + newData.approvedAmount;
+            // Validate before updating storage, early return if the total spent and approved exceeds the limit
+            if (totalSpentAndApproved > newData.spendingLimit) {
+                return VALIDATION_FAILED;
+            }
+            // Only update storage after validation passes
+            $.alreadySpent = newData.alreadySpent;
         }
 
-        // Validate before updating storage
-        if (newData.alreadySpent + newData.approvedAmount > newData.spendingLimit) {
-            return VALIDATION_FAILED;
-        }
-
-        // Only update storage after validation passes
-        $.approvedAmount = newData.approvedAmount;
-        $.alreadySpent = newData.alreadySpent;
-
-        emit TokenSpent(
-            id,
-            msg.sender,
-            target,
-            account,
-            emittedAmount,
-            newData.spendingLimit - (newData.alreadySpent + newData.approvedAmount)
-        );
+        emit TokenSpent(id, msg.sender, target, account, amount, newData.spendingLimit - totalSpentAndApproved);
         return VALIDATION_SUCCESS;
     }
+
+    /**
+     *
+     */
 
     /**
      * @notice Returns the limit and spent amount for a given token under permission, account, multiplexer.
@@ -200,7 +207,14 @@ contract ERC20SpendingLimitPolicy is IActionPolicy {
      * @dev we do not check if the transfer is from self to self, as this should not be allowed by token itself
      * returns bool => isTransfer, amount spent
      */
-    function _isTokenTransfer(address account, bytes calldata callData) internal pure returns (bool, uint256) {
+    function _isTokenTransferOrApprove(
+        address account,
+        bytes calldata callData
+    )
+        internal
+        pure
+        returns (bool, uint256)
+    {
         bytes4 functionSelector = bytes4(callData[0:4]);
 
         if (functionSelector == IERC20.approve.selector) {

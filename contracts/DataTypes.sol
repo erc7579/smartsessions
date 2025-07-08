@@ -5,6 +5,7 @@ import "./utils/AssociatedArrayLib.sol";
 import { IRegistry, ModuleType } from "./interfaces/IRegistry.sol";
 import "./interfaces/ISessionValidator.sol";
 import { EnumerableSet } from "./utils/EnumerableSet4337.sol";
+import { EnumerableMap } from "./utils/EnumerableMap4337.sol";
 import { FlatBytesLib } from "flatbytes/BytesLib.sol";
 
 /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
@@ -59,6 +60,7 @@ struct Session {
     PolicyData[] userOpPolicies;
     ERC7739Data erc7739Policies;
     ActionData[] actions;
+    bool permitERC4337Paymaster;
 }
 
 struct MultiChainSession {
@@ -83,8 +85,23 @@ struct ActionData {
     PolicyData[] actionPolicies;
 }
 
+struct ERC7739Context {
+    // we can not use a detailed EIP712Domain struct here.
+    // EIP712 specifies: Protocol designers only need to include the fields that make sense for their signing domain.
+    // Unused fields are left out of the struct type.
+    bytes32 appDomainSeparator;
+    string[] contentNames;
+}
+
+struct EIP712Domain {
+    string name;
+    string version;
+    uint256 chainId;
+    address verifyingContract;
+}
+
 struct ERC7739Data {
-    string[] allowedERC7739Content;
+    ERC7739Context[] allowedERC7739Content;
     PolicyData[] erc1271Policies;
 }
 
@@ -92,6 +109,11 @@ enum SmartSessionMode {
     USE,
     ENABLE,
     UNSAFE_ENABLE
+}
+
+struct ERC7739ContextHashes {
+    bytes32 appDomainSeparator;
+    bytes32[] contentNameHashes;
 }
 
 /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
@@ -111,6 +133,16 @@ struct EnumerableActionPolicy {
     mapping(ActionId => Policy) actionPolicies;
     mapping(PermissionId => EnumerableSet.Bytes32Set) enabledActionIds;
 }
+
+struct EnumerableERC7739Config {
+    mapping(PermissionId => mapping(bytes32 appDomainSeparator => EnumerableSet.Bytes32Set)) enabledContentNames;
+    mapping(PermissionId => EnumerableSet.Bytes32Set) enabledDomainSeparators;
+}
+
+// struct EnumerableERC7739Config {
+//     mapping(PermissionId => EnumerableMap.Bytes32ToBytes32Map) erc1271Policies;
+// }
+// mapping(PermissionId => EnumerableSet.Bytes32Set) enabledDomainSeparators;
 
 /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
 /*                 Custom Types & Constants                   */
@@ -164,9 +196,13 @@ ModuleType constant VALIDATOR_MODULE_TYPE = ModuleType.wrap(ERC7579_MODULE_TYPE_
 // enabled.
 address constant FALLBACK_TARGET_FLAG = address(1);
 bytes4 constant FALLBACK_TARGET_SELECTOR_FLAG = 0x00000001;
-// 0xd884b6afa19f8ace90a388daca691e4e28f20cdac5aeefd46ad8bd1c074d28cf
-ActionId constant FALLBACK_ACTIONID =
-    ActionId.wrap(keccak256(abi.encodePacked(FALLBACK_TARGET_FLAG, FALLBACK_TARGET_SELECTOR_FLAG)));
+bytes4 constant FALLBACK_TARGET_SELECTOR_FLAG_PERMITTED_TO_CALL_SMARTSESSION = 0x00000002;
+// keccak256(abi.encodePacked(FALLBACK_TARGET_FLAG, FALLBACK_TARGET_SELECTOR_FLAG))
+ActionId constant FALLBACK_ACTIONID = ActionId.wrap(0xd884b6afa19f8ace90a388daca691e4e28f20cdac5aeefd46ad8bd1c074d28cf);
+
+// keccak256(abi.encodePacked(FALLBACK_TARGET_FLAG, FALLBACK_TARGET_SELECTOR_FLAG_PERMITTED_TO_CALL_SMARTSESSION))
+ActionId constant FALLBACK_ACTIONID_SMARTSESSION_CALL =
+    ActionId.wrap(0x986126569d6396d837d7adeb3ca726199afaf83546f38726e6f331bb92d8e9d6);
 
 // A unique ValidationData value to retry a policy check with the FALLBACK_ACTIONID.
 ValidationData constant RETRY_WITH_FALLBACK = ValidationData.wrap(uint256(0x50FFBAAD));

@@ -31,12 +31,16 @@ import { EIP1271_MAGIC_VALUE, IERC1271 } from "module-bases/interfaces/IERC1271.
 import { MockK1Validator } from "test/mock/MockK1Validator.sol";
 import { UserOperationBuilder } from "test/mock/erc7679/UserOpBuilder.sol";
 import { ModeLib, ModeCode as ExecutionMode } from "erc7579/lib/ModeLib.sol";
-import { HashLib } from "contracts/lib/HashLib.sol";
+import { HashLib, _MULTICHAIN_DOMAIN_TYPEHASH, _MULTICHAIN_DOMAIN_SEPARATOR } from "contracts/lib/HashLib.sol";
 import { TestHashLib } from "test/utils/lib/TestHashLib.sol";
 import { IntegrationEncodeLib } from "test/utils/lib/IntegrationEncodeLib.sol";
 import { IEntryPoint } from "account-abstraction/interfaces/IEntryPoint.sol";
 
+bytes32 constant EIP712_DOMAIN_TYPEHASH = 0x8b73c3c69bb8fe3d512ecc4cf759cc79239f7b179b0ffacaa9a75d522b39400f;
+
 import "forge-std/console2.sol";
+
+bytes32 constant APP_DOMAIN_SEPARATOR = keccak256("0x01");
 
 contract BaseTest is RhinestoneModuleKit, Test {
     using ModuleKitHelpers for *;
@@ -107,6 +111,26 @@ contract BaseTest is RhinestoneModuleKit, Test {
         policyDatas[0] = _getEmptyPolicyData(policyContract);
     }
 
+    function test_constant() public {
+        ActionId fallbackActionId =
+            ActionId.wrap(keccak256(abi.encodePacked(FALLBACK_TARGET_FLAG, FALLBACK_TARGET_SELECTOR_FLAG)));
+
+        assertTrue(fallbackActionId == FALLBACK_ACTIONID);
+        console2.logBytes32(ActionId.unwrap(FALLBACK_ACTIONID));
+
+        fallbackActionId = ActionId.wrap(
+            keccak256(
+                abi.encodePacked(FALLBACK_TARGET_FLAG, FALLBACK_TARGET_SELECTOR_FLAG_PERMITTED_TO_CALL_SMARTSESSION)
+            )
+        );
+        console2.logBytes32(ActionId.unwrap(fallbackActionId));
+
+        assertTrue(FALLBACK_ACTIONID_SMARTSESSION_CALL == fallbackActionId);
+
+        console2.logBytes32(_MULTICHAIN_DOMAIN_TYPEHASH);
+        console2.logBytes32(_MULTICHAIN_DOMAIN_SEPARATOR);
+    }
+
     function _getEmptyActionData(
         address actionTarget,
         bytes4 actionSelector,
@@ -143,8 +167,16 @@ contract BaseTest is RhinestoneModuleKit, Test {
         internal
         returns (ERC7739Data memory)
     {
-        string[] memory contents = new string[](1);
-        contents[0] = content;
+        ERC7739Context[] memory contents = new ERC7739Context[](1);
+        contents[0].contentNames = Solarray.strings(content);
+        contents[0].appDomainSeparator = hash(
+            EIP712Domain({
+                name: "Forge",
+                version: "1",
+                chainId: 1,
+                verifyingContract: address(0x6605F8785E09a245DD558e55F9A0f4A508434503)
+            })
+        );
         return ERC7739Data({ allowedERC7739Content: contents, erc1271Policies: erc1271Policies });
     }
 
@@ -176,5 +208,17 @@ contract BaseTest is RhinestoneModuleKit, Test {
             sessionToEnable: session,
             permissionEnableSig: ""
         });
+    }
+
+    function hash(EIP712Domain memory erc7739Data) internal pure returns (bytes32) {
+        return keccak256(
+            abi.encode(
+                EIP712_DOMAIN_TYPEHASH,
+                keccak256(bytes(erc7739Data.name)),
+                keccak256(bytes(erc7739Data.version)),
+                erc7739Data.chainId,
+                erc7739Data.verifyingContract
+            )
+        );
     }
 }

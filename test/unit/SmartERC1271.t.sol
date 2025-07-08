@@ -4,11 +4,16 @@ import { SmartSessionCompatibilityFallback } from "contracts/SmartSessionCompati
 import { EIP712 } from "solady/utils/EIP712.sol";
 import { ERC1271TestBase } from "./base/ERC1271Base.t.sol";
 
+import { MODULE_TYPE_FALLBACK } from "modulekit/external/ERC7579.sol";
+import { CALLTYPE_SINGLE } from "modulekit/external/ERC7579.sol";
+
 contract SmartSessionERC1271Test is ERC1271TestBase {
     using ModuleKitHelpers for *;
     using ModuleKitUserOp for *;
+    using HashLib for *;
 
     PermissionId permissionId;
+    PermissionId permissionId_invalid;
 
     function setUp() public virtual override {
         super.setUp();
@@ -18,22 +23,37 @@ contract SmartSessionERC1271Test is ERC1271TestBase {
             salt: keccak256("salt"),
             sessionValidatorInitData: abi.encodePacked(sessionSigner1.addr),
             userOpPolicies: _getEmptyPolicyDatas(address(yesPolicy)),
-            erc7739Policies: _getEmptyERC7739Data("Permit(bytes32 stuff)", _getEmptyPolicyDatas(address(yesPolicy))),
-            actions: new ActionData[](0)
+            erc7739Policies: _getEmptyERC7739Data("Permit(bytes32 stuff)Permit", _getEmptyPolicyDatas(address(yesPolicy))),
+            actions: new ActionData[](0),
+            permitERC4337Paymaster: true
         });
 
-        Session[] memory sessions = new Session[](1);
+        Session memory session_invalid = Session({
+            sessionValidator: ISessionValidator(address(simpleSessionValidator)),
+            salt: keccak256("salt_pepper"),
+            sessionValidatorInitData: abi.encodePacked(sessionSigner1.addr),
+            userOpPolicies: _getEmptyPolicyDatas(address(yesPolicy)),
+            erc7739Policies: _getEmptyERC7739Data("Permit(bytes32 stuff)", new PolicyData[](0)),
+            actions: new ActionData[](0),
+            permitERC4337Paymaster: true
+        });
+
+        Session[] memory sessions = new Session[](2);
         sessions[0] = session;
+        sessions[1] = session_invalid;
         vm.prank(instance.account);
         PermissionId[] memory permissions = smartSession.enableSessions(sessions);
         permissionId = permissions[0];
+        permissionId_invalid = permissions[1];
     }
 
     function test_ERC1271() public {
         console2.log("using permissionId");
         console2.logBytes32(PermissionId.unwrap(permissionId));
+
         _testIsValidSignature({
             contentsType: "Permit(bytes32 stuff)",
+            contentsName: "Permit",
             expectSuccess: true,
             permissionId: permissionId,
             is6492: true,

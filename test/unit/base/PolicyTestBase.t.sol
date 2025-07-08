@@ -49,7 +49,8 @@ contract PolicyTestBase is ERC1271TestBase {
             sessionValidatorInitData: "mockInitData",
             userOpPolicies: userOpPolicyDatas,
             erc7739Policies: _getEmptyERC7739Data("Permit(bytes32 stuff)", new PolicyData[](0)),
-            actions: actionDatas
+            actions: actionDatas,
+            permitERC4337Paymaster: true
         });
 
         Session[] memory enableSessionsArray = new Session[](1);
@@ -85,7 +86,8 @@ contract PolicyTestBase is ERC1271TestBase {
             sessionValidatorInitData: "mockInitData",
             userOpPolicies: new PolicyData[](0),
             erc7739Policies: _getEmptyERC7739Data("Permit(bytes32 stuff)", new PolicyData[](0)),
-            actions: actionDatas
+            actions: actionDatas,
+            permitERC4337Paymaster: true
         });
 
         Session[] memory enableSessionsArray = new Session[](1);
@@ -113,8 +115,9 @@ contract PolicyTestBase is ERC1271TestBase {
             salt: salt,
             sessionValidatorInitData: "mockInitData",
             userOpPolicies: new PolicyData[](0),
-            erc7739Policies: _getEmptyERC7739Data("Permit(bytes32 stuff)", erc1271PolicyDatas),
-            actions: new ActionData[](0)
+            erc7739Policies: _getEmptyERC7739Data("Permit(bytes32 stuff)Permit", erc1271PolicyDatas),
+            actions: new ActionData[](0),
+            permitERC4337Paymaster: true
         });
 
         Session[] memory enableSessionsArray = new Session[](1);
