@@ -22,6 +22,7 @@ contract ERC20SpendingLimitPolicy is IActionPolicy {
 
     error InvalidTokenAddress(address token);
     error InvalidLimit(uint256 limit);
+    error InvalidInitDataLength();
 
     struct TokenPolicyData {
         uint256 alreadySpent;
@@ -47,6 +48,7 @@ contract ERC20SpendingLimitPolicy is IActionPolicy {
     function initializeWithMultiplexer(address account, ConfigId configId, bytes calldata initData) external {
         (address[] memory tokens, uint256[] memory limits) = abi.decode(initData, (address[], uint256[]));
         EnumerableSet.AddressSet storage $t = $tokens[configId][msg.sender];
+        require(tokens.length == limits.length, InvalidInitDataLength());
 
         uint256 length_i = $t.length(account);
 
@@ -106,26 +108,48 @@ contract ERC20SpendingLimitPolicy is IActionPolicy {
 
         TokenPolicyData storage $ = _getPolicy({ id: id, userOpSender: account, token: target });
 
-        if (bytes4(callData[0:4]) == IERC20.approve.selector) {
+        // Use a struct here to avoid stack too deep :)
+        TokenPolicyData memory newData = TokenPolicyData({
+            alreadySpent: $.alreadySpent,
+            approvedAmount: $.approvedAmount,
+            spendingLimit: $.spendingLimit
+        });
+
+        bytes4 selector = bytes4(callData[0:4]);
+        uint256 emittedAmount = amount;
+
+        if (selector == IERC20.approve.selector) {
             // if this is approval, it doesn't add, it replaces
-            $.approvedAmount = amount;
-            amount -= $.approvedAmount; //to emit correctly
-        } else if (bytes4(callData[0:4]) == bytes4(keccak256("increaseAllowance(address,uint256)"))) {
-            //increase approval case
-            $.approvedAmount += amount;
+            emittedAmount = amount - newData.approvedAmount; // to emit correctly
+            newData.approvedAmount = amount;
+        } else if (
+            // increaseAllowance(address,uint256)
+            selector == bytes4(0x39509351)
+        ) {
+            // increase approval case
+            newData.approvedAmount += amount;
         } else {
             // transfer or transferFrom case
-            $.alreadySpent += amount;
+            newData.alreadySpent += amount;
         }
 
-        uint256 totalSpentAndApproved = $.alreadySpent + $.approvedAmount;
-        uint256 spendingLimit = $.spendingLimit;
-
-        if (totalSpentAndApproved > spendingLimit) {
+        // Validate before updating storage
+        if (newData.alreadySpent + newData.approvedAmount > newData.spendingLimit) {
             return VALIDATION_FAILED;
         }
 
-        emit TokenSpent(id, msg.sender, target, account, amount, spendingLimit - totalSpentAndApproved);
+        // Only update storage after validation passes
+        $.approvedAmount = newData.approvedAmount;
+        $.alreadySpent = newData.alreadySpent;
+
+        emit TokenSpent(
+            id,
+            msg.sender,
+            target,
+            account,
+            emittedAmount,
+            newData.spendingLimit - (newData.alreadySpent + newData.approvedAmount)
+        );
         return VALIDATION_SUCCESS;
     }
 
