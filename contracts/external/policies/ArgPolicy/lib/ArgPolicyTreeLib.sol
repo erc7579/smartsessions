@@ -290,11 +290,11 @@ library ArgPolicyTreeLib {
     /**
      * @notice Creates a packed NOT node
      * @dev Bit-packs a NOT type node with a child index
-     * @param childIndex Index of the child node
+     * @param leftChildIndex Index of the child node
      * @return Packed node data
      */
-    function createNotNode(uint8 childIndex) internal pure returns (uint256) {
-        return uint256(NODE_TYPE_NOT) | (uint256(childIndex) << LEFT_CHILD_SHIFT);
+    function createNotNode(uint8 leftChildIndex) internal pure returns (uint256) {
+        return uint256(NODE_TYPE_NOT) | (uint256(leftChildIndex) << LEFT_CHILD_SHIFT);
     }
 
     /**
