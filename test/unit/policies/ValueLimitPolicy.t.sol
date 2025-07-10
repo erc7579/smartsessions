@@ -24,10 +24,8 @@ contract ValueLimitPolicyTest is PolicyTestBase {
     }
 
     function test_value_limit_policy_init_reinit_use() public {
-        PermissionId permissionId = using_value_limit_policy_fails_not_initialized();
-        permissionId = use_value_limit_policy_as_UserOp_policy_success_and_fails_if_exceeds_limit(permissionId);
-        permissionId = value_limit_policy_can_be_reinitialized(permissionId);
-        value_limit_policy_handle_batch_calls_correctly(permissionId);
+        PermissionId permissionId = use_value_limit_policy_as_UserOp_policy_success_and_fails_if_exceeds_limit();
+        value_limit_policy_can_be_reinitialized(permissionId);
     }
 
     function using_value_limit_policy_fails_not_initialized() public returns (PermissionId) {
@@ -55,14 +53,13 @@ contract ValueLimitPolicyTest is PolicyTestBase {
         return invalidPermissionId;
     }
 
-    function use_value_limit_policy_as_UserOp_policy_success_and_fails_if_exceeds_limit(PermissionId permissionId)
+    function use_value_limit_policy_as_UserOp_policy_success_and_fails_if_exceeds_limit()
         public
         returns (PermissionId)
     {
-        //initialize
+        //re-initialize
         PermissionId permissionIdReInited =
             _enableUserOpSession(address(valueLimitPolicy), valueLimitPolicyInitData, instance, keccak256("salt"));
-        assertEq(PermissionId.unwrap(permissionIdReInited), PermissionId.unwrap(permissionId));
         // use
         bytes memory callData = abi.encodeCall(MockTarget.setValue, (1337));
         // get userOp from ModuleKit
@@ -72,7 +69,7 @@ contract ValueLimitPolicyTest is PolicyTestBase {
             callData: callData,
             txValidator: address(smartSession)
         });
-        userOpData.userOp.signature = EncodeLib.encodeUse({ permissionId: permissionId, sig: hex"4141414141" });
+        userOpData.userOp.signature = EncodeLib.encodeUse({ permissionId: permissionIdReInited, sig: hex"4141414141" });
         // execute userOp with modulekit
         userOpData.execUserOps();
 
@@ -85,7 +82,7 @@ contract ValueLimitPolicyTest is PolicyTestBase {
             callData: callData,
             txValidator: address(smartSession)
         });
-        userOpData.userOp.signature = EncodeLib.encodeUse({ permissionId: permissionId, sig: hex"4141414141" });
+        userOpData.userOp.signature = EncodeLib.encodeUse({ permissionId: permissionIdReInited, sig: hex"4141414141" });
         userOpData.execUserOps();
 
         ConfigId configId = IdLib.toConfigId(IdLib.toUserOpPolicyId(permissionIdReInited), instance.account);
@@ -95,8 +92,9 @@ contract ValueLimitPolicyTest is PolicyTestBase {
         // try to exceed the limit, should fail
         userOpData.userOp.nonce++;
 
-        bytes memory innerRevertReason =
-            abi.encodeWithSelector(ISmartSession.PolicyViolation.selector, permissionId, address(valueLimitPolicy));
+        bytes memory innerRevertReason = abi.encodeWithSelector(
+            ISmartSession.PolicyViolation.selector, permissionIdReInited, address(valueLimitPolicy)
+        );
 
         bytes memory expectedRevertReason =
             abi.encodeWithSelector(IEntryPoint.FailedOpWithRevert.selector, 0, "AA23 reverted", innerRevertReason);

@@ -22,6 +22,7 @@ contract ERC20SpendingLimitPolicy is IActionPolicy {
 
     error InvalidTokenAddress(address token);
     error InvalidLimit(uint256 limit);
+    error InvalidInitDataLength();
 
     struct TokenPolicyData {
         uint256 alreadySpent;
@@ -47,6 +48,7 @@ contract ERC20SpendingLimitPolicy is IActionPolicy {
     function initializeWithMultiplexer(address account, ConfigId configId, bytes calldata initData) external {
         (address[] memory tokens, uint256[] memory limits) = abi.decode(initData, (address[], uint256[]));
         EnumerableSet.AddressSet storage $t = $tokens[configId][msg.sender];
+        require(tokens.length == limits.length, InvalidInitDataLength());
 
         uint256 length_i = $t.length(account);
 
@@ -106,9 +108,17 @@ contract ERC20SpendingLimitPolicy is IActionPolicy {
 
         TokenPolicyData storage $ = _getPolicy({ id: id, userOpSender: account, token: target });
 
+        // Use a struct here to avoid stack too deep :)
+        TokenPolicyData memory newData = TokenPolicyData({
+            alreadySpent: $.alreadySpent,
+            approvedAmount: $.approvedAmount,
+            spendingLimit: $.spendingLimit
+        });
+
+        uint256 totalSpentAndApproved;
+
         if (
-            bytes4(callData[0:4]) == IERC20.approve.selector
-                || bytes4(callData[0:4]) == bytes4(keccak256("increaseAllowance(address,uint256)"))
+            bytes4(callData[0:4]) == IERC20.approve.selector || bytes4(callData[0:4]) == bytes4(0x39509351) // increaseAllowance(address,uint256)
         ) {
             // increase approval case
             // if the amount is uint256 max (max alowance) and the $.approvedAmount is not 0,
@@ -119,25 +129,36 @@ contract ERC20SpendingLimitPolicy is IActionPolicy {
             // that we decided to stick with this approach and document the fact that the session key should never
             // operate with max allowances
             // in fact it has no reasons of doing this as the purpose of session key is that it can issue whatever
-            // ammount of signature, without
+            // amount of signature, without
             // making UX worse for user. So it is recommended that a session key always permits the exact amount of
             // tokens that is about to be spent by spender.
-            $.approvedAmount += amount;
+            newData.approvedAmount += amount;
+            totalSpentAndApproved = newData.alreadySpent + newData.approvedAmount;
+            // Validate before updating storage, early return if the total spent and approved exceeds the limit
+            if (totalSpentAndApproved > newData.spendingLimit) {
+                return VALIDATION_FAILED;
+            }
+            // Only update storage after validation passes
+            $.approvedAmount = newData.approvedAmount;
         } else {
             // transfer or transferFrom case
-            $.alreadySpent += amount;
+            newData.alreadySpent += amount;
+            totalSpentAndApproved = newData.alreadySpent + newData.approvedAmount;
+            // Validate before updating storage, early return if the total spent and approved exceeds the limit
+            if (totalSpentAndApproved > newData.spendingLimit) {
+                return VALIDATION_FAILED;
+            }
+            // Only update storage after validation passes
+            $.alreadySpent = newData.alreadySpent;
         }
 
-        uint256 totalSpentAndApproved = $.alreadySpent + $.approvedAmount;
-        uint256 spendingLimit = $.spendingLimit;
-
-        if (totalSpentAndApproved > spendingLimit) {
-            return VALIDATION_FAILED;
-        }
-
-        emit TokenSpent(id, msg.sender, target, account, amount, spendingLimit - totalSpentAndApproved);
+        emit TokenSpent(id, msg.sender, target, account, amount, newData.spendingLimit - totalSpentAndApproved);
         return VALIDATION_SUCCESS;
     }
+
+    /**
+     *
+     */
 
     /**
      * @notice Returns the limit and spent amount for a given token under permission, account, multiplexer.

@@ -33,7 +33,6 @@ contract ValueLimitPolicy is IActionPolicy, IUserOpPolicy {
      */
     function checkUserOpPolicy(ConfigId id, PackedUserOperation calldata op) external returns (uint256) {
         ValueLimitConfig storage $config = valueLimitConfigs[id][msg.sender][op.sender];
-        require($config.valueLimit != 0, PolicyNotInitialized(id, msg.sender, op.sender));
         bytes4 selector = bytes4(op.callData[0:4]);
         if (selector == IERC7579Account.execute.selector) {
             (CallType callType,) = op.callData.get7579ExecutionTypes();
@@ -48,10 +47,8 @@ contract ValueLimitPolicy is IActionPolicy, IUserOpPolicy {
                     totalValue += executions[i].value;
                 }
                 if (!_checkAndAdjustLimit($config, totalValue)) return VALIDATION_FAILED;
-            } else if (callType == CALLTYPE_DELEGATECALL) {
-                // delegatecall does not transfer value
-                return VALIDATION_SUCCESS;
             } else {
+                // CALLTYPE_STATIC and CALLTYPE_DELEGATECALL are not supported
                 // it doesn't return validation failed to express that validation was not possible
                 revert ISmartSession.UnsupportedCallType(callType);
             }
@@ -77,7 +74,6 @@ contract ValueLimitPolicy is IActionPolicy, IUserOpPolicy {
         returns (uint256)
     {
         ValueLimitConfig storage $config = valueLimitConfigs[id][msg.sender][account];
-        require($config.valueLimit != 0, PolicyNotInitialized(id, msg.sender, account));
         if (!_checkAndAdjustLimit($config, value)) return VALIDATION_FAILED;
         return VALIDATION_SUCCESS;
     }
@@ -106,7 +102,9 @@ contract ValueLimitPolicy is IActionPolicy, IUserOpPolicy {
      * @param initData The initialization data.
      */
     function initializeWithMultiplexer(address account, ConfigId configId, bytes calldata initData) external {
-        valueLimitConfigs[configId][msg.sender][account].valueLimit = uint256(bytes32(initData[0:32]));
+        uint256 valueLimit = uint256(bytes32(initData[0:32]));
+        require(valueLimit != 0, PolicyNotInitialized(configId, msg.sender, account));
+        valueLimitConfigs[configId][msg.sender][account].valueLimit = valueLimit;
         valueLimitConfigs[configId][msg.sender][account].limitUsed = 0;
     }
 

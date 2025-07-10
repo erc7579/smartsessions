@@ -14,7 +14,7 @@ contract UsageLimitPolicy is IUserOpPolicy, IActionPolicy {
         uint128 used;
     }
 
-    mapping(ConfigId id => mapping(address msgSender => mapping(address userOpSender => UsageLimitConfig))) public
+    mapping(ConfigId id => mapping(address multiplexer => mapping(address userOpSender => UsageLimitConfig))) public
         usageLimitConfigs;
 
     /**
@@ -47,7 +47,6 @@ contract UsageLimitPolicy is IUserOpPolicy, IActionPolicy {
     function _checkUsageLimit(ConfigId id, address mxer, address smartAccount) internal returns (uint256) {
         UsageLimitConfig storage $config = usageLimitConfigs[id][mxer][smartAccount];
         uint128 limit = $config.limit;
-        require(limit > 0, PolicyNotInitialized(id, mxer, smartAccount));
         if (++$config.used > limit) {
             return VALIDATION_FAILED;
         }
@@ -66,7 +65,9 @@ contract UsageLimitPolicy is IUserOpPolicy, IActionPolicy {
      * @param initData The initialization data.
      */
     function initializeWithMultiplexer(address account, ConfigId configId, bytes calldata initData) external {
-        usageLimitConfigs[configId][msg.sender][account].limit = uint128(bytes16(initData[0:16]));
+        uint128 limit = uint128(bytes16(initData[0:16]));
+        require(limit != 0, PolicyNotInitialized(configId, msg.sender, account));
+        usageLimitConfigs[configId][msg.sender][account].limit = limit;
         usageLimitConfigs[configId][msg.sender][account].used = 0;
     }
 

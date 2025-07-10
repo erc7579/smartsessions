@@ -65,7 +65,7 @@ contract UniActionPolicy is IActionPolicy {
 
     using UniActionLib for *;
 
-    mapping(ConfigId id => mapping(address msgSender => mapping(address userOpSender => ActionConfig))) public
+    mapping(ConfigId id => mapping(address multiplexer => mapping(address userOpSender => ActionConfig))) public
         actionConfigs;
 
     /**
