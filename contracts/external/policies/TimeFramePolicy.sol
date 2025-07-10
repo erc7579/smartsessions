@@ -103,7 +103,7 @@ contract TimeFramePolicy is IPolicy, IUserOpPolicy, IActionPolicy, I1271Policy {
      */
     function initializeWithMultiplexer(address account, ConfigId configId, bytes calldata initData) external {
         TimeFrameConfig config = TimeFrameConfig.wrap(uint256(uint96(bytes12(initData[0:12]))));
-        // Revert  if validUntil is not 0 and validAfter is greater than validUntil
+        // Revert  if validUntil is 0 and validAfter is greater than validUntil
         require(
             config.validUntil() == 0 || config.validAfter() <= config.validUntil(),
             PolicyNotInitialized(configId, msg.sender, account)
