@@ -96,11 +96,6 @@ library AssociatedArrayLib {
         assembly {
             // load length (stored @ slot) => this would be the index of a new element
             let index := sload(slot)
-            if gt(index, 127) {
-                mstore(0, 0x8277484f) // `AssociatedArray_OutOfBounds(uint256)`
-                mstore(0x20, index)
-                revert(0x1c, 0x24)
-            }
             sstore(add(slot, add(index, 1)), value) // store at (slot+index+1) => 0th element is stored at slot+1
             sstore(slot, add(index, 1)) // increment length by 1
         }
