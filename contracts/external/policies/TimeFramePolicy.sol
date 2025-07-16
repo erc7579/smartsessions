@@ -76,7 +76,10 @@ contract TimeFramePolicy is IPolicy, IUserOpPolicy, IActionPolicy, I1271Policy {
         require(
             config.validUntil() != 0 || config.validAfter() != 0, PolicyNotInitialized(id, msg.sender, smartAccount)
         );
-        if ((block.timestamp < config.validUntil()) && block.timestamp >= config.validAfter()) {
+        if (
+            (block.timestamp < config.validUntil() || config.validUntil() == 0)
+                && block.timestamp >= config.validAfter()
+        ) {
             return true;
         }
         return false;
