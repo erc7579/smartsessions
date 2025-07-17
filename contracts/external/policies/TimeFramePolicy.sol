@@ -25,7 +25,7 @@ type TimeFrameConfig is uint256;
 contract TimeFramePolicy is IPolicy, IUserOpPolicy, IActionPolicy, I1271Policy {
     using TimeFrameConfigLib for TimeFrameConfig;
 
-    mapping(ConfigId id => mapping(address msgSender => mapping(address opSender => TimeFrameConfig))) public
+    mapping(ConfigId id => mapping(address multiplexer => mapping(address opSender => TimeFrameConfig))) public
         timeFrameConfigs;
 
     /**
@@ -73,7 +73,6 @@ contract TimeFramePolicy is IPolicy, IUserOpPolicy, IActionPolicy, I1271Policy {
         returns (bool)
     {
         TimeFrameConfig config = timeFrameConfigs[id][msg.sender][smartAccount];
-
         require(
             config.validUntil() != 0 || config.validAfter() != 0, PolicyNotInitialized(id, msg.sender, smartAccount)
         );
@@ -106,7 +105,13 @@ contract TimeFramePolicy is IPolicy, IUserOpPolicy, IActionPolicy, I1271Policy {
      * @param initData The initialization data.
      */
     function initializeWithMultiplexer(address account, ConfigId configId, bytes calldata initData) external {
-        timeFrameConfigs[configId][msg.sender][account] = TimeFrameConfig.wrap(uint256(uint96(bytes12(initData[0:12]))));
+        TimeFrameConfig config = TimeFrameConfig.wrap(uint256(uint96(bytes12(initData[0:12]))));
+        // Revert  if validUntil is 0 and validAfter is greater than validUntil
+        require(
+            config.validUntil() == 0 || config.validAfter() <= config.validUntil(),
+            PolicyNotInitialized(configId, msg.sender, account)
+        );
+        timeFrameConfigs[configId][msg.sender][account] = config;
         emit IPolicy.PolicySet(configId, msg.sender, account);
     }
 

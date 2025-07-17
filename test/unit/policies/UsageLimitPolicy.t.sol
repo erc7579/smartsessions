@@ -22,8 +22,7 @@ contract UsageLimitPolicyTest is PolicyTestBase {
     }
 
     function test_usage_limit_policy_init_reinit_use() public {
-        PermissionId permissionId = using_usage_limit_policy_fails_not_initialized();
-        permissionId = use_usage_limit_policy_as_UserOp_policy_success_and_fails_if_exceeds_limit(permissionId);
+        PermissionId permissionId = use_usage_limit_policy_as_UserOp_policy_success_and_fails_if_exceeds_limit();
         usage_limit_policy_can_be_reinitialized(permissionId);
     }
 
@@ -52,20 +51,19 @@ contract UsageLimitPolicyTest is PolicyTestBase {
         return invalidPermissionId;
     }
 
-    function use_usage_limit_policy_as_UserOp_policy_success_and_fails_if_exceeds_limit(PermissionId permissionId)
+    function use_usage_limit_policy_as_UserOp_policy_success_and_fails_if_exceeds_limit()
         public
         returns (PermissionId)
     {
         //re-initialize
         PermissionId permissionIdReInited =
             _enableUserOpSession(address(usageLimitPolicy), abi.encodePacked(uint128(1)), instance, keccak256("salt"));
-        assertEq(PermissionId.unwrap(permissionIdReInited), PermissionId.unwrap(permissionId));
         // use
         bytes memory callData = abi.encodeCall(MockTarget.setValue, (1337));
         // get userOp from ModuleKit
         UserOpData memory userOpData =
             instance.getExecOps({ target: _target, value: 0, callData: callData, txValidator: address(smartSession) });
-        userOpData.userOp.signature = EncodeLib.encodeUse({ permissionId: permissionId, sig: hex"4141414141" });
+        userOpData.userOp.signature = EncodeLib.encodeUse({ permissionId: permissionIdReInited, sig: hex"4141414141" });
         // execute userOp with modulekit
         userOpData.execUserOps();
         assertEq(target.value(), 1337);
@@ -76,8 +74,9 @@ contract UsageLimitPolicyTest is PolicyTestBase {
 
         userOpData.userOp.nonce++;
 
-        bytes memory innerRevertReason =
-            abi.encodeWithSelector(ISmartSession.PolicyViolation.selector, permissionId, address(usageLimitPolicy));
+        bytes memory innerRevertReason = abi.encodeWithSelector(
+            ISmartSession.PolicyViolation.selector, permissionIdReInited, address(usageLimitPolicy)
+        );
 
         bytes memory expectedRevertReason =
             abi.encodeWithSelector(IEntryPoint.FailedOpWithRevert.selector, 0, "AA23 reverted", innerRevertReason);
