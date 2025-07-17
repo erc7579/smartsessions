@@ -3,6 +3,7 @@ pragma solidity ^0.8.4;
 
 import "./DataTypes.sol";
 import { PackedUserOperation } from "modulekit/external/ERC4337.sol";
+import { CallType, ExecType, ModeCode as ExecutionMode } from "erc7579/lib/ModeLib.sol";
 
 /**
  * @title ISmartSession
@@ -45,6 +46,7 @@ interface ISmartSession {
     error PartlyEnabledPolicies();
     error PolicyViolation(PermissionId permissionId, address policy);
     error SignerNotFound(PermissionId permissionId, address account);
+    error UnsupportedCallType(CallType callType);
     error UnsupportedExecutionType();
     error UnsupportedPolicy(address policy);
     error UnsupportedSmartSessionMode(SmartSessionMode mode);
