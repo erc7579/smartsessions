@@ -22,7 +22,7 @@ contract SimpleGasPolicy is IUserOpPolicy {
         uint128 costUsed; // Total cost (wei) used so far
     }
 
-    mapping(ConfigId id => mapping(address multiplexer => mapping(address userOpSender => GasLimitConfig))) public
+    mapping(ConfigId id => mapping(address msgSender => mapping(address userOpSender => GasLimitConfig))) internal
         gasLimitConfigs;
 
     /**
