@@ -35,6 +35,7 @@ contract SessionManagementTest is BaseTest {
         returns (PermissionId permissionId, EnableSession memory enableSessions)
     {
         // get userOp from ModuleKit
+
         address _target = address(target);
         uint256 value = 0;
         bytes memory callData = abi.encodeCall(MockTarget.setValue, (1337));
@@ -154,7 +155,7 @@ contract SessionManagementTest is BaseTest {
         });
 
         PolicyData[] memory userOpPolicyData = new PolicyData[](1);
-        bytes memory policyInitData = abi.encodePacked(uint128(10));
+        bytes memory policyInitData = abi.encodePacked(uint256(10));
         userOpPolicyData[0] = PolicyData({ policy: address(usageLimitPolicy), initData: policyInitData });
 
         // session to add one userOp policy

@@ -1,4 +1,4 @@
-import "../../Base.t.sol";
+import "../Base.t.sol";
 import "contracts/core/SmartSessionBase.sol";
 import "solady/utils/ECDSA.sol";
 import "contracts/lib/IdLib.sol";
