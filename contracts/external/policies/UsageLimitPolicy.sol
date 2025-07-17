@@ -47,7 +47,7 @@ contract UsageLimitPolicy is IUserOpPolicy, IActionPolicy {
     function _checkUsageLimit(ConfigId id, address mxer, address smartAccount) internal returns (uint256) {
         UsageLimitConfig storage $config = usageLimitConfigs[id][mxer][smartAccount];
         uint128 limit = $config.limit;
-        uint128 newUsed = $config.used += 1; // Increment the used count
+        uint128 newUsed = $config.used + 1; // Increment the used count
         if (newUsed > limit) {
             return VALIDATION_FAILED;
         }
