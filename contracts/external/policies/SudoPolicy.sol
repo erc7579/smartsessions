@@ -3,29 +3,11 @@
 pragma solidity ^0.8.23;
 
 import "../../DataTypes.sol";
-import {
-    IUserOpPolicy,
-    IActionPolicy,
-    I1271Policy,
-    IPolicy,
-    VALIDATION_SUCCESS,
-    VALIDATION_FAILED
-} from "../../interfaces/IPolicy.sol";
+import { IUserOpPolicy, IActionPolicy, I1271Policy, IPolicy, VALIDATION_SUCCESS } from "../../interfaces/IPolicy.sol";
 import { IERC165 } from "forge-std/interfaces/IERC165.sol";
-import { EnumerableSet } from "../../utils/EnumerableSet4337.sol";
 import { PackedUserOperation } from "modulekit/external/ERC4337.sol";
 
 contract SudoPolicy is IUserOpPolicy, IActionPolicy, I1271Policy {
-    using EnumerableSet for EnumerableSet.Bytes32Set;
-
-    event SudoPolicyInstalledMultiplexer(address indexed account, address indexed multiplexer, ConfigId indexed id);
-    event SudoPolicyUninstalledAllAccount(address indexed account);
-    event SudoPolicySet(address indexed account, address indexed multiplexer, ConfigId indexed id);
-    event SudoPolicyRemoved(address indexed account, address indexed multiplexer, ConfigId indexed id);
-
-    mapping(address account => bool isInitialized) internal $initialized;
-    mapping(address multiplexer => EnumerableSet.Bytes32Set configIds) internal $enabledConfigs;
-
     /**
      * Initializes the policy to be used by given account through multiplexer (msg.sender) such as Smart Sessions.
      * Overwrites state.
@@ -34,7 +16,6 @@ contract SudoPolicy is IUserOpPolicy, IActionPolicy, I1271Policy {
      * external contracts.
      */
     function initializeWithMultiplexer(address account, ConfigId configId, bytes calldata /*initData*/ ) external {
-        $enabledConfigs[msg.sender].add(account, ConfigId.unwrap(configId));
         emit IPolicy.PolicySet(configId, msg.sender, account);
     }
 
@@ -64,17 +45,7 @@ contract SudoPolicy is IUserOpPolicy, IActionPolicy, I1271Policy {
         return VALIDATION_SUCCESS;
     }
 
-    function check1271SignedAction(
-        ConfigId id,
-        address requestSender,
-        address account,
-        bytes32 hash,
-        bytes calldata signature
-    )
-        external
-        pure
-        returns (bool)
-    {
+    function check1271SignedAction(ConfigId, address, address, bytes32, bytes calldata) external pure returns (bool) {
         return true;
     }
 

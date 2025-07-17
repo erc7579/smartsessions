@@ -155,8 +155,8 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
             revert InvalidEnableSignature(account, hash);
         }
 
-        // Determine if registry should be used based on the mode
-        bool useRegistry = mode.useRegistry();
+        // Do not use registry for enabling policies
+        bool useRegistry = false;
 
         // Enable UserOp policies
         $userOpPolicies.enable({
