@@ -5,7 +5,7 @@ import { EIP712 } from "solady/utils/EIP712.sol";
 import { ERC1271TestBase } from "./base/ERC1271Base.t.sol";
 
 import { MODULE_TYPE_FALLBACK } from "modulekit/external/ERC7579.sol";
-import { CALLTYPE_SINGLE } from "modulekit/external/ERC7579.sol";
+import { CALLTYPE_SINGLE, CALLTYPE_STATIC } from "modulekit/external/ERC7579.sol";
 
 contract SmartSessionERC1271Test is ERC1271TestBase {
     using ModuleKitHelpers for *;

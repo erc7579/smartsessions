@@ -104,9 +104,6 @@ contract ArgPolicy is IActionPolicy {
                                  ERRORS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Error thrown when attempting to use an uninitialized policy
-    error PolicyNotInitialized(ConfigId id, address mxer, address account);
-
     /// @notice Error thrown when a value exceeds the allowed limit
     error ValueLimitExceeded(ConfigId id, uint256 value, uint256 limit);
 

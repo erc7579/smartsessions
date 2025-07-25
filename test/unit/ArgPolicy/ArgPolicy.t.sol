@@ -199,7 +199,7 @@ contract ArgPolicyUnitTest is BaseTest {
         // Try to check an action without initializing
         vm.prank(MULTIPLEXER);
         vm.expectRevert(
-            abi.encodeWithSelector(ArgPolicy.PolicyNotInitialized.selector, TEST_CONFIG_ID, MULTIPLEXER, ACCOUNT)
+            abi.encodeWithSelector(IPolicy.PolicyNotInitialized.selector, TEST_CONFIG_ID, MULTIPLEXER, ACCOUNT)
         );
         policy.checkAction(TEST_CONFIG_ID, ACCOUNT, address(0), 0, getTestCalldata());
     }
