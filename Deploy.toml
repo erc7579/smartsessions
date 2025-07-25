@@ -1,74 +1,130 @@
 [deployments]
 rpcs = [
-    # "http://localhost:8545",
-
-    # Ethereum 
-    # "https://eth-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
-    "https://eth-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
-
-    # Optimism
-    "https://opt-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
-    "https://opt-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
-
-    # Base
-    "https://base-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
-    "https://base-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
-
-    # Arbitrum
-    "https://arb-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
-    "https://arb-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
-
-    # Polygon
-    "https://polygon-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
-    "https://polygon-amoy.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
-
-    # Gnosis
-    "https://gnosis-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
-    # "https://gnosis-chaido.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
-
-    # Binance Smart Chain
-    "https://bnb-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
-    "https://bnb-testnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
-
-    # Avalanche
-    "https://avax-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
-    "https://avax-fuji.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
-
-    # Scroll
-    "https://scroll-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
-    "https://scroll-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
-
-    # Sonic
-    "https://sonic-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
-    # "https://sonic-blaze.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
-
-    # Fuse
-    "https://rpc.fuse.io",
-    "https://rpc.fusespark.io",
-
-    # Odyssey
-    "https://odyssey.ithaca.xyz/",
+  # "http://localhost:8545",
+# "https://eth-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+# "https://eth-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+# "https://opt-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+# "https://opt-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+ # "https://base-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+"https://base-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+# "https://arb-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+# "https://arb-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+# "https://polygon-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+# "https://polygon-amoy.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+# "https://zksync-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+# "https://zksync-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+# "https://gnosis-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+# "https://bnb-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+# "https://bnb-testnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+# "https://avax-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+# "https://avax-fuji.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+# "https://scroll-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+# "https://scroll-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+# "https://sonic-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+# "https://sonic-blaze.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+# "https://soneium-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+# "https://soneium-minato.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+# "https://rpc.fuse.io",
+# "https://rpc.fusespark.io",
+# "https://odyssey.ithaca.xyz",
+# "https://rpc.garnetchain.com",
+# "https://holesky.drpc.org",
+# "https://berchain-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+# "https://berachain-bartio.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+# "https://blast-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+# "https://blast-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+# "https://worldchain-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+# "https://worldchain-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+# "https://abstract-testnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+# "https://taiko-mainnet.gateway.tenderly.co",
+# "https://taiko-hekla.gateway.tenderly.co",
+# "https://build.onbeam.com/rpc",
+# "https://build.onbeam.com/rpc/testnet",
+# "https://testnet-rpc.monad.xyz",
+# "https://network.ambrosus.io",
+# "https://network.ambrosus-test.io",
+# "https://json-rpc.evm.iotaledger.net",
+# "https://json-rpc.evm.testnet.iotaledger.net",
+# "https://carrot.megaeth.com/rpc",
+# "https://rpc.mantle.xyz",
+# "https://rpc.testnet.mantle.xyz",
+# "https://ink-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+# "https://ink-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+# "https://linea-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+# "https://linea-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+# "https://unichain-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+# "https://zora-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}",
+# "https://zora-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}"
 ]
 
-[deployments.dependencies]
-entrypoint = "0x0000000071727De22E5E9d8BAf0edAc6f37da032"
+[deployments.verifier]
+# required to enable verification
+api_key="${ETHERSCAN_API_KEY}"
 
-[deployments.module.SmartSession]
+[deployments.dependencies]
+
+[deployments.singleton.SmartSession]
 file = "./artifacts/SmartSession/SmartSession.json"
 source_file = "./artifacts/SmartSession/verify.json"
-salt = "0x0000000000000000000000000000000000000000c93fe0497c457402a7e8ed95"
+salt = "0x0000000000000000000000000000000000000000066072549e527e0316b453d1"
+# bytecode_hash = 0xe15e94ef1e3343e682a9ca391be84f74bc4a960590a407b463427901cfa9856a
 
-[deployments.module.SudoPolicy]
+[deployments.singleton.SmartSessionCompatibilityFallback]
+file = "./artifacts/SmartSessionCompatibilityFallback/SmartSessionCompatibilityFallback.json"
+source_file = "./artifacts/SmartSessionCompatibilityFallback/verify.json"
+salt = "0x0000000000000000000000000000000000000000bd02de2f2a620a024262b5ef"
+# bytecode_hash = 0x9df82f3193542334672a50228bc84882ff55b6ee8afc5baaf8b55f4b8f774e24
+
+[deployments.singleton.SudoPolicy]
 file = "./artifacts/SudoPolicy/SudoPolicy.json"
 source_file = "./artifacts/SudoPolicy/verify.json"
-salt = "0x00000000000000000000000000000000000000002e44d3e1fe056402d02e46b9"
+salt = "0x0000000000000000000000000000000000000000d1eec733bed549000f523b0a"
+# bytecode_hash = 0x732c5b6bb56fff80d9afc3553b637f5402a587d2d8af9548bd32bdd22b0bf560
 
-[deployments.module.UniActionPolicy]
+[deployments.singleton.SimpleGasPolicy]
+file = "./artifacts/SimpleGasPolicy/SimpleGasPolicy.json"
+source_file = "./artifacts/SimpleGasPolicy/verify.json"
+salt = "0x00000000000000000000000000000000000000000cc403b5373e8c023efc165f"
+# bytecode_hash = 0x62890f021ef2c21bcf055f46e1121d9f4d027fc01bc9ebef53ceef3bdaf6d9c4
+
+[deployments.singleton.TimeFramePolicy]
+file = "./artifacts/TimeFramePolicy/TimeFramePolicy.json"
+source_file = "./artifacts/TimeFramePolicy/verify.json"
+salt = "0x000000000000000000000000000000000000000016827058156274021b2e77a0"
+# bytecode_hash = 0x833520bd3bffda8e8faa130ea3b0d85da4fa7af5bd6d3c3e45ba0a5010e82ab0
+
+[deployments.singleton.UniActionPolicy]
 file = "./artifacts/UniActionPolicy/UniActionPolicy.json"
 source_file = "./artifacts/UniActionPolicy/verify.json"
-salt = "0x0000000000000000000000000000000000000000013a9fcb74b0b702f204c063"
+salt = "0x0000000000000000000000000000000000000000deaafcb2442a840102a52475"
+# bytecode_hash = 0x0f0cab528f656576ec43373b64563dcae51dbf72baf6f28137fdb37417514ec9
 
-[deployments.module.ERC20SpendingLimitPolicy]
+[deployments.singleton.UsageLimitPolicy]
+file = "./artifacts/UsageLimitPolicy/UsageLimitPolicy.json"
+source_file = "./artifacts/UsageLimitPolicy/verify.json"
+salt = "0x0000000000000000000000000000000000000000f5e289757ebaab02edfbe461"
+# bytecode_hash = 0x708991c466ab1e128a4f3d94f7422a072b6c1742a16bb781c26046339829c832
+
+[deployments.singleton.ValueLimitPolicy]
+file = "./artifacts/ValueLimitPolicy/ValueLimitPolicy.json"
+source_file = "./artifacts/ValueLimitPolicy/verify.json"
+salt = "0x0000000000000000000000000000000000000000bcd01eac5dfec103e11034b0"
+# bytecode_hash = 0xc2e2f191717e68c335f769c06d5565d0847a088e2533af0203d5dbe3eb740e14
+
+[deployments.singleton.ContractWhitelistPolicy]
+file = "./artifacts/ContractWhitelistPolicy/ContractWhitelistPolicy.json"
+source_file = "./artifacts/ContractWhitelistPolicy/verify.json"
+salt = "0x0000000000000000000000000000000000000000e62b22640dfb5f011b8cba18"
+# bytecode_hash = 0x64fbfddbdcf571a139407fb6da798afbaf0988a52b0ce02111c7f6303f71641d
+
+[deployments.singleton.ERC20SpendingLimitPolicy]
 file = "./artifacts/ERC20SpendingLimitPolicy/ERC20SpendingLimitPolicy.json"
 source_file = "./artifacts/ERC20SpendingLimitPolicy/verify.json"
-salt = "0x0000000000000000000000000000000000000000dd33829cc2cff403768e163e"
+salt = "0x000000000000000000000000000000000000000030b6884bb264a803a0602ebb"
+# bytecode_hash = 0x5f8b68a5ad1624c52ebbd645a394666489a64eb7d4d9a7288cc19c7ee6647742
+
+[deployments.singleton.ArgPolicy]
+file = "./artifacts/ArgPolicy/ArgPolicy.json"
+source_file = "./artifacts/ArgPolicy/verify.json"
+salt = "0x0000000000000000000000000000000000000000331937e033a75702af416619"
+# bytecode_hash = 0x45330a6526b8a62326a3934b25dc39de16c38bcee58777c220a753f1db20b151
