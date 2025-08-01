@@ -6,6 +6,7 @@ import { ERC1271TestBase } from "./base/ERC1271Base.t.sol";
 
 import { MODULE_TYPE_FALLBACK } from "modulekit/external/ERC7579.sol";
 import { CALLTYPE_SINGLE, CALLTYPE_STATIC } from "modulekit/external/ERC7579.sol";
+import { AccountType } from "modulekit/test/RhinestoneModuleKit.sol";
 
 contract SmartSessionERC1271Test is ERC1271TestBase {
     using ModuleKitHelpers for *;
@@ -17,11 +18,6 @@ contract SmartSessionERC1271Test is ERC1271TestBase {
 
     function setUp() public virtual override {
         super.setUp();
-
-        fallbackModule = new SmartSessionCompatibilityFallback();
-
-        bytes memory _fallback = abi.encode(EIP712.eip712Domain.selector, CALLTYPE_STATIC, "");
-        instance.installModule({ moduleTypeId: MODULE_TYPE_FALLBACK, module: address(fallbackModule), data: _fallback });
 
         EIP712Domain memory domain = EIP712Domain({
             name: "Forge",

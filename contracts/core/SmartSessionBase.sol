@@ -287,7 +287,7 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
                 permissionId: permissionId,
                 configId: permissionId.toUserOpPolicyId().toConfigId(),
                 policyDatas: session.userOpPolicies,
-                useRegistry: useRegistry
+                useRegistry: false
             });
 
             // Enable ERC1271 policies
@@ -296,16 +296,12 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
                 permissionId: permissionId,
                 configId: permissionId.toErc1271PolicyId().toConfigId(),
                 policyDatas: session.erc7739Policies.erc1271Policies,
-                useRegistry: useRegistry
+                useRegistry: false
             });
             $enabledERC7739.enable(session.erc7739Policies.allowedERC7739Content, permissionId);
 
             // Enable Action policies
-            $actionPolicies.enable({
-                permissionId: permissionId,
-                actionPolicyDatas: session.actions,
-                useRegistry: useRegistry
-            });
+            $actionPolicies.enable({ permissionId: permissionId, actionPolicyDatas: session.actions, useRegistry: false });
 
             // Add the session to the list of enabled sessions for the caller
             $enabledSessions.add({ account: msg.sender, value: PermissionId.unwrap(permissionId) });
@@ -318,7 +314,7 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
                     permissionId: permissionId,
                     sessionValidator: session.sessionValidator,
                     sessionValidatorConfig: session.sessionValidatorInitData,
-                    useRegistry: useRegistry
+                    useRegistry: false
                 });
             }
             permissionIds[i] = permissionId;
@@ -394,7 +390,7 @@ abstract contract SmartSessionBase is ISmartSession, NonceManager {
             sessions.offset := add(dataPointer, 32)
             sessions.length := calldataload(dataPointer)
         }
-        _enableSessions(sessions, mode.useRegistry());
+        _enableSessions(sessions, false);
     }
 
     /**
