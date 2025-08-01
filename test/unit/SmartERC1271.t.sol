@@ -6,7 +6,6 @@ import { ERC1271TestBase } from "./base/ERC1271Base.t.sol";
 
 import { MODULE_TYPE_FALLBACK } from "modulekit/external/ERC7579.sol";
 import { CALLTYPE_SINGLE, CALLTYPE_STATIC } from "modulekit/external/ERC7579.sol";
-import { AccountType } from "modulekit/test/RhinestoneModuleKit.sol";
 
 contract SmartSessionERC1271Test is ERC1271TestBase {
     using ModuleKitHelpers for *;
