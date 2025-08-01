@@ -18,11 +18,6 @@ contract SmartSessionERC1271Test is ERC1271TestBase {
     function setUp() public virtual override {
         super.setUp();
 
-        fallbackModule = new SmartSessionCompatibilityFallback();
-
-        bytes memory _fallback = abi.encode(EIP712.eip712Domain.selector, CALLTYPE_STATIC, "");
-        instance.installModule({ moduleTypeId: MODULE_TYPE_FALLBACK, module: address(fallbackModule), data: _fallback });
-
         EIP712Domain memory domain = EIP712Domain({
             name: "Forge",
             version: "1",

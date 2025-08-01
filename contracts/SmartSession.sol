@@ -155,16 +155,13 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
             revert InvalidEnableSignature(account, hash);
         }
 
-        // Do not use registry for enabling policies
-        bool useRegistry = false;
-
         // Enable UserOp policies
         $userOpPolicies.enable({
             policyType: PolicyType.USER_OP,
             permissionId: permissionId,
             configId: permissionId.toUserOpPolicyId().toConfigId(),
             policyDatas: enableData.sessionToEnable.userOpPolicies,
-            useRegistry: useRegistry
+            useRegistry: false
         });
 
         // Enable ERC1271 policies
@@ -179,14 +176,14 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
             permissionId: permissionId,
             configId: permissionId.toErc1271PolicyId().toConfigId(),
             policyDatas: enableData.sessionToEnable.erc7739Policies.erc1271Policies,
-            useRegistry: useRegistry
+            useRegistry: false
         });
 
         // Enable action policies
         $actionPolicies.enable({
             permissionId: permissionId,
             actionPolicyDatas: enableData.sessionToEnable.actions,
-            useRegistry: useRegistry
+            useRegistry: false
         });
 
         _setPermit4337Paymaster(permissionId, enableData.sessionToEnable.permitERC4337Paymaster);
@@ -202,7 +199,7 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
                 permissionId: permissionId,
                 sessionValidator: enableData.sessionToEnable.sessionValidator,
                 sessionValidatorConfig: enableData.sessionToEnable.sessionValidatorInitData,
-                useRegistry: useRegistry
+                useRegistry: false
             });
         }
 

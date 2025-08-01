@@ -187,7 +187,7 @@ enum PolicyType {
     ERC1271
 }
 
-IRegistry constant registry = IRegistry(0x000000000069E2a187AEFFb852bF3cCdC95151B2);
+IRegistry constant registry = IRegistry(address(0));
 ModuleType constant VALIDATOR_MODULE_TYPE = ModuleType.wrap(ERC7579_MODULE_TYPE_VALIDATOR);
 
 // ActionId for a fallback action policy. This id will be used if both action
