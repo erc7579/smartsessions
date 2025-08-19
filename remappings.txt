@@ -24,3 +24,4 @@ ExcessivelySafeCall/=node_modules/excessively-safe-call/src/
 excessively-safe-call/=node_modules/excessively-safe-call/src/
 flatbytes/=node_modules/@rhinestone/flatbytes/src/
 stringutils/=node_modules/stringutils/src/
+webauthn-sol/=lib/webauthn-sol/src/
