@@ -64,16 +64,20 @@ contract ERC1271TestBase is BaseTest {
         bytes memory signature = abi.encodePacked(
             t.r, t.s, t.v, appDomainSeparator, contents, contentsDescription, uint16(contentsDescription.length)
         );
-        signature = abi.encodePacked(permissionId, signature);
+        signature = abi.encodePacked(
+            permissionId,
+            uint256(32),
+            bytes32(hex"b4b3b4b3b4b3b4b3b4b3b4b3b4b3b4b3b4b3b4b3b4b3b4b3b4b3b44204206969"),
+            signature
+        );
         if (is6492) {
             signature = _erc6492Wrap(signature);
         }
 
         // Success returns `0x1626ba7e`.
         assertEq(
-            IERC1271(t.account).isValidSignature(
-                _toContentsHash(contents), abi.encodePacked(address(smartSession), signature)
-            ),
+            IERC1271(t.account)
+                .isValidSignature(_toContentsHash(contents), abi.encodePacked(address(smartSession), signature)),
             expectSuccess ? bytes4(0x1626ba7e) : bytes4(0xffffffff)
         );
     }
@@ -85,12 +89,7 @@ contract ERC1271TestBase is BaseTest {
         );
     }
 
-    function _toERC1271Hash(
-        address account,
-        bytes32 contents,
-        bytes memory contentsType,
-        bytes memory contentsName
-    )
+    function _toERC1271Hash(address account, bytes32 contents, bytes memory contentsType, bytes memory contentsName)
         internal
         view
         returns (bytes32)
@@ -120,10 +119,7 @@ contract ERC1271TestBase is BaseTest {
         return abi.encode(keccak256(bytes(t.name)), keccak256(bytes(t.version)), t.chainId, t.verifyingContract, t.salt);
     }
 
-    function _typedDataSignTypeHash(
-        bytes memory contentsType,
-        bytes memory contentsName
-    )
+    function _typedDataSignTypeHash(bytes memory contentsType, bytes memory contentsName)
         internal
         pure
         returns (bytes32)
