@@ -416,7 +416,7 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
     {
         bytes32 contentHash = string(contents).hashERC7739Content();
         // isolate the PermissionId and actual signature from the supplied signature param
-        PermissionId permissionId = PermissionId.wrap(bytes32(signature[0:32]));
+        PermissionId permissionId = PermissionId.wrap(bytes32(signature[0:POLICYDATA_LENGTH_OFFSET]));
 
         // forgefmt: disable-next-item
         if (
@@ -426,9 +426,10 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
             || !$enabledERC7739.enabledContentNames[permissionId][appDomainSeparator].contains(msg.sender, contentHash)
         ) return false;
 
+        // Make sure signature length is sufficient
+        if (signature.length < POLICYDATA_OFFSET) return false;
         // Extract the length of the policy data
-        uint256 policyDataLength = uint256(bytes32(signature[32:64]));
-
+        uint256 policyDataLength = uint256(bytes32(signature[POLICYDATA_LENGTH_OFFSET:POLICYDATA_OFFSET]));
         // Calculate remaining signature offset
         uint256 remainingSignatureOffset = 64 + policyDataLength;
 
@@ -437,7 +438,7 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
             account: msg.sender,
             requestSender: sender,
             hash: hash,
-            signature: signature[64:remainingSignatureOffset], // extract policy data from the signature
+            signature: signature[POLICYDATA_OFFSET:remainingSignatureOffset], // extract policy data from the signature
             permissionId: permissionId,
             configId: permissionId.toErc1271PolicyId().toConfigId(),
             minPoliciesToEnforce: 1
@@ -445,6 +446,9 @@ contract SmartSession is ISmartSession, SmartSessionBase, SmartSessionERC7739 {
 
         // if the erc1271 policy check failed, return false
         if (!valid) return valid;
+
+        // Make sure signature length is sufficient
+        if (signature.length < remainingSignatureOffset) return false;
         // this call reverts if the ISessionValidator is not set
         return $sessionValidators.isValidISessionValidator({
             hash: hash,
